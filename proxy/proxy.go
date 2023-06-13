@@ -42,7 +42,7 @@ type DownloadInfo struct {
 }
 
 // proxyData contains contextual information for request and response handlers.
-type UserData struct {
+type proxyData struct {
 	ch chan interface{} // channel to send messages back to the service dispacher
 }
 
@@ -55,7 +55,7 @@ type HttpProxy struct {
 
 func NewHttpProxy(port int, ch chan interface{}) *HttpProxy {
 	processRequest := func(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
-		ctx.UserData = &UserData{ch}
+		ctx.UserData = &proxyData{ch}
 		return req, nil
 	}
 
@@ -98,7 +98,7 @@ func (p *HttpProxy) Stop() {
 
 // processResponse handles HTTP responses from the server.
 func processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
-	data := ctx.UserData.(*UserData)
+	data := ctx.UserData.(*proxyData)
 
 	info := DownloadInfo{
 		StatusCode:  resp.StatusCode,
