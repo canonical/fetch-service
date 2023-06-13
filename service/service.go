@@ -21,10 +21,14 @@ package service
 
 import (
 	"log"
+	"math/rand"
+	"time"
 
 	"github.com/canonical/fetch-service/proxy"
+	"github.com/canonical/fetch-service/session"
 )
 
+// Service implements the fetch service main loop.
 type Service struct {
 	p   *proxy.HttpProxy // proxy instance
 	ch  chan interface{} // channel to get feedback from handlers
@@ -32,6 +36,10 @@ type Service struct {
 }
 
 var proxyNewHttpProxy = proxy.NewHttpProxy
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 func New(opt *Options) *Service {
 
@@ -41,16 +49,21 @@ func New(opt *Options) *Service {
 	return &Service{p: p, opt: opt, ch: ch}
 }
 
+// Start runs the fetch service dispatcher.
 func (s *Service) Start() {
 	log.Printf("Starting service...")
 	s.p.Start()
+
+	_ = session.New() // XXX: to be created using the API
 
 	for {
 		select {
 		case msg := <-s.ch:
 			switch v := msg.(type) {
 			case proxy.DownloadInfo:
-				log.Printf("%s %s: %s (%s)", v.Method, v.URL, v.Status, v.ContentType)
+				log.Printf("[%s] %s %s: %s (%s)", v.SessionId, v.Method, v.URL, v.Status, v.ContentType)
+			case proxy.ProxyAuth:
+				v.Rch <- session.Sessions.CheckAuth(v.Id, v.Pw)
 			default:
 				log.Printf("Unknown message type %T", v)
 			}
