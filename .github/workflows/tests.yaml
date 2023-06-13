@@ -37,7 +37,7 @@ jobs:
           go-version: '1.18'
       - name: Run vet
         run: |
-          go vet ./..
+          go vet ./...
       - name: Build code
         run: |
           go build
