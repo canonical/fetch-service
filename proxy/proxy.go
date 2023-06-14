@@ -92,6 +92,7 @@ func (p *HttpProxy) Stop() {
 	p.srv.Close()
 }
 
+// processRequest handles HTTP requests to the server.
 func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
 	return req, nil
 }
