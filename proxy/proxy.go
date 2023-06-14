@@ -42,29 +42,25 @@ type DownloadInfo struct {
 }
 
 // proxyData contains contextual information for request and response handlers.
-type proxyData struct {
-	ch chan interface{} // channel to send messages back to the service dispacher
-}
+type proxyData struct{}
 
 // HttpProxy implements a proxy that inspects downloaded contents.
 type HttpProxy struct {
 	port  int                      // tcp port the proxy is listening on
+	ch    chan interface{}         // channel to service dispatcher
 	proxy *goproxy.ProxyHttpServer // proxy handler
 	srv   http.Server              // server instance
 }
 
 func NewHttpProxy(port int, ch chan interface{}) *HttpProxy {
-	processRequest := func(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
-		ctx.UserData = &proxyData{ch}
-		return req, nil
-	}
+	p := HttpProxy{port: port, ch: ch}
 
 	proxy := goproxy.NewProxyHttpServer()
-	proxy.OnRequest().DoFunc(processRequest)
-	proxy.OnResponse().DoFunc(processResponse)
+	proxy.OnRequest().DoFunc(p.processRequest)
+	proxy.OnResponse().DoFunc(p.processResponse)
 	proxy.OnRequest().HandleConnectFunc(goproxy.AlwaysMitm)
 
-	p := HttpProxy{port: port, proxy: proxy}
+	p.proxy = proxy
 
 	return &p
 }
@@ -96,10 +92,12 @@ func (p *HttpProxy) Stop() {
 	p.srv.Close()
 }
 
-// processResponse handles HTTP responses from the server.
-func processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
-	data := ctx.UserData.(*proxyData)
+func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+	return req, nil
+}
 
+// processResponse handles HTTP responses from the server.
+func (p *HttpProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
 	info := DownloadInfo{
 		StatusCode:  resp.StatusCode,
 		Status:      resp.Status,
@@ -108,7 +106,7 @@ func processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response 
 		ContentType: resp.Header.Get("Content-Type"),
 	}
 
-	data.ch <- info
+	p.ch <- info
 
 	return resp
 }

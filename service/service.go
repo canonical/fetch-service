@@ -27,7 +27,7 @@ import (
 
 type Service struct {
 	p   *proxy.HttpProxy // proxy instance
-	ch  chan interface{} // channed to get feedback from handlers
+	ch  chan interface{} // channel to get feedback from handlers
 	opt *Options         // configuration options
 }
 
