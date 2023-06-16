@@ -38,7 +38,7 @@ var _ = Suite(&serviceSuite{})
 
 // Check if the proxy is created with the correct port number.
 func (s *serviceSuite) TestProxyPort(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, ch chan interface{}) *proxy.HttpProxy {
+	restorer := service.MockNewHttpProxy(func(port int, spool string, ch chan interface{}) *proxy.HttpProxy {
 		s.port = port
 		return &proxy.HttpProxy{}
 	})

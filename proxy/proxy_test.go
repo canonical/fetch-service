@@ -24,11 +24,14 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/proxy"
 	"github.com/canonical/fetch-service/session"
 )
@@ -43,7 +46,8 @@ var _ = Suite(&proxySuite{})
 func (t *proxySuite) TestProxyDownload(c *C) {
 	// start the fetch service proxy
 	ch := make(chan interface{}, 1)
-	p := proxy.NewHttpProxy(5566, ch)
+	spool := c.MkDir()
+	p := proxy.NewHttpProxy(5566, spool, ch)
 
 	err := p.Start()
 	c.Assert(err, IsNil)
@@ -98,9 +102,17 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 
 	// check downloaded artifact information
 	msg := <-ch
-	info := msg.(proxy.DownloadInfo)
+	info := msg.(metadata.DownloadInfo)
 
 	c.Assert(info.StatusCode, Equals, 200)
 	c.Assert(info.Method, Equals, "GET")
 	c.Assert(info.ContentType, Equals, "application/x-debian-package")
+	c.Assert(info.Digest, Equals, "d8c1f9634007b54c1e9aa3ba3b51395b643933c3")
+	c.Assert(info.Size, Equals, int64(26600))
+
+	// check if file created in spool
+	name := filepath.Join(spool, info.SessionId, "assets", info.Digest, "data.bin")
+	fi, err := os.Stat(name)
+	c.Assert(err, IsNil)
+	c.Assert(fi.Size(), Equals, info.Size)
 }

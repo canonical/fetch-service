@@ -38,6 +38,9 @@ craft tools.`
 var opts struct {
 	// The TCP port the service will listen on.
 	Port int `short:"p" long:"port" description:"Port number" default:"9988"`
+
+	// Path to the local spool containing downloaded files and extracted metadata.
+	Spool string `long:"spool" description:"Path to downloaded dependencies" default:"/var/lib/fetch"`
 }
 
 func main() {
@@ -49,7 +52,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	opt := service.Options{Port: opts.Port}
+	opt := service.Options{
+		Port:  opts.Port,
+		Spool: opts.Spool,
+	}
 
 	svc := service.New(&opt)
 	svc.Start()
