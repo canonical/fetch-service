@@ -30,3 +30,11 @@ type DefaultInspector struct {
 type WhlInspector struct {
 	whlInspector
 }
+
+type AptReleaseInspector struct {
+	aptReleaseInspector
+}
+
+type AptPackagesInspector struct {
+	aptPackagesInspector
+}

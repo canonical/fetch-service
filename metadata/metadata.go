@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gabriel-vasile/mimetype"
@@ -162,18 +163,30 @@ type Inspector interface {
 // inspectors has the list of inspectors to run on each downloaded
 // artifact.
 var inspectors = []Inspector{
-	whlInspector{},     // python wheels
-	defaultInspector{}, // we don't know what this is
+	aptLegacyReleaseInspector{}, // apt legacy per-component Release file
+	aptReleaseInspector{},       // apt Release/InRelease files
+	aptPackagesInspector{},      // apt Packages.xz file
+	whlInspector{},              // python wheels
+	defaultInspector{},          // we don't know what this is
 }
 
 // InspectionContext contains session-specific contextual data for stateful
 // analysis within a fetch session.
 type InspectionContext struct {
-	// some contextual data TBD
+	// releasePackages maps InRelease file digests to Packages.* file digests to metadata.
+	releasePackages map[string]map[string]AptReleasePackages
+	releaseLock     sync.Mutex
+
+	// packagesEntries maps Packages.* file digests to package digest to metadata.
+	packagesEntries map[string]map[string]AptPackagesEntry
+	packagesLock    sync.Mutex
 }
 
 func NewInspectionContext() *InspectionContext {
-	return &InspectionContext{}
+	return &InspectionContext{
+		releasePackages: make(map[string]map[string]AptReleasePackages, 16),
+		packagesEntries: make(map[string]map[string]AptPackagesEntry, 160),
+	}
 }
 
 // Run executes the registered inspectors for the artifact in the
@@ -194,7 +207,7 @@ func (ctx *InspectionContext) RunInspectors(dir string, md *Metadata, di *Downlo
 
 	md.Type = mtype.String()
 
-	if !mtype.Is(di.ContentType) {
+	if len(di.ContentType) > 0 && !mtype.Is(di.ContentType) {
 		log.Printf("warning: file type '%s' doesn't match content type '%s'", mtype.String(), di.ContentType)
 	}
 
@@ -210,6 +223,55 @@ func (ctx *InspectionContext) RunInspectors(dir string, md *Metadata, di *Downlo
 	}
 
 	return nil
+}
+
+func (ctx *InspectionContext) AddReleasePackages(relDigest, digest string, p AptReleasePackages) {
+	ctx.releaseLock.Lock()
+	defer ctx.releaseLock.Unlock()
+
+	if ctx.releasePackages[relDigest] == nil {
+		ctx.releasePackages[relDigest] = make(map[string]AptReleasePackages, 16)
+	}
+	ctx.releasePackages[relDigest][digest] = p
+	//log.Printf("apt releases file: %s %s", digest, p.Path)
+}
+
+func (ctx *InspectionContext) GetReleasePackages(digest string) (relDigest string, p AptReleasePackages, ok bool) {
+	ctx.releaseLock.Lock()
+	defer ctx.releaseLock.Unlock()
+
+	for d, pkgs := range ctx.releasePackages {
+		p, ok = pkgs[digest]
+		if ok {
+			relDigest = d
+			return
+		}
+	}
+	return
+}
+
+func (ctx *InspectionContext) AddPackagesEntry(pkgsDigest, digest string, e AptPackagesEntry) {
+	ctx.packagesLock.Lock()
+	defer ctx.packagesLock.Unlock()
+
+	if ctx.packagesEntries[pkgsDigest] == nil {
+		ctx.packagesEntries[pkgsDigest] = make(map[string]AptPackagesEntry)
+	}
+	ctx.packagesEntries[pkgsDigest][digest] = e
+}
+
+func (ctx *InspectionContext) GetPackagesEntry(digest string) (pkgsDigest string, e AptPackagesEntry, ok bool) {
+	ctx.packagesLock.Lock()
+	defer ctx.packagesLock.Unlock()
+
+	for d, entries := range ctx.packagesEntries {
+		e, ok = entries[digest]
+		if ok {
+			pkgsDigest = d
+			return
+		}
+	}
+	return
 }
 
 // findCallerInspector returns the name of the inspector that called
