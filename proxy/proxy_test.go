@@ -24,8 +24,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -97,22 +95,20 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 
 	defer resp.Body.Close()
 
-	_, err = io.ReadAll(resp.Body)
-	c.Assert(err, IsNil)
+	go func(body io.ReadCloser) {
+		_, err = io.ReadAll(body)
+		c.Assert(err, IsNil)
+	}(resp.Body)
 
-	// check downloaded artifact information
+	// check downloaded file information
 	msg := <-ch
-	info := msg.(metadata.DownloadInfo)
+	v := msg.(metadata.FileDownload)
 
-	c.Assert(info.StatusCode, Equals, 200)
-	c.Assert(info.Method, Equals, "GET")
-	c.Assert(info.ContentType, Equals, "application/x-debian-package")
-	c.Assert(info.Digest, Equals, "d8c1f9634007b54c1e9aa3ba3b51395b643933c3")
-	c.Assert(info.Size, Equals, int64(26600))
+	c.Assert(v.Md.Sha1, Equals, "d8c1f9634007b54c1e9aa3ba3b51395b643933c3")
+	c.Assert(v.Info.StatusCode, Equals, 200)
+	c.Assert(v.Info.Method, Equals, "GET")
+	c.Assert(v.Info.ContentType, Equals, "application/x-debian-package")
 
-	// check if file created in spool
-	name := filepath.Join(spool, info.SessionId, "assets", info.Digest, "data.bin")
-	fi, err := os.Stat(name)
-	c.Assert(err, IsNil)
-	c.Assert(fi.Size(), Equals, info.Size)
+	// no handling errors
+	v.Rch <- nil
 }

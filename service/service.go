@@ -22,6 +22,9 @@ package service
 import (
 	"log"
 	"math/rand"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/canonical/fetch-service/metadata"
@@ -43,7 +46,6 @@ func init() {
 }
 
 func New(opt *Options) *Service {
-
 	ch := make(chan interface{})
 	p := proxyNewHttpProxy(opt.Port, opt.Spool, ch)
 
@@ -51,20 +53,72 @@ func New(opt *Options) *Service {
 }
 
 // Start runs the fetch service dispatcher.
-func (s *Service) Start() {
+func (svc *Service) Start() {
 	log.Printf("Starting service...")
-	s.p.Start()
+	svc.p.Start()
 
-	_ = session.New() // XXX: to be created using the API
+	_ = session.New() // FIXME: to be created using the API
+	defer session.FinishAll()
 
+	// Shut down gracefully if terminated.
+	cs := make(chan os.Signal, 1)
+	signal.Notify(cs, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		sig := <-cs
+		svc.ch <- sig
+	}()
+
+dispatcherLoop:
 	for {
 		select {
-		case msg := <-s.ch:
+		case msg := <-svc.ch:
 			switch v := msg.(type) {
-			case metadata.DownloadInfo:
-				log.Printf("[%s] %s %s: %s (%s)", v.SessionId, v.Method, v.URL, v.Status, v.ContentType)
+			case metadata.FileDownload:
+				assetDir := v.Md.AssetDir
+				sessionId, digest := v.Info.SessionId, v.Md.Sha1
+
+				s := session.GetSession(sessionId)
+				if s == nil {
+					log.Printf("warning: session %s is not active", sessionId)
+					break
+				}
+
+				// Add download info to artifact metadata
+				log.Printf("[%s] %s %s: %s (%s)", sessionId, v.Info.Method, v.Info.URL, v.Info.Status, v.Info.ContentType)
+
+				if s.HasMetadata(digest) {
+					s.AddDownloadInfo(v.Info)
+					break
+
+				}
+				s.AddMetadata(&v.Md)
+				if err := s.SaveData(digest); err != nil {
+					v.Rch <- err
+					break
+				}
+
+				s.AddDownloadInfo(v.Info)
+
+				go func(md *metadata.Metadata, di *metadata.DownloadInfo, ch chan error) {
+					// Extract metadata from file
+					if err := s.Ctx.RunInspectors(assetDir, md, di); err != nil {
+						log.Printf("error: %v", err)
+						ch <- err
+						return
+					}
+
+					log.Printf("[%s] artifact %s %d (%s)", sessionId, digest, md.Size, md.Type)
+					ch <- nil
+				}(&v.Md, &v.Info, v.Rch)
+
 			case proxy.ProxyAuth:
 				v.Rch <- session.CheckAuth(v.Id, v.Pw)
+
+			case os.Signal:
+				if v == syscall.SIGINT {
+					break dispatcherLoop
+				}
+
 			default:
 				log.Printf("Unknown message type %T", v)
 			}

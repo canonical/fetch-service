@@ -22,11 +22,9 @@ package proxy
 import (
 	"crypto/sha1"
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"hash"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -65,8 +63,9 @@ func NewFileDownloadHandler(resp *http.Response, spool string, ch chan interface
 	h := &FileDownloadHandler{
 		ch: ch,
 		info: metadata.DownloadInfo{
-			StartTime:      time.Now(),
+			StartTime:      time.Now().UTC(),
 			URL:            req.URL.String(),
+			Address:        req.RemoteAddr,
 			Method:         req.Method,
 			UserAgent:      req.Header.Get("User-Agent"),
 			StatusCode:     resp.StatusCode,
@@ -121,90 +120,23 @@ func (h *FileDownloadHandler) Close() error {
 	sha256 := fmt.Sprintf("%x", h.sha256.Sum(nil))
 
 	// update download information
-	h.info.EndTime = time.Now()
-	h.info.Digest = sha1
-	h.info.Size = h.size
+	h.info.EndTime = time.Now().UTC()
+	h.info.Sha1 = sha1
 
-	fi := metadata.FileInfo{
-		Size:   h.size,
-		Sha1:   sha1,
-		Sha256: sha256,
+	md := metadata.Metadata{
+		Size:        h.size,
+		Sha1:        sha1,
+		Sha256:      sha256,
+		Annotations: metadata.AnnotationMap{},
+		AssetDir:    h.assetDir,
+		Tempfile:    h.tempfile.Name(),
 	}
 
-	dir := filepath.Join(h.assetDir, sha1)
-
-	// save file data
-	if err := saveFile(dir, h.tempfile.Name()); err != nil {
-		return err
+	fd := metadata.NewFileDownload(md, h.info)
+	h.ch <- fd
+	if err := <-fd.Rch; err != nil {
+		return fmt.Errorf("Error saving download data for asset %s", sha1)
 	}
-
-	// save file metadata
-	if err := saveFileMetadata(dir, fi); err != nil {
-		return err
-	}
-
-	// save download metadata
-	if err := saveDownloadMetadata(dir, h.info); err != nil {
-		return err
-	}
-
-	h.ch <- h.info
 
 	return res
-}
-
-func saveFile(dir, tempname string) error {
-	dest := filepath.Join(dir, "data.bin")
-	if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
-		return err
-	}
-
-	if _, err := os.Stat(dest); err != nil {
-		if os.IsNotExist(err) {
-			if err := os.Rename(tempname, dest); err != nil {
-				os.Remove(tempname)
-				return err
-			}
-		} else {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func saveFileMetadata(dir string, fi metadata.FileInfo) error {
-	j, err := json.MarshalIndent(fi, "", "\t")
-	if err != nil {
-		return err
-	}
-
-	dest := filepath.Join(dir, "metadata.json")
-	if err := ioutil.WriteFile(dest, j, 0644); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func saveDownloadMetadata(dir string, info metadata.DownloadInfo) error {
-	for i := 0; ; i++ {
-		name := fmt.Sprintf("%08d.json", i)
-		dest := filepath.Join(dir, name)
-		if _, err := os.Stat(dest); err != nil {
-			if os.IsNotExist(err) {
-				// create file
-				j, err := json.MarshalIndent(info, "", "\t")
-				if err != nil {
-					return err
-				}
-				if err := ioutil.WriteFile(dest, j, 0644); err != nil {
-					return err
-				}
-			} else {
-				return err
-			}
-			return nil
-		}
-	}
 }
