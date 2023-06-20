@@ -63,7 +63,7 @@ func (s *Service) Start() {
 			case proxy.DownloadInfo:
 				log.Printf("[%s] %s %s: %s (%s)", v.SessionId, v.Method, v.URL, v.Status, v.ContentType)
 			case proxy.ProxyAuth:
-				v.Rch <- session.Sessions.CheckAuth(v.Id, v.Pw)
+				v.Rch <- session.CheckAuth(v.Id, v.Pw)
 			default:
 				log.Printf("Unknown message type %T", v)
 			}

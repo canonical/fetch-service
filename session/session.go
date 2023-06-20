@@ -50,7 +50,7 @@ func New() *Session {
 	}
 
 	log.Printf("creating session %s", s.Id)
-	Sessions[s.Id] = s
+	sessions[s.Id] = s
 
 	return s
 }
@@ -62,7 +62,7 @@ func (s *Session) Discard() {
 		return
 	}
 	log.Printf("discarding session %s", s.Id)
-	delete(Sessions, s.Id)
+	delete(sessions, s.Id)
 }
 
 // Generate a unique session ID
@@ -85,11 +85,11 @@ func randomStringImpl(length int) string {
 // SessionMap keeps track of all active sessions.
 type SessionMap map[string]*Session
 
-var Sessions = SessionMap{}
+var sessions = SessionMap{}
 
 // CheckAuth verifies if the given credentials are valid and match an active session.
-func (m SessionMap) CheckAuth(id string, pw string) bool {
-	s, ok := Sessions[id]
+func CheckAuth(id string, pw string) bool {
+	s, ok := sessions[id]
 	if !ok {
 		return false
 	}
@@ -98,6 +98,6 @@ func (m SessionMap) CheckAuth(id string, pw string) bool {
 
 // IsActive checks whether the given id corresponds to an active session.
 func IsActive(id string) bool {
-	_, ok := Sessions[id]
+	_, ok := sessions[id]
 	return ok
 }

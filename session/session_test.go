@@ -84,8 +84,8 @@ func (t *sessionSuite) TestCheckAuth(c *C) {
 	s := session.New()
 	defer s.Discard()
 
-	c.Assert(session.Sessions.CheckAuth("foo", "bar"), Equals, false)
-	c.Assert(session.Sessions.CheckAuth(s.Id, s.Pw), Equals, true)
+	c.Assert(session.CheckAuth("foo", "bar"), Equals, false)
+	c.Assert(session.CheckAuth(s.Id, s.Pw), Equals, true)
 }
 
 func (t *sessionSuite) TestIsActive(c *C) {
