@@ -30,6 +30,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/proxy"
+	"github.com/canonical/fetch-service/session"
 )
 
 func Test(t *testing.T) { TestingT(t) }
@@ -39,7 +40,7 @@ type proxySuite struct{}
 var _ = Suite(&proxySuite{})
 
 // Test file transfer using the proxy.
-func (s *proxySuite) TestProxyDownload(c *C) {
+func (t *proxySuite) TestProxyDownload(c *C) {
 	// start the fetch service proxy
 	ch := make(chan interface{}, 1)
 	p := proxy.NewHttpProxy(5566, ch)
@@ -50,21 +51,38 @@ func (s *proxySuite) TestProxyDownload(c *C) {
 
 	time.Sleep(1 * time.Second)
 
-	// download a test file
-	proxyURL, err := url.Parse("http://localhost:5566")
-	c.Assert(err, IsNil)
+	// create a new session
+	s := session.New()
+	defer s.Discard()
 
-	url, err := url.Parse("https://launchpadlibrarian.net:443/592566337/hello_2.10-2ubuntu4_amd64.deb")
+	// download a test file
+	proxyURL := url.URL{
+		Scheme: "http",
+		User:   url.UserPassword(s.Id, s.Pw),
+		Host:   "localhost:5566",
+	}
+
+	url, err := url.Parse("https://launchpadlibrarian.net/592566337/hello_2.10-2ubuntu4_amd64.deb")
 	c.Assert(err, IsNil)
 
 	transport := &http.Transport{
-		Proxy:           http.ProxyURL(proxyURL),
+		Proxy:           http.ProxyURL(&proxyURL),
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{
 		Transport: transport,
 		Timeout:   30 * time.Second,
 	}
+
+	// authorize download
+	go func() {
+		msg := <-ch
+		auth := msg.(proxy.ProxyAuth)
+		c.Assert(auth.Id, Equals, s.Id)
+		c.Assert(auth.Pw, Equals, s.Pw)
+		auth.Rch <- true
+
+	}()
 
 	req, err := http.NewRequest("GET", url.String(), nil)
 	c.Assert(err, IsNil)

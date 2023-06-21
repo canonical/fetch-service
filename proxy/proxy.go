@@ -27,6 +27,13 @@ import (
 	"time"
 
 	"github.com/elazarl/goproxy"
+
+	"github.com/canonical/fetch-service/proxy/auth"
+)
+
+const (
+	sessionIdHeader = "X-Fetch-Session-Id"
+	authRealm       = "fetch-service"
 )
 
 // DownloadInfo holds information about each downloaded artifact.
@@ -37,8 +44,16 @@ type DownloadInfo struct {
 	URL         string
 	ContentType string
 	UserAgent   string
+	SessionId   string
 	// Size
 	// Digest
+}
+
+// ProxyAuth contains credentials for basic authentication.
+type ProxyAuth struct {
+	Rch chan bool // return channel
+	Id  string    // user (session id)
+	Pw  string    // password
 }
 
 // proxyData contains contextual information for request and response handlers.
@@ -53,9 +68,21 @@ type HttpProxy struct {
 }
 
 func NewHttpProxy(port int, ch chan interface{}) *HttpProxy {
+	basicAuth := func(req *http.Request, user, passwd string) bool {
+		req.Header.Set(sessionIdHeader, user)
+		rch := make(chan bool)
+		ch <- ProxyAuth{rch, user, passwd}
+		return <-rch
+	}
+
 	p := HttpProxy{port: port, ch: ch}
 
 	proxy := goproxy.NewProxyHttpServer()
+	//proxy.Verbose = true
+
+	// Set up proxy authentication
+	auth.ProxyBasic(proxy, authRealm, basicAuth)
+
 	proxy.OnRequest().DoFunc(p.processRequest)
 	proxy.OnResponse().DoFunc(p.processResponse)
 	proxy.OnRequest().HandleConnectFunc(goproxy.AlwaysMitm)
@@ -94,17 +121,29 @@ func (p *HttpProxy) Stop() {
 
 // processRequest handles HTTP requests to the server.
 func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+	if ctx.UserData != nil {
+		sessionId, ok := ctx.UserData.(string)
+		if ok {
+			// Set session ID in mitm requests
+			req.Header.Set(sessionIdHeader, sessionId)
+		}
+	}
 	return req, nil
 }
 
 // processResponse handles HTTP responses from the server.
 func (p *HttpProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
+	if resp == nil || resp.StatusCode != 200 {
+		return resp
+	}
+
 	info := DownloadInfo{
 		StatusCode:  resp.StatusCode,
 		Status:      resp.Status,
 		Method:      resp.Request.Method,
 		URL:         resp.Request.URL.String(),
 		ContentType: resp.Header.Get("Content-Type"),
+		SessionId:   resp.Request.Header.Get(sessionIdHeader),
 	}
 
 	p.ch <- info
