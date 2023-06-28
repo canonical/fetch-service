@@ -36,19 +36,6 @@ const (
 	authRealm       = "fetch-service"
 )
 
-// DownloadInfo holds information about each downloaded artifact.
-type DownloadInfo struct {
-	StatusCode  int
-	Status      string
-	Method      string
-	URL         string
-	ContentType string
-	UserAgent   string
-	SessionId   string
-	// Size
-	// Digest
-}
-
 // ProxyAuth contains credentials for basic authentication.
 type ProxyAuth struct {
 	Rch chan bool // return channel
@@ -63,11 +50,12 @@ type proxyData struct{}
 type HttpProxy struct {
 	port  int                      // tcp port the proxy is listening on
 	ch    chan interface{}         // channel to service dispatcher
+	spool string                   // path to file spool
 	proxy *goproxy.ProxyHttpServer // proxy handler
 	srv   http.Server              // server instance
 }
 
-func NewHttpProxy(port int, ch chan interface{}) *HttpProxy {
+func NewHttpProxy(port int, spool string, ch chan interface{}) *HttpProxy {
 	basicAuth := func(req *http.Request, user, passwd string) bool {
 		req.Header.Set(sessionIdHeader, user)
 		rch := make(chan bool)
@@ -75,7 +63,7 @@ func NewHttpProxy(port int, ch chan interface{}) *HttpProxy {
 		return <-rch
 	}
 
-	p := HttpProxy{port: port, ch: ch}
+	p := HttpProxy{port: port, ch: ch, spool: spool}
 
 	proxy := goproxy.NewProxyHttpServer()
 	//proxy.Verbose = true
@@ -133,20 +121,15 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 
 // processResponse handles HTTP responses from the server.
 func (p *HttpProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
-	if resp == nil || resp.StatusCode != 200 {
+	if resp == nil || resp.StatusCode != http.StatusOK {
 		return resp
 	}
 
-	info := DownloadInfo{
-		StatusCode:  resp.StatusCode,
-		Status:      resp.Status,
-		Method:      resp.Request.Method,
-		URL:         resp.Request.URL.String(),
-		ContentType: resp.Header.Get("Content-Type"),
-		SessionId:   resp.Request.Header.Get(sessionIdHeader),
+	var err error
+	resp.Body, err = NewFileDownloadHandler(resp, p.spool, p.ch)
+	if err != nil {
+		return internalErrorResponse(resp.Request, "Cannot handle file downloads")
 	}
-
-	p.ch <- info
 
 	return resp
 }
@@ -167,4 +150,8 @@ func (ln tcpKeepAliveListener) Accept() (net.Conn, error) {
 	tc.SetKeepAlive(true)
 	tc.SetKeepAlivePeriod(3 * time.Minute)
 	return tc, nil
+}
+
+func internalErrorResponse(r *http.Request, msg string) *http.Response {
+	return goproxy.NewResponse(r, goproxy.ContentTypeText, http.StatusInternalServerError, msg)
 }

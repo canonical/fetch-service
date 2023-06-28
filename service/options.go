@@ -20,5 +20,6 @@
 package service
 
 type Options struct {
-	Port int
+	Port  int    // proxy port number
+	Spool string // path to the local file spool
 }

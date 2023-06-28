@@ -24,6 +24,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/proxy"
 	"github.com/canonical/fetch-service/session"
 )
@@ -44,7 +45,7 @@ func init() {
 func New(opt *Options) *Service {
 
 	ch := make(chan interface{})
-	p := proxyNewHttpProxy(opt.Port, ch)
+	p := proxyNewHttpProxy(opt.Port, opt.Spool, ch)
 
 	return &Service{p: p, opt: opt, ch: ch}
 }
@@ -60,7 +61,7 @@ func (s *Service) Start() {
 		select {
 		case msg := <-s.ch:
 			switch v := msg.(type) {
-			case proxy.DownloadInfo:
+			case metadata.DownloadInfo:
 				log.Printf("[%s] %s %s: %s (%s)", v.SessionId, v.Method, v.URL, v.Status, v.ContentType)
 			case proxy.ProxyAuth:
 				v.Rch <- session.CheckAuth(v.Id, v.Pw)
