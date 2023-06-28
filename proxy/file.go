@@ -27,6 +27,7 @@ import (
 	"hash"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -88,12 +89,17 @@ func NewFileDownloadHandler(resp *http.Response, spool string, ch chan interface
 // Read transfers data, computes digests and writes to a local copy of the file.
 func (h *FileDownloadHandler) Read(b []byte) (n int, err error) {
 	n, err = h.body.Read(b)
+	if err != nil && err != io.EOF {
+		return
+	}
+
 	h.size += int64(n)
 	h.sha1.Write(b[:n])
 	h.sha256.Write(b[:n])
 
 	size, e2 := h.tempfile.Write(b[:n])
 	if e2 != nil {
+		err = e2
 		return
 	}
 	if size != n {
@@ -106,8 +112,10 @@ func (h *FileDownloadHandler) Read(b []byte) (n int, err error) {
 
 // Close finalizes the transfer and writes metadata files to the spool.
 func (h *FileDownloadHandler) Close() error {
-	h.body.Close()
-	h.tempfile.Close()
+	res := h.body.Close()
+	if err := h.tempfile.Close(); err != nil {
+		log.Printf("warning: %v", err)
+	}
 
 	sha1 := fmt.Sprintf("%x", h.sha1.Sum(nil))
 	sha256 := fmt.Sprintf("%x", h.sha256.Sum(nil))
@@ -142,7 +150,7 @@ func (h *FileDownloadHandler) Close() error {
 
 	h.ch <- h.info
 
-	return h.body.Close()
+	return res
 }
 
 func saveFile(dir, tempname string) error {
