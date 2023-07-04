@@ -19,6 +19,14 @@
 
 package metadata
 
+var (
+	ZipMatches = zipMatches
+)
+
 type DefaultInspector struct {
 	defaultInspector
+}
+
+type WhlInspector struct {
+	whlInspector
 }
