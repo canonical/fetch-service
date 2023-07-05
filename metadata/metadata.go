@@ -148,8 +148,8 @@ func NewFileDownload(md Metadata, info DownloadInfo) FileDownload {
 type Inspector interface {
 	// Inspect extracts metadata from the given artifact and
 	// populates the metadata structure, returning whether
-	// the artifact should be further examined by other
-	// inspectors.
+	// the artifact was identified and no further examination
+	// by other inspectors is required.
 	Inspect(string, *Metadata, *DownloadInfo, *InspectionContext) (bool, error)
 }
 
@@ -170,7 +170,7 @@ func NewInspectionContext() *InspectionContext {
 }
 
 // Run executes the registered inspectors for the artifact in the
-// given directory, populating the file information instance fi.
+// given directory, populating the metadata structure md.
 func (ctx *InspectionContext) RunInspectors(dir string, md *Metadata, di *DownloadInfo) error {
 	// detect file type
 	filename := filepath.Join(dir, fmt.Sprintf("%s.bin", md.Sha1))
