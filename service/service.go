@@ -88,6 +88,7 @@ dispatcherLoop:
 
 				if s.HasMetadata(digest) {
 					s.AddDownloadInfo(v.Info)
+					v.Rch <- nil
 					break
 
 				}

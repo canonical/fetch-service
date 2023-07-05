@@ -137,7 +137,7 @@ type FileDownload struct {
 
 func NewFileDownload(md Metadata, info DownloadInfo) FileDownload {
 	return FileDownload{
-		Rch:  make(chan error),
+		Rch:  make(chan error, 1),
 		Md:   md,
 		Info: info,
 	}

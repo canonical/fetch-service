@@ -135,7 +135,7 @@ func (h *FileDownloadHandler) Close() error {
 	fd := metadata.NewFileDownload(md, h.info)
 	h.ch <- fd
 	if err := <-fd.Rch; err != nil {
-		return fmt.Errorf("Error saving download data for asset %s", sha1)
+		return fmt.Errorf("Error saving download data for asset %s: %v", sha1, err)
 	}
 
 	return res
