@@ -20,11 +20,17 @@
 package session_test
 
 import (
+	"encoding/json"
+	"errors"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/session"
 )
 
@@ -88,12 +94,101 @@ func (t *sessionSuite) TestCheckAuth(c *C) {
 	c.Assert(session.CheckAuth(s.Id, s.Pw), Equals, true)
 }
 
-func (t *sessionSuite) TestIsActive(c *C) {
+func (t *sessionSuite) TestAddMetadata(c *C) {
 	s := session.New()
 	defer s.Discard()
 
-	c.Assert(session.IsActive("foo"), Equals, false)
-	c.Assert(session.IsActive(s.Id), Equals, true)
-	s.Discard()
-	c.Assert(session.IsActive(s.Id), Equals, false)
+	c.Assert(s.Md, HasLen, 0)
+	c.Assert(s.HasMetadata("my-sha1-digest"), Equals, false)
+
+	md := &metadata.Metadata{Name: "test-metadata", Sha1: "my-sha1-digest"}
+	s.AddMetadata(md)
+	c.Assert(s.Md["my-sha1-digest"].Name, Equals, "test-metadata")
+	c.Assert(s.HasMetadata("my-sha1-digest"), Equals, true)
+}
+
+func (t *sessionSuite) TestAddDownloadInfo(c *C) {
+	s := session.New()
+	defer s.Discard()
+
+	md := &metadata.Metadata{Name: "test-metadata", Sha1: "my-sha1-digest"}
+	s.AddMetadata(md)
+
+	di := metadata.DownloadInfo{URL: "https://foo.bar", Sha1: "my-sha1-digest"}
+	s.AddDownloadInfo(di)
+	c.Assert(s.Md["my-sha1-digest"].Downloads[0].URL, Equals, "https://foo.bar")
+
+	di.URL = "https://another/url"
+	s.AddDownloadInfo(di)
+	c.Assert(s.Md["my-sha1-digest"].Downloads[0].URL, Equals, "https://foo.bar")
+	c.Assert(s.Md["my-sha1-digest"].Downloads[1].URL, Equals, "https://another/url")
+}
+
+func (t *sessionSuite) TestAddInvalidDownloadInfo(c *C) {
+	s := session.New()
+	defer s.Discard()
+
+	md := &metadata.Metadata{Name: "test-metadata", Sha1: "my-sha1-digest"}
+	s.AddMetadata(md)
+
+	// adding an invalid sha1 must not crash the server
+	di := metadata.DownloadInfo{URL: "https://foo.bar", Sha1: "another-sha1-digest"}
+	s.AddDownloadInfo(di)
+}
+
+func (t *sessionSuite) TestSaveData(c *C) {
+	s := session.New()
+	defer s.Discard()
+
+	tmp := c.MkDir()
+	tempfile := filepath.Join(tmp, "tempfile")
+
+	md := &metadata.Metadata{Name: "test-metadata", Sha1: "my-sha1-digest", AssetDir: tmp, Tempfile: tempfile}
+	s.AddMetadata(md)
+
+	content := []byte("hello world")
+	err := ioutil.WriteFile(tempfile, content, 0644)
+	c.Assert(err, IsNil)
+
+	err = s.SaveData("my-sha1-digest")
+	c.Assert(err, IsNil)
+
+	// data is stored in file named after the digest value
+	data, err := ioutil.ReadFile(filepath.Join(tmp, "my-sha1-digest.bin"))
+	c.Assert(err, IsNil)
+	c.Assert(data, DeepEquals, []byte("hello world"))
+
+	// see if temporary file deleted
+	_, err = os.Stat(tempfile)
+	c.Assert(errors.Is(err, os.ErrNotExist), Equals, true)
+}
+
+func (t *sessionSuite) TestSaveMetadata(c *C) {
+	s := session.New()
+	defer s.Discard()
+
+	tmp := c.MkDir()
+
+	md := &metadata.Metadata{Name: "test-metadata", Sha1: "my-sha1-digest", AssetDir: tmp}
+	s.AddMetadata(md)
+
+	err := s.SaveMetadata("my-sha1-digest")
+	c.Assert(err, IsNil)
+
+	data, err := ioutil.ReadFile(filepath.Join(tmp, "my-sha1-digest.json"))
+	var j metadata.Metadata
+	err = json.Unmarshal(data, &j)
+	c.Assert(err, IsNil)
+	c.Assert(j.Name, Equals, "test-metadata")
+}
+
+func (t *sessionSuite) TestGetSession(c *C) {
+	m := session.GetSession("invalid-session-id")
+	c.Assert(m, IsNil)
+
+	s := session.New()
+	defer s.Discard()
+
+	m = session.GetSession(s.Id)
+	c.Assert(m, Equals, s)
 }

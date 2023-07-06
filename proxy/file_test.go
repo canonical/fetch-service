@@ -21,11 +21,9 @@ package proxy_test
 
 import (
 	"bytes"
-	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"path/filepath"
 
 	. "gopkg.in/check.v1"
 
@@ -40,7 +38,7 @@ var _ = Suite(&fileSuite{})
 func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	ch := make(chan interface{}, 1)
 	body := ioutil.NopCloser(bytes.NewBufferString("Request body"))
-	req, err := http.NewRequest("PUT", "http://foo/bar", body)
+	req, err := http.NewRequest("GET", "http://foo/bar", body)
 	req.Header.Set("User-Agent", "test/1.0")
 	c.Assert(err, IsNil)
 
@@ -58,47 +56,34 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	h, err := proxy.NewFileDownloadHandler(resp, dir, ch)
 	c.Assert(err, IsNil)
 
-	data, err := ioutil.ReadAll(h)
-	h.Close()
-	c.Assert(err, IsNil)
-	c.Assert(string(data), Equals, "Response body")
+	go func(body io.ReadCloser) {
+		data, err := ioutil.ReadAll(body)
+		body.Close()
+		c.Assert(err, IsNil)
+		c.Assert(string(data), Equals, "Response body")
+	}(h)
 
-	// check file copy
-	fp := filepath.Join(dir, "assets", "176070ca20a7563bed4cef2212a9be37af09f14a", "data.bin")
-	content, err := os.ReadFile(fp)
-	c.Assert(err, IsNil)
-	c.Assert(string(content), Equals, "Response body")
+	msg := <-ch
+	v := msg.(metadata.FileDownload)
 
 	// check file metadata
-	fp = filepath.Join(dir, "assets", "176070ca20a7563bed4cef2212a9be37af09f14a", "metadata.json")
-	content, err = os.ReadFile(fp)
-	c.Assert(err, IsNil)
+	c.Assert(v.Md.Sha1, Equals, "176070ca20a7563bed4cef2212a9be37af09f14a")
+	c.Assert(v.Md.Sha256, Equals, "f736153d1508e544b6c5ea19e3c2b7448d9af33608d195195e748cb54965e61b")
+	c.Assert(v.Md.Size, Equals, int64(13))
 
-	<-ch
+	// check download info
+	c.Assert(v.Info.StatusCode, Equals, 200)
+	c.Assert(v.Info.Status, Equals, "200 'Tis good")
+	c.Assert(v.Info.Method, Equals, "GET")
+	c.Assert(v.Info.URL, Equals, "http://foo/bar")
+	c.Assert(v.Info.ContentType, Equals, "application/x-test")
+	c.Assert(v.Info.ResponseHeader["Content-Type"][0], Equals, "application/x-test")
+	c.Assert(v.Info.Sha1, Equals, "176070ca20a7563bed4cef2212a9be37af09f14a")
 
-	finfo := metadata.FileInfo{}
-	err = json.Unmarshal(content, &finfo)
-	c.Assert(err, IsNil)
-	c.Assert(finfo.Size, Equals, int64(13))
-	c.Assert(finfo.Sha1, Equals, "176070ca20a7563bed4cef2212a9be37af09f14a")
-	c.Assert(finfo.Sha256, Equals, "f736153d1508e544b6c5ea19e3c2b7448d9af33608d195195e748cb54965e61b")
-
-	// check download metadata
-	fp = filepath.Join(dir, "assets", "176070ca20a7563bed4cef2212a9be37af09f14a", "00000000.json")
-	content, err = os.ReadFile(fp)
-	c.Assert(err, IsNil)
-
-	dinfo := metadata.DownloadInfo{}
-	err = json.Unmarshal(content, &dinfo)
-	c.Assert(err, IsNil)
-	c.Assert(dinfo.StatusCode, Equals, 200)
-	c.Assert(dinfo.Status, Equals, "200 'Tis good")
-	c.Assert(dinfo.URL, Equals, "http://foo/bar")
-	c.Assert(dinfo.ContentType, Equals, "application/x-test")
-	c.Assert(dinfo.ResponseHeader["Content-Type"][0], Equals, "application/x-test")
+	v.Rch <- nil
 
 	// download it again
-	req, err = http.NewRequest("PUT", "http://different/url", body)
+	req, err = http.NewRequest("POST", "http://different/url", body)
 	c.Assert(err, IsNil)
 
 	resp = &http.Response{
@@ -111,21 +96,23 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	h, err = proxy.NewFileDownloadHandler(resp, dir, ch)
 	c.Assert(err, IsNil)
 
-	_, err = ioutil.ReadAll(h)
-	h.Close()
-	c.Assert(err, IsNil)
+	go func(body io.ReadCloser) {
+		_, err = ioutil.ReadAll(body)
+		body.Close()
+		c.Assert(err, IsNil)
+	}(h)
 
-	<-ch
+	msg = <-ch
+	v = msg.(metadata.FileDownload)
 
-	// check new download metadata
-	fp = filepath.Join(dir, "assets", "176070ca20a7563bed4cef2212a9be37af09f14a", "00000001.json")
-	content, err = os.ReadFile(fp)
-	c.Assert(err, IsNil)
+	// check file metadata
+	c.Assert(v.Md.Sha1, Equals, "176070ca20a7563bed4cef2212a9be37af09f14a")
 
-	dinfo = metadata.DownloadInfo{}
-	err = json.Unmarshal(content, &dinfo)
-	c.Assert(err, IsNil)
-	c.Assert(dinfo.StatusCode, Equals, 200)
-	c.Assert(dinfo.Status, Equals, "200 Still good")
-	c.Assert(dinfo.URL, Equals, "http://different/url")
+	// check download info
+	c.Assert(v.Info.StatusCode, Equals, 200)
+	c.Assert(v.Info.Status, Equals, "200 Still good")
+	c.Assert(v.Info.Method, Equals, "POST")
+	c.Assert(v.Info.URL, Equals, "http://different/url")
+
+	v.Rch <- nil
 }
