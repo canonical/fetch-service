@@ -61,7 +61,10 @@ func (s *whlSuite) TestWhlInspector(c *C) {
 	tmp := c.MkDir()
 	dest, err := os.Create(filepath.Join(tmp, "my-sha1-digest.bin"))
 	c.Assert(err, IsNil)
-	io.Copy(dest, resp.Body)
+
+	_, err = io.Copy(dest, resp.Body)
+	c.Assert(err, IsNil)
+
 	dest.Close()
 
 	md := &metadata.Metadata{Type: "application/x-python-wheel", Sha1: "my-sha1-digest"}

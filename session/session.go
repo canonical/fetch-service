@@ -72,12 +72,15 @@ func New() *Session {
 }
 
 // Finish ends the session and saves metadata.
-func (s *Session) Finish() {
+func (s *Session) Finish() error {
 	for k := range s.Md {
 		log.Printf("save metadata for artifact %s", k)
-		s.SaveMetadata(k)
+		if err := s.SaveMetadata(k); err != nil {
+			return err
+		}
 	}
 	s.Discard()
+	return nil
 }
 
 // Discard deletes this session.
@@ -208,7 +211,9 @@ func GetSession(id string) *Session {
 func FinishAll() {
 	for id, s := range sessions {
 		log.Printf("finishing session %s", id)
-		s.Finish()
+		if err := s.Finish(); err != nil {
+			log.Printf("error: %s", err)
+		}
 	}
 	log.Printf("all sessions finished")
 }
