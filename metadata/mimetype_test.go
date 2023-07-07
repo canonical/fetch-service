@@ -36,7 +36,7 @@ type mimetypeSuite struct{}
 
 var _ = Suite(&mimetypeSuite{})
 
-func (s *mimetypeSuite) TestZipTokenizer(c *C) {
+func (s *mimetypeSuite) TestZipMatches(c *C) {
 	tmp := c.MkDir()
 	content := make([]byte, 5000)
 	for i := range content {
@@ -65,6 +65,8 @@ func (s *mimetypeSuite) TestZipTokenizer(c *C) {
 	c.Check(metadata.ZipMatches(dest, `stuff/bar.txt$`), Equals, true)
 	c.Check(metadata.ZipMatches(dest, `/bar.txt$`), Equals, true)
 	c.Check(metadata.ZipMatches(dest, `baz.txt`), Equals, false)
+	c.Check(metadata.ZipMatches(dest, `/b.*\.txt`, `/f.*\.txt`), Equals, true)
+	c.Check(metadata.ZipMatches(dest, `/b*.txt`, `/z*.txt`), Equals, false)
 }
 
 func createZip(src string, dest io.Writer) error {
