@@ -123,13 +123,16 @@ func (h *FileDownloadHandler) Close() error {
 	h.info.EndTime = time.Now().UTC()
 	h.info.Sha1 = sha1
 
+	mver := fmt.Sprintf("%d.%d", metadata.MetadataVersionMajor, metadata.MetadataVersionMinor)
+
 	md := metadata.Metadata{
-		Size:        h.size,
-		Sha1:        sha1,
-		Sha256:      sha256,
-		Annotations: metadata.AnnotationMap{},
-		AssetDir:    h.assetDir,
-		Tempfile:    h.tempfile.Name(),
+		MetadataVersion: mver,
+		Size:            h.size,
+		Sha1:            sha1,
+		Sha256:          sha256,
+		Annotations:     metadata.AnnotationMap{},
+		AssetDir:        h.assetDir,
+		Tempfile:        h.tempfile.Name(),
 	}
 
 	fd := metadata.NewFileDownload(md, h.info)

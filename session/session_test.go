@@ -176,6 +176,8 @@ func (t *sessionSuite) TestSaveMetadata(c *C) {
 	c.Assert(err, IsNil)
 
 	data, err := ioutil.ReadFile(filepath.Join(tmp, "my-sha1-digest.json"))
+	c.Assert(err, IsNil)
+
 	var j metadata.Metadata
 	err = json.Unmarshal(data, &j)
 	c.Assert(err, IsNil)
