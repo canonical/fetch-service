@@ -403,7 +403,6 @@ func (aptPackagesInspector) Inspect(filename string, md *Metadata, di *DownloadI
 
 	for sc.Scan() {
 		line := sc.Text()
-		num++
 
 		if line == "" {
 			e = AptPackagesEntry{}
@@ -420,6 +419,7 @@ func (aptPackagesInspector) Inspect(filename string, md *Metadata, di *DownloadI
 		switch k {
 		case "Package":
 			e.Package = v
+			num++
 		case "Version":
 			e.Version = v
 		case "Architecture":
@@ -431,7 +431,7 @@ func (aptPackagesInspector) Inspect(filename string, md *Metadata, di *DownloadI
 		}
 	}
 
-	md.Annotate(Notice, "apt.metadata.packages.lines", strconv.Itoa(num))
+	md.Annotate(Notice, "apt.metadata.packages.count", strconv.Itoa(num))
 
 	return
 }
