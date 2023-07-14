@@ -89,3 +89,46 @@ func (s *metadataSuite) TestDefaultInspector(c *C) {
 	c.Assert(md.Annotations["default.unknown"].Value, Equals, "unknown file format")
 	c.Assert(md.Annotations["default.unknown"].Details, HasLen, 0)
 }
+
+func (s *metadataSuite) TestContextReleasePackages(c *C) {
+	ctx := metadata.NewInspectionContext()
+	c.Assert(ctx, Not(IsNil))
+
+	p := metadata.AptReleasePackages{
+		Path:   "path/to/Packages.xz",
+		Size:   12345,
+		Vendor: "Acme",
+	}
+	ctx.AddReleasePackages("release-digest", "packages-digest", p)
+
+	digest, _, ok := ctx.GetReleasePackages("other-digest")
+	c.Assert(ok, Equals, false)
+	c.Assert(digest, Equals, "")
+
+	digest, q, ok := ctx.GetReleasePackages("packages-digest")
+	c.Assert(ok, Equals, true)
+	c.Assert(digest, Equals, "release-digest")
+	c.Assert(q, DeepEquals, p)
+}
+
+func (s *metadataSuite) TestContextPackagesEntry(c *C) {
+	ctx := metadata.NewInspectionContext()
+	c.Assert(ctx, Not(IsNil))
+
+	e := metadata.AptPackagesEntry{
+		Package:      "hello",
+		Version:      "1.2.3",
+		Architecture: "amd64",
+		Size:         1337,
+	}
+	ctx.AddPackagesEntry("packages-digest", "hello-digest", e)
+
+	digest, _, ok := ctx.GetPackagesEntry("other-digest")
+	c.Assert(ok, Equals, false)
+	c.Assert(digest, Equals, "")
+
+	digest, f, ok := ctx.GetPackagesEntry("hello-digest")
+	c.Assert(ok, Equals, true)
+	c.Assert(digest, Equals, "packages-digest")
+	c.Assert(f, DeepEquals, e)
+}

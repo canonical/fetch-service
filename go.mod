@@ -8,6 +8,7 @@ require (
 	github.com/go-mmap/mmap v0.7.0
 	github.com/google/uuid v1.3.0
 	github.com/jessevdk/go-flags v1.5.0
+	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 )
 

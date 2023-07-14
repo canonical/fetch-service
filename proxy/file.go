@@ -40,14 +40,15 @@ import (
 // of downloaded contents and stores downloaded data and contextual
 // metadata in the designated local file spool.
 type FileDownloadHandler struct {
-	ch       chan interface{}
-	info     metadata.DownloadInfo
-	size     int64         // streamed data size
-	sha1     hash.Hash     // sha1 digest of streamed data
-	sha256   hash.Hash     // sha256 digest of streamed data
-	tempfile *os.File      // copy of streamed data
-	body     io.ReadCloser // response body
-	assetDir string        // file storage location
+	ch         chan interface{}
+	info       metadata.DownloadInfo
+	size       int64         // streamed data size
+	sha1       hash.Hash     // sha1 digest of streamed data
+	sha256     hash.Hash     // sha256 digest of streamed data
+	tempfile   *os.File      // copy of streamed data
+	body       io.ReadCloser // response body
+	assetDir   string        // file storage location
+	insTimeout time.Duration // artifact inspection timeout
 }
 
 func NewFileDownloadHandler(resp *http.Response, spool string, ch chan interface{}) (*FileDownloadHandler, error) {
@@ -74,12 +75,13 @@ func NewFileDownloadHandler(resp *http.Response, spool string, ch chan interface
 			ResponseHeader: resp.Header,
 			SessionId:      sessionId,
 		},
-		size:     0,
-		sha1:     sha1.New(),
-		sha256:   sha256.New(),
-		tempfile: tempfile,
-		body:     resp.Body,
-		assetDir: filepath.Join(spool, sessionId, "assets"),
+		size:       0,
+		sha1:       sha1.New(),
+		sha256:     sha256.New(),
+		tempfile:   tempfile,
+		body:       resp.Body,
+		assetDir:   filepath.Join(spool, sessionId, "assets"),
+		insTimeout: 60 * time.Second,
 	}
 
 	return h, nil
@@ -137,8 +139,13 @@ func (h *FileDownloadHandler) Close() error {
 
 	fd := metadata.NewFileDownload(md, h.info)
 	h.ch <- fd
-	if err := <-fd.Rch; err != nil {
-		return fmt.Errorf("Error saving download data for asset %s: %v", sha1, err)
+	select {
+	case err := <-fd.Rch:
+		if err != nil {
+			return fmt.Errorf("Error saving download data for asset %s: %v", sha1, err)
+		}
+	case <-time.After(h.insTimeout):
+		log.Printf("warning: inspection of artifact %s timed out", sha1)
 	}
 
 	return res

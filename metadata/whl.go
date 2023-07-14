@@ -40,7 +40,7 @@ func whlDetector(raw []byte, limit uint32) bool {
 
 type whlInspector struct{}
 
-func (x whlInspector) Inspect(filename string, md *Metadata, di *DownloadInfo, ctx *InspectionContext) (stop bool, err error) {
+func (whlInspector) Inspect(filename string, md *Metadata, di *DownloadInfo, ctx *InspectionContext) (stop bool, err error) {
 	if md.Type != "application/x-python-wheel" {
 		return
 	}
