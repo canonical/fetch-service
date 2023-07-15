@@ -147,7 +147,12 @@ func (aptReleaseInspector) Inspect(filename string, md *Metadata, di *DownloadIn
 					log.Printf("warning: error parsing size '%s': %s", fields[1], err)
 					continue
 				}
-				ctx.AddReleasePackages(md.Sha1, digest, p)
+				h, err := NewSha256Digest(digest)
+				if err != nil {
+					log.Printf("warning: error parsing digest '%s': %s", digest, err)
+					continue
+				}
+				ctx.AddReleasePackages(md.Sha1, h, p)
 			}
 			continue
 		}
@@ -366,7 +371,7 @@ func (aptPackagesInspector) Inspect(filename string, md *Metadata, di *DownloadI
 			return
 		}
 		// The Packages file is listed in Release and size matches
-		md.Annotate(Notice, "file.integrity.asserted-by", relDigest)
+		md.Annotate(Notice, "file.integrity.asserted-by", relDigest.String())
 	} else {
 		// This Packages file was not found in InRelease
 		md.Annotate(PolicyViolation, "file.integrity.check", ResultFail)
@@ -427,7 +432,13 @@ func (aptPackagesInspector) Inspect(filename string, md *Metadata, di *DownloadI
 		case "Size":
 			e.Size, _ = strconv.ParseInt(v, 10, 32)
 		case "SHA256":
-			ctx.AddPackagesEntry(md.Sha1, v, e)
+			var h Sha256Digest
+			h, err = NewSha256Digest(v)
+			if err != nil {
+				err = fmt.Errorf("error parsing digest '%s': %s", v, err)
+				return
+			}
+			ctx.AddPackagesEntry(md.Sha1, h, e)
 		}
 	}
 

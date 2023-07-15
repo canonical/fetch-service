@@ -52,7 +52,7 @@ func (debInspector) Inspect(filename string, md *Metadata, di *DownloadInfo, ctx
 			md.Annotate(IntegrityViolation, "file.integrity.check", ResultFail).SetDetails(data)
 			return
 		}
-		md.Annotate(Notice, "file.integrity.asserted-by", pkgsDigest)
+		md.Annotate(Notice, "file.integrity.asserted-by", pkgsDigest.String())
 	} else {
 		md.Annotate(PolicyViolation, "file.integrity.check", ResultFail)
 	}

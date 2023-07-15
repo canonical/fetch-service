@@ -59,7 +59,7 @@ func (s *debSuite) TestDebInspector(c *C) {
 	defer resp.Body.Close()
 
 	tmp := c.MkDir()
-	dest, err := os.Create(filepath.Join(tmp, "my-sha1-digest.bin"))
+	dest, err := os.Create(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"))
 	c.Assert(err, IsNil)
 
 	_, err = io.Copy(dest, resp.Body)
@@ -67,7 +67,8 @@ func (s *debSuite) TestDebInspector(c *C) {
 
 	dest.Close()
 
-	md := &metadata.Metadata{Type: "application/vnd.debian.binary-package", Sha1: "my-sha1-digest"}
+	h, _ := metadata.NewSha1Digest("290d07339dde2735121ab03e525ca6593c395a42")
+	md := &metadata.Metadata{Type: "application/vnd.debian.binary-package", Sha1: h}
 	di := &metadata.DownloadInfo{}
 
 	var iface metadata.Inspector
@@ -77,7 +78,7 @@ func (s *debSuite) TestDebInspector(c *C) {
 	// TODO: inject Packages.xz data into inspection context to validade the deb file
 
 	ctx := metadata.NewInspectionContext()
-	stop, err := ins.Inspect(filepath.Join(tmp, "my-sha1-digest.bin"), md, di, ctx)
+	stop, err := ins.Inspect(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"), md, di, ctx)
 	c.Assert(err, IsNil)
 	c.Assert(stop, Equals, true)
 

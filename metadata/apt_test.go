@@ -63,7 +63,7 @@ func (s *aptSuite) TestAptReleaseInspector(c *C) {
 	defer resp.Body.Close()
 
 	tmp := c.MkDir()
-	dest, err := os.Create(filepath.Join(tmp, "my-sha1-digest.bin"))
+	dest, err := os.Create(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"))
 	c.Assert(err, IsNil)
 
 	_, err = io.Copy(dest, resp.Body)
@@ -71,7 +71,8 @@ func (s *aptSuite) TestAptReleaseInspector(c *C) {
 
 	dest.Close()
 
-	md := &metadata.Metadata{Type: "application/x-apt-release", Sha1: "my-sha1-digest"}
+	h, _ := metadata.NewSha1Digest("290d07339dde2735121ab03e525ca6593c395a42")
+	md := &metadata.Metadata{Type: "application/x-apt-release", Sha1: h}
 	di := &metadata.DownloadInfo{}
 
 	var iface metadata.Inspector
@@ -80,7 +81,7 @@ func (s *aptSuite) TestAptReleaseInspector(c *C) {
 
 	ctx := metadata.NewInspectionContext()
 
-	stop, err := ins.Inspect(filepath.Join(tmp, "my-sha1-digest.bin"), md, di, ctx)
+	stop, err := ins.Inspect(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"), md, di, ctx)
 	c.Assert(err, IsNil)
 	c.Assert(stop, Equals, true)
 
@@ -110,7 +111,7 @@ func (s *aptSuite) TestAptPackagesInspector(c *C) {
 	defer resp.Body.Close()
 
 	tmp := c.MkDir()
-	dest, err := os.Create(filepath.Join(tmp, "my-sha1-digest.bin"))
+	dest, err := os.Create(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"))
 	c.Assert(err, IsNil)
 
 	size, err := io.Copy(dest, resp.Body)
@@ -125,13 +126,16 @@ func (s *aptSuite) TestAptPackagesInspector(c *C) {
 		Size:   size,
 	}
 
+	h, _ := metadata.NewSha1Digest("290d07339dde2735121ab03e525ca6593c395a42")
+	releaseHash, _ := metadata.NewSha1Digest("992b22a7457f7f75b4cfa197393993ebdaa64faf")
+	packagesHash, _ := metadata.NewSha256Digest("0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e")
 	ctx := metadata.NewInspectionContext()
-	ctx.AddReleasePackages("release-digest", "my-sha256-digest", p)
+	ctx.AddReleasePackages(releaseHash, packagesHash, p)
 
 	md := &metadata.Metadata{
 		Type:   "application/x-apt-packages",
-		Sha1:   "my-sha1-digest",
-		Sha256: "my-sha256-digest",
+		Sha1:   h,
+		Sha256: packagesHash,
 		Size:   size,
 	}
 	di := &metadata.DownloadInfo{}
@@ -140,7 +144,7 @@ func (s *aptSuite) TestAptPackagesInspector(c *C) {
 	ins := metadata.AptPackagesInspector{}
 	c.Assert(ins, Implements, &iface)
 
-	stop, err := ins.Inspect(filepath.Join(tmp, "my-sha1-digest.bin"), md, di, ctx)
+	stop, err := ins.Inspect(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"), md, di, ctx)
 	c.Assert(err, IsNil)
 	c.Assert(stop, Equals, true)
 
@@ -149,5 +153,5 @@ func (s *aptSuite) TestAptPackagesInspector(c *C) {
 	c.Check(md.Description, Equals, "Apt repository Packages file")
 	c.Check(md.Author, Equals, "Acme")
 	c.Check(md.Annotations["file.integrity.asserted-by"].Kind, Equals, metadata.Notice)
-	c.Check(md.Annotations["file.integrity.asserted-by"].Value, Equals, "release-digest")
+	c.Check(md.Annotations["file.integrity.asserted-by"].Value, Equals, "992b22a7457f7f75b4cfa197393993ebdaa64faf")
 }

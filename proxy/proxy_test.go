@@ -104,7 +104,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 	msg := <-ch
 	v := msg.(metadata.FileDownload)
 
-	c.Assert(v.Md.Sha1, Equals, "d8c1f9634007b54c1e9aa3ba3b51395b643933c3")
+	c.Assert(v.Md.Sha1.String(), Equals, "d8c1f9634007b54c1e9aa3ba3b51395b643933c3")
 	c.Assert(v.Info.StatusCode, Equals, 200)
 	c.Assert(v.Info.Method, Equals, "GET")
 	c.Assert(v.Info.ContentType, Equals, "application/x-debian-package")

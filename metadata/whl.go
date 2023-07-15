@@ -99,7 +99,7 @@ func listWheelFiles(filename string) ([]MemberFile, error) {
 
 		res = append(res, MemberFile{
 			Name:   f.Name,
-			Sha256: fmt.Sprintf("%x", sum.Sum(nil)),
+			Sha256: *(*Sha256Digest)(sum.Sum(nil)),
 			Size:   f.FileInfo().Size(),
 		})
 	}
@@ -309,7 +309,8 @@ func checkRecord(zf io.ReadCloser, rname string, md *Metadata) error {
 		if !ok {
 			messages = append(messages, fmt.Sprintf("%s: file not in RECORD", name))
 		}
-		recordDigest := fmt.Sprintf("%x", dst)
+		recordDigest := Sha256Digest{}
+		copy(recordDigest[:], dst)
 		if member.Sha256 != recordDigest {
 			messages = append(messages, fmt.Sprintf("%s: digest mismatch", name))
 		}

@@ -43,7 +43,7 @@ type Session struct {
 	Start time.Time
 	End   time.Time
 	Ctx   *metadata.InspectionContext
-	Md    map[string]*metadata.Metadata
+	Md    map[metadata.Sha1Digest]*metadata.Metadata
 }
 
 var (
@@ -57,7 +57,7 @@ func New() *Session {
 		Pw:    randomString(20),
 		Start: time.Now().UTC(),
 		Ctx:   metadata.NewInspectionContext(),
-		Md:    map[string]*metadata.Metadata{},
+		Md:    map[metadata.Sha1Digest]*metadata.Metadata{},
 	}
 
 	// FIXME: predictable values for testing convenience until the session
@@ -104,7 +104,7 @@ func (s *Session) AddMetadata(md *metadata.Metadata) {
 
 // HasMetadata verifies whether the given digest corresponds
 // to an artifact downloaded in this session.
-func (s *Session) HasMetadata(sha1 string) bool {
+func (s *Session) HasMetadata(sha1 metadata.Sha1Digest) bool {
 	_, ok := s.Md[sha1]
 	return ok
 }
@@ -119,7 +119,7 @@ func (s *Session) AddDownloadInfo(di metadata.DownloadInfo) {
 
 // SaveData writes the artifact data correponding to the given
 // digest to the asset spool.
-func (s *Session) SaveData(digest string) error {
+func (s *Session) SaveData(digest metadata.Sha1Digest) error {
 	md, ok := s.Md[digest]
 	if !ok {
 		return fmt.Errorf("metadata for artifact %s not available", digest)
@@ -148,7 +148,7 @@ func (s *Session) SaveData(digest string) error {
 
 // SaveMetadata writes the artifact metadata correponsing to the
 // given digest to the asset spool.
-func (s *Session) SaveMetadata(digest string) error {
+func (s *Session) SaveMetadata(digest metadata.Sha1Digest) error {
 	md, ok := s.Md[digest]
 	if !ok {
 		return fmt.Errorf("metadata for artifact %s not available", digest)

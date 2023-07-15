@@ -20,6 +20,7 @@
 package metadata_test
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -34,6 +35,66 @@ func Test(t *testing.T) { TestingT(t) }
 type metadataSuite struct{}
 
 var _ = Suite(&metadataSuite{})
+
+func (s *metadataSuite) TestSha1Digest(c *C) {
+	h, err := metadata.NewSha1Digest("290d07339dde2735121ab03e525ca6593c395a42")
+	c.Assert(err, IsNil)
+	c.Check(h.String(), Equals, "290d07339dde2735121ab03e525ca6593c395a42")
+}
+
+func (s *metadataSuite) TestSha1DigestMarshal(c *C) {
+	type Foo struct {
+		Bar metadata.Sha1Digest `json:"bar"`
+	}
+
+	h, _ := metadata.NewSha1Digest("290d07339dde2735121ab03e525ca6593c395a42")
+	j, err := json.Marshal(Foo{h})
+	c.Assert(err, IsNil)
+	c.Check(j, DeepEquals, []byte(`{"bar":"290d07339dde2735121ab03e525ca6593c395a42"}`))
+}
+
+func (s *metadataSuite) TestSha1DigestUnmarshal(c *C) {
+	j := []byte(`{"bar":"290d07339dde2735121ab03e525ca6593c395a42"}`)
+
+	type Foo struct {
+		Bar metadata.Sha1Digest `json:"bar"`
+	}
+
+	var foo Foo
+	err := json.Unmarshal(j, &foo)
+	c.Assert(err, IsNil)
+	c.Check(foo.Bar.String(), Equals, "290d07339dde2735121ab03e525ca6593c395a42")
+}
+
+func (s *metadataSuite) TestSha256Digest(c *C) {
+	h, err := metadata.NewSha256Digest("0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e")
+	c.Assert(err, IsNil)
+	c.Check(h.String(), Equals, "0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e")
+}
+
+func (s *metadataSuite) TestSha256DigestMarshal(c *C) {
+	type Foo struct {
+		Bar metadata.Sha256Digest `json:"bar"`
+	}
+
+	h, _ := metadata.NewSha256Digest("0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e")
+	j, err := json.Marshal(Foo{h})
+	c.Assert(err, IsNil)
+	c.Check(j, DeepEquals, []byte(`{"bar":"0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e"}`))
+}
+
+func (s *metadataSuite) TestSha256DigestUnmarshal(c *C) {
+	j := []byte(`{"bar":"0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e"}`)
+
+	type Foo struct {
+		Bar metadata.Sha256Digest `json:"bar"`
+	}
+
+	var foo Foo
+	err := json.Unmarshal(j, &foo)
+	c.Assert(err, IsNil)
+	c.Check(foo.Bar.String(), Equals, "0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e")
+}
 
 func (s *metadataSuite) TestAnnotation(c *C) {
 	md := metadata.Metadata{}
@@ -59,11 +120,12 @@ func (s *metadataSuite) TestRunInspectors(c *C) {
 
 	dir := c.MkDir()
 	data := []byte("Measure twice, saw once.\n")
-	err := os.WriteFile(filepath.Join(dir, "my-sha1-sum.bin"), data, 0644)
+	err := os.WriteFile(filepath.Join(dir, "290d07339dde2735121ab03e525ca6593c395a42.bin"), data, 0644)
 	c.Assert(err, IsNil)
 
-	md := &metadata.Metadata{Sha1: "my-sha1-sum"}
-	di := &metadata.DownloadInfo{ContentType: "text/plain", Sha1: "my-sha1-sum"}
+	h, _ := metadata.NewSha1Digest("290d07339dde2735121ab03e525ca6593c395a42")
+	md := &metadata.Metadata{Sha1: h}
+	di := &metadata.DownloadInfo{ContentType: "text/plain", Sha1: h}
 
 	err = ctx.RunInspectors(dir, md, di)
 	c.Assert(err, IsNil)
@@ -99,15 +161,19 @@ func (s *metadataSuite) TestContextReleasePackages(c *C) {
 		Size:   12345,
 		Vendor: "Acme",
 	}
-	ctx.AddReleasePackages("release-digest", "packages-digest", p)
 
-	digest, _, ok := ctx.GetReleasePackages("other-digest")
+	releaseDigest, _ := metadata.NewSha1Digest("992b22a7457f7f75b4cfa197393993ebdaa64faf")
+	packagesDigest, _ := metadata.NewSha256Digest("f1d6e0e435c851796ddc982230070bf5f6c313fade049f31e2983e5b26c43a72")
+	otherDigest, _ := metadata.NewSha256Digest("00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff")
+	ctx.AddReleasePackages(releaseDigest, packagesDigest, p)
+
+	digest, _, ok := ctx.GetReleasePackages(otherDigest)
 	c.Assert(ok, Equals, false)
-	c.Assert(digest, Equals, "")
+	c.Assert(digest, Equals, metadata.Sha1Digest{})
 
-	digest, q, ok := ctx.GetReleasePackages("packages-digest")
+	digest, q, ok := ctx.GetReleasePackages(packagesDigest)
 	c.Assert(ok, Equals, true)
-	c.Assert(digest, Equals, "release-digest")
+	c.Assert(digest, Equals, releaseDigest)
 	c.Assert(q, DeepEquals, p)
 }
 
@@ -121,14 +187,18 @@ func (s *metadataSuite) TestContextPackagesEntry(c *C) {
 		Architecture: "amd64",
 		Size:         1337,
 	}
-	ctx.AddPackagesEntry("packages-digest", "hello-digest", e)
 
-	digest, _, ok := ctx.GetPackagesEntry("other-digest")
+	packagesDigest, _ := metadata.NewSha1Digest("a47171134c87396f681a59920c68b3cffdf52851")
+	helloDigest, _ := metadata.NewSha256Digest("e24f8496e591bfa9fc493ab6bbb702b8ee60a47d974139c17f20f095dd0d5670")
+	otherDigest, _ := metadata.NewSha256Digest("00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff")
+	ctx.AddPackagesEntry(packagesDigest, helloDigest, e)
+
+	digest, _, ok := ctx.GetPackagesEntry(otherDigest)
 	c.Assert(ok, Equals, false)
-	c.Assert(digest, Equals, "")
+	c.Assert(digest, Equals, metadata.Sha1Digest{})
 
-	digest, f, ok := ctx.GetPackagesEntry("hello-digest")
+	digest, f, ok := ctx.GetPackagesEntry(helloDigest)
 	c.Assert(ok, Equals, true)
-	c.Assert(digest, Equals, "packages-digest")
+	c.Assert(digest, Equals, packagesDigest)
 	c.Assert(f, DeepEquals, e)
 }

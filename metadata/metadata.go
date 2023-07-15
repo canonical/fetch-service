@@ -20,10 +20,12 @@
 package metadata
 
 import (
+	"encoding/hex"
 	"fmt"
 	"log"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -75,12 +77,88 @@ const (
 	MetadataVersionMinor = 1 // Existing fields not changed, may contain additional fields
 )
 
+// Sha1Digest contains a 120-bit SHA1 digest.
+type Sha1Digest [20]byte
+
+func NewSha1Digest(digest string) (Sha1Digest, error) {
+	h, err := hex.DecodeString(digest)
+	if err != nil {
+		return Sha1Digest{}, err
+	}
+	return *(*Sha1Digest)(h), nil
+}
+
+// String obtains the SHA1 digest value as a hexadecimal string.
+func (h Sha1Digest) String() string {
+	return hex.EncodeToString(h[:])
+}
+
+// MarshalJSON marshals a SHA1 digest as a hexadecimal string.
+func (h Sha1Digest) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.Quote(h.String())), nil
+}
+
+// UnmarshalJSON unmarshals a hexadecimal string representation of
+// a SHA1 digest back to binary format.
+func (h *Sha1Digest) UnmarshalJSON(data []byte) (err error) {
+	d, err := strconv.Unquote(string(data))
+	if err != nil {
+		return
+	}
+
+	v, err := hex.DecodeString(d)
+	if err != nil {
+		return
+	}
+
+	copy((*h)[:], v)
+	return
+}
+
+// Sha256Digest contains a 256-bit SHA1 digest
+type Sha256Digest [32]byte
+
+func NewSha256Digest(digest string) (Sha256Digest, error) {
+	h, err := hex.DecodeString(digest)
+	if err != nil {
+		return Sha256Digest{}, err
+	}
+	return *(*Sha256Digest)(h), nil
+}
+
+// String obtains the SHA256 digest value as a hexadecimal string.
+func (h Sha256Digest) String() string {
+	return hex.EncodeToString(h[:])
+}
+
+// MarshalJSON marshals a SHA256 digest as a hexadecimal string.
+func (h Sha256Digest) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.Quote(h.String())), nil
+}
+
+// UnmarshalJSON unmarshals a hexadecimal string representation of
+// a SHA256 digest back to binary format.
+func (h *Sha256Digest) UnmarshalJSON(data []byte) (err error) {
+	d, err := strconv.Unquote(string(data))
+	if err != nil {
+		return
+	}
+
+	v, err := hex.DecodeString(d)
+	if err != nil {
+		return
+	}
+
+	copy((*h)[:], v)
+	return
+}
+
 // Metadata holds information about each artifact.
 type Metadata struct {
 	MetadataVersion string         `json:"metadata-version"`       // Metadata version in X.Y format
 	Type            string         `json:"type"`                   // The mime-type of the artifact file
-	Sha1            string         `json:"sha1"`                   // The SHA1 digest of the artifact file
-	Sha256          string         `json:"sha256"`                 // The SHA256 digest of the artifact file
+	Sha1            Sha1Digest     `json:"sha1"`                   // The SHA1 digest of the artifact file
+	Sha256          Sha256Digest   `json:"sha256"`                 // The SHA256 digest of the artifact file
 	Size            int64          `json:"size"`                   // The size of the artifact file
 	Name            string         `json:"name"`                   // The artifact designation, given by its author
 	Version         string         `json:"version"`                // The artifact version, as published by the upstream
@@ -113,9 +191,9 @@ func (md *Metadata) Annotate(kind AnnotationKind, name, value string) *Annotatio
 
 // MemberFile contains information about files contained in the artifact.
 type MemberFile struct {
-	Name   string `json:"name"`   // The qualified file name
-	Sha256 string `json:"sha256"` // The SHA256 digest of content
-	Size   int64  `json:"size"`   // The file size
+	Name   string       `json:"name"`   // The qualified file name
+	Sha256 Sha256Digest `json:"sha256"` // The SHA256 digest of content
+	Size   int64        `json:"size"`   // The file size
 }
 
 // DownloadInfo holds information about each artifact download.
@@ -130,7 +208,7 @@ type DownloadInfo struct {
 	Status         string              `json:"status"`          // The HTTP response status message
 	ContentType    string              `json:"content-type"`    // The HTTP content type
 	ResponseHeader map[string][]string `json:"response-header"` // The HTTP response header
-	Sha1           string              `json:"-"`               // SHA1 digest of the downloaded data
+	Sha1           Sha1Digest          `json:"-"`               // SHA1 digest of the downloaded data
 	SessionId      string              `json:"-"`               // The current session ID
 }
 
@@ -175,18 +253,18 @@ var inspectors = []Inspector{
 // analysis within a fetch session.
 type InspectionContext struct {
 	// releasePackages maps InRelease file digests to Packages.* file digests to metadata.
-	releasePackages map[string]map[string]AptReleasePackages
+	releasePackages map[Sha1Digest]map[Sha256Digest]AptReleasePackages
 	releaseLock     sync.Mutex
 
 	// packagesEntries maps Packages.* file digests to package digest to metadata.
-	packagesEntries map[string]map[string]AptPackagesEntry
+	packagesEntries map[Sha1Digest]map[Sha256Digest]AptPackagesEntry
 	packagesLock    sync.Mutex
 }
 
 func NewInspectionContext() *InspectionContext {
 	return &InspectionContext{
-		releasePackages: make(map[string]map[string]AptReleasePackages, 16),
-		packagesEntries: make(map[string]map[string]AptPackagesEntry, 160),
+		releasePackages: make(map[Sha1Digest]map[Sha256Digest]AptReleasePackages, 16),
+		packagesEntries: make(map[Sha1Digest]map[Sha256Digest]AptPackagesEntry, 256),
 	}
 }
 
@@ -226,18 +304,18 @@ func (ctx *InspectionContext) RunInspectors(dir string, md *Metadata, di *Downlo
 	return nil
 }
 
-func (ctx *InspectionContext) AddReleasePackages(relDigest, digest string, p AptReleasePackages) {
+func (ctx *InspectionContext) AddReleasePackages(relDigest Sha1Digest, digest Sha256Digest, p AptReleasePackages) {
 	ctx.releaseLock.Lock()
 	defer ctx.releaseLock.Unlock()
 
 	if ctx.releasePackages[relDigest] == nil {
-		ctx.releasePackages[relDigest] = make(map[string]AptReleasePackages, 16)
+		ctx.releasePackages[relDigest] = make(map[Sha256Digest]AptReleasePackages, 16)
 	}
 	ctx.releasePackages[relDigest][digest] = p
 	//log.Printf("apt releases file: %s %s", digest, p.Path)
 }
 
-func (ctx *InspectionContext) GetReleasePackages(digest string) (relDigest string, p AptReleasePackages, ok bool) {
+func (ctx *InspectionContext) GetReleasePackages(digest Sha256Digest) (relDigest Sha1Digest, p AptReleasePackages, ok bool) {
 	ctx.releaseLock.Lock()
 	defer ctx.releaseLock.Unlock()
 
@@ -251,17 +329,17 @@ func (ctx *InspectionContext) GetReleasePackages(digest string) (relDigest strin
 	return
 }
 
-func (ctx *InspectionContext) AddPackagesEntry(pkgsDigest, digest string, e AptPackagesEntry) {
+func (ctx *InspectionContext) AddPackagesEntry(pkgsDigest Sha1Digest, digest Sha256Digest, e AptPackagesEntry) {
 	ctx.packagesLock.Lock()
 	defer ctx.packagesLock.Unlock()
 
 	if ctx.packagesEntries[pkgsDigest] == nil {
-		ctx.packagesEntries[pkgsDigest] = make(map[string]AptPackagesEntry)
+		ctx.packagesEntries[pkgsDigest] = make(map[Sha256Digest]AptPackagesEntry)
 	}
 	ctx.packagesEntries[pkgsDigest][digest] = e
 }
 
-func (ctx *InspectionContext) GetPackagesEntry(digest string) (pkgsDigest string, e AptPackagesEntry, ok bool) {
+func (ctx *InspectionContext) GetPackagesEntry(digest Sha256Digest) (pkgsDigest Sha1Digest, e AptPackagesEntry, ok bool) {
 	ctx.packagesLock.Lock()
 	defer ctx.packagesLock.Unlock()
 
