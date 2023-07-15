@@ -38,3 +38,7 @@ type AptReleaseInspector struct {
 type AptPackagesInspector struct {
 	aptPackagesInspector
 }
+
+type DebInspector struct {
+	debInspector
+}

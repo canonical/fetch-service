@@ -166,6 +166,7 @@ var inspectors = []Inspector{
 	aptLegacyReleaseInspector{}, // apt legacy per-component Release file
 	aptReleaseInspector{},       // apt Release/InRelease files
 	aptPackagesInspector{},      // apt Packages.xz file
+	debInspector{},              // deb packages
 	whlInspector{},              // python wheels
 	defaultInspector{},          // we don't know what this is
 }
