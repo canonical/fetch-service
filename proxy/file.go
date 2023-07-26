@@ -123,7 +123,7 @@ func (h *FileDownloadHandler) Close() error {
 
 	// update download information
 	h.info.EndTime = time.Now().UTC()
-	h.info.Sha1 = sha1
+	h.info.Sha256 = sha256
 
 	mver := fmt.Sprintf("%d.%d", metadata.MetadataVersionMajor, metadata.MetadataVersionMinor)
 

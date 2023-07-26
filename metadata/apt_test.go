@@ -111,7 +111,7 @@ func (s *aptSuite) TestAptPackagesInspector(c *C) {
 	defer resp.Body.Close()
 
 	tmp := c.MkDir()
-	dest, err := os.Create(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"))
+	dest, err := os.Create(filepath.Join(tmp, "0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e.data"))
 	c.Assert(err, IsNil)
 
 	size, err := io.Copy(dest, resp.Body)
@@ -126,15 +126,13 @@ func (s *aptSuite) TestAptPackagesInspector(c *C) {
 		Size:   size,
 	}
 
-	h, _ := metadata.NewSha1Digest("290d07339dde2735121ab03e525ca6593c395a42")
-	releaseHash, _ := metadata.NewSha1Digest("992b22a7457f7f75b4cfa197393993ebdaa64faf")
+	releaseHash, _ := metadata.NewSha256Digest("7a0965cdce7e57af669e786379edcf45953de9bca3763342b870b3ce6d0dd777")
 	packagesHash, _ := metadata.NewSha256Digest("0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e")
 	ctx := metadata.NewInspectionContext()
 	ctx.AddReleasePackages(releaseHash, packagesHash, p)
 
 	md := &metadata.Metadata{
 		Type:   "application/x-apt-packages",
-		Sha1:   h,
 		Sha256: packagesHash,
 		Size:   size,
 	}
@@ -144,7 +142,7 @@ func (s *aptSuite) TestAptPackagesInspector(c *C) {
 	ins := metadata.AptPackagesInspector{}
 	c.Assert(ins, Implements, &iface)
 
-	stop, err := ins.Inspect(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"), md, di, ctx)
+	stop, err := ins.Inspect(filepath.Join(tmp, "0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e.data"), md, di, ctx)
 	c.Assert(err, IsNil)
 	c.Assert(stop, Equals, true)
 
@@ -153,5 +151,5 @@ func (s *aptSuite) TestAptPackagesInspector(c *C) {
 	c.Check(md.Description, Equals, "Apt repository Packages file")
 	c.Check(md.Author, Equals, "Acme")
 	c.Check(md.Annotations["file.integrity.asserted-by"].Kind, Equals, metadata.Notice)
-	c.Check(md.Annotations["file.integrity.asserted-by"].Value, Equals, "992b22a7457f7f75b4cfa197393993ebdaa64faf")
+	c.Check(md.Annotations["file.integrity.asserted-by"].Value, Equals, "7a0965cdce7e57af669e786379edcf45953de9bca3763342b870b3ce6d0dd777")
 }

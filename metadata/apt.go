@@ -152,7 +152,7 @@ func (aptReleaseInspector) Inspect(filename string, md *Metadata, di *DownloadIn
 					log.Printf("warning: error parsing digest '%s': %s", digest, err)
 					continue
 				}
-				ctx.AddReleasePackages(md.Sha1, h, p)
+				ctx.AddReleasePackages(md.Sha256, h, p)
 			}
 			continue
 		}
@@ -438,7 +438,7 @@ func (aptPackagesInspector) Inspect(filename string, md *Metadata, di *DownloadI
 				err = fmt.Errorf("error parsing digest '%s': %s", v, err)
 				return
 			}
-			ctx.AddPackagesEntry(md.Sha1, h, e)
+			ctx.AddPackagesEntry(md.Sha256, h, e)
 		}
 	}
 

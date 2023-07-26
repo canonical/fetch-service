@@ -208,7 +208,7 @@ type DownloadInfo struct {
 	Status         string              `json:"status"`          // The HTTP response status message
 	ContentType    string              `json:"content-type"`    // The HTTP content type
 	ResponseHeader map[string][]string `json:"response-header"` // The HTTP response header
-	Sha1           Sha1Digest          `json:"-"`               // SHA1 digest of the downloaded data
+	Sha256         Sha256Digest        `json:"-"`               // SHA256 digest of the downloaded data
 	SessionId      string              `json:"-"`               // The current session ID
 }
 
@@ -253,18 +253,18 @@ var inspectors = []Inspector{
 // analysis within a fetch session.
 type InspectionContext struct {
 	// releasePackages maps InRelease file digests to Packages.* file digests to metadata.
-	releasePackages map[Sha1Digest]map[Sha256Digest]AptReleasePackages
+	releasePackages map[Sha256Digest]map[Sha256Digest]AptReleasePackages
 	releaseLock     sync.Mutex
 
 	// packagesEntries maps Packages.* file digests to package digest to metadata.
-	packagesEntries map[Sha1Digest]map[Sha256Digest]AptPackagesEntry
+	packagesEntries map[Sha256Digest]map[Sha256Digest]AptPackagesEntry
 	packagesLock    sync.Mutex
 }
 
 func NewInspectionContext() *InspectionContext {
 	return &InspectionContext{
-		releasePackages: make(map[Sha1Digest]map[Sha256Digest]AptReleasePackages, 16),
-		packagesEntries: make(map[Sha1Digest]map[Sha256Digest]AptPackagesEntry, 256),
+		releasePackages: make(map[Sha256Digest]map[Sha256Digest]AptReleasePackages, 16),
+		packagesEntries: make(map[Sha256Digest]map[Sha256Digest]AptPackagesEntry, 256),
 	}
 }
 
@@ -272,7 +272,7 @@ func NewInspectionContext() *InspectionContext {
 // given directory, populating the metadata structure md.
 func (ctx *InspectionContext) RunInspectors(dir string, md *Metadata, di *DownloadInfo) error {
 	// detect file type
-	filename := filepath.Join(dir, fmt.Sprintf("%s.bin", md.Sha1))
+	filename := filepath.Join(dir, fmt.Sprintf("%s.data", md.Sha256))
 	f, err := mmap.Open(filename)
 	if err != nil {
 		return err
@@ -304,7 +304,7 @@ func (ctx *InspectionContext) RunInspectors(dir string, md *Metadata, di *Downlo
 	return nil
 }
 
-func (ctx *InspectionContext) AddReleasePackages(relDigest Sha1Digest, digest Sha256Digest, p AptReleasePackages) {
+func (ctx *InspectionContext) AddReleasePackages(relDigest Sha256Digest, digest Sha256Digest, p AptReleasePackages) {
 	ctx.releaseLock.Lock()
 	defer ctx.releaseLock.Unlock()
 
@@ -315,7 +315,7 @@ func (ctx *InspectionContext) AddReleasePackages(relDigest Sha1Digest, digest Sh
 	//log.Printf("apt releases file: %s %s", digest, p.Path)
 }
 
-func (ctx *InspectionContext) GetReleasePackages(digest Sha256Digest) (relDigest Sha1Digest, p AptReleasePackages, ok bool) {
+func (ctx *InspectionContext) GetReleasePackages(digest Sha256Digest) (relDigest Sha256Digest, p AptReleasePackages, ok bool) {
 	ctx.releaseLock.Lock()
 	defer ctx.releaseLock.Unlock()
 
@@ -329,7 +329,7 @@ func (ctx *InspectionContext) GetReleasePackages(digest Sha256Digest) (relDigest
 	return
 }
 
-func (ctx *InspectionContext) AddPackagesEntry(pkgsDigest Sha1Digest, digest Sha256Digest, e AptPackagesEntry) {
+func (ctx *InspectionContext) AddPackagesEntry(pkgsDigest Sha256Digest, digest Sha256Digest, e AptPackagesEntry) {
 	ctx.packagesLock.Lock()
 	defer ctx.packagesLock.Unlock()
 
@@ -339,7 +339,7 @@ func (ctx *InspectionContext) AddPackagesEntry(pkgsDigest Sha1Digest, digest Sha
 	ctx.packagesEntries[pkgsDigest][digest] = e
 }
 
-func (ctx *InspectionContext) GetPackagesEntry(digest Sha256Digest) (pkgsDigest Sha1Digest, e AptPackagesEntry, ok bool) {
+func (ctx *InspectionContext) GetPackagesEntry(digest Sha256Digest) (pkgsDigest Sha256Digest, e AptPackagesEntry, ok bool) {
 	ctx.packagesLock.Lock()
 	defer ctx.packagesLock.Unlock()
 
@@ -386,6 +386,6 @@ func findCallerInspector() string {
 type defaultInspector struct{}
 
 func (ins defaultInspector) Inspect(filename string, md *Metadata, di *DownloadInfo, ctx *InspectionContext) (bool, error) {
-	md.Annotate(Warning, "default.unknown", "unknown file format")
+	md.Annotate(Warning, "file.unknown", "unknown file format")
 	return true, nil
 }

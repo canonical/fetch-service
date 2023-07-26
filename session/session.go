@@ -43,7 +43,7 @@ type Session struct {
 	Start time.Time
 	End   time.Time
 	Ctx   *metadata.InspectionContext
-	Md    map[metadata.Sha1Digest]*metadata.Metadata
+	Md    map[metadata.Sha256Digest]*metadata.Metadata
 }
 
 var (
@@ -57,7 +57,7 @@ func New() *Session {
 		Pw:    randomString(20),
 		Start: time.Now().UTC(),
 		Ctx:   metadata.NewInspectionContext(),
-		Md:    map[metadata.Sha1Digest]*metadata.Metadata{},
+		Md:    map[metadata.Sha256Digest]*metadata.Metadata{},
 	}
 
 	// FIXME: predictable values for testing convenience until the session
@@ -97,14 +97,14 @@ func (s *Session) Discard() {
 // AddMetadata adds downloaded artifact metadata to the current
 // session.
 func (s *Session) AddMetadata(md *metadata.Metadata) {
-	if _, ok := s.Md[md.Sha1]; !ok {
-		s.Md[md.Sha1] = md
+	if _, ok := s.Md[md.Sha256]; !ok {
+		s.Md[md.Sha256] = md
 	}
 }
 
 // HasMetadata verifies whether the given digest corresponds
 // to an artifact downloaded in this session.
-func (s *Session) HasMetadata(sha1 metadata.Sha1Digest) bool {
+func (s *Session) HasMetadata(sha1 metadata.Sha256Digest) bool {
 	_, ok := s.Md[sha1]
 	return ok
 }
@@ -112,20 +112,20 @@ func (s *Session) HasMetadata(sha1 metadata.Sha1Digest) bool {
 // AddDownloadInfo adds the given download information to the
 // corresponding artifact metadata.
 func (s *Session) AddDownloadInfo(di metadata.DownloadInfo) {
-	if s.HasMetadata(di.Sha1) {
-		s.Md[di.Sha1].Downloads = append(s.Md[di.Sha1].Downloads, di)
+	if s.HasMetadata(di.Sha256) {
+		s.Md[di.Sha256].Downloads = append(s.Md[di.Sha256].Downloads, di)
 	}
 }
 
 // SaveData writes the artifact data correponding to the given
 // digest to the asset spool.
-func (s *Session) SaveData(digest metadata.Sha1Digest) error {
+func (s *Session) SaveData(digest metadata.Sha256Digest) error {
 	md, ok := s.Md[digest]
 	if !ok {
 		return fmt.Errorf("metadata for artifact %s not available", digest)
 	}
 
-	dest := filepath.Join(md.AssetDir, fmt.Sprintf("%s.bin", md.Sha1))
+	dest := filepath.Join(md.AssetDir, fmt.Sprintf("%s.data", md.Sha256))
 	if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
 		return err
 	}
@@ -148,7 +148,7 @@ func (s *Session) SaveData(digest metadata.Sha1Digest) error {
 
 // SaveMetadata writes the artifact metadata correponsing to the
 // given digest to the asset spool.
-func (s *Session) SaveMetadata(digest metadata.Sha1Digest) error {
+func (s *Session) SaveMetadata(digest metadata.Sha256Digest) error {
 	md, ok := s.Md[digest]
 	if !ok {
 		return fmt.Errorf("metadata for artifact %s not available", digest)
@@ -159,7 +159,7 @@ func (s *Session) SaveMetadata(digest metadata.Sha1Digest) error {
 		return err
 	}
 
-	dest := filepath.Join(md.AssetDir, fmt.Sprintf("%s.json", md.Sha1))
+	dest := filepath.Join(md.AssetDir, fmt.Sprintf("%s.json", md.Sha256))
 	if err := ioutil.WriteFile(dest, j, 0644); err != nil {
 		return err
 	}

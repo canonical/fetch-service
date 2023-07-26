@@ -75,7 +75,7 @@ dispatcherLoop:
 			switch v := msg.(type) {
 			case metadata.FileDownload:
 				assetDir := v.Md.AssetDir
-				sessionId, digest := v.Info.SessionId, v.Md.Sha1
+				sessionId, digest := v.Info.SessionId, v.Md.Sha256
 
 				s := session.GetSession(sessionId)
 				if s == nil {

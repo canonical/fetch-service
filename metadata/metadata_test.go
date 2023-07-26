@@ -30,6 +30,10 @@ import (
 	"github.com/canonical/fetch-service/metadata"
 )
 
+const (
+	MySha256 = "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950"
+)
+
 func Test(t *testing.T) { TestingT(t) }
 
 type metadataSuite struct{}
@@ -120,12 +124,12 @@ func (s *metadataSuite) TestRunInspectors(c *C) {
 
 	dir := c.MkDir()
 	data := []byte("Measure twice, saw once.\n")
-	err := os.WriteFile(filepath.Join(dir, "290d07339dde2735121ab03e525ca6593c395a42.bin"), data, 0644)
+	err := os.WriteFile(filepath.Join(dir, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.data"), data, 0644)
 	c.Assert(err, IsNil)
 
-	h, _ := metadata.NewSha1Digest("290d07339dde2735121ab03e525ca6593c395a42")
-	md := &metadata.Metadata{Sha1: h}
-	di := &metadata.DownloadInfo{ContentType: "text/plain", Sha1: h}
+	h, _ := metadata.NewSha256Digest(MySha256)
+	md := &metadata.Metadata{Sha256: h}
+	di := &metadata.DownloadInfo{ContentType: "text/plain", Sha256: h}
 
 	err = ctx.RunInspectors(dir, md, di)
 	c.Assert(err, IsNil)
@@ -146,10 +150,10 @@ func (s *metadataSuite) TestDefaultInspector(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(stop, Equals, true)
 	c.Assert(md.Annotations, HasLen, 1)
-	c.Assert(md.Annotations["default.unknown"].Kind, Equals, metadata.Warning)
-	c.Assert(md.Annotations["default.unknown"].Origin, Equals, "metadata.defaultInspector")
-	c.Assert(md.Annotations["default.unknown"].Value, Equals, "unknown file format")
-	c.Assert(md.Annotations["default.unknown"].Details, HasLen, 0)
+	c.Assert(md.Annotations["file.unknown"].Kind, Equals, metadata.Warning)
+	c.Assert(md.Annotations["file.unknown"].Origin, Equals, "metadata.defaultInspector")
+	c.Assert(md.Annotations["file.unknown"].Value, Equals, "unknown file format")
+	c.Assert(md.Annotations["file.unknown"].Details, HasLen, 0)
 }
 
 func (s *metadataSuite) TestContextReleasePackages(c *C) {
@@ -162,14 +166,14 @@ func (s *metadataSuite) TestContextReleasePackages(c *C) {
 		Vendor: "Acme",
 	}
 
-	releaseDigest, _ := metadata.NewSha1Digest("992b22a7457f7f75b4cfa197393993ebdaa64faf")
+	releaseDigest, _ := metadata.NewSha256Digest(MySha256)
 	packagesDigest, _ := metadata.NewSha256Digest("f1d6e0e435c851796ddc982230070bf5f6c313fade049f31e2983e5b26c43a72")
 	otherDigest, _ := metadata.NewSha256Digest("00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff")
 	ctx.AddReleasePackages(releaseDigest, packagesDigest, p)
 
 	digest, _, ok := ctx.GetReleasePackages(otherDigest)
 	c.Assert(ok, Equals, false)
-	c.Assert(digest, Equals, metadata.Sha1Digest{})
+	c.Assert(digest, Equals, metadata.Sha256Digest{})
 
 	digest, q, ok := ctx.GetReleasePackages(packagesDigest)
 	c.Assert(ok, Equals, true)
@@ -188,14 +192,14 @@ func (s *metadataSuite) TestContextPackagesEntry(c *C) {
 		Size:         1337,
 	}
 
-	packagesDigest, _ := metadata.NewSha1Digest("a47171134c87396f681a59920c68b3cffdf52851")
+	packagesDigest, _ := metadata.NewSha256Digest(MySha256)
 	helloDigest, _ := metadata.NewSha256Digest("e24f8496e591bfa9fc493ab6bbb702b8ee60a47d974139c17f20f095dd0d5670")
 	otherDigest, _ := metadata.NewSha256Digest("00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff")
 	ctx.AddPackagesEntry(packagesDigest, helloDigest, e)
 
 	digest, _, ok := ctx.GetPackagesEntry(otherDigest)
 	c.Assert(ok, Equals, false)
-	c.Assert(digest, Equals, metadata.Sha1Digest{})
+	c.Assert(digest, Equals, metadata.Sha256Digest{})
 
 	digest, f, ok := ctx.GetPackagesEntry(helloDigest)
 	c.Assert(ok, Equals, true)
