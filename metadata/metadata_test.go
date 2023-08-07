@@ -46,6 +46,22 @@ func (s *metadataSuite) TestSha1Digest(c *C) {
 	c.Check(h.String(), Equals, "290d07339dde2735121ab03e525ca6593c395a42")
 }
 
+func (s *metadataSuite) TestSha1DigestError(c *C) {
+	tc := []struct{ digest, msg string }{
+		{"", "SHA1 digest length (0) is invalid"},                                               // empty string
+		{"290d07339dde2735121ab03e525ca6593c395a", "SHA1 digest length (19) is invalid"},        // short string
+		{"290d07339dde2735121ab03e525ca6593c395a4", "encoding/hex: odd length hex string"},      // odd string
+		{"290d07339dde2735121ab03e525ca6593c395a4200", "SHA1 digest length (21) is invalid"},    // long string
+		{"290d07339dde2735121ab03e525ca6593c395a42x", "encoding/hex: invalid byte: U+0078 'x'"}, // invalid character
+	}
+
+	for _, t := range tc {
+		_, err := metadata.NewSha1Digest(t.digest)
+		c.Assert(err, Not(IsNil))
+		c.Check(err.Error(), Equals, t.msg)
+	}
+}
+
 func (s *metadataSuite) TestSha1DigestMarshal(c *C) {
 	type Foo struct {
 		Bar metadata.Sha1Digest `json:"bar"`
@@ -76,6 +92,21 @@ func (s *metadataSuite) TestSha256Digest(c *C) {
 	c.Check(h.String(), Equals, "0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e")
 }
 
+func (s *metadataSuite) TestSha256DigestError(c *C) {
+	tc := []struct{ digest, msg string }{
+		{"", "SHA256 digest length (0) is invalid"},                                                                     // empty string
+		{"0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb29", "SHA256 digest length (31) is invalid"},      // short string
+		{"290d07339dde2735121ab03e525ca6593c395a4", "encoding/hex: odd length hex string"},                              // odd string
+		{"0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e00", "SHA256 digest length (33) is invalid"},  // long string
+		{"0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292ex", "encoding/hex: invalid byte: U+0078 'x'"}, // invalid character
+	}
+
+	for _, t := range tc {
+		_, err := metadata.NewSha256Digest(t.digest)
+		c.Assert(err, Not(IsNil))
+		c.Check(err.Error(), Equals, t.msg)
+	}
+}
 func (s *metadataSuite) TestSha256DigestMarshal(c *C) {
 	type Foo struct {
 		Bar metadata.Sha256Digest `json:"bar"`

@@ -85,6 +85,9 @@ func NewSha1Digest(digest string) (Sha1Digest, error) {
 	if err != nil {
 		return Sha1Digest{}, err
 	}
+	if len(h) != 20 { // SHA1 digest length is 160 bits
+		return Sha1Digest{}, fmt.Errorf("SHA1 digest length (%d) is invalid", len(h))
+	}
 	return *(*Sha1Digest)(h), nil
 }
 
@@ -122,6 +125,9 @@ func NewSha256Digest(digest string) (Sha256Digest, error) {
 	h, err := hex.DecodeString(digest)
 	if err != nil {
 		return Sha256Digest{}, err
+	}
+	if len(h) != 32 { // SHA256 digest length is 256 bits
+		return Sha256Digest{}, fmt.Errorf("SHA256 digest length (%d) is invalid", len(h))
 	}
 	return *(*Sha256Digest)(h), nil
 }
