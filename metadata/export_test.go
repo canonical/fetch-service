@@ -20,7 +20,8 @@
 package metadata
 
 var (
-	ZipMatches = zipMatches
+	ZipMatches               = zipMatches
+	AptLegacyReleaseDetector = aptLegacyReleaseDetector
 )
 
 type DefaultInspector struct {
