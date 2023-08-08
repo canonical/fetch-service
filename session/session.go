@@ -24,7 +24,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -33,6 +32,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 )
 
@@ -65,7 +65,7 @@ func New() *Session {
 	s.Id = "6ba7b8109dad11d180b400c04fd430c8"
 	s.Pw = "1ItfzwGBeJ8wsJdP0Nlx"
 
-	log.Printf("creating session %s", s.Id)
+	logger.Infof("creating session %s", s.Id)
 	sessions[s.Id] = s
 
 	return s
@@ -74,7 +74,7 @@ func New() *Session {
 // Finish ends the session and saves metadata.
 func (s *Session) Finish() error {
 	for k := range s.Md {
-		log.Printf("save metadata for artifact %s", k)
+		logger.Infof("save metadata for artifact %s", k)
 		if err := s.SaveMetadata(k); err != nil {
 			return err
 		}
@@ -87,10 +87,10 @@ func (s *Session) Finish() error {
 func (s *Session) Discard() {
 	_, ok := sessions[s.Id]
 	if !ok {
-		log.Printf("warning: cannot discard non-existing session %s", s.Id)
+		logger.Warningf("cannot discard non-existing session %s", s.Id)
 		return
 	}
-	log.Printf("discarding session %s", s.Id)
+	logger.Infof("discarding session %s", s.Id)
 	delete(sessions, s.Id)
 }
 
@@ -210,10 +210,10 @@ func GetSession(id string) *Session {
 // FinishAll gracefully finishes all active sessions.
 func FinishAll() {
 	for id, s := range sessions {
-		log.Printf("finishing session %s", id)
+		logger.Infof("finishing session %s", id)
 		if err := s.Finish(); err != nil {
-			log.Printf("error: %s", err)
+			logger.Errorf("%s", err)
 		}
 	}
-	log.Printf("all sessions finished")
+	logger.Info("all sessions finished")
 }

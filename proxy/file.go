@@ -25,12 +25,12 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 )
 
@@ -115,7 +115,7 @@ func (h *FileDownloadHandler) Read(b []byte) (n int, err error) {
 func (h *FileDownloadHandler) Close() error {
 	res := h.body.Close()
 	if err := h.tempfile.Close(); err != nil {
-		log.Printf("warning: %v", err)
+		logger.Warningf("%s", err)
 	}
 
 	sha1 := *(*metadata.Sha1Digest)(h.sha1.Sum(nil))
@@ -145,7 +145,7 @@ func (h *FileDownloadHandler) Close() error {
 			return fmt.Errorf("Error saving download data for asset %s: %v", sha1, err)
 		}
 	case <-time.After(h.insTimeout):
-		log.Printf("warning: inspection of artifact %s timed out", sha1)
+		logger.Errorf("inspection of artifact %s timed out", sha1)
 	}
 
 	return res

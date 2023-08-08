@@ -27,6 +27,8 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
 )
 
@@ -37,6 +39,10 @@ const (
 func Test(t *testing.T) { TestingT(t) }
 
 type metadataSuite struct{}
+
+func (t *metadataSuite) SetUpTest(c *C) {
+	testlogger.Init(logger.InfoLevel)
+}
 
 var _ = Suite(&metadataSuite{})
 

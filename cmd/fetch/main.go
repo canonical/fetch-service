@@ -25,6 +25,7 @@ import (
 
 	"github.com/jessevdk/go-flags"
 
+	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/service"
 )
 
@@ -41,6 +42,9 @@ var opts struct {
 
 	// Path to the local spool containing downloaded files and extracted metadata.
 	Spool string `long:"spool" description:"Path to downloaded dependencies" default:"/var/lib/fetch"`
+
+	// Set the verbosity level
+	Verbosity string `long:"verbosity" description:"Verbosity level" choice:"debug"`
 }
 
 func main() {
@@ -56,6 +60,16 @@ func main() {
 		Port:  opts.Port,
 		Spool: opts.Spool,
 	}
+
+	lv := logger.InfoLevel
+	if opts.Verbosity == "debug" {
+		lv = logger.DebugLevel
+	}
+
+	logger.Init(lv)
+	defer logger.Close()
+
+	logger.Debug("Running in debug mode")
 
 	svc := service.New(&opt)
 	svc.Start()

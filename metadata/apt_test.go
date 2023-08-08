@@ -30,10 +30,16 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
 )
 
 type aptSuite struct{}
+
+func (t *aptSuite) SetUpTest(c *C) {
+	testlogger.Init(logger.InfoLevel)
+}
 
 var _ = Suite(&aptSuite{})
 

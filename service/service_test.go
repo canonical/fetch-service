@@ -24,6 +24,8 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/proxy"
 	"github.com/canonical/fetch-service/service"
 )
@@ -32,6 +34,10 @@ func Test(t *testing.T) { TestingT(t) }
 
 type serviceSuite struct {
 	port int
+}
+
+func (t *serviceSuite) SetUpTest(c *C) {
+	testlogger.Init(logger.InfoLevel)
 }
 
 var _ = Suite(&serviceSuite{})
