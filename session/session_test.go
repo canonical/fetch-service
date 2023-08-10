@@ -34,6 +34,10 @@ import (
 	"github.com/canonical/fetch-service/session"
 )
 
+const (
+	MySha256 = "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950"
+)
+
 func Test(t *testing.T) { TestingT(t) }
 
 type sessionSuite struct{}
@@ -98,41 +102,44 @@ func (t *sessionSuite) TestAddMetadata(c *C) {
 	s := session.New()
 	defer s.Discard()
 
+	h, _ := metadata.NewSha256Digest(MySha256)
 	c.Assert(s.Md, HasLen, 0)
-	c.Assert(s.HasMetadata("my-sha1-digest"), Equals, false)
+	c.Assert(s.HasMetadata(h), Equals, false)
 
-	md := &metadata.Metadata{Name: "test-metadata", Sha1: "my-sha1-digest"}
+	md := &metadata.Metadata{Name: "test-metadata", Sha256: h}
 	s.AddMetadata(md)
-	c.Assert(s.Md["my-sha1-digest"].Name, Equals, "test-metadata")
-	c.Assert(s.HasMetadata("my-sha1-digest"), Equals, true)
+	c.Assert(s.Md[h].Name, Equals, "test-metadata")
+	c.Assert(s.HasMetadata(h), Equals, true)
 }
 
 func (t *sessionSuite) TestAddDownloadInfo(c *C) {
 	s := session.New()
 	defer s.Discard()
 
-	md := &metadata.Metadata{Name: "test-metadata", Sha1: "my-sha1-digest"}
+	h, _ := metadata.NewSha256Digest(MySha256)
+	md := &metadata.Metadata{Name: "test-metadata", Sha256: h}
 	s.AddMetadata(md)
 
-	di := metadata.DownloadInfo{URL: "https://foo.bar", Sha1: "my-sha1-digest"}
+	di := metadata.DownloadInfo{URL: "https://foo.bar", Sha256: h}
 	s.AddDownloadInfo(di)
-	c.Assert(s.Md["my-sha1-digest"].Downloads[0].URL, Equals, "https://foo.bar")
+	c.Assert(s.Md[h].Downloads[0].URL, Equals, "https://foo.bar")
 
 	di.URL = "https://another/url"
 	s.AddDownloadInfo(di)
-	c.Assert(s.Md["my-sha1-digest"].Downloads[0].URL, Equals, "https://foo.bar")
-	c.Assert(s.Md["my-sha1-digest"].Downloads[1].URL, Equals, "https://another/url")
+	c.Assert(s.Md[h].Downloads[0].URL, Equals, "https://foo.bar")
+	c.Assert(s.Md[h].Downloads[1].URL, Equals, "https://another/url")
 }
 
 func (t *sessionSuite) TestAddInvalidDownloadInfo(c *C) {
 	s := session.New()
 	defer s.Discard()
 
-	md := &metadata.Metadata{Name: "test-metadata", Sha1: "my-sha1-digest"}
+	h, _ := metadata.NewSha256Digest(MySha256)
+	md := &metadata.Metadata{Name: "test-metadata", Sha256: h}
 	s.AddMetadata(md)
 
 	// adding an invalid sha1 must not crash the server
-	di := metadata.DownloadInfo{URL: "https://foo.bar", Sha1: "another-sha1-digest"}
+	di := metadata.DownloadInfo{URL: "https://foo.bar", Sha256: h}
 	s.AddDownloadInfo(di)
 }
 
@@ -143,18 +150,19 @@ func (t *sessionSuite) TestSaveData(c *C) {
 	tmp := c.MkDir()
 	tempfile := filepath.Join(tmp, "tempfile")
 
-	md := &metadata.Metadata{Name: "test-metadata", Sha1: "my-sha1-digest", AssetDir: tmp, Tempfile: tempfile}
+	h, _ := metadata.NewSha256Digest(MySha256)
+	md := &metadata.Metadata{Name: "test-metadata", Sha256: h, AssetDir: tmp, Tempfile: tempfile}
 	s.AddMetadata(md)
 
 	content := []byte("hello world")
 	err := ioutil.WriteFile(tempfile, content, 0644)
 	c.Assert(err, IsNil)
 
-	err = s.SaveData("my-sha1-digest")
+	err = s.SaveData(h)
 	c.Assert(err, IsNil)
 
 	// data is stored in file named after the digest value
-	data, err := ioutil.ReadFile(filepath.Join(tmp, "my-sha1-digest.bin"))
+	data, err := ioutil.ReadFile(filepath.Join(tmp, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.data"))
 	c.Assert(err, IsNil)
 	c.Assert(data, DeepEquals, []byte("hello world"))
 
@@ -169,13 +177,14 @@ func (t *sessionSuite) TestSaveMetadata(c *C) {
 
 	tmp := c.MkDir()
 
-	md := &metadata.Metadata{Name: "test-metadata", Sha1: "my-sha1-digest", AssetDir: tmp}
+	h, _ := metadata.NewSha256Digest(MySha256)
+	md := &metadata.Metadata{Name: "test-metadata", Sha256: h, AssetDir: tmp}
 	s.AddMetadata(md)
 
-	err := s.SaveMetadata("my-sha1-digest")
+	err := s.SaveMetadata(h)
 	c.Assert(err, IsNil)
 
-	data, err := ioutil.ReadFile(filepath.Join(tmp, "my-sha1-digest.json"))
+	data, err := ioutil.ReadFile(filepath.Join(tmp, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.json"))
 	c.Assert(err, IsNil)
 
 	var j metadata.Metadata

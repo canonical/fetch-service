@@ -32,6 +32,10 @@ import (
 	"github.com/canonical/fetch-service/proxy"
 )
 
+const (
+	MySha256 = "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950"
+)
+
 type fileSuite struct{}
 
 var _ = Suite(&fileSuite{})
@@ -71,8 +75,8 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 
 	// check file metadata
 	c.Assert(v.Md.MetadataVersion, Equals, mver)
-	c.Assert(v.Md.Sha1, Equals, "176070ca20a7563bed4cef2212a9be37af09f14a")
-	c.Assert(v.Md.Sha256, Equals, "f736153d1508e544b6c5ea19e3c2b7448d9af33608d195195e748cb54965e61b")
+	c.Assert(v.Md.Sha1.String(), Equals, "176070ca20a7563bed4cef2212a9be37af09f14a")
+	c.Assert(v.Md.Sha256.String(), Equals, "f736153d1508e544b6c5ea19e3c2b7448d9af33608d195195e748cb54965e61b")
 	c.Assert(v.Md.Size, Equals, int64(13))
 
 	// check download info
@@ -82,7 +86,7 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	c.Assert(v.Info.URL, Equals, "http://foo/bar")
 	c.Assert(v.Info.ContentType, Equals, "application/x-test")
 	c.Assert(v.Info.ResponseHeader["Content-Type"][0], Equals, "application/x-test")
-	c.Assert(v.Info.Sha1, Equals, "176070ca20a7563bed4cef2212a9be37af09f14a")
+	c.Assert(v.Info.Sha256.String(), Equals, "f736153d1508e544b6c5ea19e3c2b7448d9af33608d195195e748cb54965e61b")
 
 	v.Rch <- nil
 
@@ -110,7 +114,7 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	v = msg.(metadata.FileDownload)
 
 	// check file metadata
-	c.Assert(v.Md.Sha1, Equals, "176070ca20a7563bed4cef2212a9be37af09f14a")
+	c.Assert(v.Md.Sha1.String(), Equals, "176070ca20a7563bed4cef2212a9be37af09f14a")
 
 	// check download info
 	c.Assert(v.Info.StatusCode, Equals, 200)

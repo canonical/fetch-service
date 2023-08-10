@@ -118,12 +118,12 @@ func (h *FileDownloadHandler) Close() error {
 		log.Printf("warning: %v", err)
 	}
 
-	sha1 := fmt.Sprintf("%x", h.sha1.Sum(nil))
-	sha256 := fmt.Sprintf("%x", h.sha256.Sum(nil))
+	sha1 := *(*metadata.Sha1Digest)(h.sha1.Sum(nil))
+	sha256 := *(*metadata.Sha256Digest)(h.sha256.Sum(nil))
 
 	// update download information
 	h.info.EndTime = time.Now().UTC()
-	h.info.Sha1 = sha1
+	h.info.Sha256 = sha256
 
 	mver := fmt.Sprintf("%d.%d", metadata.MetadataVersionMajor, metadata.MetadataVersionMinor)
 

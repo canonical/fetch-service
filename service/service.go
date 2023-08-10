@@ -75,7 +75,7 @@ dispatcherLoop:
 			switch v := msg.(type) {
 			case metadata.FileDownload:
 				assetDir := v.Md.AssetDir
-				sessionId, digest := v.Info.SessionId, v.Md.Sha1
+				sessionId, digest := v.Info.SessionId, v.Md.Sha256
 
 				s := session.GetSession(sessionId)
 				if s == nil {
@@ -87,6 +87,7 @@ dispatcherLoop:
 				log.Printf("[%s] %s %s: %s (%s)", sessionId, v.Info.Method, v.Info.URL, v.Info.Status, v.Info.ContentType)
 
 				if s.HasMetadata(digest) {
+					log.Printf("artifact %s already downloaded", digest)
 					s.AddDownloadInfo(v.Info)
 					v.Rch <- nil
 					break
