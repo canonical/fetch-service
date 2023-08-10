@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	. "gopkg.in/check.v1"
@@ -150,4 +151,25 @@ func (s *aptSuite) TestAptPackagesInspector(c *C) {
 	c.Check(md.Author, Equals, "Acme")
 	c.Check(md.Annotations["file.integrity.asserted-by"].Kind, Equals, metadata.Notice)
 	c.Check(md.Annotations["file.integrity.asserted-by"].Value, Equals, "release-digest")
+}
+
+func (s *aptSuite) TestAptLegacyReleaseDetector(c *C) {
+	entries := []string{"Component: a", "Version: b", "Label: c", "Architecture: d", "Origin: e", "Archive: f"}
+
+	// Ensure all entries are necessary
+	e := make([]string, len(entries))
+	for i := range entries {
+		copy(e, entries)
+		e[i] = e[len(e)-1] // replace with last element
+		content := []byte(strings.Join(e[:len(e)-1], "\n"))
+		c.Check(metadata.AptLegacyReleaseDetector(content, 256), Equals, false)
+	}
+
+	content := []byte(strings.Join(entries, "\n"))
+	c.Check(metadata.AptLegacyReleaseDetector(content, 256), Equals, true)
+
+	// Extra entries not allowed
+	extra := append([]string{"Extra: z"}, entries...)
+	content = []byte(strings.Join(extra, "\n"))
+	c.Check(metadata.AptLegacyReleaseDetector(content, 256), Equals, false)
 }

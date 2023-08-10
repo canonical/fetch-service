@@ -193,16 +193,22 @@ func aptLegacyReleaseDetector(raw []byte, limit uint32) bool {
 	sc := bufio.NewScanner(bytes.NewReader(raw))
 	sc.Split(bufio.ScanLines)
 
+	matches := 0
+
 	for sc.Scan() {
 		line := sc.Text()
+		if strings.Count(line, ":") != 1 {
+			return false
+		}
 
-		k, _, ok := strings.Cut(line, ": ")
+		k, _, ok := strings.Cut(line, ":")
 		if !ok {
 			return false
 		}
 
 		switch k {
 		case "Archive", "Version", "Component", "Origin", "Label", "Architecture":
+			matches++
 			continue
 		default:
 			return false
@@ -210,7 +216,7 @@ func aptLegacyReleaseDetector(raw []byte, limit uint32) bool {
 
 	}
 
-	return true
+	return matches == 6
 }
 
 type aptLegacyReleaseInspector struct{}
@@ -238,10 +244,11 @@ func (aptLegacyReleaseInspector) Inspect(filename string, md *Metadata, di *Down
 	for sc.Scan() {
 		line := sc.Text()
 
-		k, v, ok := strings.Cut(line, ": ")
+		k, v, ok := strings.Cut(line, ":")
 		if !ok {
 			return
 		}
+		v = strings.TrimSpace(v)
 
 		contents[k] = v
 
