@@ -30,6 +30,8 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/session"
 )
@@ -41,6 +43,10 @@ const (
 func Test(t *testing.T) { TestingT(t) }
 
 type sessionSuite struct{}
+
+func (t *sessionSuite) SetUpTest(c *C) {
+	testlogger.Init(logger.InfoLevel)
+}
 
 var _ = Suite(&sessionSuite{})
 

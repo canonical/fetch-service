@@ -22,7 +22,6 @@ package metadata
 import (
 	"encoding/hex"
 	"fmt"
-	"log"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -32,6 +31,8 @@ import (
 
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/go-mmap/mmap"
+
+	"github.com/canonical/fetch-service/logger"
 )
 
 // AnnotationKind qualifies the annotation.
@@ -293,7 +294,7 @@ func (ctx *InspectionContext) RunInspectors(dir string, md *Metadata, di *Downlo
 	md.Type = mtype.String()
 
 	if len(di.ContentType) > 0 && !mtype.Is(di.ContentType) {
-		log.Printf("warning: file type '%s' doesn't match content type '%s'", mtype.String(), di.ContentType)
+		logger.Debugf("file type '%s' doesn't match content type '%s'", mtype.String(), di.ContentType)
 	}
 
 	// run metadata inspectors
@@ -318,7 +319,7 @@ func (ctx *InspectionContext) AddReleasePackages(relDigest Sha256Digest, digest 
 		ctx.releasePackages[relDigest] = make(map[Sha256Digest]AptReleasePackages, 16)
 	}
 	ctx.releasePackages[relDigest][digest] = p
-	//log.Printf("apt releases file: %s %s", digest, p.Path)
+	logger.Debugf("apt releases file: %s %s", digest, p.Path)
 }
 
 func (ctx *InspectionContext) GetReleasePackages(digest Sha256Digest) (relDigest Sha256Digest, p AptReleasePackages, ok bool) {

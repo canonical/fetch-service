@@ -20,13 +20,13 @@
 package service
 
 import (
-	"log"
 	"math/rand"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/proxy"
 	"github.com/canonical/fetch-service/session"
@@ -54,7 +54,7 @@ func New(opt *Options) *Service {
 
 // Start runs the fetch service dispatcher.
 func (svc *Service) Start() {
-	log.Printf("Starting service...")
+	logger.Info("Starting service...")
 	svc.p.Start()
 
 	_ = session.New() // FIXME: to be created using the API
@@ -79,15 +79,15 @@ dispatcherLoop:
 
 				s := session.GetSession(sessionId)
 				if s == nil {
-					log.Printf("warning: session %s is not active", sessionId)
+					logger.Warningf("session %s is not active", sessionId)
 					break
 				}
 
 				// Add download info to artifact metadata
-				log.Printf("[%s] %s %s: %s (%s)", sessionId, v.Info.Method, v.Info.URL, v.Info.Status, v.Info.ContentType)
+				logger.Infof("[%s] %s %s: %s (%s)", sessionId, v.Info.Method, v.Info.URL, v.Info.Status, v.Info.ContentType)
 
 				if s.HasMetadata(digest) {
-					log.Printf("artifact %s already downloaded", digest)
+					logger.Infof("artifact %s already downloaded", digest)
 					s.AddDownloadInfo(v.Info)
 					v.Rch <- nil
 					break
@@ -104,12 +104,12 @@ dispatcherLoop:
 				go func(md *metadata.Metadata, di *metadata.DownloadInfo, ch chan error) {
 					// Extract metadata from file
 					if err := s.Ctx.RunInspectors(assetDir, md, di); err != nil {
-						log.Printf("error: %v", err)
+						logger.Errorf("%s", err)
 						ch <- err
 						return
 					}
 
-					log.Printf("[%s] artifact %s %d (%s)", sessionId, digest, md.Size, md.Type)
+					logger.Infof("[%s] artifact %s %d (%s)", sessionId, digest, md.Size, md.Type)
 					ch <- nil
 				}(&v.Md, &v.Info, v.Rch)
 
@@ -122,7 +122,7 @@ dispatcherLoop:
 				}
 
 			default:
-				log.Printf("Unknown message type %T", v)
+				logger.Warningf("Unknown message type %T", v)
 			}
 		}
 	}

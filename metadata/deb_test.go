@@ -29,10 +29,16 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
 )
 
 type debSuite struct{}
+
+func (t *debSuite) SetUpTest(c *C) {
+	testlogger.Init(logger.InfoLevel)
+}
 
 var _ = Suite(&debSuite{})
 

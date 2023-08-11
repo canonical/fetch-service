@@ -28,6 +28,8 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/proxy"
 )
@@ -37,6 +39,10 @@ const (
 )
 
 type fileSuite struct{}
+
+func (t *fileSuite) SetUpTest(c *C) {
+	testlogger.Init(logger.InfoLevel)
+}
 
 var _ = Suite(&fileSuite{})
 

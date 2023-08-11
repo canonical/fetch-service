@@ -21,13 +21,13 @@ package proxy
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/elazarl/goproxy"
 
+	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/proxy/auth"
 )
 
@@ -89,12 +89,12 @@ func (p *HttpProxy) Start() error {
 	if err != nil {
 		return err
 	}
-	log.Printf("listening on %s\n", addr)
+	logger.Infof("listening on %s\n", addr)
 
 	go func() {
 		err := p.srv.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)})
 		if err != http.ErrServerClosed {
-			log.Fatalf("cannot start server: %v", err)
+			logger.Fatalf("cannot start server: %v", err)
 		}
 	}()
 
@@ -103,7 +103,7 @@ func (p *HttpProxy) Start() error {
 
 // Stop shuts down the proxy.
 func (p *HttpProxy) Stop() {
-	log.Printf("shutting down...")
+	logger.Infof("shutting down...")
 	p.srv.Close()
 }
 

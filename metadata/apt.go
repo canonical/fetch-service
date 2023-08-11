@@ -23,12 +23,13 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/xi2/xz"
+
+	"github.com/canonical/fetch-service/logger"
 )
 
 // Distribution Release/InRelease file
@@ -137,19 +138,19 @@ func (aptReleaseInspector) Inspect(filename string, md *Metadata, di *DownloadIn
 				p = AptReleasePackages{}
 				fields := strings.Fields(line)
 				if len(fields) != 3 {
-					log.Printf("warning: error parsing '%s'", line)
+					logger.Warningf("cannot parse '%s'", line)
 					continue
 				}
 				p.Vendor = md.Vendor
 				digest, p.Path = fields[0], fields[2]
 				p.Size, err = strconv.ParseInt(fields[1], 10, 64)
 				if err != nil {
-					log.Printf("warning: error parsing size '%s': %s", fields[1], err)
+					logger.Warningf("cannot parse '%s': %s", fields[1], err)
 					continue
 				}
 				h, err := NewSha256Digest(digest)
 				if err != nil {
-					log.Printf("warning: error parsing digest '%s': %s", digest, err)
+					logger.Warningf("cannot parse digest '%s': %s", digest, err)
 					continue
 				}
 				ctx.AddReleasePackages(md.Sha256, h, p)
