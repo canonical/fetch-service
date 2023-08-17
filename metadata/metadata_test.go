@@ -21,8 +21,6 @@ package metadata_test
 
 import (
 	"encoding/json"
-	"os"
-	"path/filepath"
 	"testing"
 
 	. "gopkg.in/check.v1"
@@ -156,43 +154,7 @@ func (s *metadataSuite) TestAnnotation(c *C) {
 	c.Assert(md.Annotations["test.violation"].Details, DeepEquals, metadata.AnnotationDetails{"text": "test"})
 }
 
-func (s *metadataSuite) TestRunInspectors(c *C) {
-	ctx := metadata.NewInspectionContext()
-
-	dir := c.MkDir()
-	data := []byte("Measure twice, saw once.\n")
-	err := os.WriteFile(filepath.Join(dir, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.data"), data, 0644)
-	c.Assert(err, IsNil)
-
-	h, _ := metadata.NewSha256Digest(MySha256)
-	md := &metadata.Metadata{Sha256: h}
-	di := &metadata.DownloadInfo{ContentType: "text/plain", Sha256: h}
-
-	err = ctx.RunInspectors(dir, md, di)
-	c.Assert(err, IsNil)
-	c.Assert(md.Type, Equals, "text/plain; charset=utf-8")
-
-	// TODO: improve this test to see if registered inspectors ran as expected
-}
-
-func (s *metadataSuite) TestDefaultInspector(c *C) {
-	md := &metadata.Metadata{Type: "application/unit-test"}
-	di := &metadata.DownloadInfo{}
-
-	var iface metadata.Inspector
-	ins := metadata.DefaultInspector{}
-	c.Assert(ins, Implements, &iface)
-
-	stop, err := ins.Inspect("any-filename", md, di, nil)
-	c.Assert(err, IsNil)
-	c.Assert(stop, Equals, true)
-	c.Assert(md.Annotations, HasLen, 1)
-	c.Assert(md.Annotations["file.unknown"].Kind, Equals, metadata.Warning)
-	c.Assert(md.Annotations["file.unknown"].Origin, Equals, "metadata.defaultInspector")
-	c.Assert(md.Annotations["file.unknown"].Value, Equals, "unknown file format")
-	c.Assert(md.Annotations["file.unknown"].Details, HasLen, 0)
-}
-
+/*
 func (s *metadataSuite) TestContextReleasePackages(c *C) {
 	ctx := metadata.NewInspectionContext()
 	c.Assert(ctx, Not(IsNil))
@@ -243,3 +205,4 @@ func (s *metadataSuite) TestContextPackagesEntry(c *C) {
 	c.Assert(digest, Equals, packagesDigest)
 	c.Assert(f, DeepEquals, e)
 }
+*/

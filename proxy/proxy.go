@@ -116,6 +116,13 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 			req.Header.Set(sessionIdHeader, sessionId)
 		}
 	}
+
+	var err error
+	req.Body, err = NewRequestHandler(req, p.ch)
+	if err != nil {
+		return req, internalErrorResponse(req, "Cannot handle requests")
+	}
+
 	return req, nil
 }
 

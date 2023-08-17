@@ -103,7 +103,7 @@ dispatcherLoop:
 
 				go func(md *metadata.Metadata, di *metadata.DownloadInfo, ch chan error) {
 					// Extract metadata from file
-					if err := s.Ctx.RunInspectors(assetDir, md, di); err != nil {
+					if err := s.Insps.Run(assetDir, md, di); err != nil {
 						logger.Errorf("%s", err)
 						ch <- err
 						return

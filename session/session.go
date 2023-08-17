@@ -32,6 +32,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/canonical/fetch-service/inspectors"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 )
@@ -42,7 +43,7 @@ type Session struct {
 	Pw    string
 	Start time.Time
 	End   time.Time
-	Ctx   *metadata.InspectionContext
+	Insps inspectors.Inspectors
 	Md    map[metadata.Sha256Digest]*metadata.Metadata
 }
 
@@ -56,7 +57,7 @@ func New() *Session {
 		Id:    makeSessionId(),
 		Pw:    randomString(20),
 		Start: time.Now().UTC(),
-		Ctx:   metadata.NewInspectionContext(),
+		Insps: inspectors.New(),
 		Md:    map[metadata.Sha256Digest]*metadata.Metadata{},
 	}
 

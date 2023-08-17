@@ -17,19 +17,22 @@
  *
  */
 
-package metadata
+package apt
 
 import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"net/http"
 	"os"
-	"strconv"
+	//"strconv"
 	"strings"
+	"sync"
 
 	"github.com/xi2/xz"
 
-	"github.com/canonical/fetch-service/logger"
+	//"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/metadata"
 )
 
 // Distribution Release/InRelease file
@@ -59,7 +62,7 @@ import (
 // 19d98231d41ff3fb09d4f260df38e5ac              105 main/binary-amd64/Release
 // ...
 
-func aptReleaseDetector(raw []byte, limit uint32) bool {
+func AptReleaseDetector(raw []byte, limit uint32) bool {
 	b := bytes.NewReader(raw)
 	sc := bufio.NewScanner(b)
 	sc.Split(bufio.ScanLines)
@@ -102,9 +105,35 @@ type AptReleasePackages struct {
 	Size   int64  // size of the Packages file
 }
 
-type aptReleaseInspector struct{}
+// InspectionContext contains session-specific contextual data for stateful
+// analysis within a fetch session.
+type InspectionContext struct {
+}
 
-func (aptReleaseInspector) Inspect(filename string, md *Metadata, di *DownloadInfo, ctx *InspectionContext) (stop bool, err error) {
+func NewInspectionContext() *InspectionContext {
+	return &InspectionContext{
+		/*
+			releasePackages: make(map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptReleasePackages, 16),
+			packagesEntries: make(map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptPackagesEntry, 256),
+		*/
+	}
+}
+
+type AptReleaseInspector struct {
+	// releasePackages maps InRelease file digests to Packages.* file digests to metadata.
+	releasePackages map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptReleasePackages
+	releaseLock     sync.Mutex
+
+	// packagesEntries maps Packages.* file digests to package digest to metadata.
+	packagesEntries map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptPackagesEntry
+	packagesLock    sync.Mutex
+}
+
+func (*AptReleaseInspector) AuthorizeRequest(req *http.Request) error {
+	return nil
+}
+
+func (*AptReleaseInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
 	if md.Type != "application/x-apt-release" {
 		return
 	}
@@ -116,68 +145,70 @@ func (aptReleaseInspector) Inspect(filename string, md *Metadata, di *DownloadIn
 	}
 	defer f.Close()
 
-	sc := bufio.NewScanner(f)
-	sc.Split(bufio.ScanLines)
+	/*
+		sc := bufio.NewScanner(f)
+		sc.Split(bufio.ScanLines)
 
-	hashes := false
+		hashes := false
 
-	var p AptReleasePackages
+		var p AptReleasePackages
 
-	for sc.Scan() {
-		line := sc.Text()
+		for sc.Scan() {
+			line := sc.Text()
 
-		if line == "-----BEGIN PGP SIGNATURE-----" {
-			break
-		}
-
-		var digest string
-
-		// Get sha256 hashes for Package.xz files
-		if hashes && len(line) > 0 && line[0] == ' ' {
-			if strings.HasSuffix(line, "/Packages.xz") {
-				p = AptReleasePackages{}
-				fields := strings.Fields(line)
-				if len(fields) != 3 {
-					logger.Warningf("cannot parse '%s'", line)
-					continue
-				}
-				p.Vendor = md.Vendor
-				digest, p.Path = fields[0], fields[2]
-				p.Size, err = strconv.ParseInt(fields[1], 10, 64)
-				if err != nil {
-					logger.Warningf("cannot parse '%s': %s", fields[1], err)
-					continue
-				}
-				h, err := NewSha256Digest(digest)
-				if err != nil {
-					logger.Warningf("cannot parse digest '%s': %s", digest, err)
-					continue
-				}
-				ctx.AddReleasePackages(md.Sha256, h, p)
+			if line == "-----BEGIN PGP SIGNATURE-----" {
+				break
 			}
-			continue
-		}
 
-		hashes = false
+				var digest string
 
-		k, v, ok := strings.Cut(line, ":")
-		if !ok {
-			continue
-		}
-		v = strings.TrimSpace(v)
+				// Get sha256 hashes for Package.xz files
+				if hashes && len(line) > 0 && line[0] == ' ' {
+					if strings.HasSuffix(line, "/Packages.xz") {
+						p = AptReleasePackages{}
+						fields := strings.Fields(line)
+						if len(fields) != 3 {
+							logger.Warningf("cannot parse '%s'", line)
+							continue
+						}
+						p.Vendor = md.Vendor
+						digest, p.Path = fields[0], fields[2]
+						p.Size, err = strconv.ParseInt(fields[1], 10, 64)
+						if err != nil {
+							logger.Warningf("cannot parse '%s': %s", fields[1], err)
+							continue
+						}
+							h, err := metadata.NewSha256Digest(digest)
+							if err != nil {
+								logger.Warningf("cannot parse digest '%s': %s", digest, err)
+								continue
+							}
+							ctx.AddReleasePackages(md.Sha256, h, p)
+					}
+					continue
+				}
 
-		switch k {
-		case "Origin":
-			md.Vendor = v
-			md.Author = v
-		case "Version":
-			md.Version = v
-		case "Description":
-			md.Description = v
-		case "SHA256":
-			hashes = true
+			hashes = false
+
+			k, v, ok := strings.Cut(line, ":")
+			if !ok {
+				continue
+			}
+			v = strings.TrimSpace(v)
+
+			switch k {
+			case "Origin":
+				md.Vendor = v
+				md.Author = v
+			case "Version":
+				md.Version = v
+			case "Description":
+				md.Description = v
+			case "SHA256":
+				hashes = true
+			}
 		}
-	}
+	*/
 	md.Name = "InRelease"
 
 	return
@@ -195,7 +226,7 @@ func (aptReleaseInspector) Inspect(filename string, md *Metadata, di *DownloadIn
 // Label: Ubuntu
 // Architecture: amd64
 
-func aptLegacyReleaseDetector(raw []byte, limit uint32) bool {
+func AptLegacyReleaseDetector(raw []byte, limit uint32) bool {
 	sc := bufio.NewScanner(bytes.NewReader(raw))
 	sc.Split(bufio.ScanLines)
 
@@ -225,9 +256,9 @@ func aptLegacyReleaseDetector(raw []byte, limit uint32) bool {
 	return matches == 6
 }
 
-type aptLegacyReleaseInspector struct{}
+type AptLegacyReleaseInspector struct{}
 
-func (aptLegacyReleaseInspector) Inspect(filename string, md *Metadata, di *DownloadInfo, ctx *InspectionContext) (stop bool, err error) {
+func (AptLegacyReleaseInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
 	if md.Type != "application/x-apt-legacy-release" {
 		return
 	}
@@ -245,7 +276,7 @@ func (aptLegacyReleaseInspector) Inspect(filename string, md *Metadata, di *Down
 	var component string
 	var architecture string
 
-	contents := AnnotationDetails{}
+	contents := metadata.AnnotationDetails{}
 
 	for sc.Scan() {
 		line := sc.Text()
@@ -273,7 +304,7 @@ func (aptLegacyReleaseInspector) Inspect(filename string, md *Metadata, di *Down
 	md.Name = "Release"
 	md.Description = fmt.Sprintf("Repository release file for %s/%s", component, architecture)
 
-	md.Annotate(Notice, "apt.metadata.release", di.URL).SetDetails(contents)
+	md.Annotate(metadata.Notice, "apt.metadata.release", di.URL).SetDetails(contents)
 
 	return
 }
@@ -309,7 +340,7 @@ func (aptLegacyReleaseInspector) Inspect(filename string, md *Metadata, di *Down
 // Architecture: all
 // ...
 
-func aptPackagesDetector(raw []byte, limit uint32) bool {
+func AptPackagesDetector(raw []byte, limit uint32) bool {
 	r, err := xz.NewReader(bytes.NewReader(raw), 0)
 	if err != nil {
 		return false
@@ -362,95 +393,97 @@ type AptPackagesEntry struct {
 	Size         int64
 }
 
-type aptPackagesInspector struct{}
+type AptPackagesInspector struct{}
 
-func (aptPackagesInspector) Inspect(filename string, md *Metadata, di *DownloadInfo, ctx *InspectionContext) (stop bool, err error) {
+func (AptPackagesInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
 	if md.Type != "application/x-apt-packages" {
 		return
 	}
 	stop = true
 
-	// obtain the Packages.xz path from the Release file
-	relDigest, p, ok := ctx.GetReleasePackages(md.Sha256)
-	if ok {
-		if p.Size != md.Size {
-			data := AnnotationDetails{"release-data": p}
-			md.Annotate(IntegrityViolation, "file.integrity.check", ResultFail).SetDetails(data)
-			return
-		}
-		// The Packages file is listed in Release and size matches
-		md.Annotate(Notice, "file.integrity.asserted-by", relDigest.String())
-	} else {
-		// This Packages file was not found in InRelease
-		md.Annotate(PolicyViolation, "file.integrity.check", ResultFail)
-	}
-
-	// Populate metadata
-	md.Name = p.Path
-	md.Vendor = p.Vendor
-	md.Description = "Apt repository Packages file"
-	md.Author = p.Vendor
-
-	// Cache some data to check deb packages
-	f, err := os.Open(filename)
-	if err != nil {
-		return
-	}
-	defer f.Close()
-
-	r, err := xz.NewReader(f, 0)
-	if err != nil {
-		return
-	}
-
-	sc := bufio.NewScanner(r)
-	sc.Split(bufio.ScanLines)
-
-	// some lines can be really long (e.g. librust-winapi-dev Provides:)
-	buf := make([]byte, 0, 64*1024)
-	sc.Buffer(buf, 1024*1024)
-
-	var e AptPackagesEntry
-
-	num := 0
-
-	for sc.Scan() {
-		line := sc.Text()
-
-		if line == "" {
-			e = AptPackagesEntry{}
-			continue
-		}
-
-		k, v, ok := strings.Cut(line, ":")
-		if !ok {
-			err = fmt.Errorf("error parsing line '%s'", line)
-			return
-		}
-		v = strings.TrimSpace(v)
-
-		switch k {
-		case "Package":
-			e.Package = v
-			num++
-		case "Version":
-			e.Version = v
-		case "Architecture":
-			e.Architecture = v
-		case "Size":
-			e.Size, _ = strconv.ParseInt(v, 10, 32)
-		case "SHA256":
-			var h Sha256Digest
-			h, err = NewSha256Digest(v)
-			if err != nil {
-				err = fmt.Errorf("error parsing digest '%s': %s", v, err)
+	/*
+		// obtain the Packages.xz path from the Release file
+		relDigest, p, ok := ctx.GetReleasePackages(md.Sha256)
+		if ok {
+			if p.Size != md.Size {
+				data := AnnotationDetails{"release-data": p}
+				md.Annotate(IntegrityViolation, "file.integrity.check", ResultFail).SetDetails(data)
 				return
 			}
-			ctx.AddPackagesEntry(md.Sha256, h, e)
+			// The Packages file is listed in Release and size matches
+			md.Annotate(metadata.Notice, "file.integrity.asserted-by", relDigest.String())
+		} else {
+			// This Packages file was not found in InRelease
+			md.Annotate(metadata.PolicyViolation, "file.integrity.check", metadata.ResultFail)
 		}
-	}
 
-	md.Annotate(Notice, "apt.metadata.packages.count", strconv.Itoa(num))
+		// Populate metadata
+		md.Name = p.Path
+		md.Vendor = p.Vendor
+		md.Description = "Apt repository Packages file"
+		md.Author = p.Vendor
+
+		// Cache some data to check deb packages
+		f, err := os.Open(filename)
+		if err != nil {
+			return
+		}
+		defer f.Close()
+
+		r, err := xz.NewReader(f, 0)
+		if err != nil {
+			return
+		}
+
+		sc := bufio.NewScanner(r)
+		sc.Split(bufio.ScanLines)
+
+		// some lines can be really long (e.g. librust-winapi-dev Provides:)
+		buf := make([]byte, 0, 64*1024)
+		sc.Buffer(buf, 1024*1024)
+
+		var e AptPackagesEntry
+
+		num := 0
+
+		for sc.Scan() {
+			line := sc.Text()
+
+			if line == "" {
+				e = AptPackagesEntry{}
+				continue
+			}
+
+			k, v, ok := strings.Cut(line, ":")
+			if !ok {
+				err = fmt.Errorf("error parsing line '%s'", line)
+				return
+			}
+			v = strings.TrimSpace(v)
+
+			switch k {
+			case "Package":
+				e.Package = v
+				num++
+			case "Version":
+				e.Version = v
+			case "Architecture":
+				e.Architecture = v
+			case "Size":
+				e.Size, _ = strconv.ParseInt(v, 10, 32)
+			case "SHA256":
+				var h metadata.Sha256Digest
+				h, err = metadata.NewSha256Digest(v)
+				if err != nil {
+					err = fmt.Errorf("error parsing digest '%s': %s", v, err)
+					return
+				}
+				ctx.AddPackagesEntry(md.Sha256, h, e)
+			}
+		}
+
+		md.Annotate(Notice, "apt.metadata.packages.count", strconv.Itoa(num))
+	*/
 
 	return
 }

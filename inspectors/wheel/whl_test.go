@@ -17,7 +17,7 @@
  *
  */
 
-package metadata_test
+package wheel_test
 
 import (
 	"crypto/tls"
@@ -29,24 +29,26 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/inspectors"
+	"github.com/canonical/fetch-service/inspectors/wheel"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
 )
 
-type debSuite struct{}
+type whlSuite struct{}
 
-func (t *debSuite) SetUpTest(c *C) {
+func (t *whlSuite) SetUpTest(c *C) {
 	testlogger.Init(logger.InfoLevel)
 }
 
-var _ = Suite(&debSuite{})
+var _ = Suite(&whlSuite{})
 
 const (
-	debURL = "http://launchpadlibrarian.net/592566337/hello_2.10-2ubuntu4_amd64.deb"
+	whlURL = "https://files.pythonhosted.org/packages/1a/27/39933dc51320918ca559eb1abb2ab6d4083f431f1e755c0e79cc717494d7/craft_grammar-1.1.1-py2.py3-none-any.whl"
 )
 
-func (s *debSuite) TestDebInspector(c *C) {
+func (s *whlSuite) TestWhlInspector(c *C) {
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
@@ -55,7 +57,7 @@ func (s *debSuite) TestDebInspector(c *C) {
 		Timeout:   30 * time.Second,
 	}
 
-	req, err := http.NewRequest("GET", debURL, nil)
+	req, err := http.NewRequest("GET", whlURL, nil)
 	c.Assert(err, IsNil)
 
 	resp, err := client.Do(req)
@@ -74,26 +76,24 @@ func (s *debSuite) TestDebInspector(c *C) {
 	dest.Close()
 
 	h, _ := metadata.NewSha1Digest("290d07339dde2735121ab03e525ca6593c395a42")
-	md := &metadata.Metadata{Type: "application/vnd.debian.binary-package", Sha1: h}
+	md := &metadata.Metadata{Type: "application/x-python-wheel", Sha1: h}
 	di := &metadata.DownloadInfo{}
 
-	var iface metadata.Inspector
-	ins := metadata.DebInspector{}
+	var iface inspectors.Inspector
+	ins := wheel.WhlInspector{}
 	c.Assert(ins, Implements, &iface)
 
-	// TODO: inject Packages.xz data into inspection context to validade the deb file
-
-	ctx := metadata.NewInspectionContext()
-	stop, err := ins.Inspect(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"), md, di, ctx)
+	stop, err := ins.Inspect(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"), md, di)
 	c.Assert(err, IsNil)
 	c.Assert(stop, Equals, true)
 
-	c.Check(md.Name, Equals, "hello")
-	c.Check(md.Version, Equals, "2.10-2ubuntu4")
-	c.Check(md.Vendor, Equals, "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>")
-	c.Check(md.Description, Equals, "Example package based on GNU hello")
-	c.Check(md.Author, Equals, "") // FIXME: deb inspector needs a better author email parser
-	c.Check(md.AuthorEmail, Equals, "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>")
-	c.Check(md.License, Equals, "") // FIXME: copyright file is not in machine-readable format
-	c.Check(md.Annotations["deb.debian-binary.version"].Value, Equals, "2.0")
+	c.Check(md.Name, Equals, "craft-grammar")
+	c.Check(md.Vendor, Equals, "Canonical Ltd.")
+	c.Check(md.Description, Equals, `"Advance Grammar for Craft Parts"`)
+	c.Check(md.Author, Equals, "Canonical Ltd.")
+	c.Check(md.AuthorEmail, Equals, "snapcraft@lists.snapcraft.io")
+	c.Check(md.License, Equals, "GNU Lesser General Public License v3 (LGPLv3)")
+	c.Check(md.Annotations["pip.wheel.version"].Value, Equals, "1.0")
+	c.Check(md.Annotations["pip.wheel.metadata.version"].Value, Equals, "2.1")
+	c.Check(md.Annotations["pip.wheel.record.check"].Value, Equals, "pass")
 }

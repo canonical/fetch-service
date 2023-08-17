@@ -17,4 +17,4 @@
  *
  */
 
-package metadata
+package inspectors

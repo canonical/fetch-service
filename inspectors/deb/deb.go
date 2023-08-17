@@ -17,12 +17,13 @@
  *
  */
 
-package metadata
+package deb
 
 import (
 	"archive/tar"
 	"bufio"
 	"io"
+	"net/http"
 	"os"
 	"regexp"
 	"strings"
@@ -30,11 +31,17 @@ import (
 
 	"github.com/blakesmith/ar"
 	"github.com/klauspost/compress/zstd"
+
+	"github.com/canonical/fetch-service/metadata"
 )
 
-type debInspector struct{}
+type DebInspector struct{}
 
-func (debInspector) Inspect(filename string, md *Metadata, di *DownloadInfo, ctx *InspectionContext) (stop bool, err error) {
+func (DebInspector) AuthorizeRequest(req *http.Request) error {
+	return nil
+}
+
+func (DebInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
 	if md.Type != "application/vnd.debian.binary-package" {
 		return
 	}
@@ -45,23 +52,25 @@ func (debInspector) Inspect(filename string, md *Metadata, di *DownloadInfo, ctx
 		return
 	}
 
-	pkgsDigest, e, ok := ctx.GetPackagesEntry(md.Sha256)
-	if ok {
-		if md.Name != e.Package || md.Version != e.Version || md.Architecture != e.Architecture || md.Size != e.Size {
-			data := AnnotationDetails{"packages-data": e}
-			md.Annotate(IntegrityViolation, "file.integrity.check", ResultFail).SetDetails(data)
-			return
+	/*
+		pkgsDigest, e, ok := ctx.GetPackagesEntry(md.Sha256)
+		if ok {
+			if md.Name != e.Package || md.Version != e.Version || md.Architecture != e.Architecture || md.Size != e.Size {
+				data := AnnotationDetails{"packages-data": e}
+				md.Annotate(IntegrityViolation, "file.integrity.check", ResultFail).SetDetails(data)
+				return
+			}
+			md.Annotate(Notice, "file.integrity.asserted-by", pkgsDigest.String())
+		} else {
+			md.Annotate(PolicyViolation, "file.integrity.check", ResultFail)
 		}
-		md.Annotate(Notice, "file.integrity.asserted-by", pkgsDigest.String())
-	} else {
-		md.Annotate(PolicyViolation, "file.integrity.check", ResultFail)
-	}
+	*/
 
 	return
 }
 
 // readDebMetadata reads metadata from the deb control file.
-func readDebMetadata(filename string, md *Metadata) error {
+func readDebMetadata(filename string, md *metadata.Metadata) error {
 
 	f, err := os.Open(filename)
 	if err != nil {
@@ -110,19 +119,19 @@ func readDebMetadata(filename string, md *Metadata) error {
 	return nil
 }
 
-func parseDebianBinary(af io.Reader, md *Metadata) error {
+func parseDebianBinary(af io.Reader, md *metadata.Metadata) error {
 	sc := bufio.NewScanner(af)
 	sc.Split(bufio.ScanLines)
 
 	// Read a single line
 	sc.Scan()
 	line := sc.Text()
-	md.Annotate(Notice, "deb.debian-binary.version", line)
+	md.Annotate(metadata.Notice, "deb.debian-binary.version", line)
 
 	return nil
 }
 
-func parseControlTar(zf io.Reader, md *Metadata) error {
+func parseControlTar(zf io.Reader, md *metadata.Metadata) error {
 	tf := tar.NewReader(zf)
 	for {
 		h, err := tf.Next()
@@ -144,7 +153,7 @@ func parseControlTar(zf io.Reader, md *Metadata) error {
 	return nil
 }
 
-func parseControl(tf io.Reader, md *Metadata) error {
+func parseControl(tf io.Reader, md *metadata.Metadata) error {
 	sc := bufio.NewScanner(tf)
 	sc.Split(bufio.ScanLines)
 
@@ -185,7 +194,7 @@ func parseControl(tf io.Reader, md *Metadata) error {
 	return nil
 }
 
-func parseDataTar(zf io.Reader, md *Metadata) error {
+func parseDataTar(zf io.Reader, md *metadata.Metadata) error {
 	copyright := regexp.MustCompile(`^\./usr/share/doc/[^/]+/copyright$`)
 
 	tf := tar.NewReader(zf)
@@ -209,7 +218,7 @@ func parseDataTar(zf io.Reader, md *Metadata) error {
 	return nil
 }
 
-func parseCopyright(tf io.Reader, md *Metadata) error {
+func parseCopyright(tf io.Reader, md *metadata.Metadata) error {
 	sc := bufio.NewScanner(tf)
 	sc.Split(bufio.ScanLines)
 

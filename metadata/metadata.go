@@ -22,17 +22,8 @@ package metadata
 import (
 	"encoding/hex"
 	"fmt"
-	"path/filepath"
-	"runtime"
 	"strconv"
-	"strings"
-	"sync"
 	"time"
-
-	"github.com/gabriel-vasile/mimetype"
-	"github.com/go-mmap/mmap"
-
-	"github.com/canonical/fetch-service/logger"
 )
 
 // AnnotationKind qualifies the annotation.
@@ -185,7 +176,7 @@ type Metadata struct {
 
 // Annotate adds a named annotation to the file metadata.
 func (md *Metadata) Annotate(kind AnnotationKind, name, value string) *Annotation {
-	origin := findCallerInspector()
+	origin := "" //findCallerInspector()
 
 	a := &Annotation{time.Now().UTC(), kind, origin, value, AnnotationDetails{}}
 	if md.Annotations == nil {
@@ -235,9 +226,13 @@ func NewFileDownload(md Metadata, info DownloadInfo) FileDownload {
 	}
 }
 
+/*
 // Inspector is the interface implemented by artifact metadata
 // extractors.
 type Inspector interface {
+	//
+	AuthorizeRequest(*http.Request) error
+
 	// Inspect extracts metadata from the given artifact and
 	// populates the metadata structure, returning whether
 	// the artifact was identified and no further examination
@@ -245,6 +240,7 @@ type Inspector interface {
 	Inspect(string, *Metadata, *DownloadInfo, *InspectionContext) (bool, error)
 }
 
+/*
 // inspectors has the list of inspectors to run on each downloaded
 // artifact.
 var inspectors = []Inspector{
@@ -254,6 +250,18 @@ var inspectors = []Inspector{
 	debInspector{},              // deb packages
 	whlInspector{},              // python wheels
 	defaultInspector{},          // we don't know what this is
+}
+
+var (
+	inspectors = []string{}
+	inspectorMap = map[string]Inspector{}
+	inspector
+)
+
+
+
+func RegisterInspector(name string, ins Inspector) {
+	inspectors
 }
 
 // InspectionContext contains session-specific contextual data for stateful
@@ -388,11 +396,4 @@ func findCallerInspector() string {
 	return origin
 }
 
-// defaultInspector is a fallback artifact inspector for unknown file
-// formats.
-type defaultInspector struct{}
-
-func (ins defaultInspector) Inspect(filename string, md *Metadata, di *DownloadInfo, ctx *InspectionContext) (bool, error) {
-	md.Annotate(Warning, "file.unknown", "unknown file format")
-	return true, nil
-}
+*/

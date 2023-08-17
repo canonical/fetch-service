@@ -17,7 +17,7 @@
  *
  */
 
-package metadata
+package inspectors
 
 import (
 	"archive/zip"
@@ -25,14 +25,17 @@ import (
 	"regexp"
 
 	"github.com/gabriel-vasile/mimetype"
+
+	"github.com/canonical/fetch-service/inspectors/apt"
+	"github.com/canonical/fetch-service/inspectors/wheel"
 )
 
 func init() {
 	mimetype.SetLimit(1 << 30) // input data is mmapped
-	mimetype.Lookup("application/zip").Extend(whlDetector, "application/x-python-wheel", ".whl")
-	mimetype.Lookup("text/plain").Extend(aptLegacyReleaseDetector, "application/x-apt-legacy-release", "")
-	mimetype.Lookup("text/plain").Extend(aptReleaseDetector, "application/x-apt-release", "")
-	mimetype.Lookup("application/x-xz").Extend(aptPackagesDetector, "application/x-apt-packages", "")
+	mimetype.Lookup("application/zip").Extend(wheel.WhlDetector, "application/x-python-wheel", ".whl")
+	mimetype.Lookup("text/plain").Extend(apt.AptLegacyReleaseDetector, "application/x-apt-legacy-release", "")
+	mimetype.Lookup("text/plain").Extend(apt.AptReleaseDetector, "application/x-apt-release", "")
+	mimetype.Lookup("application/x-xz").Extend(apt.AptPackagesDetector, "application/x-apt-packages", "")
 }
 
 // zipMatches returns true if the zip file headers from in matches

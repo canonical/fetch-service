@@ -17,4 +17,8 @@
  *
  */
 
-package metadata
+package logger
+
+var (
+	LogLevel = logLevel
+)
