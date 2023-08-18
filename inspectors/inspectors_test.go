@@ -78,8 +78,5 @@ func (s *inspectorsSuite) TestDefaultInspector(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(stop, Equals, true)
 	c.Assert(md.Annotations, HasLen, 1)
-	c.Assert(md.Annotations["file.unknown"].Kind, Equals, metadata.Warning)
-	c.Assert(md.Annotations["file.unknown"].Origin, Equals, "metadata.defaultInspector")
-	c.Assert(md.Annotations["file.unknown"].Value, Equals, "unknown file format")
-	c.Assert(md.Annotations["file.unknown"].Details, HasLen, 0)
+	c.Assert(md.Annotations["default.format.unknown"].Value, HasLen, 0)
 }

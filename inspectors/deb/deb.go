@@ -56,7 +56,7 @@ func (DebInspector) Inspect(filename string, md *metadata.Metadata, di *metadata
 		pkgsDigest, e, ok := ctx.GetPackagesEntry(md.Sha256)
 		if ok {
 			if md.Name != e.Package || md.Version != e.Version || md.Architecture != e.Architecture || md.Size != e.Size {
-				data := AnnotationDetails{"packages-data": e}
+				data := metadata.AnnotationValue{"packages-data": e}
 				md.Annotate(IntegrityViolation, "file.integrity.check", ResultFail).SetDetails(data)
 				return
 			}
@@ -126,7 +126,8 @@ func parseDebianBinary(af io.Reader, md *metadata.Metadata) error {
 	// Read a single line
 	sc.Scan()
 	line := sc.Text()
-	md.Annotate(metadata.Notice, "deb.debian-binary.version", line)
+	value := metadata.AnnotationValue{"version": line}
+	md.Annotate("deb.debian-binary.details", value)
 
 	return nil
 }

@@ -134,7 +134,7 @@ func readWhlMetadata(filename string, md *metadata.Metadata) error {
 			defer zf.Close()
 
 			ver := scanManifest(zf, md)
-			md.Annotate(metadata.Notice, "pip.wheel.metadata.version", ver)
+			md.Annotate("wheel.metadata", metadata.AnnotationValue{"version": ver})
 			break
 		}
 	}
@@ -217,7 +217,7 @@ func readWhlWheel(filename string, md *metadata.Metadata) error {
 			sc := bufio.NewScanner(zf)
 			sc.Split(bufio.ScanLines)
 
-			entries := metadata.AnnotationDetails{}
+			entries := metadata.AnnotationValue{}
 
 			for sc.Scan() {
 				line := sc.Text()
@@ -228,9 +228,7 @@ func readWhlWheel(filename string, md *metadata.Metadata) error {
 				entries[k] = v
 			}
 
-			ver := fmt.Sprintf("%s", entries["Wheel-Version"])
-
-			md.Annotate(metadata.Notice, "pip.wheel.version", ver).SetDetails(entries)
+			md.Annotate("wheel.details", entries)
 			break
 		}
 	}
@@ -325,10 +323,8 @@ func checkRecord(zf io.ReadCloser, rname string, md *metadata.Metadata) error {
 	}
 
 	if len(messages) > 0 {
-		data := metadata.AnnotationDetails{"errors": messages}
-		md.Annotate(metadata.IntegrityViolation, "pip.wheel.record.check", metadata.ResultFail).SetDetails(data)
-	} else {
-		md.Annotate(metadata.Notice, "pip.wheel.record.check", metadata.ResultPass)
+		data := metadata.AnnotationValue{"errors": messages}
+		md.Annotate("wheel.record.error", data)
 	}
 
 	return nil

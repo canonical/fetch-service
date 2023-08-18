@@ -26,40 +26,13 @@ import (
 	"time"
 )
 
-// AnnotationKind qualifies the annotation.
-type AnnotationKind string
-
-const (
-	Notice             AnnotationKind = "notice"              // Informative note added by the inspector
-	Warning            AnnotationKind = "warning"             // Non-fatal warning note added by the inspector
-	PolicyViolation    AnnotationKind = "policy-violation"    // The artifact violates a policy rule
-	IntegrityViolation AnnotationKind = "integrity-violation" // The artifact has an integrity issue
-	Error              AnnotationKind = "error"               // Error during the inspector execution
-)
-
-// Standard results used in .check annotation values to
-// tell whether the verification was successful.
-const (
-	ResultPass string = "pass" // check passed
-	ResultFail string = "fail" // check failed
-)
-
-// AnnotationDetails is a map containing further details about
-// an annotation result.
-type AnnotationDetails map[string]interface{}
+type AnnotationValue map[string]interface{}
 
 // Annotation contains a free-form text added by an artifact
 // inspector.
 type Annotation struct {
-	Timestamp time.Time         `json:"time"`              // When the annotation was added
-	Kind      AnnotationKind    `json:"kind"`              // The annotation kind
-	Origin    string            `json:"origin"`            // The artifact inspector name
-	Value     string            `json:"value"`             // Annotation value
-	Details   AnnotationDetails `json:"details,omitempty"` // Optional annotation details
-}
-
-func (a *Annotation) SetDetails(data AnnotationDetails) {
-	a.Details = data
+	Timestamp time.Time       `json:"time"`            // When the annotation was added
+	Value     AnnotationValue `json:"value,omitempty"` // Optional annotation value
 }
 
 type AnnotationMap map[string]*Annotation
@@ -175,10 +148,8 @@ type Metadata struct {
 }
 
 // Annotate adds a named annotation to the file metadata.
-func (md *Metadata) Annotate(kind AnnotationKind, name, value string) *Annotation {
-	origin := "" //findCallerInspector()
-
-	a := &Annotation{time.Now().UTC(), kind, origin, value, AnnotationDetails{}}
+func (md *Metadata) Annotate(name string, value AnnotationValue) *Annotation {
+	a := &Annotation{time.Now().UTC(), value}
 	if md.Annotations == nil {
 		md.Annotations = AnnotationMap{}
 	}
@@ -227,98 +198,6 @@ func NewFileDownload(md Metadata, info DownloadInfo) FileDownload {
 }
 
 /*
-// Inspector is the interface implemented by artifact metadata
-// extractors.
-type Inspector interface {
-	//
-	AuthorizeRequest(*http.Request) error
-
-	// Inspect extracts metadata from the given artifact and
-	// populates the metadata structure, returning whether
-	// the artifact was identified and no further examination
-	// by other inspectors is required.
-	Inspect(string, *Metadata, *DownloadInfo, *InspectionContext) (bool, error)
-}
-
-/*
-// inspectors has the list of inspectors to run on each downloaded
-// artifact.
-var inspectors = []Inspector{
-	aptLegacyReleaseInspector{}, // apt legacy per-component Release file
-	aptReleaseInspector{},       // apt Release/InRelease files
-	aptPackagesInspector{},      // apt Packages.xz file
-	debInspector{},              // deb packages
-	whlInspector{},              // python wheels
-	defaultInspector{},          // we don't know what this is
-}
-
-var (
-	inspectors = []string{}
-	inspectorMap = map[string]Inspector{}
-	inspector
-)
-
-
-
-func RegisterInspector(name string, ins Inspector) {
-	inspectors
-}
-
-// InspectionContext contains session-specific contextual data for stateful
-// analysis within a fetch session.
-type InspectionContext struct {
-	// releasePackages maps InRelease file digests to Packages.* file digests to metadata.
-	releasePackages map[Sha256Digest]map[Sha256Digest]AptReleasePackages
-	releaseLock     sync.Mutex
-
-	// packagesEntries maps Packages.* file digests to package digest to metadata.
-	packagesEntries map[Sha256Digest]map[Sha256Digest]AptPackagesEntry
-	packagesLock    sync.Mutex
-}
-
-func NewInspectionContext() *InspectionContext {
-	return &InspectionContext{
-		releasePackages: make(map[Sha256Digest]map[Sha256Digest]AptReleasePackages, 16),
-		packagesEntries: make(map[Sha256Digest]map[Sha256Digest]AptPackagesEntry, 256),
-	}
-}
-
-// Run executes the registered inspectors for the artifact in the
-// given directory, populating the metadata structure md.
-func (ctx *InspectionContext) RunInspectors(dir string, md *Metadata, di *DownloadInfo) error {
-	// detect file type
-	filename := filepath.Join(dir, fmt.Sprintf("%s.data", md.Sha256))
-	f, err := mmap.Open(filename)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	mtype, err := mimetype.DetectReader(f)
-	if err != nil {
-		return err
-	}
-
-	md.Type = mtype.String()
-
-	if len(di.ContentType) > 0 && !mtype.Is(di.ContentType) {
-		logger.Debugf("file type '%s' doesn't match content type '%s'", mtype.String(), di.ContentType)
-	}
-
-	// run metadata inspectors
-	for _, ins := range inspectors {
-		stop, err := ins.Inspect(filename, md, di, ctx)
-		if err != nil {
-			return err
-		}
-		if stop {
-			break
-		}
-	}
-
-	return nil
-}
-
 func (ctx *InspectionContext) AddReleasePackages(relDigest Sha256Digest, digest Sha256Digest, p AptReleasePackages) {
 	ctx.releaseLock.Lock()
 	defer ctx.releaseLock.Unlock()
@@ -366,34 +245,6 @@ func (ctx *InspectionContext) GetPackagesEntry(digest Sha256Digest) (pkgsDigest 
 		}
 	}
 	return
-}
-
-// findCallerInspector returns the name of the inspector that called
-// this function's caller.
-func findCallerInspector() string {
-	pcs := make([]uintptr, 16)
-	origin := "unknown"
-	num := runtime.Callers(2, pcs)
-	pcs = pcs[:num]
-	frames := runtime.CallersFrames(pcs)
-
-	for {
-		frame, more := frames.Next()
-		if !more {
-			break
-		}
-		fname := frame.Function
-		i := strings.LastIndexByte(fname, '/')
-		if i < 0 {
-			i = 0
-		}
-		if strings.HasSuffix(fname[i+1:], ".Inspect") {
-			origin = strings.TrimSuffix(fname[i+1:], ".Inspect")
-			break
-		}
-	}
-
-	return origin
 }
 
 */

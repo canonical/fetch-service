@@ -138,20 +138,12 @@ func (s *metadataSuite) TestSha256DigestUnmarshal(c *C) {
 func (s *metadataSuite) TestAnnotation(c *C) {
 	md := metadata.Metadata{}
 
-	md.Annotate(metadata.Notice, "test.notice", "annotation text")
-
-	data := metadata.AnnotationDetails{"text": "test"}
-	md.Annotate(metadata.PolicyViolation, "test.violation", "more annotation text").SetDetails(data)
+	md.Annotate("test.foo", metadata.AnnotationValue{"text": "test"})
+	md.Annotate("test.bar", metadata.AnnotationValue{})
 
 	c.Assert(md.Annotations, HasLen, 2)
-	c.Assert(md.Annotations["test.notice"].Kind, Equals, metadata.Notice)
-	c.Assert(md.Annotations["test.notice"].Origin, Equals, "unknown")
-	c.Assert(md.Annotations["test.notice"].Value, Equals, "annotation text")
-	c.Assert(md.Annotations["test.notice"].Details, HasLen, 0)
-	c.Assert(md.Annotations["test.violation"].Kind, Equals, metadata.PolicyViolation)
-	c.Assert(md.Annotations["test.violation"].Origin, Equals, "unknown")
-	c.Assert(md.Annotations["test.violation"].Value, Equals, "more annotation text")
-	c.Assert(md.Annotations["test.violation"].Details, DeepEquals, metadata.AnnotationDetails{"text": "test"})
+	c.Assert(md.Annotations["test.foo"].Value, DeepEquals, metadata.AnnotationValue{"text": "test"})
+	c.Assert(md.Annotations["test.bar"].Value, HasLen, 0)
 }
 
 /*

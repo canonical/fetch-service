@@ -152,6 +152,6 @@ func (DefaultInspector) AuthorizeRequest(req *http.Request) error {
 }
 
 func (ins DefaultInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (bool, error) {
-	md.Annotate(metadata.Warning, "file.unknown", "unknown file format")
+	md.Annotate("default.format.unknown", metadata.AnnotationValue{})
 	return true, nil
 }

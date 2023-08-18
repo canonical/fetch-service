@@ -276,7 +276,7 @@ func (AptLegacyReleaseInspector) Inspect(filename string, md *metadata.Metadata,
 	var component string
 	var architecture string
 
-	contents := metadata.AnnotationDetails{}
+	contents := metadata.AnnotationValue{}
 
 	for sc.Scan() {
 		line := sc.Text()
@@ -304,7 +304,7 @@ func (AptLegacyReleaseInspector) Inspect(filename string, md *metadata.Metadata,
 	md.Name = "Release"
 	md.Description = fmt.Sprintf("Repository release file for %s/%s", component, architecture)
 
-	md.Annotate(metadata.Notice, "apt.metadata.release", di.URL).SetDetails(contents)
+	md.Annotate("apt.metadata.release", contents)
 
 	return
 }
