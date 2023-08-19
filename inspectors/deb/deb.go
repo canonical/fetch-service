@@ -37,11 +37,15 @@ import (
 
 type DebInspector struct{}
 
+func (DebInspector) Name() string {
+	return "deb"
+}
+
 func (DebInspector) AuthorizeRequest(req *http.Request) error {
 	return nil
 }
 
-func (DebInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
+func (DebInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo, ch chan interface{}) (stop bool, err error) {
 	if md.Type != "application/vnd.debian.binary-package" {
 		return
 	}
@@ -67,6 +71,10 @@ func (DebInspector) Inspect(filename string, md *metadata.Metadata, di *metadata
 	*/
 
 	return
+}
+
+func (ins DebInspector) API() interface{} {
+	return nil
 }
 
 // readDebMetadata reads metadata from the deb control file.

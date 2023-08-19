@@ -44,11 +44,15 @@ func WhlDetector(raw []byte, limit uint32) bool {
 
 type WhlInspector struct{}
 
+func (WhlInspector) Name() string {
+	return "wheel"
+}
+
 func (WhlInspector) AuthorizeRequest(req *http.Request) error {
 	return nil
 }
 
-func (WhlInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
+func (WhlInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo, ch chan interface{}) (stop bool, err error) {
 	if md.Type != "application/x-python-wheel" {
 		return
 	}
@@ -76,6 +80,10 @@ func (WhlInspector) Inspect(filename string, md *metadata.Metadata, di *metadata
 
 	stop = true
 	return
+}
+
+func (ins WhlInspector) API() interface{} {
+	return nil
 }
 
 // listWheelFiles gets a list of wheel files and their sha1 digests.

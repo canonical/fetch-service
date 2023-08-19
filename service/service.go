@@ -93,6 +93,8 @@ dispatcherLoop:
 					break
 
 				}
+
+				// Add metadata to session
 				s.AddMetadata(&v.Md)
 				if err := s.SaveData(digest); err != nil {
 					v.Rch <- err
@@ -101,20 +103,28 @@ dispatcherLoop:
 
 				s.AddDownloadInfo(v.Info)
 
-				go func(md *metadata.Metadata, di *metadata.DownloadInfo, ch chan error) {
+				go func(md *metadata.Metadata, di *metadata.DownloadInfo, ch chan interface{}, rch chan error) {
 					// Extract metadata from file
-					if err := s.Insps.Run(assetDir, md, di); err != nil {
+					if err := s.Insps.RunInspectors(assetDir, md, di, ch); err != nil {
 						logger.Errorf("%s", err)
-						ch <- err
+						rch <- err
 						return
 					}
 
 					logger.Infof("[%s] artifact %s %d (%s)", sessionId, digest, md.Size, md.Type)
-					ch <- nil
-				}(&v.Md, &v.Info, v.Rch)
+					rch <- nil
+				}(&v.Md, &v.Info, svc.ch, v.Rch)
 
 			case proxy.ProxyAuth:
 				v.Rch <- session.CheckAuth(v.Id, v.Pw)
+
+			case metadata.InspectorAPIRequest:
+				s := session.GetSession(v.SessionId)
+				ins, err := s.Insps.GetInspector(v.InsName)
+				if err != nil {
+					v.Rch <- err
+				}
+				v.Rch <- ins.API()
 
 			case os.Signal:
 				if v == syscall.SIGINT {

@@ -197,6 +197,12 @@ func NewFileDownload(md Metadata, info DownloadInfo) FileDownload {
 	}
 }
 
+type InspectorAPIRequest struct {
+	Rch       chan interface{} // Handler response channel
+	SessionId string
+	InsName   string
+}
+
 /*
 func (ctx *InspectionContext) AddReleasePackages(relDigest Sha256Digest, digest Sha256Digest, p AptReleasePackages) {
 	ctx.releaseLock.Lock()

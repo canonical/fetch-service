@@ -59,7 +59,9 @@ func (s *inspectorsSuite) TestRunInspectors(c *C) {
 	di := &metadata.DownloadInfo{ContentType: "text/plain", Sha256: h}
 	insps := inspectors.New()
 
-	err = insps.Run(dir, md, di)
+	ch := make(chan interface{})
+
+	err = insps.RunInspectors(dir, md, di, ch)
 	c.Assert(err, IsNil)
 	c.Assert(md.Type, Equals, "text/plain; charset=utf-8")
 
@@ -74,7 +76,9 @@ func (s *inspectorsSuite) TestDefaultInspector(c *C) {
 	ins := inspectors.DefaultInspector{}
 	c.Assert(ins, Implements, &iface)
 
-	stop, err := ins.Inspect("any-filename", md, di)
+	ch := make(chan interface{})
+
+	stop, err := ins.Inspect("any-filename", md, di, ch)
 	c.Assert(err, IsNil)
 	c.Assert(stop, Equals, true)
 	c.Assert(md.Annotations, HasLen, 1)

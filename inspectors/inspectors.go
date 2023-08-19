@@ -23,14 +23,11 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
-	"reflect"
-	//"sort"
-	//"sync"
 
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/go-mmap/mmap"
 
-	//"github.com/canonical/fetch-service/inspectors/apt"
+	"github.com/canonical/fetch-service/inspectors/apt"
 	"github.com/canonical/fetch-service/inspectors/deb"
 	"github.com/canonical/fetch-service/inspectors/wheel"
 	"github.com/canonical/fetch-service/logger"
@@ -40,14 +37,17 @@ import (
 // Inspector is the interface implemented by artifact metadata
 // extractors.
 type Inspector interface {
-	//
+	Name() string
+
 	AuthorizeRequest(*http.Request) error
 
 	// Inspect extracts metadata from the given artifact and
 	// populates the metadata structure, returning whether
 	// the artifact was identified and no further examination
 	// by other inspectors is required.
-	Inspect(string, *metadata.Metadata, *metadata.DownloadInfo) (bool, error)
+	Inspect(string, *metadata.Metadata, *metadata.DownloadInfo, chan interface{}) (bool, error)
+
+	API() interface{}
 }
 
 var (
@@ -69,22 +69,23 @@ func New() Inspectors {
 	for _, ins := range []Inspector{
 		wheel.WhlInspector{},
 		deb.DebInspector{},
-		//apt.AptReleaseInspector{},
-		//apt.AptPackagesInspector{},
+		apt.NewAptReleaseInspector(),
+		apt.NewAptPackagesInspector(),
 		DefaultInspector{},
 	} {
-		t := reflect.TypeOf(ins).String()
-		insps.keys = append(insps.keys, t)
-		insps.insmap[t] = ins
-		logger.Debugf("register inspector %s", t)
+		//t := reflect.TypeOf(ins).String()
+		name := ins.Name()
+		insps.keys = append(insps.keys, name)
+		insps.insmap[name] = ins
+		logger.Debugf("register inspector: %s", name)
 	}
 
 	return insps
 }
 
-// Run executes the registered inspectors for the artifact in the
-// given directory, populating the metadata structure md.
-func (insps Inspectors) Run(dir string, md *metadata.Metadata, di *metadata.DownloadInfo) error {
+// RunInspectors executes the registered inspectors on the artifact in the
+// given assets directory, populating the metadata structure md.
+func (insps Inspectors) RunInspectors(dir string, md *metadata.Metadata, di *metadata.DownloadInfo, ch chan interface{}) error {
 	// detect file type
 	filename := filepath.Join(dir, fmt.Sprintf("%s.data", md.Sha256))
 	f, err := mmap.Open(filename)
@@ -106,7 +107,7 @@ func (insps Inspectors) Run(dir string, md *metadata.Metadata, di *metadata.Down
 
 	// run metadata inspectors
 	for _, key := range insps.keys {
-		stop, err := insps.insmap[key].Inspect(filename, md, di)
+		stop, err := insps.insmap[key].Inspect(filename, md, di, ch)
 		if err != nil {
 			return err
 		}
@@ -118,40 +119,32 @@ func (insps Inspectors) Run(dir string, md *metadata.Metadata, di *metadata.Down
 	return nil
 }
 
-/*
-func ensureSortedInspectors() {
-	if sortedInspectors == nil {
-		sortedInspectors = sortInspectors()
+func (insps Inspectors) GetInspector(name string) (Inspector, error) {
+	ins, ok := insps.insmap[name]
+	if !ok {
+		return nil, fmt.Errorf("inspector '%s' not registered", name)
 	}
+
+	return ins, nil
 }
-
-func sortInspectors() []Inspector {
-	keys := make([]string, 0, len(inspectors))
-	for k := range inspectors {
-		keys = append(keys, k)
-	}
-
-	sort.Strings(keys)
-
-	values := make([]Inspector, len(keys)+1)
-	for i, k := range keys {
-		values[i] = inspectors[k]
-	}
-	values[len(keys)] = defaultInspector
-
-	return values
-}
-*/
 
 // DefaultInspector is a fallback artifact inspector for unknown file
 // formats.
 type DefaultInspector struct{}
 
+func (DefaultInspector) Name() string {
+	return "default"
+}
+
 func (DefaultInspector) AuthorizeRequest(req *http.Request) error {
 	return nil
 }
 
-func (ins DefaultInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (bool, error) {
+func (DefaultInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo, ch chan interface{}) (bool, error) {
 	md.Annotate("default.format.unknown", metadata.AnnotationValue{})
 	return true, nil
+}
+
+func (DefaultInspector) API() interface{} {
+	return nil
 }
