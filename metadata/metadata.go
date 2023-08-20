@@ -189,6 +189,11 @@ type FileDownload struct {
 	Info DownloadInfo // Download operation details
 }
 
+type DownloadAuthorizationRequest struct {
+	Rch  chan error   // Handler response channel
+	Info DownloadInfo // Download operation details
+}
+
 func NewFileDownload(md Metadata, info DownloadInfo) FileDownload {
 	return FileDownload{
 		Rch:  make(chan error, 1),

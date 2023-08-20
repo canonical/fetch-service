@@ -37,19 +37,10 @@ type RequestHandler struct {
 	insTimeout time.Duration // artifact inspection timeout
 }
 
-func NewRequestHandler(req *http.Request, ch chan interface{}) (*RequestHandler, error) {
-	sessionId := req.Header.Get(sessionIdHeader)
-
+func NewRequestHandler(req *http.Request, info metadata.DownloadInfo, ch chan interface{}) (*RequestHandler, error) {
 	h := &RequestHandler{
-		ch: ch,
-		info: metadata.DownloadInfo{
-			StartTime: time.Now().UTC(),
-			URL:       req.URL.String(),
-			Address:   req.RemoteAddr,
-			Method:    req.Method,
-			UserAgent: req.Header.Get("User-Agent"),
-			SessionId: sessionId,
-		},
+		ch:         ch,
+		info:       info,
 		body:       req.Body,
 		insTimeout: 60 * time.Second,
 	}
@@ -57,12 +48,8 @@ func NewRequestHandler(req *http.Request, ch chan interface{}) (*RequestHandler,
 	return h, nil
 }
 
-// Read transfers data, computes digests and writes to a local copy of the file.
 func (h *RequestHandler) Read(b []byte) (n int, err error) {
 	n, err = h.body.Read(b)
-	if err != nil && err != io.EOF {
-		return
-	}
 	return
 }
 
@@ -74,19 +61,4 @@ func (h *RequestHandler) Close() error {
 	// TODO?
 
 	return res
-
-	/*
-		fd := nil //auth.NewRequestURL(md, h.info)
-		h.ch <- fd
-		select {
-		case err := <-fd.Rch:
-			if err != nil {
-				return fmt.Errorf("Error saving download data for asset %s: %v", sha1, err)
-			}
-		case <-time.After(h.insTimeout):
-			logger.Errorf("inspection of artifact %s timed out", sha1)
-		}
-
-		return res
-	*/
 }

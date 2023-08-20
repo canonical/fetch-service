@@ -21,7 +21,6 @@ package inspectors
 
 import (
 	"fmt"
-	"net/http"
 	"path/filepath"
 
 	"github.com/gabriel-vasile/mimetype"
@@ -40,7 +39,9 @@ import (
 type Inspector interface {
 	Name() string
 
-	AuthorizeRequest(*http.Request) error
+	InitializeContext(chan interface{})
+
+	AuthorizeDownload(*metadata.DownloadInfo) error
 
 	// Inspect extracts metadata from the given artifact and
 	// populates the metadata structure, returning whether
@@ -50,13 +51,6 @@ type Inspector interface {
 
 	API() api.InspectorAPI
 }
-
-var (
-	inspectors = []Inspector{}
-
-	//lock             sync.Mutex
-	sortedInspectors []Inspector
-)
 
 type Inspectors struct {
 	insmap map[string]Inspector
@@ -68,13 +62,13 @@ func New(ch chan interface{}) Inspectors {
 	insps.insmap = map[string]Inspector{}
 
 	for _, ins := range []Inspector{
-		wheel.WhlInspector{},
-		deb.DebInspector{},
-		apt.NewAptReleaseInspector(ch),
-		apt.NewAptPackagesInspector(ch),
-		DefaultInspector{},
+		&wheel.WhlInspector{},
+		&deb.DebInspector{},
+		&apt.AptReleaseInspector{},
+		&apt.AptPackagesInspector{},
+		&DefaultInspector{},
 	} {
-		//t := reflect.TypeOf(ins).String()
+		ins.InitializeContext(ch)
 		name := ins.Name()
 		insps.keys = append(insps.keys, name)
 		insps.insmap[name] = ins
@@ -82,6 +76,19 @@ func New(ch chan interface{}) Inspectors {
 	}
 
 	return insps
+}
+
+func (insps Inspectors) AuthorizeDownload(di *metadata.DownloadInfo) error {
+	for _, key := range insps.keys {
+		ins := insps.insmap[key]
+		logger.Debugf("request download authorization from %s", ins.Name())
+		err := ins.AuthorizeDownload(di)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // RunInspectors executes the registered inspectors on the artifact in the
@@ -108,7 +115,9 @@ func (insps Inspectors) RunInspectors(dir string, md *metadata.Metadata, di *met
 
 	// run metadata inspectors
 	for _, key := range insps.keys {
-		stop, err := insps.insmap[key].Inspect(filename, md, di)
+		ins := insps.insmap[key]
+		logger.Debugf("run inspector: %s", ins.Name())
+		stop, err := ins.Inspect(filename, md, di)
 		if err != nil {
 			return err
 		}
@@ -137,7 +146,10 @@ func (DefaultInspector) Name() string {
 	return "default"
 }
 
-func (DefaultInspector) AuthorizeRequest(req *http.Request) error {
+func (DefaultInspector) InitializeContext(ch chan interface{}) {
+}
+
+func (DefaultInspector) AuthorizeDownload(di *metadata.DownloadInfo) error {
 	return nil
 }
 

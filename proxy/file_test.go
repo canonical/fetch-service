@@ -64,7 +64,9 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 		Header:     http.Header{"Content-Type": []string{"application/x-test"}},
 	}
 
-	h, err := proxy.NewFileDownloadHandler(resp, dir, ch)
+	info := metadata.DownloadInfo{}
+
+	h, err := proxy.NewFileDownloadHandler(resp, info, dir, ch)
 	c.Assert(err, IsNil)
 
 	go func(body io.ReadCloser) {
@@ -107,7 +109,9 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 		Body:       ioutil.NopCloser(bytes.NewBufferString("Response body")), // same content
 	}
 
-	h, err = proxy.NewFileDownloadHandler(resp, dir, ch)
+	info = metadata.DownloadInfo{}
+
+	h, err = proxy.NewFileDownloadHandler(resp, info, dir, ch)
 	c.Assert(err, IsNil)
 
 	go func(body io.ReadCloser) {

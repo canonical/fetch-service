@@ -23,7 +23,6 @@ import (
 	"archive/tar"
 	"bufio"
 	"io"
-	"net/http"
 	"os"
 	"regexp"
 	"strings"
@@ -42,7 +41,10 @@ func (DebInspector) Name() string {
 	return "deb"
 }
 
-func (DebInspector) AuthorizeRequest(req *http.Request) error {
+func (ins *DebInspector) InitializeContext(ch chan interface{}) {
+}
+
+func (DebInspector) AuthorizeDownload(di *metadata.DownloadInfo) error {
 	return nil
 }
 

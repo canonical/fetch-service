@@ -51,7 +51,7 @@ type FileDownloadHandler struct {
 	insTimeout time.Duration // artifact inspection timeout
 }
 
-func NewFileDownloadHandler(resp *http.Response, spool string, ch chan interface{}) (*FileDownloadHandler, error) {
+func NewFileDownloadHandler(resp *http.Response, info metadata.DownloadInfo, spool string, ch chan interface{}) (*FileDownloadHandler, error) {
 	sessionId := resp.Request.Header.Get(sessionIdHeader)
 
 	tempfile, err := os.CreateTemp("", "fetch")
@@ -59,22 +59,14 @@ func NewFileDownloadHandler(resp *http.Response, spool string, ch chan interface
 		return nil, err
 	}
 
-	req := resp.Request
+	info.StatusCode = resp.StatusCode
+	info.Status = resp.Status
+	info.ContentType = resp.Header.Get("Content-Type")
+	info.ResponseHeader = resp.Header
 
 	h := &FileDownloadHandler{
-		ch: ch,
-		info: metadata.DownloadInfo{
-			StartTime:      time.Now().UTC(),
-			URL:            req.URL.String(),
-			Address:        req.RemoteAddr,
-			Method:         req.Method,
-			UserAgent:      req.Header.Get("User-Agent"),
-			StatusCode:     resp.StatusCode,
-			Status:         resp.Status,
-			ContentType:    resp.Header.Get("Content-Type"),
-			ResponseHeader: resp.Header,
-			SessionId:      sessionId,
-		},
+		ch:         ch,
+		info:       info,
 		size:       0,
 		sha1:       sha1.New(),
 		sha256:     sha256.New(),

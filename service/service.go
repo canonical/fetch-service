@@ -74,6 +74,17 @@ dispatcherLoop:
 		select {
 		case msg := <-svc.ch:
 			switch v := msg.(type) {
+			case metadata.DownloadAuthorizationRequest:
+				sessionId := v.Info.SessionId
+				s := session.GetSession(sessionId)
+				if s == nil {
+					logger.Warningf("session %s is not active", sessionId)
+					break
+				}
+
+				err := s.Insps.AuthorizeDownload(&v.Info)
+				v.Rch <- err
+
 			case metadata.FileDownload:
 				assetDir := v.Md.AssetDir
 				sessionId, digest := v.Info.SessionId, v.Md.Sha256

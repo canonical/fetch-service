@@ -26,7 +26,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
@@ -49,7 +48,10 @@ func (WhlInspector) Name() string {
 	return "wheel"
 }
 
-func (WhlInspector) AuthorizeRequest(req *http.Request) error {
+func (ins *WhlInspector) InitializeContext(ch chan interface{}) {
+}
+
+func (WhlInspector) AuthorizeDownload(di *metadata.DownloadInfo) error {
 	return nil
 }
 

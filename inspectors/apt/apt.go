@@ -23,7 +23,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -148,20 +147,18 @@ type AptReleaseInspector struct {
 	state AptReleaseContext
 }
 
-func NewAptReleaseInspector(ch chan interface{}) *AptReleaseInspector {
-	return &AptReleaseInspector{
-		ch: ch,
-		state: AptReleaseContext{
-			releasePackages: make(map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptReleasePackages, 16),
-		},
-	}
-}
-
 func (ins *AptReleaseInspector) Name() string {
 	return "apt.release"
 }
 
-func (ins *AptReleaseInspector) AuthorizeRequest(req *http.Request) error {
+func (ins *AptReleaseInspector) InitializeContext(ch chan interface{}) {
+	ins.ch = ch
+	ins.state = AptReleaseContext{
+		releasePackages: make(map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptReleasePackages, 16),
+	}
+}
+
+func (ins *AptReleaseInspector) AuthorizeDownload(di *metadata.DownloadInfo) error {
 	return nil
 }
 
@@ -493,20 +490,18 @@ type AptPackagesInspector struct {
 	state AptPackagesContext
 }
 
-func NewAptPackagesInspector(ch chan interface{}) *AptPackagesInspector {
-	return &AptPackagesInspector{
-		ch: ch,
-		state: AptPackagesContext{
-			packagesEntries: make(map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptPackagesEntry, 256),
-		},
-	}
-}
-
 func (ins *AptPackagesInspector) Name() string {
 	return "apt.packages"
 }
 
-func (ins *AptPackagesInspector) AuthorizeRequest(req *http.Request) error {
+func (ins *AptPackagesInspector) InitializeContext(ch chan interface{}) {
+	ins.ch = ch
+	ins.state = AptPackagesContext{
+		packagesEntries: make(map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptPackagesEntry, 256),
+	}
+}
+
+func (ins *AptPackagesInspector) AuthorizeDownload(di *metadata.DownloadInfo) error {
 	return nil
 }
 
