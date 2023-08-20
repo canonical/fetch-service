@@ -60,7 +60,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 	time.Sleep(1 * time.Second)
 
 	// create a new session
-	s := session.New()
+	s := session.New(ch)
 	defer s.Discard()
 
 	// download a test file

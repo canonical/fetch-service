@@ -83,9 +83,7 @@ func (s *whlSuite) TestWhlInspector(c *C) {
 	ins := wheel.WhlInspector{}
 	c.Assert(ins, Implements, &iface)
 
-	ch := make(chan interface{})
-
-	stop, err := ins.Inspect(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"), md, di, ch)
+	stop, err := ins.Inspect(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"), md, di)
 	c.Assert(err, IsNil)
 	c.Assert(stop, Equals, true)
 

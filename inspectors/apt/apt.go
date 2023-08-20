@@ -31,6 +31,7 @@ import (
 
 	"github.com/xi2/xz"
 
+	"github.com/canonical/fetch-service/inspectors/api"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 )
@@ -143,11 +144,13 @@ func (ctx *AptReleaseContext) GetReleasePackages(digest metadata.Sha256Digest) (
 }
 
 type AptReleaseInspector struct {
+	ch    chan interface{}
 	state AptReleaseContext
 }
 
-func NewAptReleaseInspector() *AptReleaseInspector {
+func NewAptReleaseInspector(ch chan interface{}) *AptReleaseInspector {
 	return &AptReleaseInspector{
+		ch: ch,
 		state: AptReleaseContext{
 			releasePackages: make(map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptReleasePackages, 16),
 		},
@@ -162,7 +165,7 @@ func (ins *AptReleaseInspector) AuthorizeRequest(req *http.Request) error {
 	return nil
 }
 
-func (ins *AptReleaseInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo, ch chan interface{}) (stop bool, err error) {
+func (ins *AptReleaseInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
 	if md.Type != "application/x-apt-release" {
 		return
 	}
@@ -242,25 +245,21 @@ func (ins *AptReleaseInspector) Inspect(filename string, md *metadata.Metadata, 
 	return
 }
 
-func (ins *AptReleaseInspector) API() interface{} {
+func (ins *AptReleaseInspector) API() api.InspectorAPI {
 	return AptReleaseInspectorAPI(&ins.state)
 }
 
 type AptReleaseInspectorAPI interface {
+	api.InspectorAPI
 	ValidatePackagesFile(int64, metadata.Sha256Digest) error
 	GetReleasePackages(metadata.Sha256Digest) (metadata.Sha256Digest, AptReleasePackages, bool)
 }
 
 func GetAptReleaseInspectorAPI(sessionId string, ch chan interface{}) (AptReleaseInspectorAPI, error) {
-	rch := make(chan interface{}, 1)
-	req := metadata.InspectorAPIRequest{
-		Rch:       rch,
-		SessionId: sessionId,
-		InsName:   "apt.release",
+	res, err := api.GetInspectorAPI(sessionId, "apt.release", ch)
+	if err != nil {
+		return nil, err
 	}
-
-	ch <- req
-	res := <-req.Rch
 
 	api, ok := res.(AptReleaseInspectorAPI)
 	if !ok {
@@ -314,7 +313,7 @@ func AptLegacyReleaseDetector(raw []byte, limit uint32) bool {
 
 type AptLegacyReleaseInspector struct{}
 
-func (AptLegacyReleaseInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo, ch chan interface{}) (stop bool, err error) {
+func (AptLegacyReleaseInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
 	if md.Type != "application/x-apt-legacy-release" {
 		return
 	}
@@ -365,7 +364,7 @@ func (AptLegacyReleaseInspector) Inspect(filename string, md *metadata.Metadata,
 	return
 }
 
-func (ins *AptLegacyReleaseInspector) API() interface{} {
+func (ins *AptLegacyReleaseInspector) API() api.InspectorAPI {
 	return nil
 }
 
@@ -490,11 +489,13 @@ func (ctx *AptPackagesContext) GetPackagesEntry(digest metadata.Sha256Digest) (p
 }
 
 type AptPackagesInspector struct {
+	ch    chan interface{}
 	state AptPackagesContext
 }
 
-func NewAptPackagesInspector() *AptPackagesInspector {
+func NewAptPackagesInspector(ch chan interface{}) *AptPackagesInspector {
 	return &AptPackagesInspector{
+		ch: ch,
 		state: AptPackagesContext{
 			packagesEntries: make(map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptPackagesEntry, 256),
 		},
@@ -509,13 +510,13 @@ func (ins *AptPackagesInspector) AuthorizeRequest(req *http.Request) error {
 	return nil
 }
 
-func (ins *AptPackagesInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo, ch chan interface{}) (stop bool, err error) {
+func (ins *AptPackagesInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
 	if md.Type != "application/x-apt-packages" {
 		return
 	}
 	stop = true
 
-	release, err := GetAptReleaseInspectorAPI(di.SessionId, ch)
+	release, err := GetAptReleaseInspectorAPI(di.SessionId, ins.ch)
 	if err != nil {
 		logger.Error("internal error: cannot get apt release API")
 		return
@@ -608,10 +609,11 @@ func (ins *AptPackagesInspector) Inspect(filename string, md *metadata.Metadata,
 	return
 }
 
-func (ins *AptPackagesInspector) API() interface{} {
+func (ins *AptPackagesInspector) API() api.InspectorAPI {
 	return AptPackagesInspectorAPI(&ins.state)
 }
 
 type AptPackagesInspectorAPI interface {
+	api.InspectorAPI
 	ValidateDebFile(int64, metadata.Sha256Digest) error
 }

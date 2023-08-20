@@ -31,6 +31,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/canonical/fetch-service/inspectors/api"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/utils"
 )
@@ -52,7 +53,7 @@ func (WhlInspector) AuthorizeRequest(req *http.Request) error {
 	return nil
 }
 
-func (WhlInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo, ch chan interface{}) (stop bool, err error) {
+func (WhlInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
 	if md.Type != "application/x-python-wheel" {
 		return
 	}
@@ -82,7 +83,7 @@ func (WhlInspector) Inspect(filename string, md *metadata.Metadata, di *metadata
 	return
 }
 
-func (ins WhlInspector) API() interface{} {
+func (ins WhlInspector) API() api.InspectorAPI {
 	return nil
 }
 

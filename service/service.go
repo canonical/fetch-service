@@ -26,6 +26,7 @@ import (
 	"syscall"
 	"time"
 
+	insapi "github.com/canonical/fetch-service/inspectors/api"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/proxy"
@@ -57,7 +58,7 @@ func (svc *Service) Start() {
 	logger.Info("Starting service...")
 	svc.p.Start()
 
-	_ = session.New() // FIXME: to be created using the API
+	_ = session.New(svc.ch) // FIXME: to be created using the API
 	defer session.FinishAll()
 
 	// Shut down gracefully if terminated.
@@ -103,9 +104,9 @@ dispatcherLoop:
 
 				s.AddDownloadInfo(v.Info)
 
-				go func(md *metadata.Metadata, di *metadata.DownloadInfo, ch chan interface{}, rch chan error) {
+				go func(md *metadata.Metadata, di *metadata.DownloadInfo, rch chan error) {
 					// Extract metadata from file
-					if err := s.Insps.RunInspectors(assetDir, md, di, ch); err != nil {
+					if err := s.Insps.RunInspectors(assetDir, md, di); err != nil {
 						logger.Errorf("%s", err)
 						rch <- err
 						return
@@ -113,12 +114,12 @@ dispatcherLoop:
 
 					logger.Infof("[%s] artifact %s %d (%s)", sessionId, digest, md.Size, md.Type)
 					rch <- nil
-				}(&v.Md, &v.Info, svc.ch, v.Rch)
+				}(&v.Md, &v.Info, v.Rch)
 
 			case proxy.ProxyAuth:
 				v.Rch <- session.CheckAuth(v.Id, v.Pw)
 
-			case metadata.InspectorAPIRequest:
+			case insapi.InspectorAPIRequest:
 				s := session.GetSession(v.SessionId)
 				ins, err := s.Insps.GetInspector(v.InsName)
 				if err != nil {

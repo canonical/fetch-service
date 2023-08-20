@@ -52,12 +52,12 @@ var (
 	randomString  = randomStringImpl
 )
 
-func New() *Session {
+func New(ch chan interface{}) *Session {
 	s := &Session{
 		Id:    makeSessionId(),
 		Pw:    randomString(20),
 		Start: time.Now().UTC(),
-		Insps: inspectors.New(),
+		Insps: inspectors.New(ch),
 		Md:    map[metadata.Sha256Digest]*metadata.Metadata{},
 	}
 

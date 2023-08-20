@@ -27,6 +27,7 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/go-mmap/mmap"
 
+	"github.com/canonical/fetch-service/inspectors/api"
 	"github.com/canonical/fetch-service/inspectors/apt"
 	"github.com/canonical/fetch-service/inspectors/deb"
 	"github.com/canonical/fetch-service/inspectors/wheel"
@@ -45,9 +46,9 @@ type Inspector interface {
 	// populates the metadata structure, returning whether
 	// the artifact was identified and no further examination
 	// by other inspectors is required.
-	Inspect(string, *metadata.Metadata, *metadata.DownloadInfo, chan interface{}) (bool, error)
+	Inspect(string, *metadata.Metadata, *metadata.DownloadInfo) (bool, error)
 
-	API() interface{}
+	API() api.InspectorAPI
 }
 
 var (
@@ -62,15 +63,15 @@ type Inspectors struct {
 	keys   []string
 }
 
-func New() Inspectors {
+func New(ch chan interface{}) Inspectors {
 	insps := Inspectors{}
 	insps.insmap = map[string]Inspector{}
 
 	for _, ins := range []Inspector{
 		wheel.WhlInspector{},
 		deb.DebInspector{},
-		apt.NewAptReleaseInspector(),
-		apt.NewAptPackagesInspector(),
+		apt.NewAptReleaseInspector(ch),
+		apt.NewAptPackagesInspector(ch),
 		DefaultInspector{},
 	} {
 		//t := reflect.TypeOf(ins).String()
@@ -85,7 +86,7 @@ func New() Inspectors {
 
 // RunInspectors executes the registered inspectors on the artifact in the
 // given assets directory, populating the metadata structure md.
-func (insps Inspectors) RunInspectors(dir string, md *metadata.Metadata, di *metadata.DownloadInfo, ch chan interface{}) error {
+func (insps Inspectors) RunInspectors(dir string, md *metadata.Metadata, di *metadata.DownloadInfo) error {
 	// detect file type
 	filename := filepath.Join(dir, fmt.Sprintf("%s.data", md.Sha256))
 	f, err := mmap.Open(filename)
@@ -107,7 +108,7 @@ func (insps Inspectors) RunInspectors(dir string, md *metadata.Metadata, di *met
 
 	// run metadata inspectors
 	for _, key := range insps.keys {
-		stop, err := insps.insmap[key].Inspect(filename, md, di, ch)
+		stop, err := insps.insmap[key].Inspect(filename, md, di)
 		if err != nil {
 			return err
 		}
@@ -140,11 +141,11 @@ func (DefaultInspector) AuthorizeRequest(req *http.Request) error {
 	return nil
 }
 
-func (DefaultInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo, ch chan interface{}) (bool, error) {
+func (DefaultInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (bool, error) {
 	md.Annotate("default.format.unknown", metadata.AnnotationValue{})
 	return true, nil
 }
 
-func (DefaultInspector) API() interface{} {
+func (DefaultInspector) API() api.InspectorAPI {
 	return nil
 }
