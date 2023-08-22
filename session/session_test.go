@@ -61,10 +61,8 @@ func (t *sessionSuite) TestNewSession(c *C) {
 	})
 	defer rs_restorer()
 
-	ch := make(chan interface{})
-
 	before := time.Now()
-	s := session.New(ch)
+	s := session.New()
 	after := time.Now()
 
 	defer s.Discard()
@@ -88,8 +86,7 @@ func (t *sessionSuite) TestRandomString(c *C) {
 }
 
 func (t *sessionSuite) TestDiscardSession(c *C) {
-	ch := make(chan interface{})
-	s := session.New(ch)
+	s := session.New()
 	defer s.Discard()
 
 	c.Assert(s, Equals, session.Sessions[s.Id])
@@ -100,8 +97,7 @@ func (t *sessionSuite) TestDiscardSession(c *C) {
 }
 
 func (t *sessionSuite) TestCheckAuth(c *C) {
-	ch := make(chan interface{})
-	s := session.New(ch)
+	s := session.New()
 	defer s.Discard()
 
 	c.Assert(session.CheckAuth("foo", "bar"), Equals, false)
@@ -109,8 +105,7 @@ func (t *sessionSuite) TestCheckAuth(c *C) {
 }
 
 func (t *sessionSuite) TestAddMetadata(c *C) {
-	ch := make(chan interface{})
-	s := session.New(ch)
+	s := session.New()
 	defer s.Discard()
 
 	h, _ := metadata.NewSha256Digest(MySha256)
@@ -124,8 +119,7 @@ func (t *sessionSuite) TestAddMetadata(c *C) {
 }
 
 func (t *sessionSuite) TestAddDownloadInfo(c *C) {
-	ch := make(chan interface{})
-	s := session.New(ch)
+	s := session.New()
 	defer s.Discard()
 
 	h, _ := metadata.NewSha256Digest(MySha256)
@@ -143,8 +137,7 @@ func (t *sessionSuite) TestAddDownloadInfo(c *C) {
 }
 
 func (t *sessionSuite) TestAddInvalidDownloadInfo(c *C) {
-	ch := make(chan interface{})
-	s := session.New(ch)
+	s := session.New()
 	defer s.Discard()
 
 	h, _ := metadata.NewSha256Digest(MySha256)
@@ -157,8 +150,7 @@ func (t *sessionSuite) TestAddInvalidDownloadInfo(c *C) {
 }
 
 func (t *sessionSuite) TestSaveData(c *C) {
-	ch := make(chan interface{})
-	s := session.New(ch)
+	s := session.New()
 	defer s.Discard()
 
 	tmp := c.MkDir()
@@ -186,8 +178,7 @@ func (t *sessionSuite) TestSaveData(c *C) {
 }
 
 func (t *sessionSuite) TestSaveMetadata(c *C) {
-	ch := make(chan interface{})
-	s := session.New(ch)
+	s := session.New()
 	defer s.Discard()
 
 	tmp := c.MkDir()
@@ -212,8 +203,7 @@ func (t *sessionSuite) TestGetSession(c *C) {
 	m := session.GetSession("invalid-session-id")
 	c.Assert(m, IsNil)
 
-	ch := make(chan interface{})
-	s := session.New(ch)
+	s := session.New()
 	defer s.Discard()
 
 	m = session.GetSession(s.Id)

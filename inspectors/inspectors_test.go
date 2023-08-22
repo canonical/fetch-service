@@ -30,6 +30,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/session"
 )
 
 const (
@@ -46,7 +47,7 @@ func (t *inspectorsSuite) SetUpTest(c *C) {
 
 var _ = Suite(&inspectorsSuite{})
 
-func (s *inspectorsSuite) TestRunInspectors(c *C) {
+func (t *inspectorsSuite) TestRunInspectors(c *C) {
 	//ctx := metadata.NewInspectionContext()
 
 	dir := c.MkDir()
@@ -58,17 +59,17 @@ func (s *inspectorsSuite) TestRunInspectors(c *C) {
 	md := &metadata.Metadata{Sha256: h}
 	di := &metadata.DownloadInfo{ContentType: "text/plain", Sha256: h}
 
-	ch := make(chan interface{})
-	insps := inspectors.New(ch)
+	s := session.New()
+	defer s.Discard()
 
-	err = insps.RunInspectors(dir, md, di)
+	err = s.Insps.RunInspectors(dir, md, di)
 	c.Assert(err, IsNil)
 	c.Assert(md.Type, Equals, "text/plain; charset=utf-8")
 
 	// TODO: improve this test to see if registered inspectors ran as expected
 }
 
-func (s *inspectorsSuite) TestDefaultInspector(c *C) {
+func (t *inspectorsSuite) TestDefaultInspector(c *C) {
 	md := &metadata.Metadata{Type: "application/unit-test"}
 	di := &metadata.DownloadInfo{}
 

@@ -26,7 +26,6 @@ import (
 	"syscall"
 	"time"
 
-	insapi "github.com/canonical/fetch-service/inspectors/api"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/proxy"
@@ -58,7 +57,7 @@ func (svc *Service) Start() {
 	logger.Info("Starting service...")
 	svc.p.Start()
 
-	_ = session.New(svc.ch) // FIXME: to be created using the API
+	_ = session.New() // FIXME: to be created using the API
 	defer session.FinishAll()
 
 	// Shut down gracefully if terminated.
@@ -129,14 +128,6 @@ dispatcherLoop:
 
 			case proxy.ProxyAuth:
 				v.Rch <- session.CheckAuth(v.Id, v.Pw)
-
-			case insapi.InspectorAPIRequest:
-				s := session.GetSession(v.SessionId)
-				ins, err := s.Insps.GetInspector(v.InsName)
-				if err != nil {
-					v.Rch <- err
-				}
-				v.Rch <- ins.API()
 
 			case os.Signal:
 				if v == syscall.SIGINT {

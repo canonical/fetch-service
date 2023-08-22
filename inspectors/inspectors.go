@@ -39,7 +39,7 @@ import (
 type Inspector interface {
 	Name() string
 
-	InitializeContext(chan interface{})
+	InitializeContext(sd api.SessionDetails)
 
 	AuthorizeDownload(*metadata.DownloadInfo) error
 
@@ -57,7 +57,7 @@ type Inspectors struct {
 	keys   []string
 }
 
-func New(ch chan interface{}) Inspectors {
+func New(sd api.SessionDetails) Inspectors {
 	insps := Inspectors{}
 	insps.insmap = map[string]Inspector{}
 
@@ -68,7 +68,7 @@ func New(ch chan interface{}) Inspectors {
 		&apt.AptPackagesInspector{},
 		&DefaultInspector{},
 	} {
-		ins.InitializeContext(ch)
+		ins.InitializeContext(sd)
 		name := ins.Name()
 		insps.keys = append(insps.keys, name)
 		insps.insmap[name] = ins
@@ -146,7 +146,7 @@ func (DefaultInspector) Name() string {
 	return "default"
 }
 
-func (DefaultInspector) InitializeContext(ch chan interface{}) {
+func (DefaultInspector) InitializeContext(sd api.SessionDetails) {
 }
 
 func (DefaultInspector) AuthorizeDownload(di *metadata.DownloadInfo) error {

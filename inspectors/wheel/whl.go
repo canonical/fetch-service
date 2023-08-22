@@ -48,7 +48,7 @@ func (WhlInspector) Name() string {
 	return "wheel"
 }
 
-func (ins *WhlInspector) InitializeContext(ch chan interface{}) {
+func (ins *WhlInspector) InitializeContext(sd api.SessionDetails) {
 }
 
 func (WhlInspector) AuthorizeDownload(di *metadata.DownloadInfo) error {

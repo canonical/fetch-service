@@ -143,7 +143,7 @@ func (ctx *AptReleaseContext) GetReleasePackages(digest metadata.Sha256Digest) (
 }
 
 type AptReleaseInspector struct {
-	ch    chan interface{}
+	sd    api.SessionDetails
 	state AptReleaseContext
 }
 
@@ -151,8 +151,8 @@ func (ins *AptReleaseInspector) Name() string {
 	return "apt.release"
 }
 
-func (ins *AptReleaseInspector) InitializeContext(ch chan interface{}) {
-	ins.ch = ch
+func (ins *AptReleaseInspector) InitializeContext(sd api.SessionDetails) {
+	ins.sd = sd
 	ins.state = AptReleaseContext{
 		releasePackages: make(map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptReleasePackages, 16),
 	}
@@ -252,8 +252,8 @@ type AptReleaseInspectorAPI interface {
 	GetReleasePackages(metadata.Sha256Digest) (metadata.Sha256Digest, AptReleasePackages, bool)
 }
 
-func GetAptReleaseInspectorAPI(sessionId string, ch chan interface{}) (AptReleaseInspectorAPI, error) {
-	res, err := api.GetInspectorAPI(sessionId, "apt.release", ch)
+func GetAptReleaseInspectorAPI(sd api.SessionDetails) (AptReleaseInspectorAPI, error) {
+	res, err := sd.GetInspectorAPI("apt.release")
 	if err != nil {
 		return nil, err
 	}
@@ -452,6 +452,8 @@ type AptPackagesEntry struct {
 // AptPackagesContext contains inspector-specific contextual data for stateful
 // analysis within a fetch session.
 type AptPackagesContext struct {
+	sd api.SessionDetails
+
 	// packagesEntries maps Packages.* file digests to package digest to metadata.
 	packagesEntries map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptPackagesEntry
 	packagesLock    sync.Mutex
@@ -486,7 +488,7 @@ func (ctx *AptPackagesContext) GetPackagesEntry(digest metadata.Sha256Digest) (p
 }
 
 type AptPackagesInspector struct {
-	ch    chan interface{}
+	sd    api.SessionDetails
 	state AptPackagesContext
 }
 
@@ -494,8 +496,8 @@ func (ins *AptPackagesInspector) Name() string {
 	return "apt.packages"
 }
 
-func (ins *AptPackagesInspector) InitializeContext(ch chan interface{}) {
-	ins.ch = ch
+func (ins *AptPackagesInspector) InitializeContext(sd api.SessionDetails) {
+	ins.sd = sd
 	ins.state = AptPackagesContext{
 		packagesEntries: make(map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptPackagesEntry, 256),
 	}
@@ -511,7 +513,7 @@ func (ins *AptPackagesInspector) Inspect(filename string, md *metadata.Metadata,
 	}
 	stop = true
 
-	release, err := GetAptReleaseInspectorAPI(di.SessionId, ins.ch)
+	release, err := GetAptReleaseInspectorAPI(ins.sd)
 	if err != nil {
 		logger.Error("internal error: cannot get apt release API")
 		return

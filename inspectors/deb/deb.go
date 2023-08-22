@@ -41,7 +41,7 @@ func (DebInspector) Name() string {
 	return "deb"
 }
 
-func (ins *DebInspector) InitializeContext(ch chan interface{}) {
+func (ins *DebInspector) InitializeContext(sd api.SessionDetails) {
 }
 
 func (DebInspector) AuthorizeDownload(di *metadata.DownloadInfo) error {

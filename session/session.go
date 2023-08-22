@@ -33,6 +33,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/canonical/fetch-service/inspectors"
+	"github.com/canonical/fetch-service/inspectors/api"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 )
@@ -52,14 +53,15 @@ var (
 	randomString  = randomStringImpl
 )
 
-func New(ch chan interface{}) *Session {
+func New() *Session {
 	s := &Session{
 		Id:    makeSessionId(),
 		Pw:    randomString(20),
 		Start: time.Now().UTC(),
-		Insps: inspectors.New(ch),
 		Md:    map[metadata.Sha256Digest]*metadata.Metadata{},
 	}
+
+	s.Insps = inspectors.New(s)
 
 	// FIXME: predictable values for testing convenience until the session
 	//        creation API is implemented.
@@ -166,6 +168,18 @@ func (s *Session) SaveMetadata(digest metadata.Sha256Digest) error {
 	}
 
 	return nil
+}
+
+func (s *Session) GetInspectorAPI(name string) (api.InspectorAPI, error) {
+	ins, err := s.Insps.GetInspector(name)
+	if err != nil {
+		return nil, err
+	}
+	api := ins.API()
+	if api == nil {
+		return nil, fmt.Errorf("cannot obtain API for inspector '%s'", name)
+	}
+	return api, nil
 }
 
 // Generate a unique session ID
