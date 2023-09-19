@@ -30,6 +30,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/go-mmap/mmap"
+
 	"github.com/canonical/fetch-service/inspectors/api"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/utils"
@@ -44,7 +46,7 @@ func WhlDetector(raw []byte, limit uint32) bool {
 
 type WhlInspector struct{}
 
-func (WhlInspector) Name() string {
+func (WhlInspector) ID() string {
 	return "wheel"
 }
 
@@ -55,28 +57,30 @@ func (WhlInspector) InspectRequest(di *metadata.DownloadInfo) error {
 	return nil
 }
 
-func (WhlInspector) InspectArtefact(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
+func (WhlInspector) InspectArtefact(f *mmap.File, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
 	if md.Type != "application/x-python-wheel" {
 		return
 	}
 
-	err = readWhlMetadata(filename, md)
+	size := int64(f.Len())
+
+	err = readWhlMetadata(f, size, md)
 	if err != nil {
 		return
 	}
 
-	err = readWhlWheel(filename, md)
+	err = readWhlWheel(f, size, md)
 	if err != nil {
 		return
 	}
 
-	fileList, err := listWheelFiles(filename)
+	fileList, err := listWheelFiles(f, size)
 	if err != nil {
 		return
 	}
 	md.Files = fileList
 
-	err = readWhlRecord(filename, md)
+	err = readWhlRecord(f, size, md)
 	if err != nil {
 		return
 	}
@@ -90,14 +94,13 @@ func (ins WhlInspector) API() api.InspectorAPI {
 }
 
 // listWheelFiles gets a list of wheel files and their sha1 digests.
-func listWheelFiles(filename string) ([]metadata.MemberFile, error) {
+func listWheelFiles(f io.ReaderAt, size int64) ([]metadata.MemberFile, error) {
 	res := []metadata.MemberFile{}
 
-	z, err := zip.OpenReader(filename)
+	z, err := zip.NewReader(f, size)
 	if err != nil {
 		return res, err
 	}
-	defer z.Close()
 
 	for _, f := range z.File {
 		zf, err := f.Open()
@@ -127,12 +130,11 @@ func listWheelFiles(filename string) ([]metadata.MemberFile, error) {
 }
 
 // readWhlMetadata reads the wheel's METADATA file.
-func readWhlMetadata(filename string, md *metadata.Metadata) error {
-	z, err := zip.OpenReader(filename)
+func readWhlMetadata(f io.ReaderAt, size int64, md *metadata.Metadata) error {
+	z, err := zip.NewReader(f, size)
 	if err != nil {
 		return err
 	}
-	defer z.Close()
 
 	mre := regexp.MustCompile(`^[^/]*\.dist-info/METADATA$`)
 
@@ -208,12 +210,11 @@ func normalizeClassifier(v string, md *metadata.Metadata) {
 }
 
 // readWhlWheel reads the wheel's WHEEL file.
-func readWhlWheel(filename string, md *metadata.Metadata) error {
-	z, err := zip.OpenReader(filename)
+func readWhlWheel(f io.ReaderAt, size int64, md *metadata.Metadata) error {
+	z, err := zip.NewReader(f, size)
 	if err != nil {
 		return err
 	}
-	defer z.Close()
 
 	record := regexp.MustCompile(`^[^/]*\.dist-info/WHEEL$`)
 
@@ -248,12 +249,11 @@ func readWhlWheel(filename string, md *metadata.Metadata) error {
 }
 
 // readWhlRecord reads the wheel's RECORD file.
-func readWhlRecord(filename string, md *metadata.Metadata) error {
-	z, err := zip.OpenReader(filename)
+func readWhlRecord(f io.ReaderAt, size int64, md *metadata.Metadata) error {
+	z, err := zip.NewReader(f, size)
 	if err != nil {
 		return err
 	}
-	defer z.Close()
 
 	record := regexp.MustCompile(`^[^/]*\.dist-info/RECORD$`)
 

@@ -62,7 +62,7 @@ func (t *inspectorsSuite) TestRunInspectors(c *C) {
 	s := session.New()
 	defer s.Discard()
 
-	err = s.Insps.RunInspectors(dir, md, di)
+	err = s.Insps.InspectArtefacts(dir, md, di)
 	c.Assert(err, IsNil)
 	c.Assert(md.Type, Equals, "text/plain; charset=utf-8")
 
@@ -77,7 +77,7 @@ func (t *inspectorsSuite) TestDefaultInspector(c *C) {
 	ins := inspectors.DefaultInspector{}
 	c.Assert(ins, Implements, &iface)
 
-	stop, err := ins.InspectArtefact("any-filename", md, di)
+	stop, err := ins.InspectArtefact(nil, md, di)
 	c.Assert(err, IsNil)
 	c.Assert(stop, Equals, true)
 	c.Assert(md.Annotations, HasLen, 1)

@@ -23,12 +23,12 @@ import (
 	"archive/tar"
 	"bufio"
 	"io"
-	"os"
 	"regexp"
 	"strings"
 	"unicode"
 
 	"github.com/blakesmith/ar"
+	"github.com/go-mmap/mmap"
 	"github.com/klauspost/compress/zstd"
 
 	"github.com/canonical/fetch-service/inspectors/api"
@@ -37,7 +37,7 @@ import (
 
 type DebInspector struct{}
 
-func (DebInspector) Name() string {
+func (DebInspector) ID() string {
 	return "deb"
 }
 
@@ -48,13 +48,13 @@ func (DebInspector) InspectRequest(di *metadata.DownloadInfo) error {
 	return nil
 }
 
-func (DebInspector) InspectArtefact(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
+func (DebInspector) InspectArtefact(f *mmap.File, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
 	if md.Type != "application/vnd.debian.binary-package" {
 		return
 	}
 	stop = true
 
-	err = readDebMetadata(filename, md)
+	err = readDebMetadata(f, md)
 	if err != nil {
 		return
 	}
@@ -81,13 +81,7 @@ func (ins DebInspector) API() api.InspectorAPI {
 }
 
 // readDebMetadata reads metadata from the deb control file.
-func readDebMetadata(filename string, md *metadata.Metadata) error {
-
-	f, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
+func readDebMetadata(f io.Reader, md *metadata.Metadata) error {
 
 	af := ar.NewReader(f)
 

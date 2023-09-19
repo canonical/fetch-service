@@ -21,6 +21,7 @@ package inspectors
 
 import (
 	"fmt"
+	"io"
 	"path/filepath"
 
 	"github.com/gabriel-vasile/mimetype"
@@ -37,7 +38,7 @@ import (
 // Inspector is the interface implemented by artifact metadata
 // extractors.
 type Inspector interface {
-	Name() string
+	ID() string
 
 	InitializeContext(sd api.SessionDetails)
 
@@ -47,7 +48,7 @@ type Inspector interface {
 	// populates the metadata structure, returning whether
 	// the artifact was identified and no further examination
 	// by other inspectors is required.
-	InspectArtefact(string, *metadata.Metadata, *metadata.DownloadInfo) (bool, error)
+	InspectArtefact(*mmap.File, *metadata.Metadata, *metadata.DownloadInfo) (bool, error)
 
 	API() api.InspectorAPI
 }
@@ -69,10 +70,10 @@ func New(sd api.SessionDetails) Inspectors {
 		&DefaultInspector{},
 	} {
 		ins.InitializeContext(sd)
-		name := ins.Name()
-		insps.keys = append(insps.keys, name)
-		insps.insmap[name] = ins
-		logger.Debugf("register inspector: %s", name)
+		id := ins.ID()
+		insps.keys = append(insps.keys, id)
+		insps.insmap[id] = ins
+		logger.Debugf("register inspector: %s", id)
 	}
 
 	return insps
@@ -81,7 +82,7 @@ func New(sd api.SessionDetails) Inspectors {
 func (insps Inspectors) InspectRequest(di *metadata.DownloadInfo) error {
 	for _, key := range insps.keys {
 		ins := insps.insmap[key]
-		logger.Debugf("request download authorization from %s", ins.Name())
+		logger.Debugf("request download authorization from %s", ins.ID())
 		err := ins.InspectRequest(di)
 		if err != nil {
 			return err
@@ -91,9 +92,8 @@ func (insps Inspectors) InspectRequest(di *metadata.DownloadInfo) error {
 	return nil
 }
 
-// RunInspectors executes the registered inspectors on the artifact in the
-// given assets directory, populating the metadata structure md.
-func (insps Inspectors) RunInspectors(dir string, md *metadata.Metadata, di *metadata.DownloadInfo) error {
+// InspectArtefacts examines the artefacts in the given assets directory.
+func (insps Inspectors) InspectArtefacts(dir string, md *metadata.Metadata, di *metadata.DownloadInfo) error {
 	// detect file type
 	filename := filepath.Join(dir, fmt.Sprintf("%s.data", md.Sha256))
 	f, err := mmap.Open(filename)
@@ -116,8 +116,11 @@ func (insps Inspectors) RunInspectors(dir string, md *metadata.Metadata, di *met
 	// run metadata inspectors
 	for _, key := range insps.keys {
 		ins := insps.insmap[key]
-		logger.Debugf("run inspector: %s", ins.Name())
-		stop, err := ins.InspectArtefact(filename, md, di)
+		logger.Debugf("run artefact inspector: %s", ins.ID())
+		if _, err := f.Seek(0, io.SeekStart); err != nil {
+			return err
+		}
+		stop, err := ins.InspectArtefact(f, md, di)
 		if err != nil {
 			return err
 		}
@@ -142,7 +145,7 @@ func (insps Inspectors) GetInspector(name string) (Inspector, error) {
 // formats.
 type DefaultInspector struct{}
 
-func (DefaultInspector) Name() string {
+func (DefaultInspector) ID() string {
 	return "default"
 }
 
@@ -153,7 +156,7 @@ func (DefaultInspector) InspectRequest(di *metadata.DownloadInfo) error {
 	return nil
 }
 
-func (DefaultInspector) InspectArtefact(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (bool, error) {
+func (DefaultInspector) InspectArtefact(f *mmap.File, md *metadata.Metadata, di *metadata.DownloadInfo) (bool, error) {
 	md.Annotate("default.format.unknown", metadata.AnnotationValue{})
 	return true, nil
 }

@@ -23,11 +23,11 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
 
+	"github.com/go-mmap/mmap"
 	"github.com/xi2/xz"
 
 	"github.com/canonical/fetch-service/inspectors/api"
@@ -147,7 +147,7 @@ type AptReleaseInspector struct {
 	state AptReleaseContext
 }
 
-func (ins *AptReleaseInspector) Name() string {
+func (ins *AptReleaseInspector) ID() string {
 	return "apt.release"
 }
 
@@ -162,17 +162,11 @@ func (ins *AptReleaseInspector) InspectRequest(di *metadata.DownloadInfo) error 
 	return nil
 }
 
-func (ins *AptReleaseInspector) InspectArtefact(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
+func (ins *AptReleaseInspector) InspectArtefact(f *mmap.File, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
 	if md.Type != "application/x-apt-release" {
 		return
 	}
 	stop = true
-
-	f, err := os.Open(filename)
-	if err != nil {
-		return
-	}
-	defer f.Close()
 
 	sc := bufio.NewScanner(f)
 	sc.Split(bufio.ScanLines)
@@ -310,17 +304,11 @@ func AptLegacyReleaseDetector(raw []byte, limit uint32) bool {
 
 type AptLegacyReleaseInspector struct{}
 
-func (AptLegacyReleaseInspector) InspectArtefact(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
+func (AptLegacyReleaseInspector) InspectArtefact(f *mmap.File, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
 	if md.Type != "application/x-apt-legacy-release" {
 		return
 	}
 	stop = true
-
-	f, err := os.Open(filename)
-	if err != nil {
-		return
-	}
-	defer f.Close()
 
 	sc := bufio.NewScanner(f)
 	sc.Split(bufio.ScanLines)
@@ -492,7 +480,7 @@ type AptPackagesInspector struct {
 	state AptPackagesContext
 }
 
-func (ins *AptPackagesInspector) Name() string {
+func (ins *AptPackagesInspector) ID() string {
 	return "apt.packages"
 }
 
@@ -507,7 +495,7 @@ func (ins *AptPackagesInspector) InspectRequest(di *metadata.DownloadInfo) error
 	return nil
 }
 
-func (ins *AptPackagesInspector) InspectArtefact(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
+func (ins *AptPackagesInspector) InspectArtefact(f *mmap.File, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
 	if md.Type != "application/x-apt-packages" {
 		return
 	}
@@ -543,12 +531,6 @@ func (ins *AptPackagesInspector) InspectArtefact(filename string, md *metadata.M
 	md.Author = p.Vendor
 
 	// Cache some data to check deb packages
-	f, err := os.Open(filename)
-	if err != nil {
-		return
-	}
-	defer f.Close()
-
 	r, err := xz.NewReader(f, 0)
 	if err != nil {
 		return
