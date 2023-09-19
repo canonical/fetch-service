@@ -41,13 +41,13 @@ type Inspector interface {
 
 	InitializeContext(sd api.SessionDetails)
 
-	AuthorizeDownload(*metadata.DownloadInfo) error
+	InspectRequest(*metadata.DownloadInfo) error
 
 	// Inspect extracts metadata from the given artifact and
 	// populates the metadata structure, returning whether
 	// the artifact was identified and no further examination
 	// by other inspectors is required.
-	Inspect(string, *metadata.Metadata, *metadata.DownloadInfo) (bool, error)
+	InspectArtefact(string, *metadata.Metadata, *metadata.DownloadInfo) (bool, error)
 
 	API() api.InspectorAPI
 }
@@ -78,11 +78,11 @@ func New(sd api.SessionDetails) Inspectors {
 	return insps
 }
 
-func (insps Inspectors) AuthorizeDownload(di *metadata.DownloadInfo) error {
+func (insps Inspectors) InspectRequest(di *metadata.DownloadInfo) error {
 	for _, key := range insps.keys {
 		ins := insps.insmap[key]
 		logger.Debugf("request download authorization from %s", ins.Name())
-		err := ins.AuthorizeDownload(di)
+		err := ins.InspectRequest(di)
 		if err != nil {
 			return err
 		}
@@ -117,7 +117,7 @@ func (insps Inspectors) RunInspectors(dir string, md *metadata.Metadata, di *met
 	for _, key := range insps.keys {
 		ins := insps.insmap[key]
 		logger.Debugf("run inspector: %s", ins.Name())
-		stop, err := ins.Inspect(filename, md, di)
+		stop, err := ins.InspectArtefact(filename, md, di)
 		if err != nil {
 			return err
 		}
@@ -149,11 +149,11 @@ func (DefaultInspector) Name() string {
 func (DefaultInspector) InitializeContext(sd api.SessionDetails) {
 }
 
-func (DefaultInspector) AuthorizeDownload(di *metadata.DownloadInfo) error {
+func (DefaultInspector) InspectRequest(di *metadata.DownloadInfo) error {
 	return nil
 }
 
-func (DefaultInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (bool, error) {
+func (DefaultInspector) InspectArtefact(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (bool, error) {
 	md.Annotate("default.format.unknown", metadata.AnnotationValue{})
 	return true, nil
 }

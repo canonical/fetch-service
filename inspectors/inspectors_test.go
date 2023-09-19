@@ -77,7 +77,7 @@ func (t *inspectorsSuite) TestDefaultInspector(c *C) {
 	ins := inspectors.DefaultInspector{}
 	c.Assert(ins, Implements, &iface)
 
-	stop, err := ins.Inspect("any-filename", md, di)
+	stop, err := ins.InspectArtefact("any-filename", md, di)
 	c.Assert(err, IsNil)
 	c.Assert(stop, Equals, true)
 	c.Assert(md.Annotations, HasLen, 1)

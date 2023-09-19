@@ -51,11 +51,11 @@ func (WhlInspector) Name() string {
 func (ins *WhlInspector) InitializeContext(sd api.SessionDetails) {
 }
 
-func (WhlInspector) AuthorizeDownload(di *metadata.DownloadInfo) error {
+func (WhlInspector) InspectRequest(di *metadata.DownloadInfo) error {
 	return nil
 }
 
-func (WhlInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
+func (WhlInspector) InspectArtefact(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
 	if md.Type != "application/x-python-wheel" {
 		return
 	}

@@ -87,7 +87,7 @@ func (s *aptSuite) TestAptReleaseInspector(c *C) {
 	ins := apt.AptReleaseInspector{}
 	//c.Assert(ins, Implements, &iface)
 
-	stop, err := ins.Inspect(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"), md, di)
+	stop, err := ins.InspectArtefact(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"), md, di)
 	c.Assert(err, IsNil)
 	c.Assert(stop, Equals, true)
 

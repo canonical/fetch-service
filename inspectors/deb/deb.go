@@ -44,11 +44,11 @@ func (DebInspector) Name() string {
 func (ins *DebInspector) InitializeContext(sd api.SessionDetails) {
 }
 
-func (DebInspector) AuthorizeDownload(di *metadata.DownloadInfo) error {
+func (DebInspector) InspectRequest(di *metadata.DownloadInfo) error {
 	return nil
 }
 
-func (DebInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
+func (DebInspector) InspectArtefact(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
 	if md.Type != "application/vnd.debian.binary-package" {
 		return
 	}

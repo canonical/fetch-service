@@ -81,7 +81,7 @@ dispatcherLoop:
 					break
 				}
 
-				err := s.Insps.AuthorizeDownload(&v.Info)
+				err := s.Insps.InspectRequest(&v.Info)
 				v.Rch <- err
 
 			case metadata.FileDownload:

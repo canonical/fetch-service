@@ -158,11 +158,11 @@ func (ins *AptReleaseInspector) InitializeContext(sd api.SessionDetails) {
 	}
 }
 
-func (ins *AptReleaseInspector) AuthorizeDownload(di *metadata.DownloadInfo) error {
+func (ins *AptReleaseInspector) InspectRequest(di *metadata.DownloadInfo) error {
 	return nil
 }
 
-func (ins *AptReleaseInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
+func (ins *AptReleaseInspector) InspectArtefact(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
 	if md.Type != "application/x-apt-release" {
 		return
 	}
@@ -310,7 +310,7 @@ func AptLegacyReleaseDetector(raw []byte, limit uint32) bool {
 
 type AptLegacyReleaseInspector struct{}
 
-func (AptLegacyReleaseInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
+func (AptLegacyReleaseInspector) InspectArtefact(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
 	if md.Type != "application/x-apt-legacy-release" {
 		return
 	}
@@ -503,11 +503,11 @@ func (ins *AptPackagesInspector) InitializeContext(sd api.SessionDetails) {
 	}
 }
 
-func (ins *AptPackagesInspector) AuthorizeDownload(di *metadata.DownloadInfo) error {
+func (ins *AptPackagesInspector) InspectRequest(di *metadata.DownloadInfo) error {
 	return nil
 }
 
-func (ins *AptPackagesInspector) Inspect(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
+func (ins *AptPackagesInspector) InspectArtefact(filename string, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
 	if md.Type != "application/x-apt-packages" {
 		return
 	}
