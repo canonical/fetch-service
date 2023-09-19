@@ -40,18 +40,18 @@ import (
 // of downloaded contents and stores downloaded data and contextual
 // metadata in the designated local file spool.
 type FileDownloadHandler struct {
-	ch         chan interface{}
-	info       metadata.DownloadInfo
-	size       int64         // streamed data size
-	sha1       hash.Hash     // sha1 digest of streamed data
-	sha256     hash.Hash     // sha256 digest of streamed data
-	tempfile   *os.File      // copy of streamed data
-	body       io.ReadCloser // response body
-	assetDir   string        // file storage location
-	insTimeout time.Duration // artifact inspection timeout
+	ch         chan interface{}   // service message channel
+	a          *metadata.Artefact // artefact metadata
+	size       int64              // streamed data size
+	sha1       hash.Hash          // sha1 digest of streamed data
+	sha256     hash.Hash          // sha256 digest of streamed data
+	tempfile   *os.File           // copy of streamed data
+	body       io.ReadCloser      // response body
+	assetDir   string             // file storage location
+	insTimeout time.Duration      // artifact inspection timeout
 }
 
-func NewFileDownloadHandler(resp *http.Response, info metadata.DownloadInfo, spool string, ch chan interface{}) (*FileDownloadHandler, error) {
+func NewFileDownloadHandler(resp *http.Response, a *metadata.Artefact, spool string, ch chan interface{}) (*FileDownloadHandler, error) {
 	sessionId := resp.Request.Header.Get(sessionIdHeader)
 
 	tempfile, err := os.CreateTemp("", "fetch")
@@ -59,6 +59,7 @@ func NewFileDownloadHandler(resp *http.Response, info metadata.DownloadInfo, spo
 		return nil, err
 	}
 
+	info := a.RequestMetadata()
 	info.StatusCode = resp.StatusCode
 	info.Status = resp.Status
 	info.ContentType = resp.Header.Get("Content-Type")
@@ -66,7 +67,7 @@ func NewFileDownloadHandler(resp *http.Response, info metadata.DownloadInfo, spo
 
 	h := &FileDownloadHandler{
 		ch:         ch,
-		info:       info,
+		a:          a,
 		size:       0,
 		sha1:       sha1.New(),
 		sha256:     sha256.New(),
@@ -96,7 +97,8 @@ func (h *FileDownloadHandler) Read(b []byte) (n int, err error) {
 		return
 	}
 	if size != n {
-		err = fmt.Errorf("%s: short write", h.info.URL)
+		info := h.a.RequestMetadata()
+		err = fmt.Errorf("%s: short write", info.URL)
 		return
 	}
 
@@ -114,8 +116,9 @@ func (h *FileDownloadHandler) Close() error {
 	sha256 := *(*metadata.Sha256Digest)(h.sha256.Sum(nil))
 
 	// update download information
-	h.info.EndTime = time.Now().UTC()
-	h.info.Sha256 = sha256
+	info := h.a.RequestMetadata()
+	info.EndTime = time.Now().UTC()
+	info.Sha256 = sha256
 
 	mver := fmt.Sprintf("%d.%d", metadata.MetadataVersionMajor, metadata.MetadataVersionMinor)
 
@@ -129,7 +132,7 @@ func (h *FileDownloadHandler) Close() error {
 		Tempfile:        h.tempfile.Name(),
 	}
 
-	fd := metadata.NewFileDownload(md, h.info)
+	fd := metadata.NewFileDownload(md, h.a)
 	h.ch <- fd
 	select {
 	case err := <-fd.Rch:

@@ -46,7 +46,7 @@ type ProxyAuth struct {
 
 // proxyData contains contextual information for request and response handlers.
 type proxyData struct {
-	dinfo metadata.DownloadInfo
+	a *metadata.Artefact
 }
 
 // HttpProxy implements a proxy that inspects downloaded contents.
@@ -122,7 +122,7 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 		}
 	}
 
-	info := metadata.DownloadInfo{
+	di := &metadata.DownloadInfo{
 		StartTime: time.Now().UTC(),
 		URL:       req.URL.String(),
 		Address:   req.RemoteAddr,
@@ -131,12 +131,17 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 		SessionId: req.Header.Get(sessionIdHeader),
 	}
 
+	a := metadata.NewArtefact(di)
+
 	authReq := metadata.DownloadAuthorizationRequest{
-		Rch:  make(chan error, 1),
-		Info: info,
+		Rch: make(chan error, 1),
+		A:   a,
 	}
+	fmt.Printf(">>> send request: %+v\n", authReq)
 	p.ch <- authReq
+	fmt.Printf(">>> sent request, wait response\n")
 	err := <-authReq.Rch
+	fmt.Printf(">>> got response: %+v\n", err)
 	if err != nil {
 		return req, goproxy.NewResponse(
 			req, goproxy.ContentTypeText,
@@ -145,12 +150,12 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 		)
 	}
 
-	req.Body, err = NewRequestHandler(req, info, p.ch)
+	req.Body, err = NewRequestHandler(req, a, p.ch)
 	if err != nil {
 		return req, internalErrorResponse(req, "Cannot handle requests")
 	}
 
-	ctx.UserData = proxyData{dinfo: info}
+	ctx.UserData = proxyData{a: a}
 
 	return req, nil
 }
@@ -161,10 +166,10 @@ func (p *HttpProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) 
 		return resp
 	}
 
-	info := ctx.UserData.(proxyData).dinfo
+	a := ctx.UserData.(proxyData).a
 
 	var err error
-	resp.Body, err = NewFileDownloadHandler(resp, info, p.spool, p.ch)
+	resp.Body, err = NewFileDownloadHandler(resp, a, p.spool, p.ch)
 	if err != nil {
 		return internalErrorResponse(resp.Request, "Cannot handle file downloads")
 	}

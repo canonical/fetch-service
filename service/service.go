@@ -74,19 +74,21 @@ dispatcherLoop:
 		case msg := <-svc.ch:
 			switch v := msg.(type) {
 			case metadata.DownloadAuthorizationRequest:
-				sessionId := v.Info.SessionId
+				info := v.A.RequestMetadata()
+				sessionId := info.SessionId
 				s := session.GetSession(sessionId)
 				if s == nil {
 					logger.Warningf("session %s is not active", sessionId)
 					break
 				}
 
-				err := s.Insps.InspectRequest(&v.Info)
+				err := s.Insps.RunRequestInspectors(v.A)
 				v.Rch <- err
 
 			case metadata.FileDownload:
 				assetDir := v.Md.AssetDir
-				sessionId, digest := v.Info.SessionId, v.Md.Sha256
+				info := v.A.RequestMetadata()
+				sessionId, digest := info.SessionId, v.Md.Sha256
 
 				s := session.GetSession(sessionId)
 				if s == nil {
@@ -95,11 +97,11 @@ dispatcherLoop:
 				}
 
 				// Add download info to artifact metadata
-				logger.Infof("[%s] %s %s: %s (%s)", sessionId, v.Info.Method, v.Info.URL, v.Info.Status, v.Info.ContentType)
+				logger.Infof("[%s] %s %s: %s (%s)", sessionId, info.Method, info.URL, info.Status, info.ContentType)
 
 				if s.HasMetadata(digest) {
-					logger.Infof("artifact %s already downloaded", digest)
-					s.AddDownloadInfo(v.Info)
+					logger.Infof("artefact %s already downloaded", digest)
+					s.AddDownloadInfo(*v.A.RequestMetadata())
 					v.Rch <- nil
 					break
 
@@ -112,11 +114,11 @@ dispatcherLoop:
 					break
 				}
 
-				s.AddDownloadInfo(v.Info)
+				s.AddDownloadInfo(*v.A.RequestMetadata())
 
-				go func(md *metadata.Metadata, di *metadata.DownloadInfo, rch chan error) {
+				go func(md *metadata.Metadata, a *metadata.Artefact, rch chan error) {
 					// Extract metadata from file
-					if err := s.Insps.InspectArtefacts(assetDir, md, di); err != nil {
+					if err := s.Insps.RunArtefactInspectors(assetDir, a); err != nil {
 						logger.Errorf("%s", err)
 						rch <- err
 						return
@@ -124,7 +126,7 @@ dispatcherLoop:
 
 					logger.Infof("[%s] artifact %s %d (%s)", sessionId, digest, md.Size, md.Type)
 					rch <- nil
-				}(&v.Md, &v.Info, v.Rch)
+				}(&v.Md, v.A, v.Rch)
 
 			case proxy.ProxyAuth:
 				v.Rch <- session.CheckAuth(v.Id, v.Pw)

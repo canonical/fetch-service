@@ -158,7 +158,7 @@ func (ins *AptReleaseInspector) InitializeContext(sd api.SessionDetails) {
 	}
 }
 
-func (ins *AptReleaseInspector) InspectRequest(di *metadata.DownloadInfo) error {
+func (ins *AptReleaseInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil
 }
 
@@ -491,7 +491,7 @@ func (ins *AptPackagesInspector) InitializeContext(sd api.SessionDetails) {
 	}
 }
 
-func (ins *AptPackagesInspector) InspectRequest(di *metadata.DownloadInfo) error {
+func (ins *AptPackagesInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil
 }
 

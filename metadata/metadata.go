@@ -184,20 +184,20 @@ type DownloadInfo struct {
 // FileDownload has the metadata of a downloaded file and details
 // about the download operation.
 type FileDownload struct {
-	Rch  chan error   // Handler response channel
-	Md   Metadata     // Downloaded file metadata
-	Info DownloadInfo // Download operation details
+	Rch chan error // Handler response channel
+	Md  Metadata   // Downloaded file metadata
+	A   *Artefact  // Artefact and download metadata
 }
 
 type DownloadAuthorizationRequest struct {
-	Rch  chan error   // Handler response channel
-	Info DownloadInfo // Download operation details
+	Rch chan error // Handler response channel
+	A   *Artefact  // Artefact and download metadata
 }
 
-func NewFileDownload(md Metadata, info DownloadInfo) FileDownload {
+func NewFileDownload(md Metadata, a *Artefact) FileDownload {
 	return FileDownload{
-		Rch:  make(chan error, 1),
-		Md:   md,
-		Info: info,
+		Rch: make(chan error, 1),
+		Md:  md,
+		A:   a,
 	}
 }

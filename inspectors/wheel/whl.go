@@ -53,7 +53,7 @@ func (WhlInspector) ID() string {
 func (ins *WhlInspector) InitializeContext(sd api.SessionDetails) {
 }
 
-func (WhlInspector) InspectRequest(di *metadata.DownloadInfo) error {
+func (WhlInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil
 }
 

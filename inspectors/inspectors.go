@@ -42,7 +42,7 @@ type Inspector interface {
 
 	InitializeContext(sd api.SessionDetails)
 
-	InspectRequest(*metadata.DownloadInfo) error
+	InspectRequest(*metadata.Artefact) error
 
 	// Inspect extracts metadata from the given artifact and
 	// populates the metadata structure, returning whether
@@ -79,11 +79,11 @@ func New(sd api.SessionDetails) Inspectors {
 	return insps
 }
 
-func (insps Inspectors) InspectRequest(di *metadata.DownloadInfo) error {
+func (insps Inspectors) RunRequestInspectors(a *metadata.Artefact) error {
 	for _, key := range insps.keys {
 		ins := insps.insmap[key]
-		logger.Debugf("request download authorization from %s", ins.ID())
-		err := ins.InspectRequest(di)
+		logger.Debugf("run request inspector: %s", ins.ID())
+		err := ins.InspectRequest(a)
 		if err != nil {
 			return err
 		}
@@ -92,8 +92,11 @@ func (insps Inspectors) InspectRequest(di *metadata.DownloadInfo) error {
 	return nil
 }
 
-// InspectArtefacts examines the artefacts in the given assets directory.
-func (insps Inspectors) InspectArtefacts(dir string, md *metadata.Metadata, di *metadata.DownloadInfo) error {
+// RunArtefactInspectors examines the artefact in the given assets directory.
+func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) error {
+	md := a.ArtefactMetadata()
+	di := a.RequestMetadata()
+
 	// detect file type
 	filename := filepath.Join(dir, fmt.Sprintf("%s.data", md.Sha256))
 	f, err := mmap.Open(filename)
@@ -152,7 +155,7 @@ func (DefaultInspector) ID() string {
 func (DefaultInspector) InitializeContext(sd api.SessionDetails) {
 }
 
-func (DefaultInspector) InspectRequest(di *metadata.DownloadInfo) error {
+func (DefaultInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil
 }
 

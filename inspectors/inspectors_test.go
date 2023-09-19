@@ -56,15 +56,16 @@ func (t *inspectorsSuite) TestRunInspectors(c *C) {
 	c.Assert(err, IsNil)
 
 	h, _ := metadata.NewSha256Digest(MySha256)
-	md := &metadata.Metadata{Sha256: h}
 	di := &metadata.DownloadInfo{ContentType: "text/plain", Sha256: h}
+	a := metadata.NewArtefact(di)
+	a.ArtefactMetadata().Sha256 = h
 
 	s := session.New()
 	defer s.Discard()
 
-	err = s.Insps.InspectArtefacts(dir, md, di)
+	err = s.Insps.RunArtefactInspectors(dir, a)
 	c.Assert(err, IsNil)
-	c.Assert(md.Type, Equals, "text/plain; charset=utf-8")
+	c.Assert(a.ArtefactMetadata().Type, Equals, "text/plain; charset=utf-8")
 
 	// TODO: improve this test to see if registered inspectors ran as expected
 }

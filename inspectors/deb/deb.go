@@ -44,7 +44,7 @@ func (DebInspector) ID() string {
 func (ins *DebInspector) InitializeContext(sd api.SessionDetails) {
 }
 
-func (DebInspector) InspectRequest(di *metadata.DownloadInfo) error {
+func (DebInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil
 }
 
