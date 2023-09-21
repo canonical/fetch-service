@@ -27,8 +27,8 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/go-mmap/mmap"
 
-	"github.com/canonical/fetch-service/inspectors/api"
 	"github.com/canonical/fetch-service/inspectors/apt"
+	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/deb"
 	"github.com/canonical/fetch-service/inspectors/wheel"
 	"github.com/canonical/fetch-service/logger"
@@ -40,7 +40,7 @@ import (
 type Inspector interface {
 	ID() string
 
-	InitializeContext(sd api.SessionDetails)
+	InitializeContext(sd SessionDetails)
 
 	InspectRequest(*metadata.Artefact) error
 
@@ -48,9 +48,9 @@ type Inspector interface {
 	// populates the metadata structure, returning whether
 	// the artifact was identified and no further examination
 	// by other inspectors is required.
-	InspectArtefact(*mmap.File, *metadata.Metadata, *metadata.DownloadInfo) (bool, error)
+	InspectArtefact(ReadAtSeeker, *metadata.Artefact) (bool, error)
 
-	API() api.InspectorAPI
+	API() InspectorAPI
 }
 
 type Inspectors struct {
@@ -58,7 +58,7 @@ type Inspectors struct {
 	keys   []string
 }
 
-func New(sd api.SessionDetails) Inspectors {
+func New(sd SessionDetails) Inspectors {
 	insps := Inspectors{}
 	insps.insmap = map[string]Inspector{}
 
@@ -94,11 +94,12 @@ func (insps Inspectors) RunRequestInspectors(a *metadata.Artefact) error {
 
 // RunArtefactInspectors examines the artefact in the given assets directory.
 func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) error {
-	md := a.ArtefactMetadata()
 	di := a.RequestMetadata()
 
 	// detect file type
-	filename := filepath.Join(dir, fmt.Sprintf("%s.data", md.Sha256))
+	filename := filepath.Join(dir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
+	logger.Debugf("run artefact inspectors on %s", filename)
+
 	f, err := mmap.Open(filename)
 	if err != nil {
 		return err
@@ -107,10 +108,11 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 
 	mtype, err := mimetype.DetectReader(f)
 	if err != nil {
+		logger.Debug("cannot detect mime type")
 		return err
 	}
 
-	md.Type = mtype.String()
+	a.Metadata.Type = mtype.String()
 
 	if len(di.ContentType) > 0 && !mtype.Is(di.ContentType) {
 		logger.Debugf("file type '%s' doesn't match content type '%s'", mtype.String(), di.ContentType)
@@ -123,10 +125,12 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 		if _, err := f.Seek(0, io.SeekStart); err != nil {
 			return err
 		}
-		stop, err := ins.InspectArtefact(f, md, di)
+		stop, err := ins.InspectArtefact(f, a)
 		if err != nil {
+			a.Reject(ins, err.Error())
 			return err
 		}
+		a.Approve(ins, "")
 		if stop {
 			break
 		}
@@ -152,18 +156,18 @@ func (DefaultInspector) ID() string {
 	return "default"
 }
 
-func (DefaultInspector) InitializeContext(sd api.SessionDetails) {
+func (ins *DefaultInspector) InitializeContext(sd SessionDetails) {
 }
 
-func (DefaultInspector) InspectRequest(a *metadata.Artefact) error {
+func (ins *DefaultInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil
 }
 
-func (DefaultInspector) InspectArtefact(f *mmap.File, md *metadata.Metadata, di *metadata.DownloadInfo) (bool, error) {
-	md.Annotate("default.format.unknown", metadata.AnnotationValue{})
+func (ins *DefaultInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (bool, error) {
+	a.Reject(ins, "file format unknown")
 	return true, nil
 }
 
-func (DefaultInspector) API() api.InspectorAPI {
+func (DefaultInspector) API() InspectorAPI {
 	return nil
 }

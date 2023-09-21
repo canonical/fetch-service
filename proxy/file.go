@@ -59,11 +59,11 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artefact, spool str
 		return nil, err
 	}
 
-	info := a.RequestMetadata()
-	info.StatusCode = resp.StatusCode
-	info.Status = resp.Status
-	info.ContentType = resp.Header.Get("Content-Type")
-	info.ResponseHeader = resp.Header
+	areq := a.RequestMetadata()
+	areq.StatusCode = resp.StatusCode
+	areq.Status = resp.Status
+	areq.ContentType = resp.Header.Get("Content-Type")
+	areq.ResponseHeader = resp.Header
 
 	h := &FileDownloadHandler{
 		ch:         ch,
@@ -97,8 +97,8 @@ func (h *FileDownloadHandler) Read(b []byte) (n int, err error) {
 		return
 	}
 	if size != n {
-		info := h.a.RequestMetadata()
-		err = fmt.Errorf("%s: short write", info.URL)
+		areq := h.a.RequestMetadata()
+		err = fmt.Errorf("%s: short write", areq.URL)
 		return
 	}
 
@@ -116,23 +116,21 @@ func (h *FileDownloadHandler) Close() error {
 	sha256 := *(*metadata.Sha256Digest)(h.sha256.Sum(nil))
 
 	// update download information
-	info := h.a.RequestMetadata()
-	info.EndTime = time.Now().UTC()
-	info.Sha256 = sha256
+	areq := h.a.RequestMetadata()
+	areq.EndTime = time.Now().UTC()
+	areq.Sha256 = sha256
 
 	mver := fmt.Sprintf("%d.%d", metadata.MetadataVersionMajor, metadata.MetadataVersionMinor)
 
-	md := metadata.Metadata{
-		MetadataVersion: mver,
-		Size:            h.size,
-		Sha1:            sha1,
-		Sha256:          sha256,
-		Annotations:     metadata.AnnotationMap{},
-		AssetDir:        h.assetDir,
-		Tempfile:        h.tempfile.Name(),
-	}
+	h.a.Metadata.MetadataVersion = mver
+	h.a.Metadata.Size = h.size
+	h.a.Metadata.Sha1 = sha1
+	h.a.Metadata.Sha256 = sha256
+	h.a.Metadata.Annotations = metadata.AnnotationMap{}
+	h.a.Metadata.AssetDir = h.assetDir
+	h.a.Metadata.Tempfile = h.tempfile.Name()
 
-	fd := metadata.NewFileDownload(md, h.a)
+	fd := metadata.NewFileDownload(h.a)
 	h.ch <- fd
 	select {
 	case err := <-fd.Rch:

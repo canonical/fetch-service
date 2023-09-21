@@ -77,8 +77,9 @@ func (s *whlSuite) TestWhlInspector(c *C) {
 	dest.Close()
 
 	h, _ := metadata.NewSha1Digest("290d07339dde2735121ab03e525ca6593c395a42")
-	md := &metadata.Metadata{Type: "application/x-python-wheel", Sha1: h}
-	di := &metadata.DownloadInfo{}
+	a := metadata.NewArtefact(&metadata.DownloadInfo{})
+	a.Metadata.Type = "application/x-python-wheel"
+	a.Metadata.Sha1 = h
 
 	var iface inspectors.Inspector
 	ins := wheel.WhlInspector{}
@@ -88,17 +89,17 @@ func (s *whlSuite) TestWhlInspector(c *C) {
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	stop, err := ins.InspectArtefact(f, md, di)
+	stop, err := ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(stop, Equals, true)
 
-	c.Check(md.Name, Equals, "craft-grammar")
-	c.Check(md.Vendor, Equals, "Canonical Ltd.")
-	c.Check(md.Description, Equals, `"Advance Grammar for Craft Parts"`)
-	c.Check(md.Author, Equals, "Canonical Ltd.")
-	c.Check(md.AuthorEmail, Equals, "snapcraft@lists.snapcraft.io")
-	c.Check(md.License, Equals, "GNU Lesser General Public License v3 (LGPLv3)")
-	c.Check(md.Annotations["pip.wheel.version"].Value, Equals, "1.0")
-	c.Check(md.Annotations["pip.wheel.metadata.version"].Value, Equals, "2.1")
-	c.Check(md.Annotations["pip.wheel.record.check"].Value, Equals, "pass")
+	c.Check(a.Metadata.Name, Equals, "craft-grammar")
+	c.Check(a.Metadata.Vendor, Equals, "Canonical Ltd.")
+	c.Check(a.Metadata.Description, Equals, `"Advance Grammar for Craft Parts"`)
+	c.Check(a.Metadata.Author, Equals, "Canonical Ltd.")
+	c.Check(a.Metadata.AuthorEmail, Equals, "snapcraft@lists.snapcraft.io")
+	c.Check(a.Metadata.License, Equals, "GNU Lesser General Public License v3 (LGPLv3)")
+	c.Check(a.Metadata.Annotations["pip.wheel.version"].Value, Equals, "1.0")
+	c.Check(a.Metadata.Annotations["pip.wheel.metadata.version"].Value, Equals, "2.1")
+	c.Check(a.Metadata.Annotations["pip.wheel.record.check"].Value, Equals, "pass")
 }

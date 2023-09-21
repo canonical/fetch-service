@@ -81,8 +81,9 @@ func (s *aptSuite) TestAptReleaseInspector(c *C) {
 	dest.Close()
 
 	h, _ := metadata.NewSha1Digest("290d07339dde2735121ab03e525ca6593c395a42")
-	md := &metadata.Metadata{Type: "application/x-apt-release", Sha1: h}
-	di := &metadata.DownloadInfo{}
+	a := metadata.NewArtefact(&metadata.DownloadInfo{})
+	a.Metadata.Type = "application/x-apt-release"
+	a.Metadata.Sha1 = h
 
 	//var iface inspectors.Inspector
 	ins := apt.AptReleaseInspector{}
@@ -92,15 +93,15 @@ func (s *aptSuite) TestAptReleaseInspector(c *C) {
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	stop, err := ins.InspectArtefact(f, md, di)
+	stop, err := ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(stop, Equals, true)
 
-	c.Check(md.Name, Equals, "InRelease")
-	c.Check(md.Vendor, Equals, "Ubuntu")
-	c.Check(md.Description, Equals, "Ubuntu Jammy 22.04")
-	c.Check(md.Author, Equals, "Ubuntu")
-	c.Check(md.Annotations, HasLen, 0)
+	c.Check(a.Metadata.Name, Equals, "InRelease")
+	c.Check(a.Metadata.Vendor, Equals, "Ubuntu")
+	c.Check(a.Metadata.Description, Equals, "Ubuntu Jammy 22.04")
+	c.Check(a.Metadata.Author, Equals, "Ubuntu")
+	c.Check(a.Metadata.Annotations, HasLen, 0)
 }
 
 func (s *aptSuite) TestAptPackagesInspector(c *C) {

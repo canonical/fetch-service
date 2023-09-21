@@ -88,10 +88,10 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	mver := fmt.Sprintf("%d.%d", metadata.MetadataVersionMajor, metadata.MetadataVersionMinor)
 
 	// check file metadata
-	c.Assert(v.Md.MetadataVersion, Equals, mver)
-	c.Assert(v.Md.Sha1.String(), Equals, "176070ca20a7563bed4cef2212a9be37af09f14a")
-	c.Assert(v.Md.Sha256.String(), Equals, "f736153d1508e544b6c5ea19e3c2b7448d9af33608d195195e748cb54965e61b")
-	c.Assert(v.Md.Size, Equals, int64(13))
+	c.Assert(v.A.Metadata.MetadataVersion, Equals, mver)
+	c.Assert(v.A.Metadata.Sha1.String(), Equals, "176070ca20a7563bed4cef2212a9be37af09f14a")
+	c.Assert(v.A.Metadata.Sha256.String(), Equals, "f736153d1508e544b6c5ea19e3c2b7448d9af33608d195195e748cb54965e61b")
+	c.Assert(v.A.Metadata.Size, Equals, int64(13))
 
 	// check download info
 	info := v.A.RequestMetadata()
@@ -137,7 +137,7 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	v = msg.(metadata.FileDownload)
 
 	// check file metadata
-	c.Assert(v.Md.Sha1.String(), Equals, "176070ca20a7563bed4cef2212a9be37af09f14a")
+	c.Assert(v.A.Metadata.Sha1.String(), Equals, "176070ca20a7563bed4cef2212a9be37af09f14a")
 
 	// check download info
 	info = v.A.RequestMetadata()

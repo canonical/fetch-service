@@ -22,16 +22,17 @@ package deb
 import (
 	"archive/tar"
 	"bufio"
+	"compress/gzip"
 	"io"
 	"regexp"
 	"strings"
 	"unicode"
 
 	"github.com/blakesmith/ar"
-	"github.com/go-mmap/mmap"
 	"github.com/klauspost/compress/zstd"
 
-	"github.com/canonical/fetch-service/inspectors/api"
+	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 )
 
@@ -41,20 +42,20 @@ func (DebInspector) ID() string {
 	return "deb"
 }
 
-func (ins *DebInspector) InitializeContext(sd api.SessionDetails) {
+func (ins *DebInspector) InitializeContext(sd SessionDetails) {
 }
 
 func (DebInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil
 }
 
-func (DebInspector) InspectArtefact(f *mmap.File, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
-	if md.Type != "application/vnd.debian.binary-package" {
+func (DebInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (stop bool, err error) {
+	if a.Metadata.Type != "application/vnd.debian.binary-package" {
 		return
 	}
 	stop = true
 
-	err = readDebMetadata(f, md)
+	err = readDebMetadata(f, &a.Metadata)
 	if err != nil {
 		return
 	}
@@ -76,7 +77,7 @@ func (DebInspector) InspectArtefact(f *mmap.File, md *metadata.Metadata, di *met
 	return
 }
 
-func (ins DebInspector) API() api.InspectorAPI {
+func (ins DebInspector) API() InspectorAPI {
 	return nil
 }
 
@@ -99,6 +100,15 @@ func readDebMetadata(f io.Reader, md *metadata.Metadata) error {
 			if err != nil {
 				return err
 			}
+		case "control.tar.gz":
+			zf, err := gzip.NewReader(af)
+			if err != nil {
+				return err
+			}
+			err = parseControlTar(zf, md)
+			if err != nil {
+				return err
+			}
 		case "control.tar.zst", "control.tar.zstd":
 			zf, err := zstd.NewReader(af, zstd.WithDecoderConcurrency(1))
 			if err != nil {
@@ -117,7 +127,7 @@ func readDebMetadata(f io.Reader, md *metadata.Metadata) error {
 			if err != nil {
 				return err
 			}
-			// TODO: add gzip readers
+			// TODO: add gzip reader
 		}
 	}
 

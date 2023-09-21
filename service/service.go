@@ -86,9 +86,10 @@ dispatcherLoop:
 				v.Rch <- err
 
 			case metadata.FileDownload:
-				assetDir := v.Md.AssetDir
+				assetDir := v.A.Metadata.AssetDir
 				info := v.A.RequestMetadata()
-				sessionId, digest := info.SessionId, v.Md.Sha256
+				sessionId := info.SessionId
+				digest := v.A.Metadata.Sha256
 
 				s := session.GetSession(sessionId)
 				if s == nil {
@@ -108,7 +109,7 @@ dispatcherLoop:
 				}
 
 				// Add metadata to session
-				s.AddMetadata(&v.Md)
+				s.AddMetadata(&v.A.Metadata)
 				if err := s.SaveData(digest); err != nil {
 					v.Rch <- err
 					break
@@ -116,7 +117,7 @@ dispatcherLoop:
 
 				s.AddDownloadInfo(*v.A.RequestMetadata())
 
-				go func(md *metadata.Metadata, a *metadata.Artefact, rch chan error) {
+				go func(a *metadata.Artefact, rch chan error) {
 					// Extract metadata from file
 					if err := s.Insps.RunArtefactInspectors(assetDir, a); err != nil {
 						logger.Errorf("%s", err)
@@ -124,9 +125,9 @@ dispatcherLoop:
 						return
 					}
 
-					logger.Infof("[%s] artifact %s %d (%s)", sessionId, digest, md.Size, md.Type)
+					logger.Infof("[%s] artifact %s %d (%s)", sessionId, digest, a.Metadata.Size, a.Metadata.Type)
 					rch <- nil
-				}(&v.Md, v.A, v.Rch)
+				}(v.A, v.Rch)
 
 			case proxy.ProxyAuth:
 				v.Rch <- session.CheckAuth(v.Id, v.Pw)

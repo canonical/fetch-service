@@ -33,7 +33,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/canonical/fetch-service/inspectors"
-	"github.com/canonical/fetch-service/inspectors/api"
+	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 )
@@ -170,7 +170,7 @@ func (s *Session) SaveMetadata(digest metadata.Sha256Digest) error {
 	return nil
 }
 
-func (s *Session) GetInspectorAPI(name string) (api.InspectorAPI, error) {
+func (s *Session) GetInspectorAPI(name string) (InspectorAPI, error) {
 	ins, err := s.Insps.GetInspector(name)
 	if err != nil {
 		return nil, err

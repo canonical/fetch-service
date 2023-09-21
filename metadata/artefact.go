@@ -21,6 +21,10 @@ package metadata
 
 type OpinionKind int
 
+type Identifiable interface {
+	ID() string
+}
+
 const (
 	Unknown OpinionKind = iota
 	Rejected
@@ -34,42 +38,42 @@ type Opinion struct {
 }
 
 type Artefact struct {
-	opinions []Opinion
-	metadata Metadata
+	Opinions []Opinion
+	Metadata Metadata
 	request  *DownloadInfo
 }
 
 func NewArtefact(di *DownloadInfo) *Artefact {
 	return &Artefact{
-		opinions: []Opinion{},
-		metadata: Metadata{},
+		Opinions: []Opinion{},
+		Metadata: Metadata{},
 		request:  di,
 	}
 }
 
-func (a *Artefact) Reject(id string, reason string) {
+func (a *Artefact) Reject(id Identifiable, reason string) {
 	o := Opinion{
-		InspectorID: id,
+		InspectorID: id.ID(),
 		Opinion:     Rejected,
 		Reason:      reason,
 	}
-	a.opinions = append(a.opinions, o)
+	a.Opinions = append(a.Opinions, o)
 }
 
-func (a *Artefact) Approve(id string, reason string) {
+func (a *Artefact) Approve(id Identifiable, reason string) {
 	o := Opinion{
-		InspectorID: id,
+		InspectorID: id.ID(),
 		Opinion:     Approved,
 		Reason:      reason,
 	}
-	a.opinions = append(a.opinions, o)
+	a.Opinions = append(a.Opinions, o)
 }
 
 func (a *Artefact) Approved() bool {
-	if len(a.opinions) == 0 {
+	if len(a.Opinions) == 0 {
 		return false
 	}
-	for _, o := range a.opinions {
+	for _, o := range a.Opinions {
 		if o.Opinion != Approved {
 			return false
 		}
@@ -78,7 +82,7 @@ func (a *Artefact) Approved() bool {
 }
 
 func (a *Artefact) Rejected() bool {
-	for _, o := range a.opinions {
+	for _, o := range a.Opinions {
 		if o.Opinion == Rejected {
 			return true
 		}
@@ -87,7 +91,7 @@ func (a *Artefact) Rejected() bool {
 }
 
 func (a *Artefact) Unknown() bool {
-	for _, o := range a.opinions {
+	for _, o := range a.Opinions {
 		if o.Opinion != Unknown {
 			return false
 		}
@@ -95,6 +99,7 @@ func (a *Artefact) Unknown() bool {
 	return true
 }
 
+/*
 func (a *Artefact) Opinions() []Opinion {
 	return a.opinions
 }
@@ -102,6 +107,7 @@ func (a *Artefact) Opinions() []Opinion {
 func (a *Artefact) ArtefactMetadata() *Metadata {
 	return &a.metadata
 }
+*/
 
 func (a *Artefact) RequestMetadata() *DownloadInfo {
 	return a.request

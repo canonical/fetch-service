@@ -114,7 +114,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 	msg := <-ch
 	v := msg.(metadata.FileDownload)
 
-	c.Assert(v.Md.Sha1.String(), Equals, "d8c1f9634007b54c1e9aa3ba3b51395b643933c3")
+	c.Assert(v.A.Metadata.Sha1.String(), Equals, "d8c1f9634007b54c1e9aa3ba3b51395b643933c3")
 
 	info := v.A.RequestMetadata()
 	c.Assert(info.StatusCode, Equals, 200)

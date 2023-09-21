@@ -137,11 +137,8 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 		Rch: make(chan error, 1),
 		A:   a,
 	}
-	fmt.Printf(">>> send request: %+v\n", authReq)
 	p.ch <- authReq
-	fmt.Printf(">>> sent request, wait response\n")
 	err := <-authReq.Rch
-	fmt.Printf(">>> got response: %+v\n", err)
 	if err != nil {
 		return req, goproxy.NewResponse(
 			req, goproxy.ContentTypeText,

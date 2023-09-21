@@ -27,10 +27,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/go-mmap/mmap"
 	"github.com/xi2/xz"
 
-	"github.com/canonical/fetch-service/inspectors/api"
+	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 )
@@ -143,7 +142,7 @@ func (ctx *AptReleaseContext) GetReleasePackages(digest metadata.Sha256Digest) (
 }
 
 type AptReleaseInspector struct {
-	sd    api.SessionDetails
+	sd    SessionDetails
 	state AptReleaseContext
 }
 
@@ -151,7 +150,7 @@ func (ins *AptReleaseInspector) ID() string {
 	return "apt.release"
 }
 
-func (ins *AptReleaseInspector) InitializeContext(sd api.SessionDetails) {
+func (ins *AptReleaseInspector) InitializeContext(sd SessionDetails) {
 	ins.sd = sd
 	ins.state = AptReleaseContext{
 		releasePackages: make(map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptReleasePackages, 16),
@@ -162,8 +161,8 @@ func (ins *AptReleaseInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil
 }
 
-func (ins *AptReleaseInspector) InspectArtefact(f *mmap.File, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
-	if md.Type != "application/x-apt-release" {
+func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (stop bool, err error) {
+	if a.Metadata.Type != "application/x-apt-release" {
 		return
 	}
 	stop = true
@@ -193,7 +192,7 @@ func (ins *AptReleaseInspector) InspectArtefact(f *mmap.File, md *metadata.Metad
 					logger.Warningf("cannot parse '%s'", line)
 					continue
 				}
-				p.Vendor = md.Vendor
+				p.Vendor = a.Metadata.Vendor
 				digest, p.Path = fields[0], fields[2]
 				p.Size, err = strconv.ParseInt(fields[1], 10, 64)
 				if err != nil {
@@ -205,7 +204,7 @@ func (ins *AptReleaseInspector) InspectArtefact(f *mmap.File, md *metadata.Metad
 					logger.Warningf("cannot parse digest '%s': %s", digest, err)
 					continue
 				}
-				ins.state.AddReleasePackages(md.Sha256, h, p)
+				ins.state.AddReleasePackages(a.Metadata.Sha256, h, p)
 			}
 			continue
 		}
@@ -220,33 +219,33 @@ func (ins *AptReleaseInspector) InspectArtefact(f *mmap.File, md *metadata.Metad
 
 		switch k {
 		case "Origin":
-			md.Vendor = v
-			md.Author = v
+			a.Metadata.Vendor = v
+			a.Metadata.Author = v
 		case "Version":
-			md.Version = v
+			a.Metadata.Version = v
 		case "Description":
-			md.Description = v
+			a.Metadata.Description = v
 		case "SHA256":
 			hashes = true
 		}
 	}
 
-	md.Name = "InRelease"
+	a.Metadata.Name = "InRelease"
 
 	return
 }
 
-func (ins *AptReleaseInspector) API() api.InspectorAPI {
+func (ins *AptReleaseInspector) API() InspectorAPI {
 	return AptReleaseInspectorAPI(&ins.state)
 }
 
 type AptReleaseInspectorAPI interface {
-	api.InspectorAPI
+	InspectorAPI
 	ValidatePackagesFile(int64, metadata.Sha256Digest) error
 	GetReleasePackages(metadata.Sha256Digest) (metadata.Sha256Digest, AptReleasePackages, bool)
 }
 
-func GetAptReleaseInspectorAPI(sd api.SessionDetails) (AptReleaseInspectorAPI, error) {
+func GetAptReleaseInspectorAPI(sd SessionDetails) (AptReleaseInspectorAPI, error) {
 	res, err := sd.GetInspectorAPI("apt.release")
 	if err != nil {
 		return nil, err
@@ -304,8 +303,8 @@ func AptLegacyReleaseDetector(raw []byte, limit uint32) bool {
 
 type AptLegacyReleaseInspector struct{}
 
-func (AptLegacyReleaseInspector) InspectArtefact(f *mmap.File, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
-	if md.Type != "application/x-apt-legacy-release" {
+func (AptLegacyReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (stop bool, err error) {
+	if a.Metadata.Type != "application/x-apt-legacy-release" {
 		return
 	}
 	stop = true
@@ -331,25 +330,25 @@ func (AptLegacyReleaseInspector) InspectArtefact(f *mmap.File, md *metadata.Meta
 
 		switch k {
 		case "Origin":
-			md.Vendor = v
-			md.Author = v
+			a.Metadata.Vendor = v
+			a.Metadata.Author = v
 		case "Version":
-			md.Version = v
+			a.Metadata.Version = v
 		case "Component":
 			component = v
 		case "Architecture":
 			architecture = v
 		}
 	}
-	md.Name = "Release"
-	md.Description = fmt.Sprintf("Repository release file for %s/%s", component, architecture)
+	a.Metadata.Name = "Release"
+	a.Metadata.Description = fmt.Sprintf("Repository release file for %s/%s", component, architecture)
 
-	md.Annotate("apt.metadata.release", contents)
+	//md.Annotate("apt.metadata.release", contents)
 
 	return
 }
 
-func (ins *AptLegacyReleaseInspector) API() api.InspectorAPI {
+func (ins *AptLegacyReleaseInspector) API() InspectorAPI {
 	return nil
 }
 
@@ -440,7 +439,7 @@ type AptPackagesEntry struct {
 // AptPackagesContext contains inspector-specific contextual data for stateful
 // analysis within a fetch session.
 type AptPackagesContext struct {
-	sd api.SessionDetails
+	sd SessionDetails
 
 	// packagesEntries maps Packages.* file digests to package digest to metadata.
 	packagesEntries map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptPackagesEntry
@@ -476,7 +475,7 @@ func (ctx *AptPackagesContext) GetPackagesEntry(digest metadata.Sha256Digest) (p
 }
 
 type AptPackagesInspector struct {
-	sd    api.SessionDetails
+	sd    SessionDetails
 	state AptPackagesContext
 }
 
@@ -484,7 +483,7 @@ func (ins *AptPackagesInspector) ID() string {
 	return "apt.packages"
 }
 
-func (ins *AptPackagesInspector) InitializeContext(sd api.SessionDetails) {
+func (ins *AptPackagesInspector) InitializeContext(sd SessionDetails) {
 	ins.sd = sd
 	ins.state = AptPackagesContext{
 		packagesEntries: make(map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptPackagesEntry, 256),
@@ -495,8 +494,8 @@ func (ins *AptPackagesInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil
 }
 
-func (ins *AptPackagesInspector) InspectArtefact(f *mmap.File, md *metadata.Metadata, di *metadata.DownloadInfo) (stop bool, err error) {
-	if md.Type != "application/x-apt-packages" {
+func (ins *AptPackagesInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (stop bool, err error) {
+	if a.Metadata.Type != "application/x-apt-packages" {
 		return
 	}
 	stop = true
@@ -508,7 +507,7 @@ func (ins *AptPackagesInspector) InspectArtefact(f *mmap.File, md *metadata.Meta
 	}
 
 	// obtain the Packages.xz path from the Release file
-	relDigest, p, ok := release.GetReleasePackages(md.Sha256)
+	relDigest, p, ok := release.GetReleasePackages(a.Metadata.Sha256)
 	if ok {
 		/*
 			if p.Size != md.Size {
@@ -518,17 +517,19 @@ func (ins *AptPackagesInspector) InspectArtefact(f *mmap.File, md *metadata.Meta
 			}
 		*/
 		// The Packages file is listed in Release and size matches
-		md.Annotate("apt.packages.integrity.asserted-by", metadata.AnnotationValue{"release-file": relDigest.String()})
+		//md.Annotate("apt.packages.integrity.asserted-by", metadata.AnnotationValue{"release-file": relDigest.String()})
+		logger.Debugf("apt.packages.integrity.asserted-by: %v", metadata.AnnotationValue{"release-file": relDigest.String()})
 	} else {
 		// This Packages file was not found in InRelease
-		md.Annotate("apt.packages.integrity.fail", metadata.AnnotationValue{})
+		//md.Annotate("apt.packages.integrity.fail", metadata.AnnotationValue{})
+		logger.Debugf("apt.packages.integrity.fail: %v", metadata.AnnotationValue{})
 	}
 
 	// Populate metadata
-	md.Name = p.Path
-	md.Vendor = p.Vendor
-	md.Description = "Apt repository Packages file"
-	md.Author = p.Vendor
+	a.Metadata.Name = p.Path
+	a.Metadata.Vendor = p.Vendor
+	a.Metadata.Description = "Apt repository Packages file"
+	a.Metadata.Author = p.Vendor
 
 	// Cache some data to check deb packages
 	r, err := xz.NewReader(f, 0)
@@ -579,7 +580,7 @@ func (ins *AptPackagesInspector) InspectArtefact(f *mmap.File, md *metadata.Meta
 				err = fmt.Errorf("error parsing digest '%s': %s", v, err)
 				return
 			}
-			ins.state.AddPackagesEntry(md.Sha256, h, e)
+			ins.state.AddPackagesEntry(a.Metadata.Sha256, h, e)
 		}
 	}
 
@@ -588,11 +589,11 @@ func (ins *AptPackagesInspector) InspectArtefact(f *mmap.File, md *metadata.Meta
 	return
 }
 
-func (ins *AptPackagesInspector) API() api.InspectorAPI {
+func (ins *AptPackagesInspector) API() InspectorAPI {
 	return AptPackagesInspectorAPI(&ins.state)
 }
 
 type AptPackagesInspectorAPI interface {
-	api.InspectorAPI
+	InspectorAPI
 	ValidateDebFile(int64, metadata.Sha256Digest) error
 }

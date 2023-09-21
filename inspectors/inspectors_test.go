@@ -58,29 +58,29 @@ func (t *inspectorsSuite) TestRunInspectors(c *C) {
 	h, _ := metadata.NewSha256Digest(MySha256)
 	di := &metadata.DownloadInfo{ContentType: "text/plain", Sha256: h}
 	a := metadata.NewArtefact(di)
-	a.ArtefactMetadata().Sha256 = h
+	a.Metadata.Sha256 = h
 
 	s := session.New()
 	defer s.Discard()
 
 	err = s.Insps.RunArtefactInspectors(dir, a)
 	c.Assert(err, IsNil)
-	c.Assert(a.ArtefactMetadata().Type, Equals, "text/plain; charset=utf-8")
+	c.Assert(a.Metadata.Type, Equals, "text/plain; charset=utf-8")
 
 	// TODO: improve this test to see if registered inspectors ran as expected
 }
 
 func (t *inspectorsSuite) TestDefaultInspector(c *C) {
-	md := &metadata.Metadata{Type: "application/unit-test"}
-	di := &metadata.DownloadInfo{}
+	a := metadata.NewArtefact(&metadata.DownloadInfo{})
+	a.Metadata.Type = "application/unit-test"
 
 	var iface inspectors.Inspector
 	ins := inspectors.DefaultInspector{}
 	c.Assert(ins, Implements, &iface)
 
-	stop, err := ins.InspectArtefact(nil, md, di)
+	stop, err := ins.InspectArtefact(nil, a)
 	c.Assert(err, IsNil)
 	c.Assert(stop, Equals, true)
-	c.Assert(md.Annotations, HasLen, 1)
-	c.Assert(md.Annotations["default.format.unknown"].Value, HasLen, 0)
+	c.Assert(a.Metadata.Annotations, HasLen, 1)
+	c.Assert(a.Metadata.Annotations["default.format.unknown"].Value, HasLen, 0)
 }

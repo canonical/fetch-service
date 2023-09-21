@@ -77,8 +77,9 @@ func (s *debSuite) TestDebInspector(c *C) {
 	dest.Close()
 
 	h, _ := metadata.NewSha1Digest("290d07339dde2735121ab03e525ca6593c395a42")
-	md := &metadata.Metadata{Type: "application/vnd.debian.binary-package", Sha1: h}
-	di := &metadata.DownloadInfo{}
+	a := metadata.NewArtefact(&metadata.DownloadInfo{})
+	a.Metadata.Type = "application/vnd.debian.binary-package"
+	a.Metadata.Sha1 = h
 
 	var iface inspectors.Inspector
 	ins := deb.DebInspector{}
@@ -90,16 +91,16 @@ func (s *debSuite) TestDebInspector(c *C) {
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	stop, err := ins.InspectArtefact(f, md, di)
+	stop, err := ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(stop, Equals, true)
 
-	c.Check(md.Name, Equals, "hello")
-	c.Check(md.Version, Equals, "2.10-2ubuntu4")
-	c.Check(md.Vendor, Equals, "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>")
-	c.Check(md.Description, Equals, "Example package based on GNU hello")
-	c.Check(md.Author, Equals, "") // FIXME: deb inspector needs a better author email parser
-	c.Check(md.AuthorEmail, Equals, "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>")
-	c.Check(md.License, Equals, "") // FIXME: copyright file is not in machine-readable format
-	c.Check(md.Annotations["deb.debian-binary.version"].Value, Equals, "2.0")
+	c.Check(a.Metadata.Name, Equals, "hello")
+	c.Check(a.Metadata.Version, Equals, "2.10-2ubuntu4")
+	c.Check(a.Metadata.Vendor, Equals, "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>")
+	c.Check(a.Metadata.Description, Equals, "Example package based on GNU hello")
+	c.Check(a.Metadata.Author, Equals, "") // FIXME: deb inspector needs a better author email parser
+	c.Check(a.Metadata.AuthorEmail, Equals, "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>")
+	c.Check(a.Metadata.License, Equals, "") // FIXME: copyright file is not in machine-readable format
+	c.Check(a.Metadata.Annotations["deb.debian-binary.version"].Value, Equals, "2.0")
 }
