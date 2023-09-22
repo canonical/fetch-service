@@ -180,22 +180,3 @@ type DownloadInfo struct {
 	Sha256         Sha256Digest        `json:"-"`               // SHA256 digest of the downloaded data
 	SessionId      string              `json:"-"`               // The current session ID
 }
-
-// FileDownload has the metadata of a downloaded file and details
-// about the download operation.
-type FileDownload struct {
-	Rch chan error // Handler response channel
-	A   *Artefact  // Artefact and download metadata
-}
-
-type DownloadAuthorizationRequest struct {
-	Rch chan error // Handler response channel
-	A   *Artefact  // Artefact and download metadata
-}
-
-func NewFileDownload(a *Artefact) FileDownload {
-	return FileDownload{
-		Rch: make(chan error, 1),
-		A:   a,
-	}
-}

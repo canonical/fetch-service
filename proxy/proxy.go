@@ -30,6 +30,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/proxy/auth"
+	"github.com/canonical/fetch-service/service/messages"
 )
 
 const (
@@ -133,10 +134,7 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 
 	a := metadata.NewArtefact(di)
 
-	authReq := metadata.DownloadAuthorizationRequest{
-		Rch: make(chan error, 1),
-		A:   a,
-	}
+	authReq := messages.NewRequestAuthorization(a)
 	p.ch <- authReq
 	err := <-authReq.Rch
 	if err != nil {

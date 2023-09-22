@@ -29,6 +29,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/proxy"
+	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
 )
 
@@ -73,7 +74,7 @@ dispatcherLoop:
 		select {
 		case msg := <-svc.ch:
 			switch v := msg.(type) {
-			case metadata.DownloadAuthorizationRequest:
+			case messages.RequestAuthorization:
 				info := v.A.RequestMetadata()
 				sessionId := info.SessionId
 				s := session.GetSession(sessionId)
@@ -82,13 +83,23 @@ dispatcherLoop:
 					break
 				}
 
-				err := s.Insps.RunRequestInspectors(v.A)
-				v.Rch <- err
+				go func(a *metadata.Artefact, rch chan error) {
+					// Check request
+					if err := s.Insps.RunRequestInspectors(a); err != nil {
+						logger.Errorf("%s", err)
+						rch <- err
+						return
+					}
 
-			case metadata.FileDownload:
+					areq := v.A.RequestMetadata()
+					logger.Infof("[%s] %s %s: request approved", sessionId, areq.Method, areq.URL)
+					rch <- nil
+				}(v.A, v.Rch)
+
+			case messages.ArtefactDownload:
 				assetDir := v.A.Metadata.AssetDir
-				info := v.A.RequestMetadata()
-				sessionId := info.SessionId
+				areq := v.A.RequestMetadata()
+				sessionId := areq.SessionId
 				digest := v.A.Metadata.Sha256
 
 				s := session.GetSession(sessionId)
@@ -98,7 +109,7 @@ dispatcherLoop:
 				}
 
 				// Add download info to artifact metadata
-				logger.Infof("[%s] %s %s: %s (%s)", sessionId, info.Method, info.URL, info.Status, info.ContentType)
+				logger.Infof("[%s] %s %s: %s (%s)", sessionId, areq.Method, areq.URL, areq.Status, areq.ContentType)
 
 				if s.HasMetadata(digest) {
 					logger.Infof("artefact %s already downloaded", digest)

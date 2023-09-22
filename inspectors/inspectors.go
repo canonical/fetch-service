@@ -152,7 +152,7 @@ func (insps Inspectors) GetInspector(name string) (Inspector, error) {
 // formats.
 type DefaultInspector struct{}
 
-func (DefaultInspector) ID() string {
+func (ins *DefaultInspector) ID() string {
 	return "default"
 }
 
@@ -168,6 +168,6 @@ func (ins *DefaultInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefac
 	return true, nil
 }
 
-func (DefaultInspector) API() InspectorAPI {
+func (ins *DefaultInspector) API() InspectorAPI {
 	return nil
 }

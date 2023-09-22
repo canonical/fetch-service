@@ -32,7 +32,6 @@ import (
 	"github.com/klauspost/compress/zstd"
 
 	. "github.com/canonical/fetch-service/inspectors/common"
-	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 )
 

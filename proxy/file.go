@@ -32,6 +32,7 @@ import (
 
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/service/messages"
 )
 
 // FileDownloadHandler creates local copies of downloaded files.
@@ -130,7 +131,7 @@ func (h *FileDownloadHandler) Close() error {
 	h.a.Metadata.AssetDir = h.assetDir
 	h.a.Metadata.Tempfile = h.tempfile.Name()
 
-	fd := metadata.NewFileDownload(h.a)
+	fd := messages.NewArtefactDownload(h.a)
 	h.ch <- fd
 	select {
 	case err := <-fd.Rch:

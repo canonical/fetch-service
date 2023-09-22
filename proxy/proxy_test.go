@@ -31,8 +31,8 @@ import (
 
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
-	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/proxy"
+	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
 )
 
@@ -92,7 +92,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 
 		// run request inspectors
 		msg = <-ch
-		v := msg.(metadata.DownloadAuthorizationRequest)
+		v := msg.(messages.RequestAuthorization)
 		v.Rch <- nil // no errors
 	}()
 
@@ -112,7 +112,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 
 	// check downloaded file information
 	msg := <-ch
-	v := msg.(metadata.FileDownload)
+	v := msg.(messages.ArtefactDownload)
 
 	c.Assert(v.A.Metadata.Sha1.String(), Equals, "d8c1f9634007b54c1e9aa3ba3b51395b643933c3")
 

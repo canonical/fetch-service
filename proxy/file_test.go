@@ -32,6 +32,7 @@ import (
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/proxy"
+	"github.com/canonical/fetch-service/service/messages"
 )
 
 const (
@@ -83,7 +84,7 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	}(h)
 
 	msg := <-ch
-	v := msg.(metadata.FileDownload)
+	v := msg.(messages.ArtefactDownload)
 
 	mver := fmt.Sprintf("%d.%d", metadata.MetadataVersionMajor, metadata.MetadataVersionMinor)
 
@@ -134,7 +135,7 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	}(h)
 
 	msg = <-ch
-	v = msg.(metadata.FileDownload)
+	v = msg.(messages.ArtefactDownload)
 
 	// check file metadata
 	c.Assert(v.A.Metadata.Sha1.String(), Equals, "176070ca20a7563bed4cef2212a9be37af09f14a")
