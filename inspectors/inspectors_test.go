@@ -56,8 +56,9 @@ func (t *inspectorsSuite) TestRunInspectors(c *C) {
 	c.Assert(err, IsNil)
 
 	h, _ := metadata.NewSha256Digest(MySha256)
-	di := &metadata.DownloadInfo{ContentType: "text/plain", Sha256: h}
-	a := metadata.NewArtefact(di)
+	a := metadata.NewArtefact()
+	a.CurrentDownload.ContentType = "text/plain"
+	a.CurrentDownload.Sha256 = h
 	a.Metadata.Sha256 = h
 
 	s := session.New()
@@ -71,7 +72,7 @@ func (t *inspectorsSuite) TestRunInspectors(c *C) {
 }
 
 func (t *inspectorsSuite) TestDefaultInspector(c *C) {
-	a := metadata.NewArtefact(&metadata.DownloadInfo{})
+	a := metadata.NewArtefact()
 	a.Metadata.Type = "application/unit-test"
 
 	var iface inspectors.Inspector
@@ -81,6 +82,7 @@ func (t *inspectorsSuite) TestDefaultInspector(c *C) {
 	stop, err := ins.InspectArtefact(nil, a)
 	c.Assert(err, IsNil)
 	c.Assert(stop, Equals, true)
-	c.Assert(a.Metadata.Annotations, HasLen, 1)
-	c.Assert(a.Metadata.Annotations["default.format.unknown"].Value, HasLen, 0)
+	c.Assert(a.Rejected(), Equals, true)
+	//c.Assert(a.Metadata.Annotations, HasLen, 1)
+	//c.Assert(a.Metadata.Annotations["default.format.unknown"].Value, HasLen, 0)
 }

@@ -140,8 +140,7 @@ func parseDebianBinary(af io.Reader, md *metadata.Metadata) error {
 	// Read a single line
 	sc.Scan()
 	line := sc.Text()
-	value := metadata.AnnotationValue{"version": line}
-	md.Annotate("deb.debian-binary.details", value)
+	_ = line
 
 	return nil
 }

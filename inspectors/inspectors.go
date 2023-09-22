@@ -94,8 +94,6 @@ func (insps Inspectors) RunRequestInspectors(a *metadata.Artefact) error {
 
 // RunArtefactInspectors examines the artefact in the given assets directory.
 func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) error {
-	di := a.RequestMetadata()
-
 	// detect file type
 	filename := filepath.Join(dir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
 	logger.Debugf("run artefact inspectors on %s", filename)
@@ -113,9 +111,10 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 	}
 
 	a.Metadata.Type = mtype.String()
+	ctype := a.CurrentDownload.ContentType
 
-	if len(di.ContentType) > 0 && !mtype.Is(di.ContentType) {
-		logger.Debugf("file type '%s' doesn't match content type '%s'", mtype.String(), di.ContentType)
+	if len(ctype) > 0 && !mtype.Is(ctype) {
+		logger.Debugf("file type '%s' doesn't match content type '%s'", mtype.String(), ctype)
 	}
 
 	// run metadata inspectors

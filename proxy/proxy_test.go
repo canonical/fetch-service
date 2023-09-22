@@ -116,10 +116,10 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 
 	c.Assert(v.A.Metadata.Sha1.String(), Equals, "d8c1f9634007b54c1e9aa3ba3b51395b643933c3")
 
-	info := v.A.RequestMetadata()
-	c.Assert(info.StatusCode, Equals, 200)
-	c.Assert(info.Method, Equals, "GET")
-	c.Assert(info.ContentType, Equals, "application/x-debian-package")
+	dl := v.A.CurrentDownload
+	c.Assert(dl.StatusCode, Equals, 200)
+	c.Assert(dl.Method, Equals, "GET")
+	c.Assert(dl.ContentType, Equals, "application/x-debian-package")
 
 	// no handling errors
 	v.Rch <- nil

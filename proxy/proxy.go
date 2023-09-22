@@ -123,16 +123,14 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 		}
 	}
 
-	di := &metadata.DownloadInfo{
-		StartTime: time.Now().UTC(),
-		URL:       req.URL.String(),
-		Address:   req.RemoteAddr,
-		Method:    req.Method,
-		UserAgent: req.Header.Get("User-Agent"),
-		SessionId: req.Header.Get(sessionIdHeader),
-	}
+	a := metadata.NewArtefact()
+	a.SessionId = req.Header.Get(sessionIdHeader)
 
-	a := metadata.NewArtefact(di)
+	a.CurrentDownload.StartTime = time.Now().UTC()
+	a.CurrentDownload.URL = req.URL.String()
+	a.CurrentDownload.Address = req.RemoteAddr
+	a.CurrentDownload.Method = req.Method
+	a.CurrentDownload.UserAgent = req.Header.Get("User-Agent")
 
 	authReq := messages.NewRequestAuthorization(a)
 	p.ch <- authReq

@@ -135,6 +135,7 @@ func (s *metadataSuite) TestSha256DigestUnmarshal(c *C) {
 	c.Check(foo.Bar.String(), Equals, "0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e")
 }
 
+/*
 func (s *metadataSuite) TestAnnotation(c *C) {
 	md := metadata.Metadata{}
 
@@ -145,6 +146,7 @@ func (s *metadataSuite) TestAnnotation(c *C) {
 	c.Assert(md.Annotations["test.foo"].Value, DeepEquals, metadata.AnnotationValue{"text": "test"})
 	c.Assert(md.Annotations["test.bar"].Value, HasLen, 0)
 }
+*/
 
 /*
 func (s *metadataSuite) TestContextReleasePackages(c *C) {

@@ -315,7 +315,7 @@ func (AptLegacyReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 	var component string
 	var architecture string
 
-	contents := metadata.AnnotationValue{}
+	//contents := metadata.AnnotationValue{}
 
 	for sc.Scan() {
 		line := sc.Text()
@@ -326,7 +326,7 @@ func (AptLegacyReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 		}
 		v = strings.TrimSpace(v)
 
-		contents[k] = v
+		//contents[k] = v
 
 		switch k {
 		case "Origin":
@@ -518,11 +518,11 @@ func (ins *AptPackagesInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 		*/
 		// The Packages file is listed in Release and size matches
 		//md.Annotate("apt.packages.integrity.asserted-by", metadata.AnnotationValue{"release-file": relDigest.String()})
-		logger.Debugf("apt.packages.integrity.asserted-by: %v", metadata.AnnotationValue{"release-file": relDigest.String()})
+		logger.Debugf("apt.packages.integrity.asserted-by: %v", relDigest.String())
 	} else {
 		// This Packages file was not found in InRelease
 		//md.Annotate("apt.packages.integrity.fail", metadata.AnnotationValue{})
-		logger.Debugf("apt.packages.integrity.fail: %v", metadata.AnnotationValue{})
+		logger.Debugf("apt.packages.integrity.fail")
 	}
 
 	// Populate metadata

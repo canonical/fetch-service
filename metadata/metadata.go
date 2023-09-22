@@ -26,17 +26,6 @@ import (
 	"time"
 )
 
-type AnnotationValue map[string]interface{}
-
-// Annotation contains a free-form text added by an artifact
-// inspector.
-type Annotation struct {
-	Timestamp time.Time       `json:"time"`            // When the annotation was added
-	Value     AnnotationValue `json:"value,omitempty"` // Optional annotation value
-}
-
-type AnnotationMap map[string]*Annotation
-
 const (
 	MetadataVersionMajor = 0 // Updated when incompatible changes are made
 	MetadataVersionMinor = 1 // Existing fields not changed, may contain additional fields
@@ -126,36 +115,21 @@ func (h *Sha256Digest) UnmarshalJSON(data []byte) (err error) {
 
 // Metadata holds information about each artifact.
 type Metadata struct {
-	MetadataVersion string         `json:"metadata-version"`       // Metadata version in X.Y format
-	Type            string         `json:"type"`                   // The mime-type of the artifact file
-	Sha1            Sha1Digest     `json:"sha1"`                   // The SHA1 digest of the artifact file
-	Sha256          Sha256Digest   `json:"sha256"`                 // The SHA256 digest of the artifact file
-	Size            int64          `json:"size"`                   // The size of the artifact file
-	Name            string         `json:"name"`                   // The artifact designation, given by its author
-	Version         string         `json:"version"`                // The artifact version, as published by the upstream
-	Vendor          string         `json:"vendor"`                 // The artifact vendor
-	Description     string         `json:"description"`            // A free-form description of the artifact
-	Author          string         `json:"author"`                 // The artifact author name
-	AuthorEmail     string         `json:"author-email,omitempty"` // The artifact author email address
-	Architecture    string         `json:"architecture,omitempty"` // The architecture, if the artifact contains binary code
-	License         string         `json:"license"`                // The license the artifact is published under
-	Copyright       string         `json:"copyright,omitempty"`    // The copyright line, if available
-	Annotations     AnnotationMap  `json:"annotations,omitempty"`  // Annotations added by artifact inspectors
-	Downloads       []DownloadInfo `json:"downloads"`              // Information about artifact downloads
-	Files           []MemberFile   `json:"files,omitempty"`        // Information about files contained in this artifact
-	AssetDir        string         `json:"-"`                      // Location to store files and metadata
-	Tempfile        string         `json:"-"`                      // Path to temporary file containing downloaded data
-}
-
-// Annotate adds a named annotation to the file metadata.
-func (md *Metadata) Annotate(name string, value AnnotationValue) *Annotation {
-	a := &Annotation{time.Now().UTC(), value}
-	if md.Annotations == nil {
-		md.Annotations = AnnotationMap{}
-	}
-	md.Annotations[name] = a
-
-	return a
+	MetadataVersion string       `json:"metadata-version"`       // Metadata version in X.Y format
+	Type            string       `json:"type"`                   // The mime-type of the artifact file
+	Sha1            Sha1Digest   `json:"sha1"`                   // The SHA1 digest of the artifact file
+	Sha256          Sha256Digest `json:"sha256"`                 // The SHA256 digest of the artifact file
+	Size            int64        `json:"size"`                   // The size of the artifact file
+	Name            string       `json:"name"`                   // The artifact designation, given by its author
+	Version         string       `json:"version"`                // The artifact version, as published by the upstream
+	Vendor          string       `json:"vendor"`                 // The artifact vendor
+	Description     string       `json:"description"`            // A free-form description of the artifact
+	Author          string       `json:"author"`                 // The artifact author name
+	AuthorEmail     string       `json:"author-email,omitempty"` // The artifact author email address
+	Architecture    string       `json:"architecture,omitempty"` // The architecture, if the artifact contains binary code
+	License         string       `json:"license"`                // The license the artifact is published under
+	Copyright       string       `json:"copyright,omitempty"`    // The copyright line, if available
+	Files           []MemberFile `json:"files,omitempty"`        // Information about files contained in this artifact
 }
 
 // MemberFile contains information about files contained in the artifact.
@@ -178,5 +152,4 @@ type DownloadInfo struct {
 	ContentType    string              `json:"content-type"`    // The HTTP content type
 	ResponseHeader map[string][]string `json:"response-header"` // The HTTP response header
 	Sha256         Sha256Digest        `json:"-"`               // SHA256 digest of the downloaded data
-	SessionId      string              `json:"-"`               // The current session ID
 }

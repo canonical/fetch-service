@@ -75,8 +75,7 @@ dispatcherLoop:
 		case msg := <-svc.ch:
 			switch v := msg.(type) {
 			case messages.RequestAuthorization:
-				info := v.A.RequestMetadata()
-				sessionId := info.SessionId
+				sessionId := v.A.SessionId
 				s := session.GetSession(sessionId)
 				if s == nil {
 					logger.Warningf("session %s is not active", sessionId)
@@ -91,15 +90,14 @@ dispatcherLoop:
 						return
 					}
 
-					areq := v.A.RequestMetadata()
-					logger.Infof("[%s] %s %s: request approved", sessionId, areq.Method, areq.URL)
+					dl := v.A.CurrentDownload
+					logger.Infof("[%s] %s %s: request approved", sessionId, dl.Method, dl.URL)
 					rch <- nil
 				}(v.A, v.Rch)
 
 			case messages.ArtefactDownload:
-				assetDir := v.A.Metadata.AssetDir
-				areq := v.A.RequestMetadata()
-				sessionId := areq.SessionId
+				assetDir := v.A.AssetDir
+				sessionId := v.A.SessionId
 				digest := v.A.Metadata.Sha256
 
 				s := session.GetSession(sessionId)
@@ -109,24 +107,25 @@ dispatcherLoop:
 				}
 
 				// Add download info to artifact metadata
-				logger.Infof("[%s] %s %s: %s (%s)", sessionId, areq.Method, areq.URL, areq.Status, areq.ContentType)
+				dl := v.A.CurrentDownload
+				logger.Infof("[%s] %s %s: %s (%s)", sessionId, dl.Method, dl.URL, dl.Status, dl.ContentType)
 
-				if s.HasMetadata(digest) {
+				if s.HasArtefact(digest) {
 					logger.Infof("artefact %s already downloaded", digest)
-					s.AddDownloadInfo(*v.A.RequestMetadata())
+					s.AddDownloadInfo(v.A.CurrentDownload)
 					v.Rch <- nil
 					break
 
 				}
 
 				// Add metadata to session
-				s.AddMetadata(&v.A.Metadata)
+				s.AddArtefact(v.A)
 				if err := s.SaveData(digest); err != nil {
 					v.Rch <- err
 					break
 				}
 
-				s.AddDownloadInfo(*v.A.RequestMetadata())
+				s.AddDownloadInfo(v.A.CurrentDownload)
 
 				go func(a *metadata.Artefact, rch chan error) {
 					// Extract metadata from file

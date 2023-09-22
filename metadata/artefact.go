@@ -38,16 +38,22 @@ type Opinion struct {
 }
 
 type Artefact struct {
-	Opinions []Opinion
-	Metadata Metadata
-	request  *DownloadInfo
+	Opinions        []Opinion      `json:"opinions"`
+	Metadata        Metadata       `json:"metadata"`
+	Downloads       []DownloadInfo `json:"downloads"` // Information about artifact downloads
+	CurrentDownload DownloadInfo   `json:"-"`         // Information about the current download
+	AssetDir        string         `json:"-"`         // Location to store files and metadata
+	Tempfile        string         `json:"-"`         // Path to temporary file containing downloaded data
+	Sha256          Sha256Digest   `json:"-"`         // SHA256 digest of the downloaded data
+	SessionId       string         `json:"-"`         // The current session ID
 }
 
-func NewArtefact(di *DownloadInfo) *Artefact {
+func NewArtefact() *Artefact {
 	return &Artefact{
-		Opinions: []Opinion{},
-		Metadata: Metadata{},
-		request:  di,
+		Opinions:        []Opinion{},
+		Metadata:        Metadata{},
+		Downloads:       []DownloadInfo{},
+		CurrentDownload: DownloadInfo{},
 	}
 }
 
@@ -107,8 +113,8 @@ func (a *Artefact) Opinions() []Opinion {
 func (a *Artefact) ArtefactMetadata() *Metadata {
 	return &a.metadata
 }
-*/
 
 func (a *Artefact) RequestMetadata() *DownloadInfo {
 	return a.request
 }
+*/

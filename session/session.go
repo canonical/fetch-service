@@ -45,7 +45,7 @@ type Session struct {
 	Start time.Time
 	End   time.Time
 	Insps inspectors.Inspectors
-	Md    map[metadata.Sha256Digest]*metadata.Metadata
+	A     map[metadata.Sha256Digest]*metadata.Artefact
 }
 
 var (
@@ -58,7 +58,7 @@ func New() *Session {
 		Id:    makeSessionId(),
 		Pw:    randomString(20),
 		Start: time.Now().UTC(),
-		Md:    map[metadata.Sha256Digest]*metadata.Metadata{},
+		A:     map[metadata.Sha256Digest]*metadata.Artefact{},
 	}
 
 	s.Insps = inspectors.New(s)
@@ -76,8 +76,8 @@ func New() *Session {
 
 // Finish ends the session and saves metadata.
 func (s *Session) Finish() error {
-	for k := range s.Md {
-		logger.Infof("save metadata for artifact %s", k)
+	for k := range s.A {
+		logger.Infof("save metadata for artefact %s", k)
 		if err := s.SaveMetadata(k); err != nil {
 			return err
 		}
@@ -97,38 +97,39 @@ func (s *Session) Discard() {
 	delete(sessions, s.Id)
 }
 
-// AddMetadata adds downloaded artifact metadata to the current
+// AddArtefact adds downloaded artefact metadata to the current
 // session.
-func (s *Session) AddMetadata(md *metadata.Metadata) {
-	if _, ok := s.Md[md.Sha256]; !ok {
-		s.Md[md.Sha256] = md
+func (s *Session) AddArtefact(a *metadata.Artefact) {
+	digest := a.Metadata.Sha256
+	if _, ok := s.A[digest]; !ok {
+		s.A[digest] = a
 	}
 }
 
-// HasMetadata verifies whether the given digest corresponds
-// to an artifact downloaded in this session.
-func (s *Session) HasMetadata(sha1 metadata.Sha256Digest) bool {
-	_, ok := s.Md[sha1]
+// HasArtefact verifies whether the given digest corresponds
+// to an artefact downloaded in this session.
+func (s *Session) HasArtefact(sha1 metadata.Sha256Digest) bool {
+	_, ok := s.A[sha1]
 	return ok
 }
 
 // AddDownloadInfo adds the given download information to the
-// corresponding artifact metadata.
+// corresponding artefact metadata.
 func (s *Session) AddDownloadInfo(di metadata.DownloadInfo) {
-	if s.HasMetadata(di.Sha256) {
-		s.Md[di.Sha256].Downloads = append(s.Md[di.Sha256].Downloads, di)
+	if s.HasArtefact(di.Sha256) {
+		s.A[di.Sha256].Downloads = append(s.A[di.Sha256].Downloads, di)
 	}
 }
 
-// SaveData writes the artifact data correponding to the given
+// SaveData writes the artefact data correponding to the given
 // digest to the asset spool.
 func (s *Session) SaveData(digest metadata.Sha256Digest) error {
-	md, ok := s.Md[digest]
+	a, ok := s.A[digest]
 	if !ok {
-		return fmt.Errorf("metadata for artifact %s not available", digest)
+		return fmt.Errorf("metadata for artefact %s not available", digest)
 	}
 
-	dest := filepath.Join(md.AssetDir, fmt.Sprintf("%s.data", md.Sha256))
+	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.data", a.CurrentDownload.Sha256))
 	if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
 		return err
 	}
@@ -136,12 +137,12 @@ func (s *Session) SaveData(digest metadata.Sha256Digest) error {
 	// Save file data only if it doesn't exist already
 	if _, err := os.Stat(dest); err != nil {
 		if os.IsNotExist(err) {
-			if err := os.Rename(md.Tempfile, dest); err != nil {
-				os.Remove(md.Tempfile)
+			if err := os.Rename(a.Tempfile, dest); err != nil {
+				os.Remove(a.Tempfile)
 				return err
 			}
 		} else {
-			os.Remove(md.Tempfile)
+			os.Remove(a.Tempfile)
 			return err
 		}
 	}
@@ -149,20 +150,20 @@ func (s *Session) SaveData(digest metadata.Sha256Digest) error {
 	return nil
 }
 
-// SaveMetadata writes the artifact metadata correponsing to the
+// SaveMetadata writes the artefact metadata correponsing to the
 // given digest to the asset spool.
 func (s *Session) SaveMetadata(digest metadata.Sha256Digest) error {
-	md, ok := s.Md[digest]
+	a, ok := s.A[digest]
 	if !ok {
-		return fmt.Errorf("metadata for artifact %s not available", digest)
+		return fmt.Errorf("metadata for artefact %s not available", digest)
 	}
 
-	j, err := json.MarshalIndent(md, "", "\t")
+	j, err := json.MarshalIndent(a, "", "\t")
 	if err != nil {
 		return err
 	}
 
-	dest := filepath.Join(md.AssetDir, fmt.Sprintf("%s.json", md.Sha256))
+	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.json", a.CurrentDownload.Sha256))
 	if err := ioutil.WriteFile(dest, j, 0644); err != nil {
 		return err
 	}

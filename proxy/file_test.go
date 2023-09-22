@@ -56,12 +56,6 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 
 	dir := c.MkDir()
 
-	di := &metadata.DownloadInfo{
-		URL:     req.URL.String(),
-		Address: req.RemoteAddr,
-		Method:  req.Method,
-	}
-
 	// download the file
 	resp := &http.Response{
 		StatusCode: 200,
@@ -71,7 +65,10 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 		Header:     http.Header{"Content-Type": []string{"application/x-test"}},
 	}
 
-	a := metadata.NewArtefact(di)
+	a := metadata.NewArtefact()
+	a.CurrentDownload.URL = req.URL.String()
+	a.CurrentDownload.Address = req.RemoteAddr
+	a.CurrentDownload.Method = req.Method
 
 	h, err := proxy.NewFileDownloadHandler(resp, a, dir, ch)
 	c.Assert(err, IsNil)
@@ -95,26 +92,20 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	c.Assert(v.A.Metadata.Size, Equals, int64(13))
 
 	// check download info
-	info := v.A.RequestMetadata()
-	c.Assert(info.StatusCode, Equals, 200)
-	c.Assert(info.Status, Equals, "200 'Tis good")
-	c.Assert(info.Method, Equals, "GET")
-	c.Assert(info.URL, Equals, "http://foo/bar")
-	c.Assert(info.ContentType, Equals, "application/x-test")
-	c.Assert(info.ResponseHeader["Content-Type"][0], Equals, "application/x-test")
-	c.Assert(info.Sha256.String(), Equals, "f736153d1508e544b6c5ea19e3c2b7448d9af33608d195195e748cb54965e61b")
+	dl := v.A.CurrentDownload
+	c.Assert(dl.StatusCode, Equals, 200)
+	c.Assert(dl.Status, Equals, "200 'Tis good")
+	c.Assert(dl.Method, Equals, "GET")
+	c.Assert(dl.URL, Equals, "http://foo/bar")
+	c.Assert(dl.ContentType, Equals, "application/x-test")
+	c.Assert(dl.ResponseHeader["Content-Type"][0], Equals, "application/x-test")
+	c.Assert(dl.Sha256.String(), Equals, "f736153d1508e544b6c5ea19e3c2b7448d9af33608d195195e748cb54965e61b")
 
 	v.Rch <- nil
 
 	// download it again
 	req, err = http.NewRequest("POST", "http://different/url", body)
 	c.Assert(err, IsNil)
-
-	di = &metadata.DownloadInfo{
-		URL:     req.URL.String(),
-		Address: req.RemoteAddr,
-		Method:  req.Method,
-	}
 
 	resp = &http.Response{
 		StatusCode: 200,
@@ -123,7 +114,10 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 		Body:       ioutil.NopCloser(bytes.NewBufferString("Response body")), // same content
 	}
 
-	a = metadata.NewArtefact(di)
+	a = metadata.NewArtefact()
+	a.CurrentDownload.URL = req.URL.String()
+	a.CurrentDownload.Address = req.RemoteAddr
+	a.CurrentDownload.Method = req.Method
 
 	h, err = proxy.NewFileDownloadHandler(resp, a, dir, ch)
 	c.Assert(err, IsNil)
@@ -141,11 +135,11 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	c.Assert(v.A.Metadata.Sha1.String(), Equals, "176070ca20a7563bed4cef2212a9be37af09f14a")
 
 	// check download info
-	info = v.A.RequestMetadata()
-	c.Assert(info.StatusCode, Equals, 200)
-	c.Assert(info.Status, Equals, "200 Still good")
-	c.Assert(info.Method, Equals, "POST")
-	c.Assert(info.URL, Equals, "http://different/url")
+	dl = v.A.CurrentDownload
+	c.Assert(dl.StatusCode, Equals, 200)
+	c.Assert(dl.Status, Equals, "200 Still good")
+	c.Assert(dl.Method, Equals, "POST")
+	c.Assert(dl.URL, Equals, "http://different/url")
 
 	v.Rch <- nil
 }
