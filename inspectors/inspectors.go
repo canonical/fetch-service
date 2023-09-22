@@ -129,7 +129,6 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 			a.Reject(ins, err.Error())
 			return err
 		}
-		a.Approve(ins, "")
 		if stop {
 			break
 		}
@@ -151,22 +150,22 @@ func (insps Inspectors) GetInspector(name string) (Inspector, error) {
 // formats.
 type DefaultInspector struct{}
 
-func (ins *DefaultInspector) ID() string {
+func (ins DefaultInspector) ID() string {
 	return "default"
 }
 
-func (ins *DefaultInspector) InitializeContext(sd SessionDetails) {
+func (ins DefaultInspector) InitializeContext(sd SessionDetails) {
 }
 
-func (ins *DefaultInspector) InspectRequest(a *metadata.Artefact) error {
+func (ins DefaultInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil
 }
 
-func (ins *DefaultInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (bool, error) {
+func (ins DefaultInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (bool, error) {
 	a.Reject(ins, "file format unknown")
 	return true, nil
 }
 
-func (ins *DefaultInspector) API() InspectorAPI {
+func (ins DefaultInspector) API() InspectorAPI {
 	return nil
 }

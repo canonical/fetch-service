@@ -129,7 +129,7 @@ func (s *Session) SaveData(digest metadata.Sha256Digest) error {
 		return fmt.Errorf("metadata for artefact %s not available", digest)
 	}
 
-	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.data", a.CurrentDownload.Sha256))
+	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
 	if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
 		return err
 	}
@@ -163,7 +163,7 @@ func (s *Session) SaveMetadata(digest metadata.Sha256Digest) error {
 		return err
 	}
 
-	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.json", a.CurrentDownload.Sha256))
+	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.json", a.Metadata.Sha256))
 	if err := ioutil.WriteFile(dest, j, 0644); err != nil {
 		return err
 	}

@@ -44,11 +44,11 @@ func (DebInspector) ID() string {
 func (ins *DebInspector) InitializeContext(sd SessionDetails) {
 }
 
-func (DebInspector) InspectRequest(a *metadata.Artefact) error {
+func (ins DebInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil
 }
 
-func (DebInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (stop bool, err error) {
+func (ins DebInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (stop bool, err error) {
 	if a.Metadata.Type != "application/vnd.debian.binary-package" {
 		return
 	}
@@ -73,6 +73,7 @@ func (DebInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (stop 
 		}
 	*/
 
+	a.Approve(ins, "reason")
 	return
 }
 

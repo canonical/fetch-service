@@ -19,11 +19,11 @@
 
 package metadata
 
-type OpinionKind int
+import (
+	"errors"
+)
 
-type Identifiable interface {
-	ID() string
-}
+type OpinionKind int
 
 const (
 	Unknown OpinionKind = iota
@@ -31,10 +31,39 @@ const (
 	Approved
 )
 
+func (t OpinionKind) MarshalJSON() ([]byte, error) {
+	switch t {
+	case Unknown:
+		return []byte("Unknown"), nil
+	case Rejected:
+		return []byte("Rejected"), nil
+	case Approved:
+		return []byte("Approved"), nil
+	default:
+		return nil, errors.New("invalid opinion kind")
+	}
+}
+
+func (t *OpinionKind) UnmarshalJSON(data []byte) error {
+	switch string(data) {
+	case "Unknown":
+		*t = Unknown
+		return nil
+	case "Rejected":
+		*t = Rejected
+		return nil
+	case "Approved":
+		*t = Approved
+		return nil
+	default:
+		return errors.New("invalid opinion kind")
+	}
+}
+
 type Opinion struct {
-	InspectorID string
-	Opinion     OpinionKind
-	Reason      string
+	InspectorID string      `json:"inspector-id"`
+	Opinion     OpinionKind `json:"opinion"`
+	Reason      string      `json:"reason"`
 }
 
 type Artefact struct {
@@ -55,6 +84,10 @@ func NewArtefact() *Artefact {
 		Downloads:       []DownloadInfo{},
 		CurrentDownload: DownloadInfo{},
 	}
+}
+
+type Identifiable interface {
+	ID() string
 }
 
 func (a *Artefact) Reject(id Identifiable, reason string) {

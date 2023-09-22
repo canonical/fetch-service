@@ -212,10 +212,10 @@ func (t *sessionSuite) TestSaveMetadata(c *C) {
 	data, err := ioutil.ReadFile(filepath.Join(tmp, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.json"))
 	c.Assert(err, IsNil)
 
-	var j metadata.Metadata
+	var j metadata.Artefact
 	err = json.Unmarshal(data, &j)
 	c.Assert(err, IsNil)
-	c.Assert(j.Name, Equals, "test-metadata")
+	c.Assert(j.Metadata.Name, Equals, "test-metadata")
 }
 
 func (t *sessionSuite) TestGetSession(c *C) {
