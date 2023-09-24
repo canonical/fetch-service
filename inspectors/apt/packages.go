@@ -30,6 +30,7 @@ import (
 	"github.com/xi2/xz"
 
 	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 )
@@ -177,7 +178,7 @@ func (ins *AptPackagesInspector) InspectRequest(a *metadata.Artefact) error {
 }
 
 func (ins *AptPackagesInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (stop bool, err error) {
-	if a.Metadata.Type != "application/x-apt-packages" {
+	if a.Metadata.Type != mimetypes.AptPackages {
 		return
 	}
 	stop = true

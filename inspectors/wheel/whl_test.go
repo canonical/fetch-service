@@ -78,7 +78,7 @@ func (s *whlSuite) TestWhlInspector(c *C) {
 
 	h, _ := metadata.NewSha1Digest("290d07339dde2735121ab03e525ca6593c395a42")
 	a := metadata.NewArtefact()
-	a.Metadata.Type = "application/x-python-wheel"
+	a.Metadata.Type = "application/x.python.wheel"
 	a.Metadata.Sha1 = h
 
 	var iface inspectors.Inspector

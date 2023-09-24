@@ -30,10 +30,18 @@ import (
 	"github.com/canonical/fetch-service/inspectors/apt"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/deb"
+	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/inspectors/wheel"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 )
+
+func init() {
+	mimetype.SetLimit(1 << 30) // input data is mmapped
+	mimetype.Lookup("application/zip").Extend(wheel.WhlDetector, mimetypes.PythonWheel, ".whl")
+	mimetype.Lookup("text/plain").Extend(apt.AptReleaseDetector, mimetypes.AptRelease, "")
+	mimetype.Lookup("application/x-xz").Extend(apt.AptPackagesDetector, mimetypes.AptPackages, "")
+}
 
 // Inspector is the interface implemented by artefact metadata
 // extractors.

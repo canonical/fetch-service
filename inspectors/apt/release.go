@@ -28,6 +28,7 @@ import (
 	"sync"
 
 	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 )
@@ -160,7 +161,7 @@ func (ins *AptReleaseInspector) InspectRequest(a *metadata.Artefact) error {
 }
 
 func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (stop bool, err error) {
-	if a.Metadata.Type != "application/x-apt-release" {
+	if a.Metadata.Type != mimetypes.AptRelease {
 		return
 	}
 	stop = true

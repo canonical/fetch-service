@@ -31,6 +31,7 @@ import (
 	"strings"
 
 	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/utils"
 )
@@ -59,7 +60,7 @@ func (ins WhlInspector) InspectRequest(a *metadata.Artefact) error {
 func (ins *WhlInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (stop bool, err error) {
 	md := a.Metadata
 
-	if md.Type != "application/x-python-wheel" {
+	if md.Type != mimetypes.PythonWheel {
 		return
 	}
 
