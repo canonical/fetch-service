@@ -122,7 +122,7 @@ func (t *sessionSuite) TestAddMetadata(c *C) {
 	c.Assert(s.HasArtefact(h), Equals, true)
 }
 
-func (t *sessionSuite) TestAddDownloadInfo(c *C) {
+func (t *sessionSuite) TestAddDownload(c *C) {
 	s := session.New()
 	defer s.Discard()
 
@@ -133,17 +133,17 @@ func (t *sessionSuite) TestAddDownloadInfo(c *C) {
 
 	s.AddArtefact(a)
 
-	di := metadata.DownloadInfo{URL: "https://foo.bar", Sha256: h}
-	s.AddDownloadInfo(di)
+	di := metadata.Download{URL: "https://foo.bar", Sha256: h}
+	s.AddDownload(di)
 	c.Assert(s.A[h].Downloads[0].URL, Equals, "https://foo.bar")
 
 	di.URL = "https://another/url"
-	s.AddDownloadInfo(di)
+	s.AddDownload(di)
 	c.Assert(s.A[h].Downloads[0].URL, Equals, "https://foo.bar")
 	c.Assert(s.A[h].Downloads[1].URL, Equals, "https://another/url")
 }
 
-func (t *sessionSuite) TestAddInvalidDownloadInfo(c *C) {
+func (t *sessionSuite) TestAddInvalidDownload(c *C) {
 	s := session.New()
 	defer s.Discard()
 
@@ -155,8 +155,8 @@ func (t *sessionSuite) TestAddInvalidDownloadInfo(c *C) {
 	s.AddArtefact(a)
 
 	// adding an invalid sha1 must not crash the server
-	di := metadata.DownloadInfo{URL: "https://foo.bar", Sha256: h}
-	s.AddDownloadInfo(di)
+	di := metadata.Download{URL: "https://foo.bar", Sha256: h}
+	s.AddDownload(di)
 }
 
 func (t *sessionSuite) TestSaveData(c *C) {

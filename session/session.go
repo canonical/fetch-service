@@ -113,9 +113,9 @@ func (s *Session) HasArtefact(sha1 metadata.Sha256Digest) bool {
 	return ok
 }
 
-// AddDownloadInfo adds the given download information to the
+// AddDownload adds the given download information to the
 // corresponding artefact metadata.
-func (s *Session) AddDownloadInfo(di metadata.DownloadInfo) {
+func (s *Session) AddDownload(di metadata.Download) {
 	if s.HasArtefact(di.Sha256) {
 		s.A[di.Sha256].Downloads = append(s.A[di.Sha256].Downloads, di)
 	}

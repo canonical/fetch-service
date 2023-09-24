@@ -35,7 +35,7 @@ import (
 	"github.com/canonical/fetch-service/metadata"
 )
 
-// Inspector is the interface implemented by artifact metadata
+// Inspector is the interface implemented by artefact metadata
 // extractors.
 type Inspector interface {
 	ID() string
@@ -44,9 +44,9 @@ type Inspector interface {
 
 	InspectRequest(*metadata.Artefact) error
 
-	// Inspect extracts metadata from the given artifact and
+	// Inspect extracts metadata from the given artefact and
 	// populates the metadata structure, returning whether
-	// the artifact was identified and no further examination
+	// the artefact was identified and no further examination
 	// by other inspectors is required.
 	InspectArtefact(ReadAtSeeker, *metadata.Artefact) (bool, error)
 
@@ -146,7 +146,7 @@ func (insps Inspectors) GetInspector(name string) (Inspector, error) {
 	return ins, nil
 }
 
-// DefaultInspector is a fallback artifact inspector for unknown file
+// DefaultInspector is a fallback artefact inspector for unknown file
 // formats.
 type DefaultInspector struct{}
 

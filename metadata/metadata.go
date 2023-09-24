@@ -113,34 +113,34 @@ func (h *Sha256Digest) UnmarshalJSON(data []byte) (err error) {
 	return
 }
 
-// Metadata holds information about each artifact.
+// Metadata holds information about each artefact.
 type Metadata struct {
 	MetadataVersion string       `json:"metadata-version"`       // Metadata version in X.Y format
-	Type            string       `json:"type"`                   // The mime-type of the artifact file
-	Sha1            Sha1Digest   `json:"sha1"`                   // The SHA1 digest of the artifact file
-	Sha256          Sha256Digest `json:"sha256"`                 // The SHA256 digest of the artifact file
-	Size            int64        `json:"size"`                   // The size of the artifact file
-	Name            string       `json:"name"`                   // The artifact designation, given by its author
-	Version         string       `json:"version"`                // The artifact version, as published by the upstream
-	Vendor          string       `json:"vendor"`                 // The artifact vendor
-	Description     string       `json:"description"`            // A free-form description of the artifact
-	Author          string       `json:"author"`                 // The artifact author name
-	AuthorEmail     string       `json:"author-email,omitempty"` // The artifact author email address
-	Architecture    string       `json:"architecture,omitempty"` // The architecture, if the artifact contains binary code
-	License         string       `json:"license"`                // The license the artifact is published under
+	Type            string       `json:"type"`                   // The mime-type of the artefact file
+	Sha1            Sha1Digest   `json:"sha1"`                   // The SHA1 digest of the artefact file
+	Sha256          Sha256Digest `json:"sha256"`                 // The SHA256 digest of the artefact file
+	Size            int64        `json:"size"`                   // The size of the artefact file
+	Name            string       `json:"name"`                   // The artefact designation, given by its author
+	Version         string       `json:"version"`                // The artefact version, as published by the upstream
+	Vendor          string       `json:"vendor"`                 // The artefact vendor
+	Description     string       `json:"description"`            // A free-form description of the artefact
+	Author          string       `json:"author"`                 // The artefact author name
+	AuthorEmail     string       `json:"author-email,omitempty"` // The artefact author email address
+	Architecture    string       `json:"architecture,omitempty"` // The architecture, if the artefact contains binary code
+	License         string       `json:"license"`                // The license the artefact is published under
 	Copyright       string       `json:"copyright,omitempty"`    // The copyright line, if available
-	Files           []MemberFile `json:"files,omitempty"`        // Information about files contained in this artifact
+	Files           []MemberFile `json:"files,omitempty"`        // Information about files contained in this artefact
 }
 
-// MemberFile contains information about files contained in the artifact.
+// MemberFile contains information about files contained in the artefact.
 type MemberFile struct {
 	Name   string       `json:"name"`   // The qualified file name
 	Sha256 Sha256Digest `json:"sha256"` // The SHA256 digest of content
 	Size   int64        `json:"size"`   // The file size
 }
 
-// DownloadInfo holds information about each artifact download.
-type DownloadInfo struct {
+// Download holds information about each artefact download.
+type Download struct {
 	StartTime      time.Time           `json:"start-time"`      // When the downloaded started (UTC)
 	EndTime        time.Time           `json:"end-time"`        // When the download finished (UTC)
 	Method         string              `json:"method"`          // The HTTP request method

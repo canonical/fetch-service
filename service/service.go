@@ -112,7 +112,7 @@ dispatcherLoop:
 
 				if s.HasArtefact(digest) {
 					logger.Infof("artefact %s already downloaded", digest)
-					s.AddDownloadInfo(v.A.CurrentDownload)
+					s.AddDownload(v.A.CurrentDownload)
 					v.Rch <- nil
 					break
 
@@ -125,7 +125,7 @@ dispatcherLoop:
 					break
 				}
 
-				s.AddDownloadInfo(v.A.CurrentDownload)
+				s.AddDownload(v.A.CurrentDownload)
 
 				go func(a *metadata.Artefact, rch chan error) {
 					// Extract metadata from file

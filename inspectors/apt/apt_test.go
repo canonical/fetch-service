@@ -149,7 +149,7 @@ func (s *aptSuite) TestAptPackagesInspector(c *C) {
 				Sha256: packagesHash,
 				Size:   size,
 			}
-			di := &metadata.DownloadInfo{}
+			di := &metadata.Download{}
 
 			var iface metadata.Inspector
 			ins := metadata.AptPackagesInspector{}
