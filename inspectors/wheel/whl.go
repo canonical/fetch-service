@@ -42,16 +42,17 @@ func WhlDetector(raw []byte, limit uint32) bool {
 		`[^/]*\.dist-info/RECORD`)
 }
 
-type WhlInspector struct{}
+type WhlInspector struct {
+}
 
 func (WhlInspector) ID() string {
 	return "wheel"
 }
 
-func (ins *WhlInspector) InitializeContext(sd SessionDetails) {
+func (ins WhlInspector) InitializeContext(sd SessionDetails) {
 }
 
-func (ins *WhlInspector) InspectRequest(a *metadata.Artefact) error {
+func (ins WhlInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil
 }
 
@@ -78,9 +79,8 @@ func (ins *WhlInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (
 	if err != nil {
 		return
 	}
-	md.Files = fileList
 
-	err = readWhlRecord(f, size, a)
+	err = readWhlRecord(f, size, a, fileList)
 	if err != nil {
 		return
 	}
@@ -93,9 +93,15 @@ func (ins WhlInspector) API() InspectorAPI {
 	return nil
 }
 
+type memberFile struct {
+	Name   string                `json:"name"`   // The file name with path
+	Sha256 metadata.Sha256Digest `json:"sha256"` // The SHA256 digest of content
+	Size   int64                 `json:"size"`   // The file size
+}
+
 // listWheelFiles gets a list of wheel files and their sha1 digests.
-func listWheelFiles(f io.ReaderAt, size int64, a *metadata.Artefact) ([]metadata.MemberFile, error) {
-	res := []metadata.MemberFile{}
+func listWheelFiles(f io.ReaderAt, size int64, a *metadata.Artefact) ([]memberFile, error) {
+	res := []memberFile{}
 
 	z, err := zip.NewReader(f, size)
 	if err != nil {
@@ -119,7 +125,7 @@ func listWheelFiles(f io.ReaderAt, size int64, a *metadata.Artefact) ([]metadata
 			return res, err
 		}
 
-		res = append(res, metadata.MemberFile{
+		res = append(res, memberFile{
 			Name:   f.Name,
 			Sha256: *(*metadata.Sha256Digest)(sum.Sum(nil)),
 			Size:   f.FileInfo().Size(),
@@ -257,7 +263,7 @@ func readWhlWheel(f io.ReaderAt, size int64, a *metadata.Artefact) error {
 }
 
 // readWhlRecord reads the wheel's RECORD file.
-func readWhlRecord(f io.ReaderAt, size int64, a *metadata.Artefact) error {
+func readWhlRecord(f io.ReaderAt, size int64, a *metadata.Artefact, files []memberFile) error {
 	z, err := zip.NewReader(f, size)
 	if err != nil {
 		return err
@@ -275,7 +281,7 @@ func readWhlRecord(f io.ReaderAt, size int64, a *metadata.Artefact) error {
 			}
 			defer zf.Close()
 
-			if err := checkRecord(zf, f.Name, a); err != nil {
+			if err := checkRecord(zf, f.Name, a, files); err != nil {
 				return err
 			}
 			break
@@ -290,13 +296,12 @@ func readWhlRecord(f io.ReaderAt, size int64, a *metadata.Artefact) error {
 }
 
 // checkRecord verifies files against the RECORD file checksum.
-func checkRecord(zf io.ReadCloser, rname string, a *metadata.Artefact) error {
-	md := a.Metadata
+func checkRecord(zf io.ReadCloser, rname string, a *metadata.Artefact, files []memberFile) error {
 	sc := bufio.NewScanner(zf)
 	sc.Split(bufio.ScanLines)
 
-	fileMap := map[string]metadata.MemberFile{}
-	for _, f := range md.Files {
+	fileMap := map[string]memberFile{}
+	for _, f := range files {
 		fileMap[f.Name] = f
 	}
 

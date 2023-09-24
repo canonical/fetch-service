@@ -129,14 +129,6 @@ type Metadata struct {
 	Architecture    string       `json:"architecture,omitempty"` // The architecture, if the artefact contains binary code
 	License         string       `json:"license"`                // The license the artefact is published under
 	Copyright       string       `json:"copyright,omitempty"`    // The copyright line, if available
-	Files           []MemberFile `json:"files,omitempty"`        // Information about files contained in this artefact
-}
-
-// MemberFile contains information about files contained in the artefact.
-type MemberFile struct {
-	Name   string       `json:"name"`   // The qualified file name
-	Sha256 Sha256Digest `json:"sha256"` // The SHA256 digest of content
-	Size   int64        `json:"size"`   // The file size
 }
 
 // Download holds information about each artefact download.

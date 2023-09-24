@@ -32,33 +32,6 @@ type ReadAtSeeker interface {
 type InspectorAPI interface {
 }
 
-/*
-func GetInspectorAPI(sessionId, insName string, ch chan interface{}) (InspectorAPI, error) {
-	rch := make(chan InspectorAPI)
-	req := InspectorAPIRequest{
-		Rch:       rch,
-		SessionId: sessionId,
-		InsName:   insName,
-	}
-
-	ch <- req
-	res := <-req.Rch
-	if res == nil {
-		return nil, fmt.Errorf("cannot obtain %s API", insName)
-	}
-
-	return res, nil
-}
-*/
-
 type SessionDetails interface {
 	GetInspectorAPI(name string) (InspectorAPI, error)
 }
-
-/*
-type InspectorAPIRequest struct {
-	Rch       chan InspectorAPI // Handler response channel
-	SessionId string
-	InsName   string
-}
-*/
