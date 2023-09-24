@@ -31,25 +31,30 @@ import (
 	"github.com/blakesmith/ar"
 	"github.com/klauspost/compress/zstd"
 
+	"github.com/canonical/fetch-service/inspectors/apt"
 	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/metadata"
 )
 
-type DebInspector struct{}
+type DebInspector struct {
+	sd SessionDetails
+}
 
 func (DebInspector) ID() string {
 	return "deb"
 }
 
 func (ins *DebInspector) InitializeContext(sd SessionDetails) {
+	ins.sd = sd
 }
 
 func (ins DebInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil
 }
 
-func (ins DebInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (stop bool, err error) {
-	if a.Metadata.Type != "application/vnd.debian.binary-package" {
+func (ins *DebInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (stop bool, err error) {
+	if a.Metadata.Type != mimetypes.DebianBinaryPackage {
 		return
 	}
 	stop = true
@@ -59,21 +64,18 @@ func (ins DebInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (s
 		return
 	}
 
-	/*
-		pkgsDigest, e, ok := ctx.GetPackagesEntry(md.Sha256)
-		if ok {
-			if md.Name != e.Package || md.Version != e.Version || md.Architecture != e.Architecture || md.Size != e.Size {
-				data := metadata.AnnotationValue{"packages-data": e}
-				md.Annotate(IntegrityViolation, "file.integrity.check", ResultFail).SetDetails(data)
-				return
-			}
-			md.Annotate(Notice, "file.integrity.asserted-by", pkgsDigest.String())
-		} else {
-			md.Annotate(PolicyViolation, "file.integrity.check", ResultFail)
-		}
-	*/
+	api, err := apt.GetAptPackagesInspectorAPI(ins.sd)
+	if err != nil {
+		return
+	}
 
-	a.Approve(ins, "reason")
+	digest, err := api.ValidateDebFile(a)
+	if err != nil {
+		a.Reject(ins, "Deb metadata doesn't match apt Packages file")
+		return
+	}
+
+	a.Approve(ins, "Deb metadata matches Packages file %s", digest)
 	return
 }
 

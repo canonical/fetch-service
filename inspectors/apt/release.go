@@ -252,7 +252,7 @@ func GetAptReleaseInspectorAPI(sd SessionDetails) (AptReleaseInspectorAPI, error
 
 	api, ok := res.(AptReleaseInspectorAPI)
 	if !ok {
-		return nil, fmt.Errorf("cannot get ApiReleaseInsepctorAPI instance")
+		return nil, fmt.Errorf("cannot get AptReleaseInspectorAPI instance")
 	}
 
 	return api, nil

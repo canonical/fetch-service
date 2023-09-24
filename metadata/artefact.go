@@ -21,6 +21,7 @@ package metadata
 
 import (
 	"errors"
+	"fmt"
 )
 
 type OpinionKind int
@@ -89,20 +90,20 @@ type Identifiable interface {
 	ID() string
 }
 
-func (a *Artefact) Reject(id Identifiable, reason string) {
+func (a *Artefact) Reject(id Identifiable, reason string, args ...interface{}) {
 	o := Opinion{
 		InspectorID: id.ID(),
 		Opinion:     Rejected,
-		Reason:      reason,
+		Reason:      fmt.Sprintf(reason, args...),
 	}
 	a.Opinions = append(a.Opinions, o)
 }
 
-func (a *Artefact) Approve(id Identifiable, reason string) {
+func (a *Artefact) Approve(id Identifiable, reason string, args ...interface{}) {
 	o := Opinion{
 		InspectorID: id.ID(),
 		Opinion:     Approved,
-		Reason:      reason,
+		Reason:      fmt.Sprintf(reason, args...),
 	}
 	a.Opinions = append(a.Opinions, o)
 }

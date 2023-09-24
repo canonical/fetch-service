@@ -20,7 +20,8 @@
 package mimetypes
 
 const (
-	PythonWheel = "application/x.python.wheel"
-	AptRelease  = "application/x.apt.release"
-	AptPackages = "application/x.apt.packages"
+	DebianBinaryPackage = "application/vnd.debian.binary-package"
+	PythonWheel         = "application/x.python.wheel"
+	AptRelease          = "application/x.apt.release"
+	AptPackages         = "application/x.apt.packages"
 )

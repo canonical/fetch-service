@@ -129,8 +129,18 @@ type AptPackagesContext struct {
 	packagesLock    sync.Mutex
 }
 
-func (ctx *AptPackagesContext) ValidateDebFile(size int64, digest metadata.Sha256Digest) error {
-	return nil
+func (ctx *AptPackagesContext) ValidateDebFile(a *metadata.Artefact) (string, error) {
+	digest, e, ok := ctx.GetPackagesEntry(a.Metadata.Sha256)
+	if !ok {
+		return "", fmt.Errorf("deb file digest not listed in packages file")
+	}
+
+	md := a.Metadata
+	if md.Name != e.Package || md.Version != e.Version || md.Architecture != e.Architecture || md.Size != e.Size {
+		return "", fmt.Errorf("deb file metadata does not match packages file %s", digest)
+	}
+
+	return digest.String(), nil
 }
 
 func (ctx *AptPackagesContext) AddPackagesEntry(pkgsDigest metadata.Sha256Digest, digest metadata.Sha256Digest, e AptPackagesEntry) {
@@ -192,20 +202,15 @@ func (ins *AptPackagesInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 	// obtain the Packages.xz path from the Release file
 	relDigest, p, ok := release.GetReleasePackages(a.Metadata.Sha256)
 	if ok {
-		/*
-			if p.Size != md.Size {
-				data := AnnotationDetails{"release-data": p}
-				md.Annotate(IntegrityViolation, "file.integrity.check", ResultFail).SetDetails(data)
-				return
-			}
-		*/
+		if p.Size != a.Metadata.Size {
+			a.Reject(ins, "Packages file size file does not match Release")
+			return
+		}
+
 		// The Packages file is listed in Release and size matches
-		//md.Annotate("apt.packages.integrity.asserted-by", metadata.AnnotationValue{"release-file": relDigest.String()})
-		logger.Debugf("apt.packages.integrity.asserted-by: %v", relDigest.String())
+		a.Approve(ins, "Packages integrity asserted by Release file %s", relDigest)
 	} else {
-		// This Packages file was not found in InRelease
-		//md.Annotate("apt.packages.integrity.fail", metadata.AnnotationValue{})
-		logger.Debugf("apt.packages.integrity.fail")
+		a.Reject(ins, "Packages file not listed in Release file")
 	}
 
 	// Populate metadata
@@ -242,6 +247,7 @@ func (ins *AptPackagesInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 		k, v, ok := strings.Cut(line, ":")
 		if !ok {
 			err = fmt.Errorf("error parsing line '%s'", line)
+			a.Reject(ins, "cannot parse packages file")
 			return
 		}
 		v = strings.TrimSpace(v)
@@ -267,7 +273,7 @@ func (ins *AptPackagesInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 		}
 	}
 
-	//md.Annotate("apt.metadata.packages.count", strconv.Itoa(num))
+	a.Approve(ins, "%d packages parsed", num)
 
 	return
 }
@@ -278,5 +284,19 @@ func (ins *AptPackagesInspector) API() InspectorAPI {
 
 type AptPackagesInspectorAPI interface {
 	InspectorAPI
-	ValidateDebFile(int64, metadata.Sha256Digest) error
+	ValidateDebFile(*metadata.Artefact) (string, error)
+}
+
+func GetAptPackagesInspectorAPI(sd SessionDetails) (AptPackagesInspectorAPI, error) {
+	res, err := sd.GetInspectorAPI("apt.packages")
+	if err != nil {
+		return nil, err
+	}
+
+	api, ok := res.(AptPackagesInspectorAPI)
+	if !ok {
+		return nil, fmt.Errorf("cannot get AptPackagesInspectorAPI instance")
+	}
+
+	return api, nil
 }
