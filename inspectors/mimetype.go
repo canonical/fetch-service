@@ -33,7 +33,6 @@ import (
 func init() {
 	mimetype.SetLimit(1 << 30) // input data is mmapped
 	mimetype.Lookup("application/zip").Extend(wheel.WhlDetector, "application/x-python-wheel", ".whl")
-	mimetype.Lookup("text/plain").Extend(apt.AptLegacyReleaseDetector, "application/x-apt-legacy-release", "")
 	mimetype.Lookup("text/plain").Extend(apt.AptReleaseDetector, "application/x-apt-release", "")
 	mimetype.Lookup("application/x-xz").Extend(apt.AptPackagesDetector, "application/x-apt-packages", "")
 }
