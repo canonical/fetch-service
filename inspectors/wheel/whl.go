@@ -66,22 +66,22 @@ func (ins *WhlInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (
 
 	size := int64(f.Len())
 
-	err = readWhlMetadata(f, size, a)
+	err = ins.readWhlMetadata(f, size, a)
 	if err != nil {
 		return
 	}
 
-	err = readWhlWheel(f, size, a)
+	err = ins.readWhlWheel(f, size, a)
 	if err != nil {
 		return
 	}
 
-	fileList, err := listWheelFiles(f, size, a)
+	fileList, err := ins.listWheelFiles(f, size, a)
 	if err != nil {
 		return
 	}
 
-	err = readWhlRecord(f, size, a, fileList)
+	err = ins.readWhlRecord(f, size, a, fileList)
 	if err != nil {
 		return
 	}
@@ -101,7 +101,7 @@ type memberFile struct {
 }
 
 // listWheelFiles gets a list of wheel files and their sha1 digests.
-func listWheelFiles(f io.ReaderAt, size int64, a *metadata.Artefact) ([]memberFile, error) {
+func (ins WhlInspector) listWheelFiles(f io.ReaderAt, size int64, a *metadata.Artefact) ([]memberFile, error) {
 	res := []memberFile{}
 
 	z, err := zip.NewReader(f, size)
@@ -137,7 +137,7 @@ func listWheelFiles(f io.ReaderAt, size int64, a *metadata.Artefact) ([]memberFi
 }
 
 // readWhlMetadata reads the wheel's METADATA file.
-func readWhlMetadata(f io.ReaderAt, size int64, a *metadata.Artefact) error {
+func (ins WhlInspector) readWhlMetadata(f io.ReaderAt, size int64, a *metadata.Artefact) error {
 	z, err := zip.NewReader(f, size)
 	if err != nil {
 		return err
@@ -153,8 +153,12 @@ func readWhlMetadata(f io.ReaderAt, size int64, a *metadata.Artefact) error {
 			}
 			defer zf.Close()
 
-			scanManifest(zf, a)
-			//md.Annotate("wheel.metadata", metadata.AnnotationValue{"version": ver})
+			ver := scanManifest(zf, a)
+			if ver != "" {
+				a.Approve(ins, "found wheel metadata version %s", ver)
+			} else {
+				a.Reject(ins, "wheel metadata version not found")
+			}
 			break
 		}
 	}
@@ -163,12 +167,12 @@ func readWhlMetadata(f io.ReaderAt, size int64, a *metadata.Artefact) error {
 }
 
 // scanManifest parses metadata entries from the given file.
-func scanManifest(zf io.ReadCloser, a *metadata.Artefact) {
+func scanManifest(zf io.ReadCloser, a *metadata.Artefact) string {
 	sc := bufio.NewScanner(zf)
 	sc.Split(bufio.ScanLines)
 
-	//var ver string
-	md := a.Metadata
+	var ver string
+	md := &a.Metadata
 
 	for sc.Scan() {
 		line := sc.Text()
@@ -182,8 +186,8 @@ func scanManifest(zf io.ReadCloser, a *metadata.Artefact) {
 		}
 
 		switch strings.ToLower(k) {
-		//case "metadata-version":
-		//	ver = v
+		case "metadata-version":
+			ver = v
 		case "name":
 			md.Name = v
 		case "version":
@@ -201,6 +205,8 @@ func scanManifest(zf io.ReadCloser, a *metadata.Artefact) {
 			md.AuthorEmail = v
 		}
 	}
+
+	return ver
 }
 
 // normalizeClassifier converts Classifier manifest entries.
@@ -217,7 +223,7 @@ func normalizeClassifier(v string, a *metadata.Artefact) {
 }
 
 // readWhlWheel reads the wheel's WHEEL file.
-func readWhlWheel(f io.ReaderAt, size int64, a *metadata.Artefact) error {
+func (ins WhlInspector) readWhlWheel(f io.ReaderAt, size int64, a *metadata.Artefact) error {
 	z, err := zip.NewReader(f, size)
 	if err != nil {
 		return err
@@ -234,8 +240,11 @@ func readWhlWheel(f io.ReaderAt, size int64, a *metadata.Artefact) error {
 	}
 
 	if !found {
+		a.Reject(ins, "WHEEL file not found")
 		return fmt.Errorf("WHEEL file not found")
 	}
+
+	a.Approve(ins, "WHEEL file found")
 
 	return nil
 
@@ -264,7 +273,7 @@ func readWhlWheel(f io.ReaderAt, size int64, a *metadata.Artefact) error {
 }
 
 // readWhlRecord reads the wheel's RECORD file.
-func readWhlRecord(f io.ReaderAt, size int64, a *metadata.Artefact, files []memberFile) error {
+func (ins WhlInspector) readWhlRecord(f io.ReaderAt, size int64, a *metadata.Artefact, files []memberFile) error {
 	z, err := zip.NewReader(f, size)
 	if err != nil {
 		return err

@@ -136,19 +136,6 @@ func (s *metadataSuite) TestSha256DigestUnmarshal(c *C) {
 }
 
 /*
-func (s *metadataSuite) TestAnnotation(c *C) {
-	md := metadata.Metadata{}
-
-	md.Annotate("test.foo", metadata.AnnotationValue{"text": "test"})
-	md.Annotate("test.bar", metadata.AnnotationValue{})
-
-	c.Assert(md.Annotations, HasLen, 2)
-	c.Assert(md.Annotations["test.foo"].Value, DeepEquals, metadata.AnnotationValue{"text": "test"})
-	c.Assert(md.Annotations["test.bar"].Value, HasLen, 0)
-}
-*/
-
-/*
 func (s *metadataSuite) TestContextReleasePackages(c *C) {
 	ctx := metadata.NewInspectionContext()
 	c.Assert(ctx, Not(IsNil))

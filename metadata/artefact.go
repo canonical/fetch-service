@@ -35,11 +35,11 @@ const (
 func (t OpinionKind) MarshalJSON() ([]byte, error) {
 	switch t {
 	case Unknown:
-		return []byte("Unknown"), nil
+		return []byte(`"Unknown"`), nil
 	case Rejected:
-		return []byte("Rejected"), nil
+		return []byte(`"Rejected"`), nil
 	case Approved:
-		return []byte("Approved"), nil
+		return []byte(`"Approved"`), nil
 	default:
 		return nil, errors.New("invalid opinion kind")
 	}
@@ -47,13 +47,13 @@ func (t OpinionKind) MarshalJSON() ([]byte, error) {
 
 func (t *OpinionKind) UnmarshalJSON(data []byte) error {
 	switch string(data) {
-	case "Unknown":
+	case `"Unknown"`:
 		*t = Unknown
 		return nil
-	case "Rejected":
+	case `"Rejected"`:
 		*t = Rejected
 		return nil
-	case "Approved":
+	case `"Approved"`:
 		*t = Approved
 		return nil
 	default:
