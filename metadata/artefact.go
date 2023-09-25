@@ -70,7 +70,7 @@ type Opinion struct {
 type Artefact struct {
 	Opinions        []Opinion  `json:"opinions"`
 	Metadata        Metadata   `json:"metadata"`
-	Downloads       []Download `json:"downloads"` // Information about artifact downloads
+	Downloads       []Download `json:"downloads"` // Information about artefact downloads
 	CurrentDownload Download   `json:"-"`         // Information about the current download
 	AssetDir        string     `json:"-"`         // Location to store files and metadata
 	Tempfile        string     `json:"-"`         // Path to temporary file containing downloaded data

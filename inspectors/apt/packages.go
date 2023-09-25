@@ -122,25 +122,27 @@ type AptPackagesEntry struct {
 // AptPackagesContext contains inspector-specific contextual data for stateful
 // analysis within a fetch session.
 type AptPackagesContext struct {
-	sd SessionDetails
+	ins metadata.Identifiable
+	sd  SessionDetails
 
 	// packagesEntries maps Packages.* file digests to package digest to metadata.
 	packagesEntries map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptPackagesEntry
 	packagesLock    sync.Mutex
 }
 
-func (ctx *AptPackagesContext) ValidateDebFile(a *metadata.Artefact) (string, error) {
+func (ctx *AptPackagesContext) ValidateDebFile(a *metadata.Artefact) {
 	digest, e, ok := ctx.GetPackagesEntry(a.Metadata.Sha256)
 	if !ok {
-		return "", fmt.Errorf("deb file digest not listed in packages file")
+		a.Reject(ctx.ins, "deb file digest not listed in packages file")
+		return
 	}
 
 	md := a.Metadata
 	if md.Name != e.Package || md.Version != e.Version || md.Architecture != e.Architecture || md.Size != e.Size {
-		return "", fmt.Errorf("deb file metadata does not match packages file %s", digest)
+		a.Reject(ctx.ins, "deb file metadata does not match packages file %s", digest)
 	}
 
-	return digest.String(), nil
+	a.Approve(ctx.ins, "deb file validated by packages file %s", digest)
 }
 
 func (ctx *AptPackagesContext) AddPackagesEntry(pkgsDigest metadata.Sha256Digest, digest metadata.Sha256Digest, e AptPackagesEntry) {
@@ -179,6 +181,7 @@ func (ins *AptPackagesInspector) ID() string {
 func (ins *AptPackagesInspector) InitializeContext(sd SessionDetails) {
 	ins.sd = sd
 	ins.state = AptPackagesContext{
+		ins:             ins,
 		packagesEntries: make(map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptPackagesEntry, 256),
 	}
 }
@@ -284,7 +287,7 @@ func (ins *AptPackagesInspector) API() InspectorAPI {
 
 type AptPackagesInspectorAPI interface {
 	InspectorAPI
-	ValidateDebFile(*metadata.Artefact) (string, error)
+	ValidateDebFile(*metadata.Artefact)
 }
 
 func GetAptPackagesInspectorAPI(sd SessionDetails) (AptPackagesInspectorAPI, error) {

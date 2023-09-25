@@ -34,7 +34,7 @@ type RequestHandler struct {
 	ch         chan interface{}   // service messaging channel
 	a          *metadata.Artefact // artefact metadata
 	body       io.ReadCloser      // request body
-	insTimeout time.Duration      // artifact inspection timeout
+	insTimeout time.Duration      // artefact inspection timeout
 }
 
 func NewRequestHandler(req *http.Request, a *metadata.Artefact, ch chan interface{}) (*RequestHandler, error) {

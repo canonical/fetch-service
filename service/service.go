@@ -106,7 +106,7 @@ dispatcherLoop:
 					break
 				}
 
-				// Add download info to artifact metadata
+				// Add download info to artefact metadata
 				dl := v.A.CurrentDownload
 				logger.Infof("[%s] %s %s: %s (%s)", sessionId, dl.Method, dl.URL, dl.Status, dl.ContentType)
 
@@ -135,7 +135,7 @@ dispatcherLoop:
 						return
 					}
 
-					logger.Infof("[%s] artifact %s %d (%s)", sessionId, digest, a.Metadata.Size, a.Metadata.Type)
+					logger.Infof("[%s] artefact %s %d (%s)", sessionId, digest, a.Metadata.Size, a.Metadata.Type)
 					rch <- nil
 				}(v.A, v.Rch)
 

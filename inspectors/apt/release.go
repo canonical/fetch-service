@@ -111,8 +111,8 @@ type AptReleaseContext struct {
 	releaseLock     sync.Mutex
 }
 
-func (ctx *AptReleaseContext) ValidatePackagesFile(size int64, digest metadata.Sha256Digest) error {
-	return nil
+func (ctx *AptReleaseContext) ValidatePackagesFile(size int64, digest metadata.Sha256Digest) {
+	return
 }
 
 func (ctx *AptReleaseContext) AddReleasePackages(relDigest metadata.Sha256Digest, digest metadata.Sha256Digest, p AptReleasePackages) {
@@ -240,7 +240,7 @@ func (ins *AptReleaseInspector) API() InspectorAPI {
 
 type AptReleaseInspectorAPI interface {
 	InspectorAPI
-	ValidatePackagesFile(int64, metadata.Sha256Digest) error
+	ValidatePackagesFile(int64, metadata.Sha256Digest)
 	GetReleasePackages(metadata.Sha256Digest) (metadata.Sha256Digest, AptReleasePackages, bool)
 }
 

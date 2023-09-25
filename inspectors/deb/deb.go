@@ -59,7 +59,7 @@ func (ins *DebInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (
 	}
 	stop = true
 
-	err = readDebMetadata(f, &a.Metadata)
+	err = ins.readDebMetadata(f, a)
 	if err != nil {
 		return
 	}
@@ -69,13 +69,8 @@ func (ins *DebInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (
 		return
 	}
 
-	digest, err := api.ValidateDebFile(a)
-	if err != nil {
-		a.Reject(ins, "Deb metadata doesn't match apt Packages file")
-		return
-	}
+	api.ValidateDebFile(a)
 
-	a.Approve(ins, "Deb metadata matches Packages file %s", digest)
 	return
 }
 
@@ -84,7 +79,7 @@ func (ins DebInspector) API() InspectorAPI {
 }
 
 // readDebMetadata reads metadata from the deb control file.
-func readDebMetadata(f io.Reader, md *metadata.Metadata) error {
+func (ins DebInspector) readDebMetadata(f io.Reader, a *metadata.Artefact) error {
 
 	af := ar.NewReader(f)
 
@@ -98,7 +93,7 @@ func readDebMetadata(f io.Reader, md *metadata.Metadata) error {
 		}
 		switch h.Name {
 		case "debian-binary":
-			err = parseDebianBinary(af, md)
+			err = ins.parseDebianBinary(af, a)
 			if err != nil {
 				return err
 			}
@@ -107,7 +102,7 @@ func readDebMetadata(f io.Reader, md *metadata.Metadata) error {
 			if err != nil {
 				return err
 			}
-			err = parseControlTar(zf, md)
+			err = ins.parseControlTar(zf, a)
 			if err != nil {
 				return err
 			}
@@ -116,7 +111,7 @@ func readDebMetadata(f io.Reader, md *metadata.Metadata) error {
 			if err != nil {
 				return err
 			}
-			err = parseControlTar(zf, md)
+			err = ins.parseControlTar(zf, a)
 			if err != nil {
 				return err
 			}
@@ -125,7 +120,7 @@ func readDebMetadata(f io.Reader, md *metadata.Metadata) error {
 			if err != nil {
 				return err
 			}
-			err = parseDataTar(zf, md)
+			err = ins.parseDataTar(zf, a)
 			if err != nil {
 				return err
 			}
@@ -136,19 +131,19 @@ func readDebMetadata(f io.Reader, md *metadata.Metadata) error {
 	return nil
 }
 
-func parseDebianBinary(af io.Reader, md *metadata.Metadata) error {
+func (ins DebInspector) parseDebianBinary(af io.Reader, a *metadata.Artefact) error {
 	sc := bufio.NewScanner(af)
 	sc.Split(bufio.ScanLines)
 
 	// Read a single line
 	sc.Scan()
 	line := sc.Text()
-	_ = line
+	a.Approve(ins, "found debian-binary: %s", line)
 
 	return nil
 }
 
-func parseControlTar(zf io.Reader, md *metadata.Metadata) error {
+func (ins DebInspector) parseControlTar(zf io.Reader, a *metadata.Artefact) error {
 	tf := tar.NewReader(zf)
 	for {
 		h, err := tf.Next()
@@ -160,7 +155,7 @@ func parseControlTar(zf io.Reader, md *metadata.Metadata) error {
 		}
 		switch h.Name {
 		case "./control":
-			err = parseControl(tf, md)
+			err = ins.parseControl(tf, a)
 			if err != nil {
 				return err
 			}
@@ -170,7 +165,7 @@ func parseControlTar(zf io.Reader, md *metadata.Metadata) error {
 	return nil
 }
 
-func parseControl(tf io.Reader, md *metadata.Metadata) error {
+func (ins DebInspector) parseControl(tf io.Reader, a *metadata.Artefact) error {
 	sc := bufio.NewScanner(tf)
 	sc.Split(bufio.ScanLines)
 
@@ -193,25 +188,31 @@ func parseControl(tf io.Reader, md *metadata.Metadata) error {
 
 		switch k {
 		case "Package":
-			md.Name = v
+			a.Metadata.Name = v
 		case "Version":
-			md.Version = v
+			a.Metadata.Version = v
 		case "Architecture":
-			md.Architecture = v
+			a.Metadata.Architecture = v
 		case "Description":
 			runes := []rune(v)
 			runes[0] = unicode.ToUpper(runes[0])
-			md.Description = string(runes)
+			a.Metadata.Description = string(runes)
 		case "Maintainer":
-			md.Vendor = v
-			md.AuthorEmail = v
+			a.Metadata.Vendor = v
+			a.Metadata.AuthorEmail = v
 		}
+	}
+
+	if a.Metadata.Name != "" && a.Metadata.Version != "" {
+		a.Approve(ins, "control file parsed")
+	} else {
+		a.Reject(ins, "package name/version not in control file")
 	}
 
 	return nil
 }
 
-func parseDataTar(zf io.Reader, md *metadata.Metadata) error {
+func (ins DebInspector) parseDataTar(zf io.Reader, a *metadata.Artefact) error {
 	copyright := regexp.MustCompile(`^\./usr/share/doc/[^/]+/copyright$`)
 
 	tf := tar.NewReader(zf)
@@ -225,7 +226,7 @@ func parseDataTar(zf io.Reader, md *metadata.Metadata) error {
 		}
 		switch {
 		case copyright.MatchString(h.Name):
-			err = parseCopyright(tf, md)
+			err = ins.parseCopyright(tf, a)
 			if err != nil {
 				return err
 			}
@@ -235,7 +236,7 @@ func parseDataTar(zf io.Reader, md *metadata.Metadata) error {
 	return nil
 }
 
-func parseCopyright(tf io.Reader, md *metadata.Metadata) error {
+func (ins DebInspector) parseCopyright(tf io.Reader, a *metadata.Artefact) error {
 	sc := bufio.NewScanner(tf)
 	sc.Split(bufio.ScanLines)
 
@@ -256,9 +257,9 @@ func parseCopyright(tf io.Reader, md *metadata.Metadata) error {
 
 		switch k {
 		case "License":
-			md.License = v
+			a.Metadata.License = v
 		case "Upstream-Contact", "Upstream author":
-			md.Author = v
+			a.Metadata.Author = v
 		}
 	}
 

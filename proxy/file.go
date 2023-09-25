@@ -49,7 +49,7 @@ type FileDownloadHandler struct {
 	tempfile   *os.File           // copy of streamed data
 	body       io.ReadCloser      // response body
 	assetDir   string             // file storage location
-	insTimeout time.Duration      // artifact inspection timeout
+	insTimeout time.Duration      // artefact inspection timeout
 }
 
 func NewFileDownloadHandler(resp *http.Response, a *metadata.Artefact, spool string, ch chan interface{}) (*FileDownloadHandler, error) {
@@ -136,7 +136,7 @@ func (h *FileDownloadHandler) Close() error {
 			return fmt.Errorf("Error saving download data for asset %s: %v", sha1, err)
 		}
 	case <-time.After(h.insTimeout):
-		logger.Errorf("inspection of artifact %s timed out", sha1)
+		logger.Errorf("inspection of artefact %s timed out", sha1)
 	}
 
 	return res
