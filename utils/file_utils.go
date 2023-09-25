@@ -17,28 +17,18 @@
  *
  */
 
-package metadata
+package utils
 
 import (
 	"archive/zip"
 	"bytes"
 	"regexp"
-
-	"github.com/gabriel-vasile/mimetype"
 )
 
-func init() {
-	mimetype.SetLimit(1 << 30) // input data is mmapped
-	mimetype.Lookup("application/zip").Extend(whlDetector, "application/x-python-wheel", ".whl")
-	mimetype.Lookup("text/plain").Extend(aptLegacyReleaseDetector, "application/x-apt-legacy-release", "")
-	mimetype.Lookup("text/plain").Extend(aptReleaseDetector, "application/x-apt-release", "")
-	mimetype.Lookup("application/x-xz").Extend(aptPackagesDetector, "application/x-apt-packages", "")
-}
-
-// zipMatches returns true if the zip file headers from in matches
+// ZipMatches returns true if the zip file headers from in matches
 // any of the path patterns. This is typically used in mime type
 // detection of zipped files, such as Python wheels.
-func zipMatches(in []byte, patterns ...string) bool {
+func ZipMatches(in []byte, patterns ...string) bool {
 	z, err := zip.NewReader(bytes.NewReader(in), int64(len(in)))
 	if err != nil {
 		return false

@@ -109,44 +109,54 @@ func (t *sessionSuite) TestAddMetadata(c *C) {
 	defer s.Discard()
 
 	h, _ := metadata.NewSha256Digest(MySha256)
-	c.Assert(s.Md, HasLen, 0)
-	c.Assert(s.HasMetadata(h), Equals, false)
+	c.Assert(s.A, HasLen, 0)
+	c.Assert(s.HasArtefact(h), Equals, false)
 
-	md := &metadata.Metadata{Name: "test-metadata", Sha256: h}
-	s.AddMetadata(md)
-	c.Assert(s.Md[h].Name, Equals, "test-metadata")
-	c.Assert(s.HasMetadata(h), Equals, true)
+	a := metadata.NewArtefact()
+	a.Metadata.Name = "test-metadata"
+	a.Metadata.Sha256 = h
+
+	s.AddArtefact(a)
+
+	c.Assert(s.A[h].Metadata.Name, Equals, "test-metadata")
+	c.Assert(s.HasArtefact(h), Equals, true)
 }
 
-func (t *sessionSuite) TestAddDownloadInfo(c *C) {
+func (t *sessionSuite) TestAddDownload(c *C) {
 	s := session.New()
 	defer s.Discard()
 
 	h, _ := metadata.NewSha256Digest(MySha256)
-	md := &metadata.Metadata{Name: "test-metadata", Sha256: h}
-	s.AddMetadata(md)
+	a := metadata.NewArtefact()
+	a.Metadata.Name = "test-metadata"
+	a.Metadata.Sha256 = h
 
-	di := metadata.DownloadInfo{URL: "https://foo.bar", Sha256: h}
-	s.AddDownloadInfo(di)
-	c.Assert(s.Md[h].Downloads[0].URL, Equals, "https://foo.bar")
+	s.AddArtefact(a)
+
+	di := metadata.Download{URL: "https://foo.bar", Sha256: h}
+	s.AddDownload(di)
+	c.Assert(s.A[h].Downloads[0].URL, Equals, "https://foo.bar")
 
 	di.URL = "https://another/url"
-	s.AddDownloadInfo(di)
-	c.Assert(s.Md[h].Downloads[0].URL, Equals, "https://foo.bar")
-	c.Assert(s.Md[h].Downloads[1].URL, Equals, "https://another/url")
+	s.AddDownload(di)
+	c.Assert(s.A[h].Downloads[0].URL, Equals, "https://foo.bar")
+	c.Assert(s.A[h].Downloads[1].URL, Equals, "https://another/url")
 }
 
-func (t *sessionSuite) TestAddInvalidDownloadInfo(c *C) {
+func (t *sessionSuite) TestAddInvalidDownload(c *C) {
 	s := session.New()
 	defer s.Discard()
 
 	h, _ := metadata.NewSha256Digest(MySha256)
-	md := &metadata.Metadata{Name: "test-metadata", Sha256: h}
-	s.AddMetadata(md)
+	a := metadata.NewArtefact()
+	a.Metadata.Name = "test-metadata"
+	a.Metadata.Sha256 = h
+
+	s.AddArtefact(a)
 
 	// adding an invalid sha1 must not crash the server
-	di := metadata.DownloadInfo{URL: "https://foo.bar", Sha256: h}
-	s.AddDownloadInfo(di)
+	di := metadata.Download{URL: "https://foo.bar", Sha256: h}
+	s.AddDownload(di)
 }
 
 func (t *sessionSuite) TestSaveData(c *C) {
@@ -157,8 +167,13 @@ func (t *sessionSuite) TestSaveData(c *C) {
 	tempfile := filepath.Join(tmp, "tempfile")
 
 	h, _ := metadata.NewSha256Digest(MySha256)
-	md := &metadata.Metadata{Name: "test-metadata", Sha256: h, AssetDir: tmp, Tempfile: tempfile}
-	s.AddMetadata(md)
+	a := metadata.NewArtefact()
+	a.AssetDir = tmp
+	a.Tempfile = tempfile
+	a.Metadata.Name = "test-metadata"
+	a.Metadata.Sha256 = h
+
+	s.AddArtefact(a)
 
 	content := []byte("hello world")
 	err := ioutil.WriteFile(tempfile, content, 0644)
@@ -184,8 +199,12 @@ func (t *sessionSuite) TestSaveMetadata(c *C) {
 	tmp := c.MkDir()
 
 	h, _ := metadata.NewSha256Digest(MySha256)
-	md := &metadata.Metadata{Name: "test-metadata", Sha256: h, AssetDir: tmp}
-	s.AddMetadata(md)
+	a := metadata.NewArtefact()
+	a.AssetDir = tmp
+	a.Metadata.Name = "test-metadata"
+	a.Metadata.Sha256 = h
+
+	s.AddArtefact(a)
 
 	err := s.SaveMetadata(h)
 	c.Assert(err, IsNil)
@@ -193,10 +212,10 @@ func (t *sessionSuite) TestSaveMetadata(c *C) {
 	data, err := ioutil.ReadFile(filepath.Join(tmp, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.json"))
 	c.Assert(err, IsNil)
 
-	var j metadata.Metadata
+	var j metadata.Artefact
 	err = json.Unmarshal(data, &j)
 	c.Assert(err, IsNil)
-	c.Assert(j.Name, Equals, "test-metadata")
+	c.Assert(j.Metadata.Name, Equals, "test-metadata")
 }
 
 func (t *sessionSuite) TestGetSession(c *C) {

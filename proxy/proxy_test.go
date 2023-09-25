@@ -31,8 +31,8 @@ import (
 
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
-	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/proxy"
+	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
 )
 
@@ -82,14 +82,18 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 		Timeout:   30 * time.Second,
 	}
 
-	// authorize download
 	go func() {
+		// authorize download
 		msg := <-ch
 		auth := msg.(proxy.ProxyAuth)
 		c.Assert(auth.Id, Equals, s.Id)
 		c.Assert(auth.Pw, Equals, s.Pw)
 		auth.Rch <- true
 
+		// run request inspectors
+		msg = <-ch
+		v := msg.(messages.RequestAuthorization)
+		v.Rch <- nil // no errors
 	}()
 
 	req, err := http.NewRequest("GET", url.String(), nil)
@@ -108,12 +112,14 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 
 	// check downloaded file information
 	msg := <-ch
-	v := msg.(metadata.FileDownload)
+	v := msg.(messages.ArtefactDownload)
 
-	c.Assert(v.Md.Sha1.String(), Equals, "d8c1f9634007b54c1e9aa3ba3b51395b643933c3")
-	c.Assert(v.Info.StatusCode, Equals, 200)
-	c.Assert(v.Info.Method, Equals, "GET")
-	c.Assert(v.Info.ContentType, Equals, "application/x-debian-package")
+	c.Assert(v.A.Metadata.Sha1.String(), Equals, "d8c1f9634007b54c1e9aa3ba3b51395b643933c3")
+
+	dl := v.A.CurrentDownload
+	c.Assert(dl.StatusCode, Equals, 200)
+	c.Assert(dl.Method, Equals, "GET")
+	c.Assert(dl.ContentType, Equals, "application/x-debian-package")
 
 	// no handling errors
 	v.Rch <- nil

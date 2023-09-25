@@ -17,57 +17,69 @@
  *
  */
 
-package metadata
+package deb
 
 import (
 	"archive/tar"
 	"bufio"
+	"compress/gzip"
 	"io"
-	"os"
 	"regexp"
 	"strings"
 	"unicode"
 
 	"github.com/blakesmith/ar"
 	"github.com/klauspost/compress/zstd"
+
+	"github.com/canonical/fetch-service/inspectors/apt"
+	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/mimetypes"
+	"github.com/canonical/fetch-service/metadata"
 )
 
-type debInspector struct{}
+type DebInspector struct {
+	sd SessionDetails
+}
 
-func (debInspector) Inspect(filename string, md *Metadata, di *DownloadInfo, ctx *InspectionContext) (stop bool, err error) {
-	if md.Type != "application/vnd.debian.binary-package" {
+func (DebInspector) ID() string {
+	return "deb"
+}
+
+func (ins *DebInspector) InitializeContext(sd SessionDetails) {
+	ins.sd = sd
+}
+
+func (ins DebInspector) InspectRequest(a *metadata.Artefact) error {
+	return nil
+}
+
+func (ins *DebInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (stop bool, err error) {
+	if a.Metadata.Type != mimetypes.DebianBinaryPackage {
 		return
 	}
 	stop = true
 
-	err = readDebMetadata(filename, md)
+	err = ins.readDebMetadata(f, a)
 	if err != nil {
 		return
 	}
 
-	pkgsDigest, e, ok := ctx.GetPackagesEntry(md.Sha256)
-	if ok {
-		if md.Name != e.Package || md.Version != e.Version || md.Architecture != e.Architecture || md.Size != e.Size {
-			data := AnnotationDetails{"packages-data": e}
-			md.Annotate(IntegrityViolation, "file.integrity.check", ResultFail).SetDetails(data)
-			return
-		}
-		md.Annotate(Notice, "file.integrity.asserted-by", pkgsDigest.String())
-	} else {
-		md.Annotate(PolicyViolation, "file.integrity.check", ResultFail)
+	api, err := apt.GetAptPackagesInspectorAPI(ins.sd)
+	if err != nil {
+		return
 	}
+
+	api.ValidateDebFile(a)
 
 	return
 }
 
-// readDebMetadata reads metadata from the deb control file.
-func readDebMetadata(filename string, md *Metadata) error {
+func (ins DebInspector) API() InspectorAPI {
+	return nil
+}
 
-	f, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
+// readDebMetadata reads metadata from the deb control file.
+func (ins DebInspector) readDebMetadata(f io.Reader, a *metadata.Artefact) error {
 
 	af := ar.NewReader(f)
 
@@ -81,7 +93,16 @@ func readDebMetadata(filename string, md *Metadata) error {
 		}
 		switch h.Name {
 		case "debian-binary":
-			err = parseDebianBinary(af, md)
+			err = ins.parseDebianBinary(af, a)
+			if err != nil {
+				return err
+			}
+		case "control.tar.gz":
+			zf, err := gzip.NewReader(af)
+			if err != nil {
+				return err
+			}
+			err = ins.parseControlTar(zf, a)
 			if err != nil {
 				return err
 			}
@@ -90,7 +111,7 @@ func readDebMetadata(filename string, md *Metadata) error {
 			if err != nil {
 				return err
 			}
-			err = parseControlTar(zf, md)
+			err = ins.parseControlTar(zf, a)
 			if err != nil {
 				return err
 			}
@@ -99,30 +120,30 @@ func readDebMetadata(filename string, md *Metadata) error {
 			if err != nil {
 				return err
 			}
-			err = parseDataTar(zf, md)
+			err = ins.parseDataTar(zf, a)
 			if err != nil {
 				return err
 			}
-			// TODO: add gzip readers
+			// TODO: add gzip reader
 		}
 	}
 
 	return nil
 }
 
-func parseDebianBinary(af io.Reader, md *Metadata) error {
+func (ins DebInspector) parseDebianBinary(af io.Reader, a *metadata.Artefact) error {
 	sc := bufio.NewScanner(af)
 	sc.Split(bufio.ScanLines)
 
 	// Read a single line
 	sc.Scan()
 	line := sc.Text()
-	md.Annotate(Notice, "deb.debian-binary.version", line)
+	a.Approve(ins, "found debian-binary: %s", line)
 
 	return nil
 }
 
-func parseControlTar(zf io.Reader, md *Metadata) error {
+func (ins DebInspector) parseControlTar(zf io.Reader, a *metadata.Artefact) error {
 	tf := tar.NewReader(zf)
 	for {
 		h, err := tf.Next()
@@ -134,7 +155,7 @@ func parseControlTar(zf io.Reader, md *Metadata) error {
 		}
 		switch h.Name {
 		case "./control":
-			err = parseControl(tf, md)
+			err = ins.parseControl(tf, a)
 			if err != nil {
 				return err
 			}
@@ -144,7 +165,7 @@ func parseControlTar(zf io.Reader, md *Metadata) error {
 	return nil
 }
 
-func parseControl(tf io.Reader, md *Metadata) error {
+func (ins DebInspector) parseControl(tf io.Reader, a *metadata.Artefact) error {
 	sc := bufio.NewScanner(tf)
 	sc.Split(bufio.ScanLines)
 
@@ -167,25 +188,31 @@ func parseControl(tf io.Reader, md *Metadata) error {
 
 		switch k {
 		case "Package":
-			md.Name = v
+			a.Metadata.Name = v
 		case "Version":
-			md.Version = v
+			a.Metadata.Version = v
 		case "Architecture":
-			md.Architecture = v
+			a.Metadata.Architecture = v
 		case "Description":
 			runes := []rune(v)
 			runes[0] = unicode.ToUpper(runes[0])
-			md.Description = string(runes)
+			a.Metadata.Description = string(runes)
 		case "Maintainer":
-			md.Vendor = v
-			md.AuthorEmail = v
+			a.Metadata.Vendor = v
+			a.Metadata.AuthorEmail = v
 		}
+	}
+
+	if a.Metadata.Name != "" && a.Metadata.Version != "" {
+		a.Approve(ins, "control file parsed")
+	} else {
+		a.Reject(ins, "package name/version not in control file")
 	}
 
 	return nil
 }
 
-func parseDataTar(zf io.Reader, md *Metadata) error {
+func (ins DebInspector) parseDataTar(zf io.Reader, a *metadata.Artefact) error {
 	copyright := regexp.MustCompile(`^\./usr/share/doc/[^/]+/copyright$`)
 
 	tf := tar.NewReader(zf)
@@ -199,7 +226,7 @@ func parseDataTar(zf io.Reader, md *Metadata) error {
 		}
 		switch {
 		case copyright.MatchString(h.Name):
-			err = parseCopyright(tf, md)
+			err = ins.parseCopyright(tf, a)
 			if err != nil {
 				return err
 			}
@@ -209,7 +236,7 @@ func parseDataTar(zf io.Reader, md *Metadata) error {
 	return nil
 }
 
-func parseCopyright(tf io.Reader, md *Metadata) error {
+func (ins DebInspector) parseCopyright(tf io.Reader, a *metadata.Artefact) error {
 	sc := bufio.NewScanner(tf)
 	sc.Split(bufio.ScanLines)
 
@@ -230,9 +257,9 @@ func parseCopyright(tf io.Reader, md *Metadata) error {
 
 		switch k {
 		case "License":
-			md.License = v
+			a.Metadata.License = v
 		case "Upstream-Contact", "Upstream author":
-			md.Author = v
+			a.Metadata.Author = v
 		}
 	}
 

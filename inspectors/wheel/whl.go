@@ -17,7 +17,7 @@
  *
  */
 
-package metadata
+package wheel
 
 import (
 	"archive/zip"
@@ -29,39 +29,59 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/mimetypes"
+	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/utils"
 )
 
-func whlDetector(raw []byte, limit uint32) bool {
-	return zipMatches(raw,
+func WhlDetector(raw []byte, limit uint32) bool {
+	return utils.ZipMatches(raw,
 		`[^/]*\.dist-info/WHEEL`,
 		`[^/]*\.dist-info/METADATA`,
 		`[^/]*\.dist-info/RECORD`)
 }
 
-type whlInspector struct{}
+type WhlInspector struct {
+}
 
-func (whlInspector) Inspect(filename string, md *Metadata, di *DownloadInfo, ctx *InspectionContext) (stop bool, err error) {
-	if md.Type != "application/x-python-wheel" {
+func (WhlInspector) ID() string {
+	return "wheel"
+}
+
+func (ins WhlInspector) InitializeContext(sd SessionDetails) {
+}
+
+func (ins WhlInspector) InspectRequest(a *metadata.Artefact) error {
+	return nil
+}
+
+func (ins *WhlInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (stop bool, err error) {
+	md := a.Metadata
+
+	if md.Type != mimetypes.PythonWheel {
 		return
 	}
 
-	err = readWhlMetadata(filename, md)
+	size := int64(f.Len())
+
+	err = ins.readWhlMetadata(f, size, a)
 	if err != nil {
 		return
 	}
 
-	err = readWhlWheel(filename, md)
+	err = ins.readWhlWheel(f, size, a)
 	if err != nil {
 		return
 	}
 
-	fileList, err := listWheelFiles(filename)
+	fileList, err := ins.listWheelFiles(f, size, a)
 	if err != nil {
 		return
 	}
-	md.Files = fileList
 
-	err = readWhlRecord(filename, md)
+	err = ins.readWhlRecord(f, size, a, fileList)
 	if err != nil {
 		return
 	}
@@ -70,15 +90,24 @@ func (whlInspector) Inspect(filename string, md *Metadata, di *DownloadInfo, ctx
 	return
 }
 
-// listWheelFiles gets a list of wheel files and their sha1 digests.
-func listWheelFiles(filename string) ([]MemberFile, error) {
-	res := []MemberFile{}
+func (ins WhlInspector) API() InspectorAPI {
+	return nil
+}
 
-	z, err := zip.OpenReader(filename)
+type memberFile struct {
+	Name   string                `json:"name"`   // The file name with path
+	Sha256 metadata.Sha256Digest `json:"sha256"` // The SHA256 digest of content
+	Size   int64                 `json:"size"`   // The file size
+}
+
+// listWheelFiles gets a list of wheel files and their sha1 digests.
+func (ins WhlInspector) listWheelFiles(f io.ReaderAt, size int64, a *metadata.Artefact) ([]memberFile, error) {
+	res := []memberFile{}
+
+	z, err := zip.NewReader(f, size)
 	if err != nil {
 		return res, err
 	}
-	defer z.Close()
 
 	for _, f := range z.File {
 		zf, err := f.Open()
@@ -97,9 +126,9 @@ func listWheelFiles(filename string) ([]MemberFile, error) {
 			return res, err
 		}
 
-		res = append(res, MemberFile{
+		res = append(res, memberFile{
 			Name:   f.Name,
-			Sha256: *(*Sha256Digest)(sum.Sum(nil)),
+			Sha256: *(*metadata.Sha256Digest)(sum.Sum(nil)),
 			Size:   f.FileInfo().Size(),
 		})
 	}
@@ -108,25 +137,28 @@ func listWheelFiles(filename string) ([]MemberFile, error) {
 }
 
 // readWhlMetadata reads the wheel's METADATA file.
-func readWhlMetadata(filename string, md *Metadata) error {
-	z, err := zip.OpenReader(filename)
+func (ins WhlInspector) readWhlMetadata(f io.ReaderAt, size int64, a *metadata.Artefact) error {
+	z, err := zip.NewReader(f, size)
 	if err != nil {
 		return err
 	}
-	defer z.Close()
 
-	metadata := regexp.MustCompile(`^[^/]*\.dist-info/METADATA$`)
+	mre := regexp.MustCompile(`^[^/]*\.dist-info/METADATA$`)
 
 	for _, f := range z.File {
-		if m := metadata.MatchString(f.Name); m {
+		if m := mre.MatchString(f.Name); m {
 			zf, err := f.Open()
 			if err != nil {
 				return err
 			}
 			defer zf.Close()
 
-			ver := scanManifest(zf, md)
-			md.Annotate(Notice, "pip.wheel.metadata.version", ver)
+			ver := scanManifest(zf, a)
+			if ver != "" {
+				a.Approve(ins, "found wheel metadata version %s", ver)
+			} else {
+				a.Reject(ins, "wheel metadata version not found")
+			}
 			break
 		}
 	}
@@ -135,11 +167,12 @@ func readWhlMetadata(filename string, md *Metadata) error {
 }
 
 // scanManifest parses metadata entries from the given file.
-func scanManifest(zf io.ReadCloser, md *Metadata) string {
+func scanManifest(zf io.ReadCloser, a *metadata.Artefact) string {
 	sc := bufio.NewScanner(zf)
 	sc.Split(bufio.ScanLines)
 
 	var ver string
+	md := &a.Metadata
 
 	for sc.Scan() {
 		line := sc.Text()
@@ -164,7 +197,7 @@ func scanManifest(zf io.ReadCloser, md *Metadata) string {
 		case "license-expression":
 			md.License = v
 		case "classifier":
-			normalizeClassifier(v, md)
+			normalizeClassifier(v, a)
 		case "author":
 			md.Author = v
 			md.Vendor = v
@@ -177,7 +210,8 @@ func scanManifest(zf io.ReadCloser, md *Metadata) string {
 }
 
 // normalizeClassifier converts Classifier manifest entries.
-func normalizeClassifier(v string, md *Metadata) {
+func normalizeClassifier(v string, a *metadata.Artefact) {
+	md := a.Metadata
 	parts := strings.Split(v, " :: ")
 	if len(parts) < 2 {
 		return
@@ -189,93 +223,103 @@ func normalizeClassifier(v string, md *Metadata) {
 }
 
 // readWhlWheel reads the wheel's WHEEL file.
-func readWhlWheel(filename string, md *Metadata) error {
-	z, err := zip.OpenReader(filename)
+func (ins WhlInspector) readWhlWheel(f io.ReaderAt, size int64, a *metadata.Artefact) error {
+	z, err := zip.NewReader(f, size)
 	if err != nil {
 		return err
 	}
-	defer z.Close()
 
 	record := regexp.MustCompile(`^[^/]*\.dist-info/WHEEL$`)
 
+	found := false
 	for _, f := range z.File {
 		if m := record.MatchString(f.Name); m {
-			zf, err := f.Open()
-			if err != nil {
-				return err
-			}
-			defer zf.Close()
-
-			sc := bufio.NewScanner(zf)
-			sc.Split(bufio.ScanLines)
-
-			entries := AnnotationDetails{}
-
-			for sc.Scan() {
-				line := sc.Text()
-				k, v, ok := strings.Cut(line, ": ")
-				if !ok {
-					continue
-				}
-				entries[k] = v
-			}
-
-			ver := fmt.Sprintf("%s", entries["Wheel-Version"])
-
-			md.Annotate(Notice, "pip.wheel.version", ver).SetDetails(entries)
+			found = true
 			break
 		}
 	}
 
+	if !found {
+		a.Reject(ins, "WHEEL file not found")
+		return fmt.Errorf("WHEEL file not found")
+	}
+
+	a.Approve(ins, "WHEEL file found")
+
 	return nil
+
+	//			zf, err := f.Open()
+	//			if err != nil {
+	//				return err
+	//			}
+	//			defer zf.Close()
+	//
+	//			sc := bufio.NewScanner(zf)
+	//			sc.Split(bufio.ScanLines)
+	//
+	//			entries := metadata.AnnotationValue{}
+	//
+	//			for sc.Scan() {
+	//				line := sc.Text()
+	//				k, v, ok := strings.Cut(line, ": ")
+	//				if !ok {
+	//					continue
+	//				}
+	//				entries[k] = v
+	//			}
+	//
+	//			md.Annotate("wheel.details", entries)
+	//			break
 }
 
 // readWhlRecord reads the wheel's RECORD file.
-func readWhlRecord(filename string, md *Metadata) error {
-	z, err := zip.OpenReader(filename)
+func (ins WhlInspector) readWhlRecord(f io.ReaderAt, size int64, a *metadata.Artefact, files []memberFile) error {
+	z, err := zip.NewReader(f, size)
 	if err != nil {
 		return err
 	}
-	defer z.Close()
 
 	record := regexp.MustCompile(`^[^/]*\.dist-info/RECORD$`)
 
+	found := false
 	for _, f := range z.File {
 		if m := record.MatchString(f.Name); m {
+			found = true
 			zf, err := f.Open()
 			if err != nil {
 				return err
 			}
 			defer zf.Close()
 
-			if err := checkRecord(zf, f.Name, md); err != nil {
+			if err := checkRecord(zf, f.Name, a, files); err != nil {
 				return err
 			}
 			break
 		}
+	}
+
+	if !found {
+		return fmt.Errorf("RECORD file not found")
 	}
 
 	return nil
 }
 
 // checkRecord verifies files against the RECORD file checksum.
-func checkRecord(zf io.ReadCloser, rname string, md *Metadata) error {
+func checkRecord(zf io.ReadCloser, rname string, a *metadata.Artefact, files []memberFile) error {
 	sc := bufio.NewScanner(zf)
 	sc.Split(bufio.ScanLines)
 
-	fileMap := map[string]MemberFile{}
-	for _, f := range md.Files {
+	fileMap := map[string]memberFile{}
+	for _, f := range files {
 		fileMap[f.Name] = f
 	}
-
-	messages := []string{}
 
 	for sc.Scan() {
 		line := sc.Text()
 		x := strings.Split(line, ",")
 		if len(x) != 3 {
-			messages = append(messages, fmt.Sprintf("malformed RECORD entry: '%s'", line))
-			continue
+			return fmt.Errorf("malformed RECORD entry: '%s'", line)
 		}
 		name, digest := x[0], x[1]
 		if digest == "" && name == rname {
@@ -283,44 +327,36 @@ func checkRecord(zf io.ReadCloser, rname string, md *Metadata) error {
 		}
 		size, err := strconv.Atoi(x[2])
 		if err != nil {
-			messages = append(messages, fmt.Sprintf("%s: malformed size '%s' in RECORD", name, x[2]))
-			continue
+			return fmt.Errorf("%s: malformed size '%s' in RECORD", name, x[2])
 		}
 
 		// check file size
 		f := fileMap[name]
 		if int64(size) != f.Size {
-			messages = append(messages, fmt.Sprintf(
-				"%s: file size %d does not match recorded size %d", name, f.Size, size))
+			return fmt.Errorf(
+				"%s: file size %d does not match recorded size %d", name, f.Size, size)
 		}
 
 		// check file digest
 		d := strings.SplitN(digest, "=", 2)
 		if d[0] != "sha256" {
-			messages = append(messages, fmt.Sprintf("%s: unknown digest type '%s'", name, d[0]))
+			return fmt.Errorf("%s: unknown digest type '%s'", name, d[0])
 		}
 		dst, err := base64.RawURLEncoding.DecodeString(d[1])
 		if err != nil {
-			messages = append(messages, fmt.Sprintf("%s: digest decode error: %v", name, err))
+			return fmt.Errorf("%s: digest decode error: %v", name, err)
 		}
 
 		// TODO: check extra files
 		member, ok := fileMap[name]
 		if !ok {
-			messages = append(messages, fmt.Sprintf("%s: file not in RECORD", name))
+			return fmt.Errorf("%s: file not in RECORD", name)
 		}
-		recordDigest := Sha256Digest{}
+		recordDigest := metadata.Sha256Digest{}
 		copy(recordDigest[:], dst)
 		if member.Sha256 != recordDigest {
-			messages = append(messages, fmt.Sprintf("%s: digest mismatch", name))
+			return fmt.Errorf("%s: digest mismatch", name)
 		}
-	}
-
-	if len(messages) > 0 {
-		data := AnnotationDetails{"errors": messages}
-		md.Annotate(IntegrityViolation, "pip.wheel.record.check", ResultFail).SetDetails(data)
-	} else {
-		md.Annotate(Notice, "pip.wheel.record.check", ResultPass)
 	}
 
 	return nil

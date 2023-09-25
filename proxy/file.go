@@ -32,6 +32,7 @@ import (
 
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/service/messages"
 )
 
 // FileDownloadHandler creates local copies of downloaded files.
@@ -40,18 +41,18 @@ import (
 // of downloaded contents and stores downloaded data and contextual
 // metadata in the designated local file spool.
 type FileDownloadHandler struct {
-	ch         chan interface{}
-	info       metadata.DownloadInfo
-	size       int64         // streamed data size
-	sha1       hash.Hash     // sha1 digest of streamed data
-	sha256     hash.Hash     // sha256 digest of streamed data
-	tempfile   *os.File      // copy of streamed data
-	body       io.ReadCloser // response body
-	assetDir   string        // file storage location
-	insTimeout time.Duration // artifact inspection timeout
+	ch         chan interface{}   // service message channel
+	a          *metadata.Artefact // artefact metadata
+	size       int64              // streamed data size
+	sha1       hash.Hash          // sha1 digest of streamed data
+	sha256     hash.Hash          // sha256 digest of streamed data
+	tempfile   *os.File           // copy of streamed data
+	body       io.ReadCloser      // response body
+	assetDir   string             // file storage location
+	insTimeout time.Duration      // artefact inspection timeout
 }
 
-func NewFileDownloadHandler(resp *http.Response, spool string, ch chan interface{}) (*FileDownloadHandler, error) {
+func NewFileDownloadHandler(resp *http.Response, a *metadata.Artefact, spool string, ch chan interface{}) (*FileDownloadHandler, error) {
 	sessionId := resp.Request.Header.Get(sessionIdHeader)
 
 	tempfile, err := os.CreateTemp("", "fetch")
@@ -59,22 +60,14 @@ func NewFileDownloadHandler(resp *http.Response, spool string, ch chan interface
 		return nil, err
 	}
 
-	req := resp.Request
+	a.CurrentDownload.StatusCode = resp.StatusCode
+	a.CurrentDownload.Status = resp.Status
+	a.CurrentDownload.ContentType = resp.Header.Get("Content-Type")
+	a.CurrentDownload.ResponseHeader = resp.Header
 
 	h := &FileDownloadHandler{
-		ch: ch,
-		info: metadata.DownloadInfo{
-			StartTime:      time.Now().UTC(),
-			URL:            req.URL.String(),
-			Address:        req.RemoteAddr,
-			Method:         req.Method,
-			UserAgent:      req.Header.Get("User-Agent"),
-			StatusCode:     resp.StatusCode,
-			Status:         resp.Status,
-			ContentType:    resp.Header.Get("Content-Type"),
-			ResponseHeader: resp.Header,
-			SessionId:      sessionId,
-		},
+		ch:         ch,
+		a:          a,
 		size:       0,
 		sha1:       sha1.New(),
 		sha256:     sha256.New(),
@@ -104,7 +97,7 @@ func (h *FileDownloadHandler) Read(b []byte) (n int, err error) {
 		return
 	}
 	if size != n {
-		err = fmt.Errorf("%s: short write", h.info.URL)
+		err = fmt.Errorf("%s: short write", h.a.CurrentDownload.URL)
 		return
 	}
 
@@ -122,22 +115,20 @@ func (h *FileDownloadHandler) Close() error {
 	sha256 := *(*metadata.Sha256Digest)(h.sha256.Sum(nil))
 
 	// update download information
-	h.info.EndTime = time.Now().UTC()
-	h.info.Sha256 = sha256
+	h.a.CurrentDownload.EndTime = time.Now().UTC()
+	h.a.CurrentDownload.Sha256 = sha256
+
+	h.a.AssetDir = h.assetDir
+	h.a.Tempfile = h.tempfile.Name()
 
 	mver := fmt.Sprintf("%d.%d", metadata.MetadataVersionMajor, metadata.MetadataVersionMinor)
 
-	md := metadata.Metadata{
-		MetadataVersion: mver,
-		Size:            h.size,
-		Sha1:            sha1,
-		Sha256:          sha256,
-		Annotations:     metadata.AnnotationMap{},
-		AssetDir:        h.assetDir,
-		Tempfile:        h.tempfile.Name(),
-	}
+	h.a.Metadata.MetadataVersion = mver
+	h.a.Metadata.Size = h.size
+	h.a.Metadata.Sha1 = sha1
+	h.a.Metadata.Sha256 = sha256
 
-	fd := metadata.NewFileDownload(md, h.info)
+	fd := messages.NewArtefactDownload(h.a)
 	h.ch <- fd
 	select {
 	case err := <-fd.Rch:
@@ -145,7 +136,7 @@ func (h *FileDownloadHandler) Close() error {
 			return fmt.Errorf("Error saving download data for asset %s: %v", sha1, err)
 		}
 	case <-time.After(h.insTimeout):
-		logger.Errorf("inspection of artifact %s timed out", sha1)
+		logger.Errorf("inspection of artefact %s timed out", sha1)
 	}
 
 	return res

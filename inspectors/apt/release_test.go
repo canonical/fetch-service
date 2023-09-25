@@ -17,7 +17,7 @@
  *
  */
 
-package metadata_test
+package apt_test
 
 import (
 	"crypto/tls"
@@ -27,26 +27,21 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/go-mmap/mmap"
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/logger"
-	"github.com/canonical/fetch-service/logger/testlogger"
+	"github.com/canonical/fetch-service/inspectors/apt"
 	"github.com/canonical/fetch-service/metadata"
 )
 
-type whlSuite struct{}
-
-func (t *whlSuite) SetUpTest(c *C) {
-	testlogger.Init(logger.InfoLevel)
-}
-
-var _ = Suite(&whlSuite{})
-
 const (
-	whlURL = "https://files.pythonhosted.org/packages/1a/27/39933dc51320918ca559eb1abb2ab6d4083f431f1e755c0e79cc717494d7/craft_grammar-1.1.1-py2.py3-none-any.whl"
+	releaseURL = "http://archive.ubuntu.com/ubuntu/dists/jammy/InRelease"
 )
 
-func (s *whlSuite) TestWhlInspector(c *C) {
+// XXX: This file contains minimal testing for apt file formats. Tests
+//      will be extended after the metadata format is approved.
+
+func (s *aptSuite) TestAptReleaseInspector(c *C) {
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
@@ -55,7 +50,7 @@ func (s *whlSuite) TestWhlInspector(c *C) {
 		Timeout:   30 * time.Second,
 	}
 
-	req, err := http.NewRequest("GET", whlURL, nil)
+	req, err := http.NewRequest("GET", releaseURL, nil)
 	c.Assert(err, IsNil)
 
 	resp, err := client.Do(req)
@@ -74,24 +69,25 @@ func (s *whlSuite) TestWhlInspector(c *C) {
 	dest.Close()
 
 	h, _ := metadata.NewSha1Digest("290d07339dde2735121ab03e525ca6593c395a42")
-	md := &metadata.Metadata{Type: "application/x-python-wheel", Sha1: h}
-	di := &metadata.DownloadInfo{}
+	a := metadata.NewArtefact()
+	a.Metadata.Type = "application/x-apt-release"
+	a.Metadata.Sha1 = h
 
-	var iface metadata.Inspector
-	ins := metadata.WhlInspector{}
-	c.Assert(ins, Implements, &iface)
+	//var iface inspectors.Inspector
+	ins := apt.AptReleaseInspector{}
+	//c.Assert(ins, Implements, &iface)
 
-	stop, err := ins.Inspect(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"), md, di, nil)
+	f, err := mmap.Open(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"))
+	c.Assert(err, IsNil)
+	defer f.Close()
+
+	stop, err := ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(stop, Equals, true)
 
-	c.Check(md.Name, Equals, "craft-grammar")
-	c.Check(md.Vendor, Equals, "Canonical Ltd.")
-	c.Check(md.Description, Equals, `"Advance Grammar for Craft Parts"`)
-	c.Check(md.Author, Equals, "Canonical Ltd.")
-	c.Check(md.AuthorEmail, Equals, "snapcraft@lists.snapcraft.io")
-	c.Check(md.License, Equals, "GNU Lesser General Public License v3 (LGPLv3)")
-	c.Check(md.Annotations["pip.wheel.version"].Value, Equals, "1.0")
-	c.Check(md.Annotations["pip.wheel.metadata.version"].Value, Equals, "2.1")
-	c.Check(md.Annotations["pip.wheel.record.check"].Value, Equals, "pass")
+	c.Check(a.Metadata.Name, Equals, "InRelease")
+	c.Check(a.Metadata.Vendor, Equals, "Ubuntu")
+	c.Check(a.Metadata.Description, Equals, "Ubuntu Jammy 22.04")
+	c.Check(a.Metadata.Author, Equals, "Ubuntu")
+	//c.Check(a.Metadata.Annotations, HasLen, 0)
 }

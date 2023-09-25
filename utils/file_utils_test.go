@@ -17,7 +17,7 @@
  *
  */
 
-package metadata_test
+package utils_test
 
 import (
 	"archive/zip"
@@ -29,14 +29,14 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/utils"
 )
 
-type mimetypeSuite struct{}
+type fileutilsSuite struct{}
 
-var _ = Suite(&mimetypeSuite{})
+var _ = Suite(&fileutilsSuite{})
 
-func (s *mimetypeSuite) TestZipMatches(c *C) {
+func (t *fileutilsSuite) TestZipMatches(c *C) {
 	tmp := c.MkDir()
 	content := make([]byte, 5000)
 	for i := range content {
@@ -59,14 +59,14 @@ func (s *mimetypeSuite) TestZipMatches(c *C) {
 	c.Assert(err, IsNil)
 
 	dest := buf.Bytes()
-	c.Check(metadata.ZipMatches(dest, `^.*\.txt$`), Equals, true)
-	c.Check(metadata.ZipMatches(dest, `^`+tmp), Equals, true)
-	c.Check(metadata.ZipMatches(dest, `stuff/foo.txt$`), Equals, true)
-	c.Check(metadata.ZipMatches(dest, `stuff/bar.txt$`), Equals, true)
-	c.Check(metadata.ZipMatches(dest, `/bar.txt$`), Equals, true)
-	c.Check(metadata.ZipMatches(dest, `baz.txt`), Equals, false)
-	c.Check(metadata.ZipMatches(dest, `/b.*\.txt`, `/f.*\.txt`), Equals, true)
-	c.Check(metadata.ZipMatches(dest, `/b*.txt`, `/z*.txt`), Equals, false)
+	c.Check(utils.ZipMatches(dest, `^.*\.txt$`), Equals, true)
+	c.Check(utils.ZipMatches(dest, `^`+tmp), Equals, true)
+	c.Check(utils.ZipMatches(dest, `stuff/foo.txt$`), Equals, true)
+	c.Check(utils.ZipMatches(dest, `stuff/bar.txt$`), Equals, true)
+	c.Check(utils.ZipMatches(dest, `/bar.txt$`), Equals, true)
+	c.Check(utils.ZipMatches(dest, `baz.txt`), Equals, false)
+	c.Check(utils.ZipMatches(dest, `/b.*\.txt`, `/f.*\.txt`), Equals, true)
+	c.Check(utils.ZipMatches(dest, `/b*.txt`, `/z*.txt`), Equals, false)
 }
 
 func createZip(src string, dest io.Writer) error {

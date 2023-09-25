@@ -17,4 +17,19 @@
  *
  */
 
-package metadata
+package apt_test
+
+import (
+	. "gopkg.in/check.v1"
+
+	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/logger/testlogger"
+)
+
+type aptSuite struct{}
+
+func (t *aptSuite) SetUpTest(c *C) {
+	testlogger.Init(logger.InfoLevel)
+}
+
+var _ = Suite(&aptSuite{})

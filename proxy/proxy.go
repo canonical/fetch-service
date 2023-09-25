@@ -28,7 +28,9 @@ import (
 	"github.com/elazarl/goproxy"
 
 	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/proxy/auth"
+	"github.com/canonical/fetch-service/service/messages"
 )
 
 const (
@@ -44,7 +46,9 @@ type ProxyAuth struct {
 }
 
 // proxyData contains contextual information for request and response handlers.
-type proxyData struct{}
+type proxyData struct {
+	a *metadata.Artefact
+}
 
 // HttpProxy implements a proxy that inspects downloaded contents.
 type HttpProxy struct {
@@ -57,6 +61,7 @@ type HttpProxy struct {
 
 func NewHttpProxy(port int, spool string, ch chan interface{}) *HttpProxy {
 	basicAuth := func(req *http.Request, user, passwd string) bool {
+		logger.Debugf("set session ID header in request to %s", user)
 		req.Header.Set(sessionIdHeader, user)
 		rch := make(chan bool)
 		ch <- ProxyAuth{rch, user, passwd}
@@ -113,9 +118,38 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 		sessionId, ok := ctx.UserData.(string)
 		if ok {
 			// Set session ID in mitm requests
+			logger.Debugf("set session ID header in mitm request to %s", sessionId)
 			req.Header.Set(sessionIdHeader, sessionId)
 		}
 	}
+
+	a := metadata.NewArtefact()
+	a.SessionId = req.Header.Get(sessionIdHeader)
+
+	a.CurrentDownload.StartTime = time.Now().UTC()
+	a.CurrentDownload.URL = req.URL.String()
+	a.CurrentDownload.Address = req.RemoteAddr
+	a.CurrentDownload.Method = req.Method
+	a.CurrentDownload.UserAgent = req.Header.Get("User-Agent")
+
+	authReq := messages.NewRequestAuthorization(a)
+	p.ch <- authReq
+	err := <-authReq.Rch
+	if err != nil {
+		return req, goproxy.NewResponse(
+			req, goproxy.ContentTypeText,
+			http.StatusForbidden,
+			fmt.Sprintf("download authorization denied: %s", err),
+		)
+	}
+
+	req.Body, err = NewRequestHandler(req, a, p.ch)
+	if err != nil {
+		return req, internalErrorResponse(req, "Cannot handle requests")
+	}
+
+	ctx.UserData = proxyData{a: a}
+
 	return req, nil
 }
 
@@ -125,8 +159,10 @@ func (p *HttpProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) 
 		return resp
 	}
 
+	a := ctx.UserData.(proxyData).a
+
 	var err error
-	resp.Body, err = NewFileDownloadHandler(resp, p.spool, p.ch)
+	resp.Body, err = NewFileDownloadHandler(resp, a, p.spool, p.ch)
 	if err != nil {
 		return internalErrorResponse(resp.Request, "Cannot handle file downloads")
 	}

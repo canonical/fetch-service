@@ -29,6 +29,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/proxy"
+	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
 )
 
@@ -73,9 +74,31 @@ dispatcherLoop:
 		select {
 		case msg := <-svc.ch:
 			switch v := msg.(type) {
-			case metadata.FileDownload:
-				assetDir := v.Md.AssetDir
-				sessionId, digest := v.Info.SessionId, v.Md.Sha256
+			case messages.RequestAuthorization:
+				sessionId := v.A.SessionId
+				s := session.GetSession(sessionId)
+				if s == nil {
+					logger.Warningf("session %s is not active", sessionId)
+					break
+				}
+
+				go func(a *metadata.Artefact, rch chan error) {
+					// Check request
+					if err := s.Insps.RunRequestInspectors(a); err != nil {
+						logger.Errorf("%s", err)
+						rch <- err
+						return
+					}
+
+					dl := v.A.CurrentDownload
+					logger.Infof("[%s] %s %s: request approved", sessionId, dl.Method, dl.URL)
+					rch <- nil
+				}(v.A, v.Rch)
+
+			case messages.ArtefactDownload:
+				assetDir := v.A.AssetDir
+				sessionId := v.A.SessionId
+				digest := v.A.Metadata.Sha256
 
 				s := session.GetSession(sessionId)
 				if s == nil {
@@ -83,35 +106,38 @@ dispatcherLoop:
 					break
 				}
 
-				// Add download info to artifact metadata
-				logger.Infof("[%s] %s %s: %s (%s)", sessionId, v.Info.Method, v.Info.URL, v.Info.Status, v.Info.ContentType)
+				// Add download info to artefact metadata
+				dl := v.A.CurrentDownload
+				logger.Infof("[%s] %s %s: %s (%s)", sessionId, dl.Method, dl.URL, dl.Status, dl.ContentType)
 
-				if s.HasMetadata(digest) {
-					logger.Infof("artifact %s already downloaded", digest)
-					s.AddDownloadInfo(v.Info)
+				if s.HasArtefact(digest) {
+					logger.Infof("artefact %s already downloaded", digest)
+					s.AddDownload(v.A.CurrentDownload)
 					v.Rch <- nil
 					break
 
 				}
-				s.AddMetadata(&v.Md)
+
+				// Add metadata to session
+				s.AddArtefact(v.A)
 				if err := s.SaveData(digest); err != nil {
 					v.Rch <- err
 					break
 				}
 
-				s.AddDownloadInfo(v.Info)
+				s.AddDownload(v.A.CurrentDownload)
 
-				go func(md *metadata.Metadata, di *metadata.DownloadInfo, ch chan error) {
+				go func(a *metadata.Artefact, rch chan error) {
 					// Extract metadata from file
-					if err := s.Ctx.RunInspectors(assetDir, md, di); err != nil {
+					if err := s.Insps.RunArtefactInspectors(assetDir, a); err != nil {
 						logger.Errorf("%s", err)
-						ch <- err
+						rch <- err
 						return
 					}
 
-					logger.Infof("[%s] artifact %s %d (%s)", sessionId, digest, md.Size, md.Type)
-					ch <- nil
-				}(&v.Md, &v.Info, v.Rch)
+					logger.Infof("[%s] artefact %s %d (%s)", sessionId, digest, a.Metadata.Size, a.Metadata.Type)
+					rch <- nil
+				}(v.A, v.Rch)
 
 			case proxy.ProxyAuth:
 				v.Rch <- session.CheckAuth(v.Id, v.Pw)

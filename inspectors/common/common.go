@@ -17,4 +17,21 @@
  *
  */
 
-package metadata
+package common
+
+import (
+	"io"
+)
+
+type ReadAtSeeker interface {
+	io.ReadSeeker
+	io.ReaderAt
+	Len() int
+}
+
+type InspectorAPI interface {
+}
+
+type SessionDetails interface {
+	GetInspectorAPI(name string) (InspectorAPI, error)
+}
