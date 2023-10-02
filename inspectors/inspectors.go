@@ -85,7 +85,7 @@ func New(permissive bool) Inspectors {
 		id := ins.ID()
 		insps.ids[n] = id
 		insps.insmap[id] = ins
-		logger.Debugf("register inspector: %s", id)
+		//logger.Debugf("register inspector: %s", id)
 	}
 
 	return insps

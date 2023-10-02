@@ -48,3 +48,41 @@ func NewRequestAuthorization(a *metadata.Artefact) RequestAuthorization {
 		A:   a,
 	}
 }
+
+// Session creation
+
+type SessionCredentials struct {
+	Id     string `json:"id"`
+	Pw     string `json:"pw"`
+	Policy string `json:"policy"`
+}
+
+type CreateSession struct {
+	Rch chan SessionCredentials // Handler response channel
+}
+
+func NewCreateSession() CreateSession {
+	return CreateSession{
+		Rch: make(chan SessionCredentials, 1),
+	}
+}
+
+// Session end
+
+type SessionResult struct {
+	Err error
+	// TODO: add session stats
+	Artefacts []*metadata.Artefact `json:"artefacts"`
+}
+
+type EndSession struct {
+	Rch chan SessionResult // Handler response channel
+	Id  string
+}
+
+func NewEndSession(sessionId string) EndSession {
+	return EndSession{
+		Rch: make(chan SessionResult, 1),
+		Id:  sessionId,
+	}
+}

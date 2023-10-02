@@ -64,10 +64,12 @@ func New(permissive bool) *Session {
 
 	s.Insps = inspectors.New(permissive)
 
-	// FIXME: predictable values for testing convenience until the session
-	//        creation API is implemented.
-	s.Id = "6ba7b8109dad11d180b400c04fd430c8"
-	s.Pw = "1ItfzwGBeJ8wsJdP0Nlx"
+	/*
+		// FIXME: predictable values for testing convenience until the session
+		//        creation API is implemented.
+		s.Id = "6ba7b8109dad11d180b400c04fd430c8"
+		s.Pw = "1ItfzwGBeJ8wsJdP0Nlx"
+	*/
 
 	var sType string
 	if permissive {
@@ -101,6 +103,16 @@ func (s *Session) Discard() {
 	}
 	logger.Infof("discarding session %s", s.Id)
 	delete(sessions, s.Id)
+}
+
+func (s *Session) Artefacts() []*metadata.Artefact {
+	a := make([]*metadata.Artefact, len(s.A))
+	i := 0
+	for _, v := range s.A {
+		a[i] = v
+		i++
+	}
+	return a
 }
 
 // AddArtefact adds downloaded artefact metadata to the current

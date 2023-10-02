@@ -64,7 +64,7 @@ type HttpProxy struct {
 
 func NewHttpProxy(port int, spool string, ch chan interface{}) *HttpProxy {
 	basicAuth := func(req *http.Request, user, passwd string) bool {
-		logger.Debugf("set session ID header in request to %s", user)
+		//logger.Debugf("set session ID header in request to %s", user)
 		req.Header.Set(sessionIdHeader, user)
 		rch := make(chan bool)
 		ch <- ProxyAuth{rch, user, passwd}
@@ -127,7 +127,7 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 		sessionId, ok := ctx.UserData.(string)
 		if ok {
 			// Set session ID in mitm requests
-			logger.Debugf("set session ID header in mitm request to %s", sessionId)
+			//logger.Debugf("set session ID header in mitm request to %s", sessionId)
 			req.Header.Set(sessionIdHeader, sessionId)
 		}
 	}
