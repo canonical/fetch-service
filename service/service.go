@@ -25,6 +25,7 @@ import (
 
 	"gopkg.in/tomb.v2"
 
+	"github.com/canonical/fetch-service/control"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/proxy"
@@ -35,6 +36,7 @@ import (
 // Service implements the fetch service main loop.
 type Service struct {
 	p    *proxy.HttpProxy // proxy instance
+	ctl  *control.Server  // control server
 	ch   chan interface{} // channel to get feedback from handlers
 	opt  *Options         // configuration options
 	tomb tomb.Tomb        // service dispacher loop reaper
@@ -49,8 +51,9 @@ func init() {
 func New(opt *Options) *Service {
 	ch := make(chan interface{})
 	p := proxyNewHttpProxy(opt.Port, opt.Spool, ch)
+	ctl := control.NewServer(9999, ch)
 
-	return &Service{p: p, opt: opt, ch: ch}
+	return &Service{p: p, ctl: ctl, opt: opt, ch: ch}
 }
 
 // Start runs the fetch service dispatcher.
@@ -60,7 +63,8 @@ func (svc *Service) Start() error {
 		return err
 	}
 
-	_ = session.New(svc.opt.PermissiveMode) // FIXME: to be created using the API
+	//_ = session.New(svc.opt.PermissiveMode) // FIXME: to be created using the API
+	svc.ctl.Start()
 
 	svc.tomb.Go(func() error {
 		for {
@@ -131,8 +135,24 @@ func (svc *Service) Start() error {
 						rch <- nil
 					}(v.A, v.Rch)
 
-				case proxy.ProxyAuth:
+				case messages.CreateSession:
+					s := session.New(svc.opt.PermissiveMode)
+					v.Rch <- messages.SessionCredentials{Id: s.Id, Pw: s.Pw}
+
+				case messages.ProxyAuth:
 					v.Rch <- session.CheckAuth(v.Id, v.Pw)
+
+				case messages.EndSession:
+					sessionId := v.Id
+					s := session.GetSession(sessionId)
+					err := s.Finish()
+					res := messages.SessionResult{}
+					if err != nil {
+						res.Err = err
+					} else {
+						res.Artefacts = s.Artefacts()
+					}
+					v.Rch <- res
 
 				default:
 					logger.Warningf("Unknown message type %T", v)
@@ -141,6 +161,7 @@ func (svc *Service) Start() error {
 			case <-svc.tomb.Dying():
 				return nil
 			}
+
 		}
 	})
 

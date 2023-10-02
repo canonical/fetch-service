@@ -214,6 +214,8 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 		}
 	}
 
+	a.Approve(ins, "release file parse successful")
+
 	a.Metadata.Name = "InRelease"
 
 	return nil

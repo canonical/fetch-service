@@ -103,6 +103,16 @@ func (s *Session) Discard() {
 	delete(sessions, s.Id)
 }
 
+func (s *Session) Artefacts() []*metadata.Artefact {
+	a := make([]*metadata.Artefact, len(s.A))
+	i := 0
+	for _, v := range s.A {
+		a[i] = v
+		i++
+	}
+	return a
+}
+
 // AddArtefact adds downloaded artefact metadata to the current
 // session.
 func (s *Session) AddArtefact(a *metadata.Artefact) {
