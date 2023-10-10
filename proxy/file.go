@@ -48,33 +48,50 @@ type FileDownloadHandler struct {
 	sha256     hash.Hash          // sha256 digest of streamed data
 	tempfile   *os.File           // copy of streamed data
 	body       io.ReadCloser      // response body
-	assetDir   string             // file storage location
 	insTimeout time.Duration      // artefact inspection timeout
 }
 
 func NewFileDownloadHandler(resp *http.Response, a *metadata.Artefact, spool string, ch chan interface{}) (*FileDownloadHandler, error) {
-	sessionId := resp.Request.Header.Get(sessionIdHeader)
+	r := resp.Request
+	sessionId := r.Header.Get(sessionIdHeader)
+	insTimeout := 60 * time.Second // XXX: make this a configurable parameter
+	assetDir := filepath.Join(spool, sessionId, "assets")
 
 	tempfile, err := os.CreateTemp("", "fetch")
 	if err != nil {
 		return nil, err
 	}
 
-	a.CurrentDownload.StatusCode = resp.StatusCode
-	a.CurrentDownload.Status = resp.Status
-	a.CurrentDownload.ContentType = resp.Header.Get("Content-Type")
-	a.CurrentDownload.ResponseHeader = resp.Header
+	a.Tempfile = tempfile.Name()
+	a.AssetDir = assetDir
+
+	if err := localDownload(resp, a, tempfile); err != nil {
+		return nil, err
+	}
+
+	fd := messages.NewArtefactDownload(a)
+	ch <- fd
+	select {
+	case err := <-fd.Rch:
+		if err != nil {
+			return nil, fmt.Errorf("Error saving download data for asset %s: %v", a.Metadata.Sha256, err)
+		}
+	case <-time.After(insTimeout):
+		return nil, fmt.Errorf("inspection of artefact %s timed out", a.Metadata.Sha256)
+	}
+
+	filename := fmt.Sprintf("%s.data", a.Metadata.Sha256)
+	buffer, err := os.Open(filepath.Join(assetDir, filename))
+	if err != nil {
+		return nil, err
+	}
 
 	h := &FileDownloadHandler{
-		ch:         ch,
-		a:          a,
-		size:       0,
-		sha1:       sha1.New(),
-		sha256:     sha256.New(),
-		tempfile:   tempfile,
-		body:       resp.Body,
-		assetDir:   filepath.Join(spool, sessionId, "assets"),
-		insTimeout: 60 * time.Second,
+		ch:       ch,
+		a:        a,
+		size:     0,
+		tempfile: tempfile,
+		body:     buffer,
 	}
 
 	return h, nil
@@ -82,62 +99,86 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artefact, spool str
 
 // Read transfers data, computes digests and writes to a local copy of the file.
 func (h *FileDownloadHandler) Read(b []byte) (n int, err error) {
-	n, err = h.body.Read(b)
-	if err != nil && err != io.EOF {
-		return
+	return h.body.Read(b)
+}
+
+// Close finalizes the transfer.
+func (h *FileDownloadHandler) Close() error {
+	res := h.body.Close()
+	if err := h.tempfile.Close(); err != nil {
+		logger.Warning(err)
 	}
+
+	// update download information
+	h.a.CurrentDownload.EndTime = time.Now().UTC()
+
+	return res
+}
+
+// localDownload stores the response body locally.
+func localDownload(resp *http.Response, a *metadata.Artefact, tempfile io.WriteCloser) error {
+	// download file for local buffering
+	resp.Body = NewLocalDownloadHandler(resp, a)
+	logger.Debugf("downloading %s...", resp.Request.URL)
+	size, err := io.Copy(tempfile, resp.Body)
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+
+	if size != a.Metadata.Size {
+		return fmt.Errorf("file size mismatch (%d, expected %d)", size, a.Metadata.Size)
+	}
+
+	a.CurrentDownload.Sha256 = a.Metadata.Sha256
+	a.CurrentDownload.StatusCode = resp.StatusCode
+	a.CurrentDownload.Status = resp.Status
+	a.CurrentDownload.ContentType = resp.Header.Get("Content-Type")
+	a.CurrentDownload.ResponseHeader = resp.Header
+
+	return nil
+}
+
+// LocalDownloadHandler computes digests during artefact download.
+type LocalDownloadHandler struct {
+	a      *metadata.Artefact // artefact metadata
+	size   int64              // streamed data size
+	sha1   hash.Hash          // sha1 digest of streamed data
+	sha256 hash.Hash          // sha256 digest of streamed data
+	body   io.ReadCloser      // response body
+}
+
+func NewLocalDownloadHandler(resp *http.Response, a *metadata.Artefact) *LocalDownloadHandler {
+	logger.Debugf("create new proxy downloader")
+
+	return &LocalDownloadHandler{
+		a:      a,
+		size:   0,
+		sha1:   sha1.New(),
+		sha256: sha256.New(),
+		body:   resp.Body,
+	}
+}
+
+func (h *LocalDownloadHandler) Read(b []byte) (n int, err error) {
+	n, err = h.body.Read(b)
 
 	h.size += int64(n)
 	h.sha1.Write(b[:n])
 	h.sha256.Write(b[:n])
 
-	size, e2 := h.tempfile.Write(b[:n])
-	if e2 != nil {
-		err = e2
-		return
-	}
-	if size != n {
-		err = fmt.Errorf("%s: short write", h.a.CurrentDownload.URL)
-		return
-	}
-
-	return
+	return n, err
 }
 
-// Close finalizes the transfer and writes metadata files to the spool.
-func (h *FileDownloadHandler) Close() error {
+func (h *LocalDownloadHandler) Close() error {
 	res := h.body.Close()
-	if err := h.tempfile.Close(); err != nil {
-		logger.Warningf("%s", err)
-	}
-
-	sha1 := *(*metadata.Sha1Digest)(h.sha1.Sum(nil))
-	sha256 := *(*metadata.Sha256Digest)(h.sha256.Sum(nil))
-
-	// update download information
-	h.a.CurrentDownload.EndTime = time.Now().UTC()
-	h.a.CurrentDownload.Sha256 = sha256
-
-	h.a.AssetDir = h.assetDir
-	h.a.Tempfile = h.tempfile.Name()
 
 	mver := fmt.Sprintf("%d.%d", metadata.MetadataVersionMajor, metadata.MetadataVersionMinor)
-
 	h.a.Metadata.MetadataVersion = mver
-	h.a.Metadata.Size = h.size
-	h.a.Metadata.Sha1 = sha1
-	h.a.Metadata.Sha256 = sha256
 
-	fd := messages.NewArtefactDownload(h.a)
-	h.ch <- fd
-	select {
-	case err := <-fd.Rch:
-		if err != nil {
-			return fmt.Errorf("Error saving download data for asset %s: %v", sha1, err)
-		}
-	case <-time.After(h.insTimeout):
-		logger.Errorf("inspection of artefact %s timed out", sha1)
-	}
+	h.a.Metadata.Size = h.size
+	h.a.Metadata.Sha1 = *(*metadata.Sha1Digest)(h.sha1.Sum(nil))
+	h.a.Metadata.Sha256 = *(*metadata.Sha256Digest)(h.sha256.Sum(nil))
 
 	return res
 }

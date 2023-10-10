@@ -21,9 +21,11 @@ package proxy_test
 
 import (
 	"crypto/tls"
-	"io"
+	"fmt"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -83,44 +85,48 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 	}
 
 	go func() {
-		// authorize download
-		msg := <-ch
-		auth := msg.(proxy.ProxyAuth)
-		c.Assert(auth.Id, Equals, s.Id)
-		c.Assert(auth.Pw, Equals, s.Pw)
-		auth.Rch <- true
+		req, err := http.NewRequest("GET", url.String(), nil)
+		c.Assert(err, IsNil)
 
-		// run request inspectors
-		msg = <-ch
-		v := msg.(messages.RequestAuthorization)
-		v.Rch <- nil // no errors
+		resp, err := client.Do(req)
+		c.Assert(err, IsNil)
+		c.Assert(resp.StatusCode, Equals, 200)
 	}()
 
-	req, err := http.NewRequest("GET", url.String(), nil)
+	// authorize download
+	msg := <-ch
+	auth := msg.(proxy.ProxyAuth)
+	c.Assert(auth.Id, Equals, s.Id)
+	c.Assert(auth.Pw, Equals, s.Pw)
+	auth.Rch <- true
+
+	// run request inspectors
+	msg = <-ch
+	v := msg.(messages.RequestAuthorization)
+	v.Rch <- nil // no errors
+
+	// artefact downloaded
+	msg = <-ch
+	u := msg.(messages.ArtefactDownload)
+
+	dest := filepath.Join(u.A.AssetDir, fmt.Sprintf("%s.data", u.A.Metadata.Sha256))
+	err = os.MkdirAll(filepath.Dir(dest), 0755)
 	c.Assert(err, IsNil)
 
-	resp, err := client.Do(req)
+	err = os.Rename(u.A.Tempfile, dest)
 	c.Assert(err, IsNil)
-	c.Assert(resp.StatusCode, Equals, 200)
-
-	defer resp.Body.Close()
-
-	go func(body io.ReadCloser) {
-		_, err = io.ReadAll(body)
-		c.Assert(err, IsNil)
-	}(resp.Body)
+	os.Remove(u.A.Tempfile)
 
 	// check downloaded file information
-	msg := <-ch
-	v := msg.(messages.ArtefactDownload)
+	c.Assert(v.A.Metadata.MetadataVersion, Equals, "0.1")
+	c.Assert(u.A.Metadata.Sha1.String(), Equals, "d8c1f9634007b54c1e9aa3ba3b51395b643933c3")
+	c.Assert(u.A.Metadata.Sha256.String(), Equals, "750335248ccc68d07397e2b843d94fd1a164ddeca23892ca8398b5d528cd89eb")
+	c.Assert(u.A.Metadata.Size, Equals, int64(26600))
 
-	c.Assert(v.A.Metadata.Sha1.String(), Equals, "d8c1f9634007b54c1e9aa3ba3b51395b643933c3")
-
-	dl := v.A.CurrentDownload
+	dl := u.A.CurrentDownload
 	c.Assert(dl.StatusCode, Equals, 200)
 	c.Assert(dl.Method, Equals, "GET")
 	c.Assert(dl.ContentType, Equals, "application/x-debian-package")
 
-	// no handling errors
-	v.Rch <- nil
+	u.Rch <- nil // no errors
 }

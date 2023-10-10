@@ -164,6 +164,7 @@ func (p *HttpProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) 
 	var err error
 	resp.Body, err = NewFileDownloadHandler(resp, a, p.spool, p.ch)
 	if err != nil {
+		logger.Warningf(err.Error())
 		return internalErrorResponse(resp.Request, "Cannot handle file downloads")
 	}
 
