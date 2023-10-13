@@ -39,12 +39,13 @@ import (
 
 // Session has information about each authorized client.
 type Session struct {
-	Id    string
-	Pw    string
-	Start time.Time
-	End   time.Time
-	Insps inspectors.Inspectors
-	A     map[metadata.Sha256Digest]*metadata.Artefact
+	Id         string
+	Pw         string
+	Start      time.Time
+	End        time.Time
+	Insps      inspectors.Inspectors
+	A          map[metadata.Sha256Digest]*metadata.Artefact
+	Permissive bool
 }
 
 var (
@@ -52,15 +53,16 @@ var (
 	randomString  = randomStringImpl
 )
 
-func New() *Session {
+func New(permissive bool) *Session {
 	s := &Session{
-		Id:    makeSessionId(),
-		Pw:    randomString(20),
-		Start: time.Now().UTC(),
-		A:     map[metadata.Sha256Digest]*metadata.Artefact{},
+		Id:         makeSessionId(),
+		Pw:         randomString(20),
+		Start:      time.Now().UTC(),
+		A:          map[metadata.Sha256Digest]*metadata.Artefact{},
+		Permissive: permissive,
 	}
 
-	s.Insps = inspectors.New()
+	s.Insps = inspectors.New(permissive)
 
 	// FIXME: predictable values for testing convenience until the session
 	//        creation API is implemented.

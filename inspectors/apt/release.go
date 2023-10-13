@@ -22,6 +22,7 @@ package apt
 import (
 	"bufio"
 	"bytes"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -121,7 +122,19 @@ func (ins *AptReleaseInspector) ID() string {
 }
 
 func (ins *AptReleaseInspector) InspectRequest(a *metadata.Artefact) error {
-	return nil
+	validReqs := []*regexp.Regexp{
+		regexp.MustCompile(`http://archive\.ubuntu\.com/`),
+		regexp.MustCompile(`http://security\.ubuntu\.com/`),
+		regexp.MustCompile(`https://esm\.ubuntu\.com:443/`),
+		regexp.MustCompile(`http://repo.ros2.org/`),
+	}
+
+	for _, re := range validReqs {
+		if re.MatchString(a.CurrentDownload.URL) {
+			return nil
+		}
+	}
+	return ErrUnknownRequest // we don't recognize this request
 }
 
 func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {

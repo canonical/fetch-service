@@ -41,14 +41,10 @@ import (
 // of downloaded contents and stores downloaded data and contextual
 // metadata in the designated local file spool.
 type FileDownloadHandler struct {
-	ch         chan interface{}   // service message channel
-	a          *metadata.Artefact // artefact metadata
-	size       int64              // streamed data size
-	sha1       hash.Hash          // sha1 digest of streamed data
-	sha256     hash.Hash          // sha256 digest of streamed data
-	tempfile   *os.File           // copy of streamed data
-	body       io.ReadCloser      // response body
-	insTimeout time.Duration      // artefact inspection timeout
+	ch       chan interface{}   // service message channel
+	a        *metadata.Artefact // artefact metadata
+	tempfile *os.File           // copy of streamed data
+	body     io.ReadCloser      // response body
 }
 
 func NewFileDownloadHandler(resp *http.Response, a *metadata.Artefact, spool string, ch chan interface{}) (*FileDownloadHandler, error) {
@@ -74,9 +70,11 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artefact, spool str
 	select {
 	case err := <-fd.Rch:
 		if err != nil {
-			return nil, fmt.Errorf("error saving download data for asset %s: %v", a.Metadata.Sha256, err)
+			// XXX: if in strict mode, end this session
+			return nil, err
 		}
 	case <-time.After(insTimeout):
+		// XXX: if in strict mode, end this session
 		return nil, fmt.Errorf("inspection of artefact %s timed out", a.Metadata.Sha256)
 	}
 
@@ -89,7 +87,6 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artefact, spool str
 	h := &FileDownloadHandler{
 		ch:       ch,
 		a:        a,
-		size:     0,
 		tempfile: tempfile,
 		body:     buffer,
 	}

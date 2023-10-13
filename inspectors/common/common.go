@@ -20,6 +20,7 @@
 package common
 
 import (
+	"errors"
 	"io"
 )
 
@@ -28,3 +29,7 @@ type ReadAtSeeker interface {
 	io.ReaderAt
 	Len() int
 }
+
+var (
+	ErrUnknownRequest = errors.New("request was not recognized by this inspector")
+)

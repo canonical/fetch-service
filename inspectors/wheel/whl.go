@@ -55,7 +55,11 @@ func (WhlInspector) ID() string {
 }
 
 func (ins WhlInspector) InspectRequest(a *metadata.Artefact) error {
-	return nil
+	url := a.CurrentDownload.URL
+	if strings.Contains(url, "pypi.org") || strings.Contains(url, "pythonhosted.org") {
+		return nil
+	}
+	return ErrUnknownRequest // we don't recognize this request
 }
 
 func (ins *WhlInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
@@ -82,6 +86,10 @@ func (ins *WhlInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) e
 
 	if err := ins.readWhlRecord(f, size, a, fileList); err != nil {
 		return err
+	}
+
+	if !a.Rejected() {
+		a.Approve(ins, "wheel file successfully parsed")
 	}
 
 	return nil
@@ -146,11 +154,9 @@ func (ins WhlInspector) readWhlMetadata(f io.ReaderAt, size int64, a *metadata.A
 			}
 			defer zf.Close()
 
-			ver := scanManifest(zf, a)
-			if ver != "" {
-				a.Approve(ins, "found wheel metadata version %s", ver)
-			} else {
+			if ver := scanManifest(zf, a); ver == "" {
 				a.Reject(ins, "wheel metadata version not found")
+				return nil
 			}
 			break
 		}
@@ -236,8 +242,6 @@ func (ins WhlInspector) readWhlWheel(f io.ReaderAt, size int64, a *metadata.Arte
 		a.Reject(ins, "WHEEL file not found")
 		return fmt.Errorf("WHEEL file not found")
 	}
-
-	a.Approve(ins, "WHEEL file found")
 
 	return nil
 

@@ -58,23 +58,32 @@ type Inspector interface {
 }
 
 type Inspectors struct {
-	insmap map[string]Inspector
-	keys   []string
+	insmap     map[string]Inspector
+	ids        []string
+	permissive bool
 }
 
-func New() Inspectors {
-	insps := Inspectors{}
-	insps.insmap = map[string]Inspector{}
+func New(permissive bool) Inspectors {
 
-	for _, ins := range []Inspector{
+	insList := []Inspector{
 		wheel.NewWhlInspector(),
 		deb.NewDebInspector(),
 		apt.NewAptReleaseInspector(),
 		apt.NewAptPackagesInspector(),
 		&DefaultInspector{},
-	} {
+	}
+
+	insNum := len(insList)
+
+	insps := Inspectors{
+		insmap:     make(map[string]Inspector, insNum),
+		ids:        make([]string, insNum),
+		permissive: permissive,
+	}
+
+	for n, ins := range insList {
 		id := ins.ID()
-		insps.keys = append(insps.keys, id)
+		insps.ids[n] = id
 		insps.insmap[id] = ins
 		logger.Debugf("register inspector: %s", id)
 	}
@@ -82,14 +91,26 @@ func New() Inspectors {
 	return insps
 }
 
+// RunRequestInspectors determine whether the HTTP request is valid.
 func (insps Inspectors) RunRequestInspectors(a *metadata.Artefact) error {
-	for _, key := range insps.keys {
-		ins := insps.insmap[key]
+	for _, id := range insps.ids {
+		ins := insps.insmap[id]
 		logger.Debugf("run request inspector: %s", ins.ID())
-		err := ins.InspectRequest(a)
-		if err != nil {
-			return err
+		if err := ins.InspectRequest(a); err != nil {
+			if err == ErrUnknownRequest { // this inspector does not recognize the request
+				continue
+			}
+			return err // a real error occurred
 		}
+		a.ApprovedReqs[id] = struct{}{}
+	}
+
+	if insps.permissive {
+		return nil
+	}
+
+	if len(a.ApprovedReqs) == 0 {
+		return fmt.Errorf("request to %q rejected", a.CurrentDownload.URL)
 	}
 
 	return nil
@@ -121,8 +142,13 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 	}
 
 	// run metadata inspectors
-	for _, key := range insps.keys {
-		ins := insps.insmap[key]
+	for _, id := range insps.ids {
+		// only inspectors with approved requests can inspect artefacts
+		if _, ok := a.ApprovedReqs[id]; !ok {
+			continue
+		}
+
+		ins := insps.insmap[id]
 		logger.Debugf("run artefact inspector: %s", ins.ID())
 		if _, err := f.Seek(0, io.SeekStart); err != nil {
 			return err
@@ -131,6 +157,14 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 			a.Reject(ins, err.Error())
 			return err
 		}
+	}
+
+	if insps.permissive {
+		return nil
+	}
+
+	if !a.Approved() {
+		return fmt.Errorf("artefact %s rejected", a.Metadata.Sha256)
 	}
 
 	return nil
@@ -154,12 +188,12 @@ func (ins DefaultInspector) ID() string {
 }
 
 func (ins DefaultInspector) InspectRequest(a *metadata.Artefact) error {
-	return nil
+	return ErrUnknownRequest
 }
 
 func (ins DefaultInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
 	if a.Unknown() {
-		a.Reject(ins, "file format unknown")
+		a.Reject(ins, "artefact format unknown")
 	}
 	return nil
 }

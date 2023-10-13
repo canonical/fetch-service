@@ -59,7 +59,7 @@ func (t *inspectorsSuite) TestRunInspectors(c *C) {
 	a.CurrentDownload.Sha256 = h
 	a.Metadata.Sha256 = h
 
-	s := session.New()
+	s := session.New(true)
 	defer s.Discard()
 
 	err = s.Insps.RunArtefactInspectors(dir, a)

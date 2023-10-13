@@ -48,7 +48,7 @@ type ProxyAuth struct {
 
 // proxyData contains contextual information for request and response handlers.
 type proxyData struct {
-	a *metadata.Artefact
+	a *metadata.Artefact // the artefact to be inspected
 }
 
 // HttpProxy implements a proxy that inspects downloaded contents.
@@ -144,6 +144,7 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 	p.ch <- authReq
 	err := <-authReq.Rch
 	if err != nil {
+		logger.Info(err.Error())
 		return req, goproxy.NewResponse(
 			req, goproxy.ContentTypeText,
 			http.StatusForbidden,
@@ -172,7 +173,7 @@ func (p *HttpProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) 
 	var err error
 	resp.Body, err = NewFileDownloadHandler(resp, a, p.spool, p.ch)
 	if err != nil {
-		logger.Warningf(err.Error())
+		logger.Infof("%s", err)
 		return internalErrorResponse(resp.Request, "Cannot handle file downloads")
 	}
 
