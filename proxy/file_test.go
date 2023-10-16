@@ -72,6 +72,7 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	a.CurrentDownload.Method = req.Method
 
 	go func() {
+		var err error
 		_, err = proxy.NewFileDownloadHandler(resp, a, dir, ch)
 		c.Assert(err, IsNil)
 	}()
