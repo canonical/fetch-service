@@ -31,7 +31,6 @@ import (
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
-	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 )
 
@@ -110,122 +109,51 @@ func AptPackagesDetector(raw []byte, limit uint32) bool {
 	return true
 }
 
-// AptPackagesEntry stores selected fields from each package listed in
+// aptPackagesEntry stores selected fields from each package listed in
 // each downloaded Packages.* file.
-type AptPackagesEntry struct {
+type aptPackagesEntry struct {
 	Package      string
 	Version      string
 	Architecture string
 	Size         int64
 }
 
-// AptPackagesContext contains inspector-specific contextual data for stateful
+// AptPackagesInspector contains inspector-specific contextual data for stateful
 // analysis within a fetch session.
-type AptPackagesContext struct {
-	ins metadata.Identifiable
-	sd  SessionDetails
-
+type AptPackagesInspector struct {
 	// packagesEntries maps Packages.* file digests to package digest to metadata.
-	packagesEntries map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptPackagesEntry
+	packagesEntries map[metadata.Sha256Digest]map[metadata.Sha256Digest]aptPackagesEntry
 	packagesLock    sync.Mutex
 }
 
-func (ctx *AptPackagesContext) ValidateDebFile(a *metadata.Artefact) {
-	digest, e, ok := ctx.GetPackagesEntry(a.Metadata.Sha256)
-	if !ok {
-		a.Reject(ctx.ins, "deb file digest not listed in packages file")
-		return
+func NewAptPackagesInspector() *AptPackagesInspector {
+	return &AptPackagesInspector{
+		packagesEntries: make(map[metadata.Sha256Digest]map[metadata.Sha256Digest]aptPackagesEntry),
 	}
-
-	md := a.Metadata
-	if md.Name != e.Package || md.Version != e.Version || md.Architecture != e.Architecture || md.Size != e.Size {
-		a.Reject(ctx.ins, "deb file metadata does not match packages file %s", digest)
-	}
-
-	a.Approve(ctx.ins, "deb file validated by packages file %s", digest)
-}
-
-func (ctx *AptPackagesContext) AddPackagesEntry(pkgsDigest metadata.Sha256Digest, digest metadata.Sha256Digest, e AptPackagesEntry) {
-	ctx.packagesLock.Lock()
-	defer ctx.packagesLock.Unlock()
-
-	if ctx.packagesEntries[pkgsDigest] == nil {
-		ctx.packagesEntries[pkgsDigest] = make(map[metadata.Sha256Digest]AptPackagesEntry)
-	}
-	ctx.packagesEntries[pkgsDigest][digest] = e
-}
-
-func (ctx *AptPackagesContext) GetPackagesEntry(digest metadata.Sha256Digest) (pkgsDigest metadata.Sha256Digest, e AptPackagesEntry, ok bool) {
-	ctx.packagesLock.Lock()
-	defer ctx.packagesLock.Unlock()
-
-	for d, entries := range ctx.packagesEntries {
-		e, ok = entries[digest]
-		if ok {
-			pkgsDigest = d
-			return
-		}
-	}
-	return
-}
-
-type AptPackagesInspector struct {
-	sd    SessionDetails
-	state AptPackagesContext
 }
 
 func (ins *AptPackagesInspector) ID() string {
 	return "apt.packages"
 }
 
-func (ins *AptPackagesInspector) InitializeContext(sd SessionDetails) {
-	ins.sd = sd
-	ins.state = AptPackagesContext{
-		ins:             ins,
-		packagesEntries: make(map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptPackagesEntry, 256),
-	}
-}
-
 func (ins *AptPackagesInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil
 }
 
-func (ins *AptPackagesInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (stop bool, err error) {
+func (ins *AptPackagesInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
+	if a.Metadata.Type == mimetypes.DebianBinaryPackage {
+		ins.validateDebianPackage(f, a)
+		return nil
+	}
+
 	if a.Metadata.Type != mimetypes.AptPackages {
-		return
+		return nil
 	}
-	stop = true
-
-	release, err := GetAptReleaseInspectorAPI(ins.sd)
-	if err != nil {
-		logger.Error("internal error: cannot get apt release API")
-		return
-	}
-
-	// obtain the Packages.xz path from the Release file
-	relDigest, p, ok := release.GetReleasePackages(a.Metadata.Sha256)
-	if ok {
-		if p.Size != a.Metadata.Size {
-			a.Reject(ins, "Packages file size file does not match Release")
-			return
-		}
-
-		// The Packages file is listed in Release and size matches
-		a.Approve(ins, "Packages integrity asserted by Release file %s", relDigest)
-	} else {
-		a.Reject(ins, "Packages file not listed in Release file")
-	}
-
-	// Populate metadata
-	a.Metadata.Name = p.Path
-	a.Metadata.Vendor = p.Vendor
-	a.Metadata.Description = "Apt repository Packages file"
-	a.Metadata.Author = p.Vendor
 
 	// Cache some data to check deb packages
 	r, err := xz.NewReader(f, 0)
 	if err != nil {
-		return
+		return err
 	}
 
 	sc := bufio.NewScanner(r)
@@ -235,7 +163,7 @@ func (ins *AptPackagesInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 	buf := make([]byte, 0, 64*1024)
 	sc.Buffer(buf, 1024*1024)
 
-	var e AptPackagesEntry
+	var e aptPackagesEntry
 
 	num := 0
 
@@ -243,15 +171,13 @@ func (ins *AptPackagesInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 		line := sc.Text()
 
 		if line == "" {
-			e = AptPackagesEntry{}
+			e = aptPackagesEntry{}
 			continue
 		}
 
 		k, v, ok := strings.Cut(line, ":")
 		if !ok {
-			err = fmt.Errorf("error parsing line '%s'", line)
-			a.Reject(ins, "cannot parse packages file")
-			return
+			return fmt.Errorf("error parsing line '%s'", line)
 		}
 		v = strings.TrimSpace(v)
 
@@ -269,37 +195,65 @@ func (ins *AptPackagesInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 			var h metadata.Sha256Digest
 			h, err = metadata.NewSha256Digest(v)
 			if err != nil {
-				err = fmt.Errorf("error parsing digest '%s': %s", v, err)
-				return
+				return fmt.Errorf("error parsing digest '%s': %s", v, err)
 			}
-			ins.state.AddPackagesEntry(a.Metadata.Sha256, h, e)
+			ins.addPackagesEntry(a.Metadata.Sha256, h, e)
 		}
 	}
 
 	a.Approve(ins, "%d packages parsed", num)
 
-	return
+	return nil
 }
 
-func (ins *AptPackagesInspector) API() InspectorAPI {
-	return AptPackagesInspectorAPI(&ins.state)
-}
-
-type AptPackagesInspectorAPI interface {
-	InspectorAPI
-	ValidateDebFile(*metadata.Artefact)
-}
-
-func GetAptPackagesInspectorAPI(sd SessionDetails) (AptPackagesInspectorAPI, error) {
-	res, err := sd.GetInspectorAPI("apt.packages")
-	if err != nil {
-		return nil, err
-	}
-
-	api, ok := res.(AptPackagesInspectorAPI)
+func (ins *AptPackagesInspector) validateDebFile(a *metadata.Artefact) {
+	digest, e, ok := ins.getPackagesEntry(a.Metadata.Sha256)
 	if !ok {
-		return nil, fmt.Errorf("cannot get AptPackagesInspectorAPI instance")
+		a.Reject(ins, "deb file digest not listed in packages file")
+		return
 	}
 
-	return api, nil
+	md := a.Metadata
+	if md.Name != e.Package || md.Version != e.Version || md.Architecture != e.Architecture || md.Size != e.Size {
+		a.Reject(ins, "deb file metadata does not match packages file %s", digest)
+		return
+	}
+
+	a.Approve(ins, "deb file validated by packages file %s", digest)
+}
+
+func (ins *AptPackagesInspector) addPackagesEntry(pkgsDigest metadata.Sha256Digest, digest metadata.Sha256Digest, e aptPackagesEntry) {
+	ins.packagesLock.Lock()
+	defer ins.packagesLock.Unlock()
+
+	if ins.packagesEntries[pkgsDigest] == nil {
+		ins.packagesEntries[pkgsDigest] = make(map[metadata.Sha256Digest]aptPackagesEntry)
+	}
+	ins.packagesEntries[pkgsDigest][digest] = e
+}
+
+func (ins *AptPackagesInspector) getPackagesEntry(digest metadata.Sha256Digest) (metadata.Sha256Digest, aptPackagesEntry, bool) {
+	ins.packagesLock.Lock()
+	defer ins.packagesLock.Unlock()
+
+	for d, entries := range ins.packagesEntries {
+		if e, ok := entries[digest]; ok {
+			return d, e, ok
+		}
+	}
+	return metadata.Sha256Digest{}, aptPackagesEntry{}, false
+}
+
+func (ins *AptPackagesInspector) validateDebianPackage(f ReadAtSeeker, a *metadata.Artefact) {
+	digest, e, ok := ins.getPackagesEntry(a.Metadata.Sha256)
+	if ok {
+		md := a.Metadata
+		if md.Name == e.Package && md.Version == e.Version && md.Architecture == e.Architecture && md.Size == e.Size {
+			a.Approve(ins, "deb file validated by packages file %s", digest)
+		} else {
+			a.Reject(ins, "deb file metadata does not match packages file %s", digest)
+		}
+	} else {
+		a.Reject(ins, "deb file digest not listed in packages file")
+	}
 }

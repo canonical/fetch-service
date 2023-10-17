@@ -31,50 +31,39 @@ import (
 	"github.com/blakesmith/ar"
 	"github.com/klauspost/compress/zstd"
 
-	"github.com/canonical/fetch-service/inspectors/apt"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/metadata"
 )
 
 type DebInspector struct {
-	sd SessionDetails
+}
+
+func NewDebInspector() *DebInspector {
+	return &DebInspector{}
 }
 
 func (DebInspector) ID() string {
 	return "deb"
 }
 
-func (ins *DebInspector) InitializeContext(sd SessionDetails) {
-	ins.sd = sd
-}
-
 func (ins DebInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil
 }
 
-func (ins *DebInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (stop bool, err error) {
+func (ins *DebInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
 	if a.Metadata.Type != mimetypes.DebianBinaryPackage {
-		return
-	}
-	stop = true
-
-	err = ins.readDebMetadata(f, a)
-	if err != nil {
-		return
+		return nil
 	}
 
-	api, err := apt.GetAptPackagesInspectorAPI(ins.sd)
-	if err != nil {
-		return
+	if err := ins.readDebMetadata(f, a); err != nil {
+		return err
 	}
 
-	api.ValidateDebFile(a)
+	if a.Metadata.Name != "" && a.Metadata.Version != "" && a.Metadata.Architecture != "" {
+		a.Approve(ins, "deb package parsed")
+	}
 
-	return
-}
-
-func (ins DebInspector) API() InspectorAPI {
 	return nil
 }
 
@@ -93,9 +82,8 @@ func (ins DebInspector) readDebMetadata(f io.Reader, a *metadata.Artefact) error
 		}
 		switch h.Name {
 		case "debian-binary":
-			err = ins.parseDebianBinary(af, a)
-			if err != nil {
-				return err
+			if ver := ins.getDebianBinaryVersion(af, a); ver != "2.0" {
+				a.Reject(ins, "unknown debian binary version %q", ver)
 			}
 		case "control.tar.gz":
 			zf, err := gzip.NewReader(af)
@@ -131,16 +119,13 @@ func (ins DebInspector) readDebMetadata(f io.Reader, a *metadata.Artefact) error
 	return nil
 }
 
-func (ins DebInspector) parseDebianBinary(af io.Reader, a *metadata.Artefact) error {
+func (ins DebInspector) getDebianBinaryVersion(af io.Reader, a *metadata.Artefact) string {
 	sc := bufio.NewScanner(af)
 	sc.Split(bufio.ScanLines)
 
 	// Read a single line
 	sc.Scan()
-	line := sc.Text()
-	a.Approve(ins, "found debian-binary: %s", line)
-
-	return nil
+	return strings.TrimSpace(sc.Text())
 }
 
 func (ins DebInspector) parseControlTar(zf io.Reader, a *metadata.Artefact) error {
@@ -203,9 +188,7 @@ func (ins DebInspector) parseControl(tf io.Reader, a *metadata.Artefact) error {
 		}
 	}
 
-	if a.Metadata.Name != "" && a.Metadata.Version != "" {
-		a.Approve(ins, "control file parsed")
-	} else {
+	if a.Metadata.Name == "" || a.Metadata.Version == "" {
 		a.Reject(ins, "package name/version not in control file")
 	}
 

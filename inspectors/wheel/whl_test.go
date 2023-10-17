@@ -89,9 +89,8 @@ func (s *whlSuite) TestWhlInspector(c *C) {
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	stop, err := ins.InspectArtefact(f, a)
+	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
-	c.Assert(stop, Equals, true)
 
 	c.Check(a.Metadata.Name, Equals, "craft-grammar")
 	c.Check(a.Metadata.Vendor, Equals, "Canonical Ltd.")
