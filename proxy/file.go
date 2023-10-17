@@ -74,7 +74,7 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artefact, spool str
 	select {
 	case err := <-fd.Rch:
 		if err != nil {
-			return nil, fmt.Errorf("Error saving download data for asset %s: %v", a.Metadata.Sha256, err)
+			return nil, fmt.Errorf("error saving download data for asset %s: %v", a.Metadata.Sha256, err)
 		}
 	case <-time.After(insTimeout):
 		return nil, fmt.Errorf("inspection of artefact %s timed out", a.Metadata.Sha256)
