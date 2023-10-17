@@ -22,9 +22,10 @@ package proxy_test
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	. "gopkg.in/check.v1"
 
@@ -70,18 +71,22 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	a.CurrentDownload.Address = req.RemoteAddr
 	a.CurrentDownload.Method = req.Method
 
-	h, err := proxy.NewFileDownloadHandler(resp, a, dir, ch)
-	c.Assert(err, IsNil)
-
-	go func(body io.ReadCloser) {
-		data, err := ioutil.ReadAll(body)
-		body.Close()
+	go func() {
+		var err error
+		_, err = proxy.NewFileDownloadHandler(resp, a, dir, ch)
 		c.Assert(err, IsNil)
-		c.Assert(string(data), Equals, "Response body")
-	}(h)
+	}()
 
 	msg := <-ch
 	v := msg.(messages.ArtefactDownload)
+
+	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
+	err = os.MkdirAll(filepath.Dir(dest), 0755)
+	c.Assert(err, IsNil)
+
+	err = os.Rename(v.A.Tempfile, dest)
+	c.Assert(err, IsNil)
+	os.Remove(a.Tempfile)
 
 	mver := fmt.Sprintf("%d.%d", metadata.MetadataVersionMajor, metadata.MetadataVersionMinor)
 
@@ -119,20 +124,13 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	a.CurrentDownload.Address = req.RemoteAddr
 	a.CurrentDownload.Method = req.Method
 
-	h, err = proxy.NewFileDownloadHandler(resp, a, dir, ch)
-	c.Assert(err, IsNil)
-
-	go func(body io.ReadCloser) {
-		_, err = ioutil.ReadAll(body)
-		body.Close()
+	go func() {
+		_, err = proxy.NewFileDownloadHandler(resp, a, dir, ch)
 		c.Assert(err, IsNil)
-	}(h)
+	}()
 
 	msg = <-ch
 	v = msg.(messages.ArtefactDownload)
-
-	// check file metadata
-	c.Assert(v.A.Metadata.Sha1.String(), Equals, "176070ca20a7563bed4cef2212a9be37af09f14a")
 
 	// check download info
 	dl = v.A.CurrentDownload
