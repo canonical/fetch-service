@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/elazarl/goproxy"
+	"gopkg.in/tomb.v2"
 
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
@@ -57,6 +58,7 @@ type HttpProxy struct {
 	spool string                   // path to file spool
 	proxy *goproxy.ProxyHttpServer // proxy handler
 	srv   http.Server              // server instance
+	tomb  tomb.Tomb                // proxy service reaper
 }
 
 func NewHttpProxy(port int, spool string, ch chan interface{}) *HttpProxy {
@@ -94,22 +96,33 @@ func (p *HttpProxy) Start() error {
 	if err != nil {
 		return err
 	}
-	logger.Infof("listening on %s\n", addr)
+	logger.Infof("Starting the HTTP proxy; listening on %s\n", addr)
 
-	go func() {
+	p.tomb.Go(func() error {
 		err := p.srv.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)})
 		if err != http.ErrServerClosed {
 			logger.Fatalf("cannot start server: %v", err)
 		}
-	}()
+
+		listener := tcpKeepAliveListener{ln.(*net.TCPListener)}
+		if err := p.srv.Serve(listener); err != http.ErrServerClosed && p.tomb.Err() == tomb.ErrStillAlive {
+			return err
+		}
+		return nil
+	})
 
 	return nil
 }
 
 // Stop shuts down the proxy.
-func (p *HttpProxy) Stop() {
-	logger.Infof("shutting down...")
+func (p *HttpProxy) Stop() error {
+	logger.Infof("Shutting down the HTTP proxy...")
 	p.srv.Close()
+	if err := p.tomb.Wait(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // processRequest handles HTTP requests to the server.

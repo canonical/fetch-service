@@ -21,10 +21,9 @@ package service
 
 import (
 	"math/rand"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
+
+	"gopkg.in/tomb.v2"
 
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
@@ -35,9 +34,10 @@ import (
 
 // Service implements the fetch service main loop.
 type Service struct {
-	p   *proxy.HttpProxy // proxy instance
-	ch  chan interface{} // channel to get feedback from handlers
-	opt *Options         // configuration options
+	p    *proxy.HttpProxy // proxy instance
+	ch   chan interface{} // channel to get feedback from handlers
+	opt  *Options         // configuration options
+	tomb tomb.Tomb        // service dispacher loop reaper
 }
 
 var proxyNewHttpProxy = proxy.NewHttpProxy
@@ -54,102 +54,116 @@ func New(opt *Options) *Service {
 }
 
 // Start runs the fetch service dispatcher.
-func (svc *Service) Start() {
+func (svc *Service) Start() error {
 	logger.Info("Starting service...")
-	svc.p.Start()
+	if err := svc.p.Start(); err != nil {
+		return err
+	}
 
 	_ = session.New() // FIXME: to be created using the API
-	defer session.FinishAll()
 
-	// Shut down gracefully if terminated.
-	cs := make(chan os.Signal, 1)
-	signal.Notify(cs, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		sig := <-cs
-		svc.ch <- sig
-	}()
-
-dispatcherLoop:
-	for {
-		select {
-		case msg := <-svc.ch:
-			switch v := msg.(type) {
-			case messages.RequestAuthorization:
-				sessionId := v.A.SessionId
-				s := session.GetSession(sessionId)
-				if s == nil {
-					logger.Warningf("session %s is not active", sessionId)
-					break
-				}
-
-				go func(a *metadata.Artefact, rch chan error) {
-					// Check request
-					if err := s.Insps.RunRequestInspectors(a); err != nil {
-						logger.Errorf("%s", err)
-						rch <- err
-						return
+	svc.tomb.Go(func() error {
+		for {
+			select {
+			case msg := <-svc.ch:
+				switch v := msg.(type) {
+				case messages.RequestAuthorization:
+					sessionId := v.A.SessionId
+					s := session.GetSession(sessionId)
+					if s == nil {
+						logger.Warningf("session %s is not active", sessionId)
+						break
 					}
 
+					go func(a *metadata.Artefact, rch chan error) {
+						// Check request
+						if err := s.Insps.RunRequestInspectors(a); err != nil {
+							logger.Errorf("%s", err)
+							rch <- err
+							return
+						}
+
+						dl := v.A.CurrentDownload
+						logger.Infof("[%s] %s %s: request approved", sessionId, dl.Method, dl.URL)
+						rch <- nil
+					}(v.A, v.Rch)
+
+				case messages.ArtefactDownload:
+					assetDir := v.A.AssetDir
+					sessionId := v.A.SessionId
+					digest := v.A.Metadata.Sha256
+
+					s := session.GetSession(sessionId)
+					if s == nil {
+						logger.Warningf("session %s is not active", sessionId)
+						break
+					}
+
+					// Add download info to artefact metadata
 					dl := v.A.CurrentDownload
-					logger.Infof("[%s] %s %s: request approved", sessionId, dl.Method, dl.URL)
-					rch <- nil
-				}(v.A, v.Rch)
+					logger.Infof("[%s] %s %s: %s (%s)", sessionId, dl.Method, dl.URL, dl.Status, dl.ContentType)
 
-			case messages.ArtefactDownload:
-				assetDir := v.A.AssetDir
-				sessionId := v.A.SessionId
-				digest := v.A.Metadata.Sha256
+					if s.HasArtefact(digest) {
+						logger.Infof("artefact %s already downloaded", digest)
+						s.AddDownload(v.A.CurrentDownload)
+						v.Rch <- nil
+						break
 
-				s := session.GetSession(sessionId)
-				if s == nil {
-					logger.Warningf("session %s is not active", sessionId)
-					break
-				}
-
-				// Add download info to artefact metadata
-				dl := v.A.CurrentDownload
-				logger.Infof("[%s] %s %s: %s (%s)", sessionId, dl.Method, dl.URL, dl.Status, dl.ContentType)
-
-				if s.HasArtefact(digest) {
-					logger.Infof("artefact %s already downloaded", digest)
-					s.AddDownload(v.A.CurrentDownload)
-					v.Rch <- nil
-					break
-
-				}
-
-				// Add metadata to session
-				s.AddArtefact(v.A)
-				if err := s.SaveData(digest); err != nil {
-					v.Rch <- err
-					break
-				}
-
-				s.AddDownload(v.A.CurrentDownload)
-
-				go func(a *metadata.Artefact, rch chan error) {
-					// Extract metadata from file
-					if err := s.Insps.RunArtefactInspectors(assetDir, a); err != nil {
-						logger.Errorf("%s", err)
-						rch <- err
-						return
 					}
 
-					logger.Infof("[%s] artefact %s %d (%s)", sessionId, digest, a.Metadata.Size, a.Metadata.Type)
-					rch <- nil
-				}(v.A, v.Rch)
+					// Add metadata to session
+					s.AddArtefact(v.A)
+					if err := s.SaveData(digest); err != nil {
+						v.Rch <- err
+						break
+					}
 
-			case proxy.ProxyAuth:
-				v.Rch <- session.CheckAuth(v.Id, v.Pw)
+					s.AddDownload(v.A.CurrentDownload)
 
-			case os.Signal:
-				if v == syscall.SIGINT {
-					break dispatcherLoop
+					go func(a *metadata.Artefact, rch chan error) {
+						// Extract metadata from file
+						if err := s.Insps.RunArtefactInspectors(assetDir, a); err != nil {
+							logger.Errorf("%s", err)
+							rch <- err
+							return
+						}
+
+						logger.Infof("[%s] artefact %s %d (%s)", sessionId, digest, a.Metadata.Size, a.Metadata.Type)
+						rch <- nil
+					}(v.A, v.Rch)
+
+				case proxy.ProxyAuth:
+					v.Rch <- session.CheckAuth(v.Id, v.Pw)
+
+				default:
+					logger.Warningf("Unknown message type %T", v)
 				}
 
-			default:
-				logger.Warningf("Unknown message type %T", v)
+			case <-svc.tomb.Dying():
+				return nil
 			}
 		}
+	})
+
+	return nil
+}
+
+func (svc *Service) Stop() error {
+	logger.Info("Stopping service...")
+	session.FinishAll()
+
+	if err := svc.p.Stop(); err != nil {
+		logger.Warningf("Cannot shut down the HTTP server: %s", err)
 	}
+
+	svc.tomb.Kill(nil)
+	if err := svc.tomb.Wait(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (svc *Service) Dying() <-chan struct{} {
+	return svc.tomb.Dying()
 }
