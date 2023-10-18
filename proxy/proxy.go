@@ -99,11 +99,6 @@ func (p *HttpProxy) Start() error {
 	logger.Infof("Starting the HTTP proxy; listening on %s\n", addr)
 
 	p.tomb.Go(func() error {
-		err := p.srv.Serve(tcpKeepAliveListener{ln.(*net.TCPListener)})
-		if err != http.ErrServerClosed {
-			logger.Fatalf("cannot start server: %v", err)
-		}
-
 		listener := tcpKeepAliveListener{ln.(*net.TCPListener)}
 		if err := p.srv.Serve(listener); err != http.ErrServerClosed && p.tomb.Err() == tomb.ErrStillAlive {
 			return err
