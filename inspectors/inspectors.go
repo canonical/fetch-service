@@ -105,12 +105,13 @@ func (insps Inspectors) RunRequestInspectors(a *metadata.Artefact) error {
 		a.ApprovedReqs[id] = struct{}{}
 	}
 
-	if insps.permissive {
-		return nil
-	}
-
 	if len(a.ApprovedReqs) == 0 {
-		return fmt.Errorf("request to %q rejected", a.CurrentDownload.URL)
+		url := a.CurrentDownload.URL
+		if insps.permissive {
+			logger.Infof("request to %q would be rejected (permissive)", url)
+			return nil
+		}
+		return fmt.Errorf("request to %q rejected", url)
 	}
 
 	return nil
@@ -159,11 +160,11 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 		}
 	}
 
-	if insps.permissive {
-		return nil
-	}
-
 	if !a.Approved() {
+		if insps.permissive {
+			logger.Infof("artefact %s would be rejected (permissive)", a.Metadata.Sha256)
+			return nil
+		}
 		return ErrRejectedArtefact
 	}
 
