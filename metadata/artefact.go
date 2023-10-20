@@ -68,13 +68,14 @@ type Opinion struct {
 }
 
 type Artefact struct {
-	Opinions        []Opinion  `json:"opinions"`
-	Metadata        Metadata   `json:"metadata"`
-	Downloads       []Download `json:"downloads"` // Information about artefact downloads
-	CurrentDownload Download   `json:"-"`         // Information about the current download
-	AssetDir        string     `json:"-"`         // Location to store files and metadata
-	Tempfile        string     `json:"-"`         // Path to temporary file containing downloaded data
-	SessionId       string     `json:"-"`         // The current session ID
+	Opinions        []Opinion           `json:"opinions"`
+	Metadata        Metadata            `json:"metadata"`
+	Downloads       []Download          `json:"downloads"` // Information about artefact downloads
+	CurrentDownload Download            `json:"-"`         // Information about the current download
+	AssetDir        string              `json:"-"`         // Location to store files and metadata
+	Tempfile        string              `json:"-"`         // Path to temporary file containing downloaded data
+	SessionId       string              `json:"-"`         // The current session ID
+	ApprovedReqs    map[string]struct{} `json:"-"`         // Inspector IDs with approved requests
 }
 
 func NewArtefact() *Artefact {
@@ -83,6 +84,7 @@ func NewArtefact() *Artefact {
 		Metadata:        Metadata{},
 		Downloads:       []Download{},
 		CurrentDownload: Download{},
+		ApprovedReqs:    map[string]struct{}{},
 	}
 }
 

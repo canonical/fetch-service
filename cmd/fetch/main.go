@@ -47,6 +47,9 @@ var opts struct {
 
 	// Set the verbosity level
 	Verbosity string `long:"verbosity" description:"Verbosity level" choice:"debug"`
+
+	// Enable permissive mode
+	PermissiveMode bool `long:"permissive-mode" description:"Don't reject invalid downloads"`
 }
 
 func main() {
@@ -59,8 +62,9 @@ func main() {
 	}
 
 	opt := service.Options{
-		Port:  opts.Port,
-		Spool: opts.Spool,
+		Port:           opts.Port,
+		Spool:          opts.Spool,
+		PermissiveMode: opts.PermissiveMode,
 	}
 
 	lv := logger.InfoLevel

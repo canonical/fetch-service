@@ -60,7 +60,7 @@ func (svc *Service) Start() error {
 		return err
 	}
 
-	_ = session.New() // FIXME: to be created using the API
+	_ = session.New(svc.opt.PermissiveMode) // FIXME: to be created using the API
 
 	svc.tomb.Go(func() error {
 		for {
@@ -108,7 +108,6 @@ func (svc *Service) Start() error {
 						s.AddDownload(v.A.CurrentDownload)
 						v.Rch <- nil
 						break
-
 					}
 
 					// Add metadata to session

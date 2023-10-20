@@ -48,7 +48,19 @@ func (DebInspector) ID() string {
 }
 
 func (ins DebInspector) InspectRequest(a *metadata.Artefact) error {
-	return nil
+	validReqs := []*regexp.Regexp{
+		regexp.MustCompile(`http://archive\.ubuntu\.com/`),
+		regexp.MustCompile(`http://security\.ubuntu\.com/`),
+		regexp.MustCompile(`https://esm\.ubuntu\.com:443/`),
+		regexp.MustCompile(`http://repo.ros2.org/`),
+	}
+
+	for _, re := range validReqs {
+		if re.MatchString(a.CurrentDownload.URL) {
+			return nil
+		}
+	}
+	return ErrUnknownRequest // we don't recognize this request
 }
 
 func (ins *DebInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
@@ -69,7 +81,6 @@ func (ins *DebInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) e
 
 // readDebMetadata reads metadata from the deb control file.
 func (ins DebInspector) readDebMetadata(f io.Reader, a *metadata.Artefact) error {
-
 	af := ar.NewReader(f)
 
 	for {
