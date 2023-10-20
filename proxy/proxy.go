@@ -28,6 +28,7 @@ import (
 	"github.com/elazarl/goproxy"
 	"gopkg.in/tomb.v2"
 
+	"github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/proxy/auth"
@@ -173,7 +174,10 @@ func (p *HttpProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) 
 	var err error
 	resp.Body, err = NewFileDownloadHandler(resp, a, p.spool, p.ch)
 	if err != nil {
-		logger.Infof("%s", err)
+		logger.Infof("%s: %s", a.Metadata.Sha256, err)
+		if err == common.ErrRejectedArtefact {
+			return forbiddenResponse(resp.Request, "Download not authorized")
+		}
 		return internalErrorResponse(resp.Request, "Cannot handle file downloads")
 	}
 
@@ -200,4 +204,8 @@ func (ln tcpKeepAliveListener) Accept() (net.Conn, error) {
 
 func internalErrorResponse(r *http.Request, msg string) *http.Response {
 	return goproxy.NewResponse(r, goproxy.ContentTypeText, http.StatusInternalServerError, msg)
+}
+
+func forbiddenResponse(r *http.Request, msg string) *http.Response {
+	return goproxy.NewResponse(r, goproxy.ContentTypeText, http.StatusForbidden, msg)
 }

@@ -69,7 +69,12 @@ func New(permissive bool) *Session {
 	s.Id = "6ba7b8109dad11d180b400c04fd430c8"
 	s.Pw = "1ItfzwGBeJ8wsJdP0Nlx"
 
-	logger.Infof("creating session %s", s.Id)
+	var sType string
+	if permissive {
+		sType = " (permissive)"
+	}
+	logger.Infof("creating session %s%s", s.Id, sType)
+
 	sessions[s.Id] = s
 
 	return s

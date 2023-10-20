@@ -164,7 +164,7 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 	}
 
 	if !a.Approved() {
-		return fmt.Errorf("artefact %s rejected", a.Metadata.Sha256)
+		return ErrRejectedArtefact
 	}
 
 	return nil
