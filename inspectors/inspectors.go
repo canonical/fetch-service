@@ -48,17 +48,13 @@ func init() {
 type Inspector interface {
 	ID() string
 
-	InitializeContext(sd SessionDetails)
-
 	InspectRequest(*metadata.Artefact) error
 
 	// Inspect extracts metadata from the given artefact and
 	// populates the metadata structure, returning whether
 	// the artefact was identified and no further examination
 	// by other inspectors is required.
-	InspectArtefact(ReadAtSeeker, *metadata.Artefact) (bool, error)
-
-	API() InspectorAPI
+	InspectArtefact(ReadAtSeeker, *metadata.Artefact) error
 }
 
 type Inspectors struct {
@@ -66,18 +62,17 @@ type Inspectors struct {
 	keys   []string
 }
 
-func New(sd SessionDetails) Inspectors {
+func New() Inspectors {
 	insps := Inspectors{}
 	insps.insmap = map[string]Inspector{}
 
 	for _, ins := range []Inspector{
-		&wheel.WhlInspector{},
-		&deb.DebInspector{},
-		&apt.AptReleaseInspector{},
-		&apt.AptPackagesInspector{},
+		wheel.NewWhlInspector(),
+		deb.NewDebInspector(),
+		apt.NewAptReleaseInspector(),
+		apt.NewAptPackagesInspector(),
 		&DefaultInspector{},
 	} {
-		ins.InitializeContext(sd)
 		id := ins.ID()
 		insps.keys = append(insps.keys, id)
 		insps.insmap[id] = ins
@@ -132,13 +127,9 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 		if _, err := f.Seek(0, io.SeekStart); err != nil {
 			return err
 		}
-		stop, err := ins.InspectArtefact(f, a)
-		if err != nil {
+		if err := ins.InspectArtefact(f, a); err != nil {
 			a.Reject(ins, err.Error())
 			return err
-		}
-		if stop {
-			break
 		}
 	}
 
@@ -162,18 +153,13 @@ func (ins DefaultInspector) ID() string {
 	return "default"
 }
 
-func (ins DefaultInspector) InitializeContext(sd SessionDetails) {
-}
-
 func (ins DefaultInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil
 }
 
-func (ins DefaultInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (bool, error) {
-	a.Reject(ins, "file format unknown")
-	return true, nil
-}
-
-func (ins DefaultInspector) API() InspectorAPI {
+func (ins DefaultInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
+	if a.Unknown() {
+		a.Reject(ins, "file format unknown")
+	}
 	return nil
 }

@@ -91,9 +91,8 @@ func (s *debSuite) TestDebInspector(c *C) {
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	stop, err := ins.InspectArtefact(f, a)
+	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
-	c.Assert(stop, Equals, true)
 
 	c.Check(a.Metadata.Name, Equals, "hello")
 	c.Check(a.Metadata.Version, Equals, "2.10-2ubuntu4")

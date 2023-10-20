@@ -33,7 +33,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/canonical/fetch-service/inspectors"
-	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 )
@@ -61,7 +60,7 @@ func New() *Session {
 		A:     map[metadata.Sha256Digest]*metadata.Artefact{},
 	}
 
-	s.Insps = inspectors.New(s)
+	s.Insps = inspectors.New()
 
 	// FIXME: predictable values for testing convenience until the session
 	//        creation API is implemented.
@@ -169,18 +168,6 @@ func (s *Session) SaveMetadata(digest metadata.Sha256Digest) error {
 	}
 
 	return nil
-}
-
-func (s *Session) GetInspectorAPI(name string) (InspectorAPI, error) {
-	ins, err := s.Insps.GetInspector(name)
-	if err != nil {
-		return nil, err
-	}
-	api := ins.API()
-	if api == nil {
-		return nil, fmt.Errorf("cannot obtain API for inspector '%s'", name)
-	}
-	return api, nil
 }
 
 // Generate a unique session ID

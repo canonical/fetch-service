@@ -48,8 +48,6 @@ func (t *inspectorsSuite) SetUpTest(c *C) {
 var _ = Suite(&inspectorsSuite{})
 
 func (t *inspectorsSuite) TestRunInspectors(c *C) {
-	//ctx := metadata.NewInspectionContext()
-
 	dir := c.MkDir()
 	data := []byte("Measure twice, saw once.\n")
 	err := os.WriteFile(filepath.Join(dir, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.data"), data, 0644)
@@ -79,10 +77,7 @@ func (t *inspectorsSuite) TestDefaultInspector(c *C) {
 	ins := inspectors.DefaultInspector{}
 	c.Assert(ins, Implements, &iface)
 
-	stop, err := ins.InspectArtefact(nil, a)
+	err := ins.InspectArtefact(nil, a)
 	c.Assert(err, IsNil)
-	c.Assert(stop, Equals, true)
 	c.Assert(a.Rejected(), Equals, true)
-	//c.Assert(a.Metadata.Annotations, HasLen, 1)
-	//c.Assert(a.Metadata.Annotations["default.format.unknown"].Value, HasLen, 0)
 }

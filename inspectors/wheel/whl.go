@@ -46,51 +46,44 @@ func WhlDetector(raw []byte, limit uint32) bool {
 type WhlInspector struct {
 }
 
-func (WhlInspector) ID() string {
-	return "wheel"
+func NewWhlInspector() *WhlInspector {
+	return &WhlInspector{}
 }
 
-func (ins WhlInspector) InitializeContext(sd SessionDetails) {
+func (WhlInspector) ID() string {
+	return "wheel"
 }
 
 func (ins WhlInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil
 }
 
-func (ins *WhlInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (stop bool, err error) {
+func (ins *WhlInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
 	md := a.Metadata
 
 	if md.Type != mimetypes.PythonWheel {
-		return
+		return nil
 	}
 
 	size := int64(f.Len())
 
-	err = ins.readWhlMetadata(f, size, a)
-	if err != nil {
-		return
+	if err := ins.readWhlMetadata(f, size, a); err != nil {
+		return err
 	}
 
-	err = ins.readWhlWheel(f, size, a)
-	if err != nil {
-		return
+	if err := ins.readWhlWheel(f, size, a); err != nil {
+		return err
 	}
 
 	fileList, err := ins.listWheelFiles(f, size, a)
 	if err != nil {
-		return
+		return err
 	}
 
-	err = ins.readWhlRecord(f, size, a, fileList)
-	if err != nil {
-		return
+	if err := ins.readWhlRecord(f, size, a, fileList); err != nil {
+		return err
 	}
 
-	stop = true
-	return
-}
-
-func (ins WhlInspector) API() InspectorAPI {
 	return nil
 }
 

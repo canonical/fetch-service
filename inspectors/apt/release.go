@@ -22,7 +22,6 @@ package apt
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -95,83 +94,52 @@ func AptReleaseDetector(raw []byte, limit uint32) bool {
 	return false
 }
 
-// AptReleasePackages stores information about each Packages.* file listed
+// aptReleasePackages stores information about each Packages.* file listed
 // in the repository's Release file.
-type AptReleasePackages struct {
+type aptReleasePackages struct {
 	Vendor string // repository vendor
 	Path   string // path to the Packages file
 	Size   int64  // size of the Packages file
 }
 
-// AptReleaseContext contains inspector-specific contextual data for stateful
+// AptReleaseInspector contains inspector-specific contextual data for stateful
 // analysis within a fetch session.
-type AptReleaseContext struct {
+type AptReleaseInspector struct {
 	// releasePackages maps InRelease file digests to Packages.* file digests to metadata.
-	releasePackages map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptReleasePackages
+	releasePackages map[metadata.Sha256Digest]map[metadata.Sha256Digest]aptReleasePackages
 	releaseLock     sync.Mutex
 }
 
-func (ctx *AptReleaseContext) ValidatePackagesFile(size int64, digest metadata.Sha256Digest) {
-	return
-}
-
-func (ctx *AptReleaseContext) AddReleasePackages(relDigest metadata.Sha256Digest, digest metadata.Sha256Digest, p AptReleasePackages) {
-	ctx.releaseLock.Lock()
-	defer ctx.releaseLock.Unlock()
-
-	if ctx.releasePackages[relDigest] == nil {
-		ctx.releasePackages[relDigest] = make(map[metadata.Sha256Digest]AptReleasePackages, 16)
+func NewAptReleaseInspector() *AptReleaseInspector {
+	return &AptReleaseInspector{
+		releasePackages: make(map[metadata.Sha256Digest]map[metadata.Sha256Digest]aptReleasePackages),
 	}
-	ctx.releasePackages[relDigest][digest] = p
-	logger.Debugf("apt releases file: %s %s", digest, p.Path)
-}
-
-func (ctx *AptReleaseContext) GetReleasePackages(digest metadata.Sha256Digest) (relDigest metadata.Sha256Digest, p AptReleasePackages, ok bool) {
-	ctx.releaseLock.Lock()
-	defer ctx.releaseLock.Unlock()
-
-	for d, pkgs := range ctx.releasePackages {
-		p, ok = pkgs[digest]
-		if ok {
-			relDigest = d
-			return
-		}
-	}
-	return
-}
-
-type AptReleaseInspector struct {
-	sd    SessionDetails
-	state AptReleaseContext
 }
 
 func (ins *AptReleaseInspector) ID() string {
 	return "apt.release"
 }
 
-func (ins *AptReleaseInspector) InitializeContext(sd SessionDetails) {
-	ins.sd = sd
-	ins.state = AptReleaseContext{
-		releasePackages: make(map[metadata.Sha256Digest]map[metadata.Sha256Digest]AptReleasePackages, 16),
-	}
-}
-
 func (ins *AptReleaseInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil
 }
 
-func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) (stop bool, err error) {
-	if a.Metadata.Type != mimetypes.AptRelease {
-		return
+func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
+	if a.Metadata.Type == mimetypes.AptPackages {
+		ins.validatePackagesFile(f, a)
+		return nil
 	}
-	stop = true
+
+	if a.Metadata.Type != mimetypes.AptRelease {
+		return nil
+	}
 
 	sc := bufio.NewScanner(f)
 	sc.Split(bufio.ScanLines)
 
 	hashes := false
 
-	var p AptReleasePackages
+	var p aptReleasePackages
 
 	for sc.Scan() {
 		line := sc.Text()
@@ -185,7 +153,7 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 		// Get sha256 hashes for Package.xz files
 		if hashes && len(line) > 0 && line[0] == ' ' {
 			if strings.HasSuffix(line, "/Packages.xz") {
-				p = AptReleasePackages{}
+				p = aptReleasePackages{}
 				fields := strings.Fields(line)
 				if len(fields) != 3 {
 					logger.Warningf("cannot parse '%s'", line)
@@ -193,17 +161,20 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 				}
 				p.Vendor = a.Metadata.Vendor
 				digest, p.Path = fields[0], fields[2]
-				p.Size, err = strconv.ParseInt(fields[1], 10, 64)
+
+				size, err := strconv.ParseInt(fields[1], 10, 64)
 				if err != nil {
 					logger.Warningf("cannot parse '%s': %s", fields[1], err)
 					continue
 				}
+				p.Size = size
+
 				h, err := metadata.NewSha256Digest(digest)
 				if err != nil {
 					logger.Warningf("cannot parse digest '%s': %s", digest, err)
 					continue
 				}
-				ins.state.AddReleasePackages(a.Metadata.Sha256, h, p)
+				ins.addReleasePackages(a.Metadata.Sha256, h, p)
 			}
 			continue
 		}
@@ -231,29 +202,32 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 
 	a.Metadata.Name = "InRelease"
 
-	return
+	return nil
 }
 
-func (ins *AptReleaseInspector) API() InspectorAPI {
-	return AptReleaseInspectorAPI(&ins.state)
-}
+func (ins *AptReleaseInspector) addReleasePackages(relDigest metadata.Sha256Digest, digest metadata.Sha256Digest, p aptReleasePackages) {
+	ins.releaseLock.Lock()
+	defer ins.releaseLock.Unlock()
 
-type AptReleaseInspectorAPI interface {
-	InspectorAPI
-	ValidatePackagesFile(int64, metadata.Sha256Digest)
-	GetReleasePackages(metadata.Sha256Digest) (metadata.Sha256Digest, AptReleasePackages, bool)
-}
-
-func GetAptReleaseInspectorAPI(sd SessionDetails) (AptReleaseInspectorAPI, error) {
-	res, err := sd.GetInspectorAPI("apt.release")
-	if err != nil {
-		return nil, err
+	if ins.releasePackages[relDigest] == nil {
+		ins.releasePackages[relDigest] = make(map[metadata.Sha256Digest]aptReleasePackages, 16)
 	}
+	ins.releasePackages[relDigest][digest] = p
+	logger.Debugf("apt releases file: %s %s", digest, p.Path)
+}
 
-	api, ok := res.(AptReleaseInspectorAPI)
-	if !ok {
-		return nil, fmt.Errorf("cannot get AptReleaseInspectorAPI instance")
+func (ins *AptReleaseInspector) getReleasePackages(digest metadata.Sha256Digest) (metadata.Sha256Digest, aptReleasePackages, bool) {
+	ins.releaseLock.Lock()
+	defer ins.releaseLock.Unlock()
+
+	for d, pkgs := range ins.releasePackages {
+		if p, ok := pkgs[digest]; ok {
+			return d, p, ok
+		}
 	}
+	return metadata.Sha256Digest{}, aptReleasePackages{}, false
+}
 
-	return api, nil
+func (ins *AptReleaseInspector) validatePackagesFile(f ReadAtSeeker, a *metadata.Artefact) {
+	// TODO: check if packages file listed in release file, populate metadata according to release
 }
