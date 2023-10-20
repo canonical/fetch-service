@@ -57,7 +57,10 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 
 	err := p.Start()
 	c.Assert(err, IsNil)
-	defer p.Stop()
+	defer func() {
+		err := p.Stop()
+		c.Assert(err, IsNil)
+	}()
 
 	time.Sleep(1 * time.Second)
 

@@ -56,3 +56,20 @@ func (s *serviceSuite) TestProxyPort(c *C) {
 	c.Assert(svc, FitsTypeOf, &service.Service{})
 	c.Assert(s.port, Equals, 1337)
 }
+
+func (s *serviceSuite) TestServiceEntombment(c *C) {
+	restorer := service.MockNewHttpProxy(func(port int, spool string, ch chan interface{}) *proxy.HttpProxy {
+		s.port = port
+		return &proxy.HttpProxy{}
+	})
+	defer restorer()
+
+	opt := service.Options{Port: 1337}
+	svc := service.New(&opt)
+
+	err := svc.Start()
+	c.Assert(err, IsNil)
+
+	err = svc.Stop()
+	c.Assert(err, IsNil)
+}

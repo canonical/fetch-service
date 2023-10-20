@@ -22,6 +22,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/jessevdk/go-flags"
 
@@ -72,7 +74,32 @@ func main() {
 	logger.Debug("Running in debug mode")
 
 	svc := service.New(&opt)
-	svc.Start()
+	if err := svc.Start(); err != nil {
+		logger.Fatalf("Cannot start service: %s", err)
+	}
+
+	// Shut down gracefully if terminated.
+	cs := make(chan os.Signal, 1)
+	signal.Notify(cs, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
+loop:
+	for {
+		select {
+		case sig := <-cs:
+			logger.Infof("Exiting on %s signal.\n", sig)
+			break loop
+		case <-svc.Dying():
+			// something called Stop()
+			logger.Info("Server exiting!")
+			break loop
+
+			// TODO: add watchdog
+		}
+	}
+
+	if err := svc.Stop(); err != nil {
+		logger.Fatalf("error: %s", err)
+	}
 }
 
 func parser() *flags.Parser {
