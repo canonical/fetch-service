@@ -138,7 +138,7 @@ func (svc *Service) Start() error {
 					s := session.New(false)
 					v.Rch <- messages.SessionCredentials{Id: s.Id, Pw: s.Pw}
 
-				case proxy.ProxyAuth:
+				case messages.ProxyAuth:
 					v.Rch <- session.CheckAuth(v.Id, v.Pw)
 
 				case messages.EndSession:

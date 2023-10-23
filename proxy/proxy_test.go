@@ -98,7 +98,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 
 	// authorize download
 	msg := <-ch
-	auth := msg.(proxy.ProxyAuth)
+	auth := msg.(messages.ProxyAuth)
 	c.Assert(auth.Id, Equals, s.Id)
 	c.Assert(auth.Pw, Equals, s.Pw)
 	auth.Rch <- true

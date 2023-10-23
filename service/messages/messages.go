@@ -23,6 +23,13 @@ import (
 	"github.com/canonical/fetch-service/metadata"
 )
 
+// ProxyAuth contains credentials for basic authentication.
+type ProxyAuth struct {
+	Rch chan bool // return channel
+	Id  string    // user (session id)
+	Pw  string    // password
+}
+
 // ArtefactDownloadMessage has the metadata of a downloaded file and details
 // about the download operation.
 type ArtefactDownload struct {

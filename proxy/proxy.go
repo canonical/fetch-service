@@ -40,13 +40,6 @@ const (
 	authRealm       = "fetch-service"
 )
 
-// ProxyAuth contains credentials for basic authentication.
-type ProxyAuth struct {
-	Rch chan bool // return channel
-	Id  string    // user (session id)
-	Pw  string    // password
-}
-
 // proxyData contains contextual information for request and response handlers.
 type proxyData struct {
 	a *metadata.Artefact // the artefact to be inspected
@@ -67,7 +60,7 @@ func NewHttpProxy(port int, spool string, ch chan interface{}) *HttpProxy {
 		//logger.Debugf("set session ID header in request to %s", user)
 		req.Header.Set(sessionIdHeader, user)
 		rch := make(chan bool)
-		ch <- ProxyAuth{rch, user, passwd}
+		ch <- messages.ProxyAuth{Rch: rch, Id: user, Pw: passwd}
 		return <-rch
 	}
 
