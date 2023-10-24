@@ -30,6 +30,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/apt"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/deb"
+	"github.com/canonical/fetch-service/inspectors/git"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/inspectors/wheel"
 	"github.com/canonical/fetch-service/logger"
@@ -41,6 +42,8 @@ func init() {
 	mimetype.Lookup("application/zip").Extend(wheel.WhlDetector, mimetypes.PythonWheel, ".whl")
 	mimetype.Lookup("text/plain").Extend(apt.AptReleaseDetector, mimetypes.AptRelease, "")
 	mimetype.Lookup("application/x-xz").Extend(apt.AptPackagesDetector, mimetypes.AptPackages, "")
+	mimetype.Lookup("text/plain").Extend(git.GitListDetector, mimetypes.GitUploadPackAdvertisement, "")
+	mimetype.Lookup("text/plain").Extend(git.GitFetchDetector, mimetypes.GitUploadPackResult, "")
 }
 
 // Inspector is the interface implemented by artefact metadata
@@ -70,6 +73,8 @@ func New(permissive bool) Inspectors {
 		deb.NewDebInspector(),
 		apt.NewAptReleaseInspector(),
 		apt.NewAptPackagesInspector(),
+		git.NewGitListInspector(),
+		git.NewGitFetchInspector(),
 		&DefaultInspector{},
 	}
 
@@ -121,7 +126,7 @@ func (insps Inspectors) RunRequestInspectors(a *metadata.Artefact) error {
 func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) error {
 	// detect file type
 	filename := filepath.Join(dir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
-	logger.Debugf("run artefact inspectors on %s", filename)
+	logger.Debugf("run artefact inspectors on %s (%v)", filename, a.ApprovedReqs)
 
 	f, err := mmap.Open(filename)
 	if err != nil {

@@ -131,7 +131,10 @@ func localDownload(resp *http.Response, a *metadata.Artefact, tempfile io.WriteC
 	a.CurrentDownload.StatusCode = resp.StatusCode
 	a.CurrentDownload.Status = resp.Status
 	a.CurrentDownload.ContentType = resp.Header.Get("Content-Type")
-	a.CurrentDownload.ResponseHeader = resp.Header
+	a.CurrentDownload.ResponseHeader = make(map[string][]string, len(resp.Header))
+	for k, v := range resp.Header {
+		a.CurrentDownload.ResponseHeader[k] = v
+	}
 
 	return nil
 }

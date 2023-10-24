@@ -63,6 +63,7 @@ func (svc *Service) Start() error {
 		return err
 	}
 
+	_ = session.New(svc.opt.PermissiveMode) // FIXME: to be created using the API
 	svc.ctl.Start()
 
 	svc.tomb.Go(func() error {
