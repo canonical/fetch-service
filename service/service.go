@@ -63,7 +63,7 @@ func (svc *Service) Start() error {
 		return err
 	}
 
-	_ = session.New(svc.opt.PermissiveMode) // FIXME: to be created using the API
+	//_ = session.New(svc.opt.PermissiveMode) // FIXME: to be created using the API
 	svc.ctl.Start()
 
 	svc.tomb.Go(func() error {
@@ -136,7 +136,7 @@ func (svc *Service) Start() error {
 					}(v.A, v.Rch)
 
 				case messages.CreateSession:
-					s := session.New(false)
+					s := session.New(svc.opt.PermissiveMode)
 					v.Rch <- messages.SessionCredentials{Id: s.Id, Pw: s.Pw}
 
 				case messages.ProxyAuth:

@@ -32,15 +32,22 @@ func GitFetchDetector(raw []byte, limit uint32) bool {
 	magic := []byte(" HEAD symref-target:refs/")
 	n := len(magic)
 
-	if len(raw) < 44+n {
-		return false
+	if len(raw) >= 44+n {
+		if bytes.Equal(raw[44:44+n], magic) {
+			return true
+		}
 	}
 
-	if !bytes.Equal(raw[44:44+n], magic) {
-		return false
+	magic = []byte("000dpackfile\x0a0010\x01PACK")
+	n = len(magic)
+
+	if len(raw) >= len(magic) {
+		if bytes.Equal(raw[:n], magic) {
+			return true
+		}
 	}
 
-	return true
+	return false
 }
 
 type GitFetchInspector struct {

@@ -77,7 +77,7 @@ func NewCreateSession() CreateSession {
 // Session end
 
 type SessionResult struct {
-	Err error
+	Err error `json:"-"`
 	// TODO: add session stats
 	Artefacts []*metadata.Artefact `json:"artefacts"`
 }

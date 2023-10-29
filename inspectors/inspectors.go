@@ -194,7 +194,7 @@ func (ins DefaultInspector) ID() string {
 }
 
 func (ins DefaultInspector) InspectRequest(a *metadata.Artefact) error {
-	return ErrUnknownRequest
+	return nil
 }
 
 func (ins DefaultInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
