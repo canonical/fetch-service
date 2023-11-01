@@ -28,6 +28,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -77,7 +78,7 @@ func New(permissive bool) *Session {
 	}
 	logger.Infof("creating session %s%s", s.Id, sType)
 
-	sessions[s.Id] = s
+	sessions.Store(s.Id, s)
 
 	return s
 }
@@ -96,13 +97,14 @@ func (s *Session) Finish() error {
 
 // Discard deletes this session.
 func (s *Session) Discard() {
-	_, ok := sessions[s.Id]
+	_, ok := sessions.Load(s.Id)
 	if !ok {
 		logger.Warningf("cannot discard non-existing session %s", s.Id)
 		return
 	}
 	logger.Infof("discarding session %s", s.Id)
-	delete(sessions, s.Id)
+
+	sessions.Delete(s.Id)
 }
 
 func (s *Session) Artefacts() []*metadata.Artefact {
@@ -206,15 +208,24 @@ func randomStringImpl(length int) string {
 
 }
 
-// SessionMap keeps track of all active sessions.
-type SessionMap map[string]*Session
+type SessionMap struct {
+	sync.Map
+}
 
-var sessions = SessionMap{}
+func (sm *SessionMap) Get(id string) *Session {
+	s, ok := sm.Load(id)
+	if !ok {
+		return nil
+	}
+	return s.(*Session)
+}
+
+var sessions = &SessionMap{}
 
 // CheckAuth verifies if the given credentials are valid and match an active session.
 func CheckAuth(id string, pw string) bool {
-	s, ok := sessions[id]
-	if !ok {
+	s := sessions.Get(id)
+	if s == nil {
 		return false
 	}
 	return s.Pw == pw
@@ -222,20 +233,19 @@ func CheckAuth(id string, pw string) bool {
 
 // GetSession returns the session corresponding to the given session ID.
 func GetSession(id string) *Session {
-	s, ok := sessions[id]
-	if !ok {
-		return nil
-	}
-	return s
+	return sessions.Get(id)
 }
 
 // FinishAll gracefully finishes all active sessions.
 func FinishAll() {
-	for id, s := range sessions {
+	sessions.Range(func(key, value any) bool {
+		id := key.(string)
+		s := value.(*Session)
 		logger.Infof("finishing session %s", id)
 		if err := s.Finish(); err != nil {
 			logger.Errorf("%s", err)
 		}
-	}
+		return true
+	})
 	logger.Info("all sessions finished")
 }
