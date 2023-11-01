@@ -72,7 +72,7 @@ func (t *sessionSuite) TestNewSession(c *C) {
 	c.Assert(s.Start.After(before) || s.Start.Equal(before), Equals, true)
 	c.Assert(s.Start.Before(after) || s.Start.Equal(after), Equals, true)
 	c.Assert(s.End.Equal(time.Time{}), Equals, true)
-	c.Assert(s, Equals, session.Sessions[s.Id])
+	c.Assert(s, Equals, session.GetSession(s.Id))
 }
 
 func (t *sessionSuite) TestRandomString(c *C) {
@@ -89,11 +89,12 @@ func (t *sessionSuite) TestDiscardSession(c *C) {
 	s := session.New(true)
 	defer s.Discard()
 
-	c.Assert(s, Equals, session.Sessions[s.Id])
+	c.Assert(s, Equals, session.GetSession(s.Id))
 
 	s.Discard()
-	_, ok := session.Sessions[s.Id]
-	c.Assert(ok, Equals, false)
+
+	s = session.GetSession(s.Id)
+	c.Assert(s, IsNil)
 }
 
 func (t *sessionSuite) TestCheckAuth(c *C) {
