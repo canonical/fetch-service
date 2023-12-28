@@ -31,14 +31,14 @@ import (
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/deb"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
-	"github.com/canonical/fetch-service/inspectors/wheel"
+	"github.com/canonical/fetch-service/inspectors/pip"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 )
 
 func init() {
 	mimetype.SetLimit(1 << 30) // input data is mmapped
-	mimetype.Lookup("application/zip").Extend(wheel.WhlDetector, mimetypes.PythonWheel, ".whl")
+	mimetype.Lookup("application/zip").Extend(pip.WheelDetector, mimetypes.PythonWheel, ".whl")
 	mimetype.Lookup("text/plain").Extend(apt.AptReleaseDetector, mimetypes.AptRelease, "")
 	mimetype.Lookup("application/x-xz").Extend(apt.AptPackagesDetector, mimetypes.AptPackages, "")
 }
@@ -66,7 +66,8 @@ type Inspectors struct {
 func New(permissive bool) Inspectors {
 
 	insList := []Inspector{
-		wheel.NewWhlInspector(),
+		pip.NewSimpleIndexInspector(),
+		pip.NewWheelInspector(),
 		deb.NewDebInspector(),
 		apt.NewAptReleaseInspector(),
 		apt.NewAptPackagesInspector(),
@@ -133,6 +134,7 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 	}
 
 	a.Metadata.Type = mtype.String()
+	a.MimeType = mtype
 	ctype := a.CurrentDownload.ContentType
 
 	if len(ctype) > 0 && !mtype.Is(ctype) {

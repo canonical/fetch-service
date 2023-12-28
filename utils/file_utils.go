@@ -22,7 +22,16 @@ package utils
 import (
 	"archive/zip"
 	"bytes"
+	"fmt"
+	"os/exec"
 	"regexp"
+	"strings"
+
+	"github.com/canonical/fetch-service/logger"
+)
+
+var (
+	reExpat = regexp.MustCompile(`\bExpat\b`)
 )
 
 // ZipMatches returns true if the zip file headers from in matches
@@ -50,4 +59,25 @@ func ZipMatches(in []byte, patterns ...string) bool {
 	}
 
 	return false
+}
+
+// GetLicense examines the given file to determine its license.
+func GetLicense(filename string) (string, error) {
+	var license string
+
+	cmd := []string{"licensecheck", "--machine", "--shortname-scheme=spdx", filename}
+	logger.Debugf("check license: %v", cmd)
+	out, err := exec.Command(cmd[0], cmd[1:]...).Output()
+	if err != nil {
+		return license, fmt.Errorf("license check error: %s", err)
+	}
+
+	fields := strings.Split(strings.TrimSpace(string(out)), "\t")
+	if len(fields) > 1 {
+		license = fields[1]
+		// Debian uses "Expat" for SPDX MIT license
+		license = reExpat.ReplaceAllLiteralString(license, "MIT")
+	}
+
+	return license, nil
 }
