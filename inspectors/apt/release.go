@@ -131,10 +131,11 @@ func (ins *AptReleaseInspector) InspectRequest(a *metadata.Artefact) error {
 
 	for _, re := range validReqs {
 		if re.MatchString(a.CurrentDownload.URL) {
-			return nil
+			a.ApproveRequest(ins)
 		}
 	}
-	return ErrUnknownRequest // we don't recognize this request
+
+	return nil // we don't recognize this request
 }
 
 func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {

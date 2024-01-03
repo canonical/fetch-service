@@ -57,10 +57,11 @@ func (ins DebInspector) InspectRequest(a *metadata.Artefact) error {
 
 	for _, re := range validReqs {
 		if re.MatchString(a.CurrentDownload.URL) {
+			a.ApproveRequest(ins)
 			return nil
 		}
 	}
-	return ErrUnknownRequest // we don't recognize this request
+	return nil // we don't recognize this request
 }
 
 func (ins *DebInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {

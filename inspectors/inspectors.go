@@ -93,16 +93,13 @@ func New(permissive bool) Inspectors {
 
 // RunRequestInspectors determine whether the HTTP request is valid.
 func (insps Inspectors) RunRequestInspectors(a *metadata.Artefact) error {
+	logger.Debugf("Inspect request: %s", a.CurrentDownload.URL)
 	for _, id := range insps.ids {
 		ins := insps.insmap[id]
 		logger.Debugf("run request inspector: %s", ins.ID())
 		if err := ins.InspectRequest(a); err != nil {
-			if err == ErrUnknownRequest { // this inspector does not recognize the request
-				continue
-			}
-			return err // a real error occurred
+			return err
 		}
-		a.ApprovedReqs[id] = struct{}{}
 	}
 
 	if len(a.ApprovedReqs) == 0 {
@@ -142,7 +139,7 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 		logger.Debugf("file type '%s' doesn't match content type '%s'", mtype.String(), ctype)
 	}
 
-	// run metadata inspectors
+	// run artefact inspectors
 	for _, id := range insps.ids {
 		// only inspectors with approved requests can inspect artefacts
 		if _, ok := a.ApprovedReqs[id]; !ok {
@@ -189,7 +186,7 @@ func (ins DefaultInspector) ID() string {
 }
 
 func (ins DefaultInspector) InspectRequest(a *metadata.Artefact) error {
-	return ErrUnknownRequest
+	return nil
 }
 
 func (ins DefaultInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
