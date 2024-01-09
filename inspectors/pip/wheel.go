@@ -169,7 +169,6 @@ func scanWheelMetadata(zf io.ReadCloser, a *metadata.Artefact) (string, error) {
 		if _, err := fmt.Fprintln(t, line); err != nil {
 			return "", err
 		}
-		fmt.Printf("*** %s\n", line)
 
 		k, v, ok := strings.Cut(line, ":")
 		if !ok {
