@@ -67,7 +67,7 @@ func (ins WheelInspector) InspectRequest(a *metadata.Artefact) error {
 		a.ApproveRequest(ins)
 	}
 
-	return nil
+	return nil // we don't recognize this request
 }
 
 // InspectArtefact extracts metadata from a known artefact file format.
