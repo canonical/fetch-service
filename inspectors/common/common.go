@@ -31,6 +31,5 @@ type ReadAtSeeker interface {
 }
 
 var (
-	ErrUnknownRequest   = errors.New("request was not recognized by this inspector")
 	ErrRejectedArtefact = errors.New("artefact rejected by inspectors")
 )

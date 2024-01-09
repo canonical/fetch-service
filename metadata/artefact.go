@@ -22,6 +22,8 @@ package metadata
 import (
 	"errors"
 	"fmt"
+
+	"github.com/canonical/fetch-service/logger"
 )
 
 type OpinionKind int
@@ -90,6 +92,11 @@ func NewArtefact() *Artefact {
 
 type Identifiable interface {
 	ID() string
+}
+
+func (a *Artefact) ApproveRequest(id Identifiable) {
+	logger.Infof("request approved by inspector %q", id.ID())
+	a.ApprovedReqs[id.ID()] = struct{}{}
 }
 
 func (a *Artefact) Reject(id Identifiable, reason string, args ...interface{}) {

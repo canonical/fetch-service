@@ -57,9 +57,10 @@ func (WhlInspector) ID() string {
 func (ins WhlInspector) InspectRequest(a *metadata.Artefact) error {
 	url := a.CurrentDownload.URL
 	if strings.Contains(url, "pypi.org") || strings.Contains(url, "pythonhosted.org") {
+		a.ApproveRequest(ins)
 		return nil
 	}
-	return ErrUnknownRequest // we don't recognize this request
+	return nil // we don't recognize this request
 }
 
 func (ins *WhlInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
