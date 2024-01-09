@@ -188,7 +188,7 @@ func (s *wheelSuite) TestWheelReadMetadata(c *C) {
 	c.Assert(a.Metadata.Vendor, Equals, "Poppy Bolger")
 	c.Assert(a.Metadata.Author, Equals, "Poppy Bolger")
 	c.Assert(a.Metadata.AuthorEmail, Equals, "contact@foobar.com")
-	c.Assert(a.Metadata.License, Equals, "BSD-3-clause")
+	c.Assert(a.Metadata.License, Equals, "BSD-3-Clause")
 }
 
 func (s *wheelSuite) TestReadWheelRecord(c *C) {
