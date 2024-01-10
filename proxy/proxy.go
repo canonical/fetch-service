@@ -140,6 +140,7 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 	a.CurrentDownload.Address = req.RemoteAddr
 	a.CurrentDownload.Method = req.Method
 	a.CurrentDownload.UserAgent = req.Header.Get("User-Agent")
+	a.CurrentDownload.RequestHeader = copyHeader(req.Header)
 
 	authReq := messages.NewRequestAuthorization(a)
 	p.ch <- authReq
@@ -208,4 +209,14 @@ func internalErrorResponse(r *http.Request, msg string) *http.Response {
 
 func forbiddenResponse(r *http.Request, msg string) *http.Response {
 	return goproxy.NewResponse(r, goproxy.ContentTypeText, http.StatusForbidden, msg)
+}
+
+// copyHeader deepcopies HTTP header maps.
+func copyHeader(data map[string][]string) map[string][]string {
+	c := make(map[string][]string, len(data))
+	for k, v := range data {
+		vv := append([]string{}, v...)
+		c[k] = vv
+	}
+	return c
 }

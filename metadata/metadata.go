@@ -139,6 +139,7 @@ type Download struct {
 	URL            string              `json:"url"`             // The requested URL
 	Address        string              `json:"address"`         // The HTTP client's IP address
 	UserAgent      string              `json:"user-agent"`      // The HTTP client's user agent
+	RequestHeader  map[string][]string `json:"request-header"`  // The HTTP request header
 	StatusCode     int                 `json:"status-code"`     // The HTTP response status code
 	Status         string              `json:"status"`          // The HTTP response status message
 	ContentType    string              `json:"content-type"`    // The HTTP content type
