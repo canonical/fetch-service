@@ -62,7 +62,8 @@ func (t *sessionSuite) TestNewSession(c *C) {
 	defer rs_restorer()
 
 	before := time.Now()
-	s := session.New(true)
+	tmp := c.MkDir()
+	s := session.New(tmp, true)
 	after := time.Now()
 
 	defer s.Discard()
@@ -86,7 +87,7 @@ func (t *sessionSuite) TestRandomString(c *C) {
 }
 
 func (t *sessionSuite) TestDiscardSession(c *C) {
-	s := session.New(true)
+	s := session.New("", true)
 	defer s.Discard()
 
 	c.Assert(s, Equals, session.Sessions[s.Id])
@@ -97,7 +98,7 @@ func (t *sessionSuite) TestDiscardSession(c *C) {
 }
 
 func (t *sessionSuite) TestCheckAuth(c *C) {
-	s := session.New(true)
+	s := session.New("", true)
 	defer s.Discard()
 
 	c.Assert(session.CheckAuth("foo", "bar"), Equals, false)
@@ -105,7 +106,7 @@ func (t *sessionSuite) TestCheckAuth(c *C) {
 }
 
 func (t *sessionSuite) TestAddMetadata(c *C) {
-	s := session.New(true)
+	s := session.New("", true)
 	defer s.Discard()
 
 	h, _ := metadata.NewSha256Digest(MySha256)
@@ -123,7 +124,7 @@ func (t *sessionSuite) TestAddMetadata(c *C) {
 }
 
 func (t *sessionSuite) TestAddDownload(c *C) {
-	s := session.New(true)
+	s := session.New("", true)
 	defer s.Discard()
 
 	h, _ := metadata.NewSha256Digest(MySha256)
@@ -144,7 +145,7 @@ func (t *sessionSuite) TestAddDownload(c *C) {
 }
 
 func (t *sessionSuite) TestAddInvalidDownload(c *C) {
-	s := session.New(true)
+	s := session.New("", true)
 	defer s.Discard()
 
 	h, _ := metadata.NewSha256Digest(MySha256)
@@ -160,7 +161,7 @@ func (t *sessionSuite) TestAddInvalidDownload(c *C) {
 }
 
 func (t *sessionSuite) TestSaveData(c *C) {
-	s := session.New(true)
+	s := session.New("", true)
 	defer s.Discard()
 
 	tmp := c.MkDir()
@@ -193,7 +194,7 @@ func (t *sessionSuite) TestSaveData(c *C) {
 }
 
 func (t *sessionSuite) TestSaveMetadata(c *C) {
-	s := session.New(true)
+	s := session.New("", true)
 	defer s.Discard()
 
 	tmp := c.MkDir()
@@ -222,7 +223,7 @@ func (t *sessionSuite) TestGetSession(c *C) {
 	m := session.GetSession("invalid-session-id")
 	c.Assert(m, IsNil)
 
-	s := session.New(true)
+	s := session.New("", true)
 	defer s.Discard()
 
 	m = session.GetSession(s.Id)

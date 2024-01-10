@@ -146,3 +146,11 @@ type Download struct {
 	ResponseHeader map[string][]string `json:"response-header"` // The HTTP response header
 	Sha256         Sha256Digest        `json:"-"`               // SHA256 digest of the downloaded data
 }
+
+// SessionMetadata holds information about each session.
+type SessionMetadata struct {
+	SessionId  string    `json:"session-id"` // The unique session ID
+	StartTime  time.Time `json:"start-time"` // When the session started (UTC)
+	EndTime    time.Time `json:"end-time"`   // When the session finished (UTC)
+	Inspectors []string  `json:"inspectors"` // A list of registered inspector IDs
+}
