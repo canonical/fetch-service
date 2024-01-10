@@ -106,6 +106,7 @@ func (c *Server) endSession(w http.ResponseWriter, r *http.Request) {
 		internalServerError(w, r)
 		return
 	}
+
 	w.Write(j)
 }
 

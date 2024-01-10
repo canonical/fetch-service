@@ -167,6 +167,11 @@ func (insps Inspectors) GetInspector(name string) (Inspector, error) {
 	return ins, nil
 }
 
+// List returns the list of all registered inspector IDs.
+func (insps Inspectors) List() []string {
+	return insps.ids
+}
+
 // DefaultInspector is a fallback artefact inspector for unknown file
 // formats.
 type DefaultInspector struct {

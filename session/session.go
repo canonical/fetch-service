@@ -23,7 +23,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -47,6 +46,7 @@ type Session struct {
 	Insps      inspectors.Inspectors
 	A          map[metadata.Sha256Digest]*metadata.Artefact
 	Permissive bool
+	SessionDir string
 }
 
 var (
@@ -54,21 +54,25 @@ var (
 	randomString  = randomStringImpl
 )
 
-func New(permissive bool) *Session {
+func New(spoolDir string, permissive bool) *Session {
+	sessionId := makeSessionId()
 	s := &Session{
-		Id:         makeSessionId(),
+		Id:         sessionId,
 		Pw:         randomString(20),
 		Start:      time.Now().UTC(),
 		A:          map[metadata.Sha256Digest]*metadata.Artefact{},
 		Permissive: permissive,
+		SessionDir: filepath.Join(spoolDir, sessionId),
 	}
 
 	s.Insps = inspectors.New(permissive)
 
-	// FIXME: predictable values for testing convenience until the session
-	//        creation API is implemented.
-	s.Id = "6ba7b8109dad11d180b400c04fd430c8"
-	s.Pw = "1ItfzwGBeJ8wsJdP0Nlx"
+	/*
+		// FIXME: predictable values for testing convenience until the session
+		//        creation API is implemented.
+		s.Id = "6ba7b8109dad11d180b400c04fd430c8"
+		s.Pw = "1ItfzwGBeJ8wsJdP0Nlx"
+	*/
 
 	var sType string
 	if permissive {
@@ -82,15 +86,44 @@ func New(permissive bool) *Session {
 }
 
 // Finish ends the session and saves metadata.
-func (s *Session) Finish() error {
+func (s *Session) Finish() (*metadata.SessionMetadata, error) {
 	for k := range s.A {
 		logger.Infof("save metadata for artefact %s", k)
 		if err := s.SaveMetadata(k); err != nil {
-			return err
+			return nil, err
 		}
 	}
+
+	sm, err := s.SaveSessionMetadata()
+	if err != nil {
+		return nil, err
+	}
+
 	s.Discard()
-	return nil
+	return sm, nil
+}
+
+// SaveSessionMetadata adds session information to the file spool.
+func (s *Session) SaveSessionMetadata() (*metadata.SessionMetadata, error) {
+	sm := &metadata.SessionMetadata{
+		SessionId:  s.Id,
+		StartTime:  s.Start,
+		EndTime:    s.End,
+		Inspectors: s.Insps.List(),
+	}
+
+	j, err := json.MarshalIndent(sm, "", "\t")
+	if err != nil {
+		return nil, err
+	}
+
+	dest := filepath.Join(s.SessionDir, "session.json")
+	if err := os.WriteFile(dest, j, 0644); err != nil {
+		return nil, err
+	}
+
+	return sm, nil
+
 }
 
 // Discard deletes this session.
@@ -168,7 +201,7 @@ func (s *Session) SaveData(digest metadata.Sha256Digest) error {
 	return nil
 }
 
-// SaveMetadata writes the artefact metadata correponsing to the
+// SaveMetadata writes the artefact metadata corresponding to the
 // given digest to the asset spool.
 func (s *Session) SaveMetadata(digest metadata.Sha256Digest) error {
 	a, ok := s.A[digest]
@@ -182,7 +215,7 @@ func (s *Session) SaveMetadata(digest metadata.Sha256Digest) error {
 	}
 
 	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.json", a.Metadata.Sha256))
-	if err := ioutil.WriteFile(dest, j, 0644); err != nil {
+	if err := os.WriteFile(dest, j, 0644); err != nil {
 		return err
 	}
 
@@ -240,7 +273,7 @@ func FinishAll() {
 		id := key.(string)
 		s := value.(*Session)
 		logger.Infof("finishing session %s", id)
-		if err := s.Finish(); err != nil {
+		if _, err := s.Finish(); err != nil {
 			logger.Errorf("%s", err)
 		}
 		return true

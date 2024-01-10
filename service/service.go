@@ -136,7 +136,7 @@ func (svc *Service) Start() error {
 					}(v.A, v.Rch)
 
 				case messages.CreateSession:
-					s := session.New(svc.opt.PermissiveMode)
+					s := session.New(svc.opt.Spool, svc.opt.PermissiveMode)
 					v.Rch <- messages.SessionCredentials{Id: s.Id, Pw: s.Pw}
 
 				case messages.ProxyAuth:
@@ -145,11 +145,13 @@ func (svc *Service) Start() error {
 				case messages.EndSession:
 					sessionId := v.Id
 					s := session.GetSession(sessionId)
-					err := s.Finish()
-					res := messages.SessionResult{}
+					var res messages.SessionResult
+
+					sm, err := s.Finish()
 					if err != nil {
-						res.Err = err
+						res = messages.SessionResult{Err: err}
 					} else {
+						res = messages.SessionResult{SessionMetadata: sm}
 						res.Artefacts = s.Artefacts()
 					}
 					v.Rch <- res
