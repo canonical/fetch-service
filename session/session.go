@@ -99,6 +99,7 @@ func (s *Session) Metadata() *metadata.SessionMetadata {
 		EndTime:    s.End,
 		Inspectors: s.Insps.List(),
 		SpoolPath:  s.SessionDir,
+		Err:        nil,
 	}
 }
 
@@ -283,6 +284,15 @@ func (sm *SessionMap) Get(id string) *Session {
 	return s.(*Session)
 }
 
+func (sm *SessionMap) ListIds() []string {
+	res := make([]string, 0, 100)
+	sm.Range(func(key, value interface{}) bool {
+		res = append(res, key.(string))
+		return true
+	})
+	return res
+}
+
 var sessions = &SessionMap{}
 
 // CheckAuth verifies if the given credentials are valid and match an active session.
@@ -318,7 +328,7 @@ func FinishAll() {
 	logger.Info("all sessions finished")
 }
 
-// ListAll lists all active session IDs.
+// ListAll lists all active session.
 func ListAll() []metadata.SessionInfo {
 	res := make([]metadata.SessionInfo, 0, 100)
 	sessions.Range(func(key, value any) bool {
