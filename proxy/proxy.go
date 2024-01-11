@@ -198,8 +198,17 @@ func (ln tcpKeepAliveListener) Accept() (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	tc.SetKeepAlive(true)
-	tc.SetKeepAlivePeriod(3 * time.Minute)
+
+	err = tc.SetKeepAlive(true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tc.SetKeepAlivePeriod(3 * time.Minute)
+	if err != nil {
+		return nil, err
+	}
+
 	return tc, nil
 }
 

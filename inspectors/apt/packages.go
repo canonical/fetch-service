@@ -220,22 +220,6 @@ func (ins *AptPackagesInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 	return nil
 }
 
-func (ins *AptPackagesInspector) validateDebFile(a *metadata.Artefact) {
-	digest, e, ok := ins.getPackagesEntry(a.Metadata.Sha256)
-	if !ok {
-		a.Reject(ins, "deb file digest not listed in packages file")
-		return
-	}
-
-	md := a.Metadata
-	if md.Name != e.Package || md.Version != e.Version || md.Architecture != e.Architecture || md.Size != e.Size {
-		a.Reject(ins, "deb file metadata does not match packages file %s", digest)
-		return
-	}
-
-	a.Approve(ins, "deb file validated by packages file %s", digest)
-}
-
 func (ins *AptPackagesInspector) addPackagesEntry(pkgsDigest metadata.Sha256Digest, digest metadata.Sha256Digest, e aptPackagesEntry) {
 	ins.packagesLock.Lock()
 	defer ins.packagesLock.Unlock()

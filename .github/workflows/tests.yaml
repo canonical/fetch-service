@@ -7,19 +7,6 @@ on:
       - main
 
 jobs:
-  #linters:
-  #  runs-on: ubuntu-latest
-  #  steps:
-  #    - uses: actions/checkout@v3
-  #    - uses: actions/setup-go@v4
-  #      with:
-  #        go-version: '1.20'
-  #        cache: false
-  #    - name: golangci-lint
-  #      uses: golangci/golangci-lint-action@v3
-  #      with:
-  #        version: v3.6.0
-
   tests:
     strategy:
       matrix:
@@ -43,9 +30,10 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: '1.18'
-      - name: Run vet
-        run: |
-          go vet ./...
+      - name: Run Linters
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
       - name: Build code
         run: |
           go build ./cmd/fetch

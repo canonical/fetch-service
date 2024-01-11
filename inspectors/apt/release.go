@@ -243,5 +243,11 @@ func (ins *AptReleaseInspector) getReleasePackages(digest metadata.Sha256Digest)
 }
 
 func (ins *AptReleaseInspector) validatePackagesFile(f ReadAtSeeker, a *metadata.Artefact) {
-	// TODO: check if packages file listed in release file, populate metadata according to release
+	digest, pinfo, ok := ins.getReleasePackages(a.Metadata.Sha256)
+	if ok {
+		a.Approve(ins, "packages file %s listed in release file", digest)
+	} else {
+		a.Reject(ins, "packages file digest not listed in release file")
+	}
+	a.Metadata.Vendor = pinfo.Vendor
 }
