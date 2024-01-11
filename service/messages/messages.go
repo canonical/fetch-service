@@ -20,6 +20,8 @@
 package messages
 
 import (
+	"time"
+
 	"github.com/canonical/fetch-service/metadata"
 )
 
@@ -28,6 +30,24 @@ type ProxyAuth struct {
 	Rch chan bool // return channel
 	Id  string    // user (session id)
 	Pw  string    // password
+}
+
+// Service status
+
+type ServiceStatus struct {
+	StartTime      time.Time `json:"start-time"`      // service creation time
+	SessionCount   int       `json:"session-count"`   // number of created sessions
+	ActiveSessions []string  `json:"active-sessions"` // list of active sessiond IDs
+}
+
+func NewGetServiceStatus() GetServiceStatus {
+	return GetServiceStatus{
+		Rch: make(chan ServiceStatus, 1),
+	}
+}
+
+type GetServiceStatus struct {
+	Rch chan ServiceStatus
 }
 
 // ArtefactDownloadMessage has the metadata of a downloaded file and details
@@ -59,9 +79,8 @@ func NewRequestAuthorization(a *metadata.Artefact) RequestAuthorization {
 // Session creation
 
 type SessionCredentials struct {
-	Id     string `json:"id"`
-	Pw     string `json:"pw"`
-	Policy string `json:"policy"`
+	Id string `json:"id"`
+	Pw string `json:"pw"`
 }
 
 type CreateSession struct {

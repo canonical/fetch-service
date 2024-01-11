@@ -31,8 +31,8 @@ import (
 )
 
 type createSessionParameters struct {
-	Timeout    int  `json:"timeout"`
-	Permissive bool `json:"permissive"`
+	Timeout int    `json:"timeout"`
+	Policy  string `json:"policy"`
 }
 
 type endSessionParameters struct {
@@ -50,14 +50,29 @@ func NewServer(port int, ch chan interface{}) *Server {
 func (c *Server) Start() {
 	addr := fmt.Sprintf(":%d", c.port)
 	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/new-session", c.createSession).Methods("POST")
-	router.HandleFunc("/end-session/{id}", c.endSession).Methods("POST")
+	router.HandleFunc("/status", c.getServiceStatus).Methods("GET")
+	router.HandleFunc("/session", c.createSession).Methods("POST")
+	router.HandleFunc("/session/{id}", c.endSession).Methods("DELETE")
 
 	logger.Infof("control server listening on %s\n", addr)
 
 	go func() {
 		logger.Fatal(http.ListenAndServe(addr, router))
 	}()
+}
+
+func (c *Server) getServiceStatus(w http.ResponseWriter, r *http.Request) {
+	logger.Debugf("get session status")
+
+	msg := messages.NewGetServiceStatus()
+	c.ch <- msg
+	status := <-msg.Rch
+	j, err := json.Marshal(status)
+	if err != nil {
+		internalServerError(w, r)
+		return
+	}
+	w.Write(j)
 }
 
 func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {

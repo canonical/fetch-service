@@ -110,6 +110,7 @@ func (s *Session) SaveSessionMetadata() (*metadata.SessionMetadata, error) {
 		StartTime:  s.Start,
 		EndTime:    s.End,
 		Inspectors: s.Insps.List(),
+		SpoolPath:  s.SessionDir,
 	}
 
 	j, err := json.MarshalIndent(sm, "", "\t")
@@ -251,6 +252,15 @@ func (sm *SessionMap) Get(id string) *Session {
 	return s.(*Session)
 }
 
+func (sm *SessionMap) ListIds() []string {
+	res := make([]string, 0, 100)
+	sm.Range(func(key, value interface{}) bool {
+		res = append(res, key.(string))
+		return true
+	})
+	return res
+}
+
 var sessions = &SessionMap{}
 
 // CheckAuth verifies if the given credentials are valid and match an active session.
@@ -279,4 +289,9 @@ func FinishAll() {
 		return true
 	})
 	logger.Info("all sessions finished")
+}
+
+// ListAll lists all active session IDs.
+func ListAll() []string {
+	return sessions.ListIds()
 }

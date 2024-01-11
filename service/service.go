@@ -35,11 +35,13 @@ import (
 
 // Service implements the fetch service main loop.
 type Service struct {
-	p    *proxy.HttpProxy // proxy instance
-	ctl  *control.Server  // control server
-	ch   chan interface{} // channel to get feedback from handlers
-	opt  *Options         // configuration options
-	tomb tomb.Tomb        // service dispacher loop reaper
+	p      *proxy.HttpProxy // proxy instance
+	ctl    *control.Server  // control server
+	ch     chan interface{} // channel to get feedback from handlers
+	start  time.Time        // service start time (UTC)
+	opt    *Options         // configuration options
+	tomb   tomb.Tomb        // service dispacher loop reaper
+	sCount int              // total number of sessions
 }
 
 var proxyNewHttpProxy = proxy.NewHttpProxy
@@ -52,8 +54,9 @@ func New(opt *Options) *Service {
 	ch := make(chan interface{})
 	p := proxyNewHttpProxy(opt.Port, opt.Spool, ch)
 	ctl := control.NewServer(9999, ch)
+	start := time.Now()
 
-	return &Service{p: p, ctl: ctl, opt: opt, ch: ch}
+	return &Service{p: p, ctl: ctl, opt: opt, ch: ch, start: start}
 }
 
 // Start runs the fetch service dispatcher.
@@ -91,6 +94,13 @@ func (svc *Service) Start() error {
 						logger.Infof("[%s] %s %s: request approved", sessionId, dl.Method, dl.URL)
 						rch <- nil
 					}(v.A, v.Rch)
+
+				case messages.GetServiceStatus:
+					v.Rch <- messages.ServiceStatus{
+						StartTime:      svc.start,
+						ActiveSessions: session.ListAll(),
+						SessionCount:   svc.sCount,
+					}
 
 				case messages.ArtefactDownload:
 					assetDir := v.A.AssetDir
@@ -138,6 +148,7 @@ func (svc *Service) Start() error {
 				case messages.CreateSession:
 					s := session.New(svc.opt.Spool, svc.opt.PermissiveMode)
 					v.Rch <- messages.SessionCredentials{Id: s.Id, Pw: s.Pw}
+					svc.sCount++
 
 				case messages.ProxyAuth:
 					v.Rch <- session.CheckAuth(v.Id, v.Pw)
