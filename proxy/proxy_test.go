@@ -128,8 +128,35 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 
 	dl := u.A.CurrentDownload
 	c.Assert(dl.StatusCode, Equals, 200)
+	c.Assert(dl.URL, Equals, "https://launchpadlibrarian.net:443/592566337/hello_2.10-2ubuntu4_amd64.deb")
 	c.Assert(dl.Method, Equals, "GET")
 	c.Assert(dl.ContentType, Equals, "application/x-debian-package")
+	c.Assert(dl.UserAgent, Equals, "Go-http-client/1.1")
+	c.Assert(dl.RequestHeader, DeepEquals, map[string][]string{
+		"Accept-Encoding":    []string{"gzip"},
+		"User-Agent":         []string{"Go-http-client/1.1"},
+		"X-Fetch-Session-Id": []string{"6ba7b8109dad11d180b400c04fd430c8"},
+	})
+	c.Assert(dl.ResponseHeader["Content-Length"], DeepEquals, []string{"26600"})
+	c.Assert(dl.ResponseHeader["Content-Type"], DeepEquals, []string{"application/x-debian-package"})
 
 	u.Rch <- nil // no errors
+}
+
+func (t *proxySuite) TestCopyHeader(c *C) {
+	for _, tc := range []struct {
+		key string
+		val []string
+	}{
+		{"key", []string{}},
+		{"key", []string{"a", "b", "c"}},
+	} {
+		data := map[string][]string{tc.key: tc.val}
+		newData := proxy.CopyHeader(data)
+		delete(data, tc.key)
+		c.Assert(data[tc.key], IsNil)
+		c.Assert(newData, Not(Equals), data)
+		c.Assert(newData[tc.key], DeepEquals, tc.val)
+		c.Assert(newData[tc.key], Not(Equals), tc.val)
+	}
 }
