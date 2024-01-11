@@ -23,6 +23,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/gabriel-vasile/mimetype"
+
 	"github.com/canonical/fetch-service/logger"
 )
 
@@ -77,6 +79,7 @@ type Artefact struct {
 	AssetDir        string              `json:"-"`         // Location to store files and metadata
 	Tempfile        string              `json:"-"`         // Path to temporary file containing downloaded data
 	SessionId       string              `json:"-"`         // The current session ID
+	MimeType        *mimetype.MIME      `json:"-"`         // The artefact MIME type
 	ApprovedReqs    map[string]struct{} `json:"-"`         // Inspector IDs with approved requests
 }
 
