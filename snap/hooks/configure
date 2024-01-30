@@ -1,0 +1,25 @@
+#!/bin/bash -e
+
+port="$(snapctl get port)"
+verbosity="$(snapctl get verbosity)"
+permissive="$(snapctl get permissive)"
+
+if [ -z "${port}" ]; then
+  port=9988
+  snapctl set port=$port
+fi
+spool="${SNAP_COMMON}/spool"
+if [ -z "${verbosity}" ]; then
+  verbosity="debug"
+  snapctl set verbosity="${verbosity}"
+fi
+if [[ "$permissive" == "true" ]]; then
+  permissive="--permissive-mode"
+else
+  permissive=""
+fi
+
+mkdir -p -m 0600 "$spool"
+
+echo "${SNAP}/bin/fetch --port=$port $permissive --spool='${spool}' --verbosity='${verbosity}'" > "${SNAP_DATA}/run.sh"
+chmod +x "${SNAP_DATA}/run.sh"

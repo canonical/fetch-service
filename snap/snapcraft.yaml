@@ -1,0 +1,47 @@
+name: fetch-service # you probably want to 'snapcraft register <name>'
+base: core22 # the base snap is the execution environment for this snap
+version: 'git'
+summary: Canonical Fetch Service
+description: |
+  The fetch service is a tool to mediate network access when executing
+  craft tools.
+
+grade: devel # must be 'stable' to release into candidate/stable channels
+confinement: devmode # use 'strict' once you have the right plugs and slots
+
+apps:
+  # licensecheck app here for debugging.
+#  licensecheck:
+#    command: usr/bin/licensecheck
+#    plugs:
+#      - home
+  fetch-service:
+    command: bin/run-fetch-service.sh
+    daemon: simple
+    plugs:
+      - network-bind
+#      - home
+    install-mode: disable
+
+environment:
+  # PERLLIB needed for licensecheck
+  PERLLIB: $SNAP/lib/perl5:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/perl/5.34:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/perl5/5.34:$SNAP/usr/share/perl/5.34:$SNAP/usr/share/perl5:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/perl-base:$SNAP/usr/share/licensecheck
+
+parts:
+  licensecheck:
+    plugin: nil
+    stage-packages:
+      - licensecheck
+  fetch:
+    build-snaps:
+      - go
+    plugin: go
+    source: .
+  service-runner:
+    plugin: nil
+    override-build: |
+      echo "#!/bin/sh" > "$CRAFT_PART_INSTALL"/run-fetch-service.sh
+      echo '${SNAP_DATA}/run.sh' >> "$CRAFT_PART_INSTALL"/run-fetch-service.sh
+      chmod a+x "$CRAFT_PART_INSTALL"/run-fetch-service.sh
+    organize:
+      run-fetch-service.sh: bin/
