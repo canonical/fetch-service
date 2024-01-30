@@ -82,8 +82,7 @@ func (s *wheelSuite) TestInspectRequest(c *C) {
 		err := ins.InspectRequest(a)
 		c.Assert(err, IsNil)
 
-		_, ok := a.ApprovedReqs[ins.ID()]
-		c.Assert(ok, Equals, tc.approved)
+		c.Assert(a.AuthorizedBy(ins.ID()), Equals, tc.approved)
 	}
 }
 

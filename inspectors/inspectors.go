@@ -71,7 +71,7 @@ func New(permissive bool) Inspectors {
 		deb.NewDebInspector(),
 		apt.NewAptReleaseInspector(),
 		apt.NewAptPackagesInspector(),
-		&DefaultInspector{},
+		DefaultInspector{permissive},
 	}
 
 	insNum := len(insList)
@@ -103,12 +103,8 @@ func (insps Inspectors) RunRequestInspectors(a *metadata.Artefact) error {
 		}
 	}
 
-	if len(a.ApprovedReqs) == 0 {
+	if len(a.AuthorizedIDs) == 0 {
 		url := a.CurrentDownload.URL
-		if insps.permissive {
-			logger.Infof("request to %q would be rejected (permissive)", url)
-			return nil
-		}
 		return fmt.Errorf("request to %q rejected", url)
 	}
 
@@ -142,12 +138,8 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 	}
 
 	// run artefact inspectors
-	for _, id := range insps.ids {
-		// only inspectors with approved requests can inspect artefacts
-		if _, ok := a.ApprovedReqs[id]; !ok {
-			continue
-		}
-
+	// only inspectors with approved requests can inspect artefacts
+	for _, id := range a.AuthorizedIDs {
 		ins := insps.insmap[id]
 		logger.Debugf("run artefact inspector: %s", ins.ID())
 		if _, err := f.Seek(0, io.SeekStart); err != nil {
@@ -159,11 +151,7 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 		}
 	}
 
-	if !a.Approved() {
-		if insps.permissive {
-			logger.Infof("artefact %s would be rejected (permissive)", a.Metadata.Sha256)
-			return nil
-		}
+	if !a.Approved() && !insps.permissive {
 		return ErrRejectedArtefact
 	}
 
@@ -181,13 +169,19 @@ func (insps Inspectors) GetInspector(name string) (Inspector, error) {
 
 // DefaultInspector is a fallback artefact inspector for unknown file
 // formats.
-type DefaultInspector struct{}
+type DefaultInspector struct {
+	permissive bool
+}
 
 func (ins DefaultInspector) ID() string {
 	return "default"
 }
 
 func (ins DefaultInspector) InspectRequest(a *metadata.Artefact) error {
+	if ins.permissive {
+		logger.Infof("request to %s would be rejected (permissive)", a.CurrentDownload.URL)
+		a.AuthorizeRequest(ins)
+	}
 	return nil
 }
 

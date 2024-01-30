@@ -64,7 +64,7 @@ func (WheelInspector) ID() string {
 // InspectRequest verifies if the request complies with policy.
 func (ins WheelInspector) InspectRequest(a *metadata.Artefact) error {
 	if reRequestURL.MatchString(a.CurrentDownload.URL) {
-		a.ApproveRequest(ins)
+		a.AuthorizeRequest(ins)
 	}
 
 	return nil // we don't recognize this request

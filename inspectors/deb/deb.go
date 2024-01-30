@@ -57,7 +57,7 @@ func (ins DebInspector) InspectRequest(a *metadata.Artefact) error {
 
 	for _, re := range validReqs {
 		if re.MatchString(a.CurrentDownload.URL) {
-			a.ApproveRequest(ins)
+			a.AuthorizeRequest(ins)
 			return nil
 		}
 	}
