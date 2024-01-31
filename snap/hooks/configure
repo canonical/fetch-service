@@ -1,25 +1,36 @@
 #!/bin/bash -e
+# Configure the fetch service
+# This runs on install, on refresh, and whenever a configuration option is
+# edited to ensure these options are usable values for the fetch service.
 
-port="$(snapctl get port)"
-verbosity="$(snapctl get verbosity)"
-permissive="$(snapctl get permissive)"
+set_default(){
+  value="$(snapctl get $1)"
+  if [[ -z "${value}" ]]; then
+    snapctl set "$1=$2"
+  fi
+}
 
-if [ -z "${port}" ]; then
-  port=9988
-  snapctl set port=$port
-fi
-spool="${SNAP_COMMON}/spool"
-if [ -z "${verbosity}" ]; then
-  verbosity="debug"
-  snapctl set verbosity="${verbosity}"
-fi
-if [[ "$permissive" == "true" ]]; then
-  permissive="--permissive-mode"
-else
-  permissive=""
-fi
+coerce_lower(){
+  value="$(snapctl get $1)"
+  snapctl set "${1}=${value,,}"
+}
 
-mkdir -p -m 0600 "$spool"
+TRUE_VALUES=("true" "yes" "1")
+coerce_bool(){
+  value="$(snapctl get $1)"
+  result="false"
+  for truth in "${TRUE_VALUES[@]}"; do
+    if [[ "${truth}" == "${value}" ]]; then
+      result="true"
+      break
+    fi
+  done
+  snapctl set "${1}=${result}"
+}
 
-echo "${SNAP}/bin/fetch --port=$port $permissive --spool='${spool}' --verbosity='${verbosity}'" > "${SNAP_DATA}/run.sh"
-chmod +x "${SNAP_DATA}/run.sh"
+coerce_lower verbosity
+coerce_bool permissive
+
+set_default proxy.port 9988
+set_default verbosity debug
+set_default permissive false

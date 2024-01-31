@@ -7,7 +7,7 @@ description: |
   craft tools.
 
 grade: devel # must be 'stable' to release into candidate/stable channels
-confinement: devmode # use 'strict' once you have the right plugs and slots
+confinement: strict
 
 apps:
   # licensecheck app here for debugging.
@@ -15,13 +15,17 @@ apps:
 #    command: usr/bin/licensecheck
 #    plugs:
 #      - home
-  fetch-service:
-    command: bin/run-fetch-service.sh
+  fetchd:
+    command: bin/fetch-service.sh
     daemon: simple
     plugs:
       - network-bind
-#      - home
     install-mode: disable
+  fetch-service:  # Just run the fetch service as a command.
+    command: bin/fetch
+    plugs:
+      - network-bind
+      - home
 
 environment:
   # PERLLIB needed for licensecheck
@@ -38,10 +42,6 @@ parts:
     plugin: go
     source: .
   service-runner:
-    plugin: nil
-    override-build: |
-      echo "#!/bin/sh" > "$CRAFT_PART_INSTALL"/run-fetch-service.sh
-      echo '${SNAP_DATA}/run.sh' >> "$CRAFT_PART_INSTALL"/run-fetch-service.sh
-      chmod a+x "$CRAFT_PART_INSTALL"/run-fetch-service.sh
-    organize:
-      run-fetch-service.sh: bin/
+    plugin: dump
+    source: .
+    source-subdir: snap/local
