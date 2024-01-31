@@ -20,7 +20,7 @@ coerce_bool(){
   value="$(snapctl get $1)"
   result="false"
   for truth in "${TRUE_VALUES[@]}"; do
-    if [[ "${truth}" == "${value}" ]]; then
+    if [[ "${truth}" == "${value,,}" ]]; then
       result="true"
       break
     fi
