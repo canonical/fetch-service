@@ -1,0 +1,36 @@
+#!/bin/bash -e
+# Configure the fetch service
+# This runs on install, on refresh, and whenever a configuration option is
+# edited to ensure these options are usable values for the fetch service.
+
+set_default(){
+  value="$(snapctl get $1)"
+  if [[ -z "${value}" ]]; then
+    snapctl set "$1=$2"
+  fi
+}
+
+coerce_lower(){
+  value="$(snapctl get $1)"
+  snapctl set "${1}=${value,,}"
+}
+
+TRUE_VALUES=("true" "yes" "1")
+coerce_bool(){
+  value="$(snapctl get $1)"
+  result="false"
+  for truth in "${TRUE_VALUES[@]}"; do
+    if [[ "${truth}" == "${value,,}" ]]; then
+      result="true"
+      break
+    fi
+  done
+  snapctl set "${1}=${result}"
+}
+
+coerce_lower verbosity
+coerce_bool permissive
+
+set_default proxy.port 9988
+set_default verbosity debug
+set_default permissive false

@@ -19,3 +19,6 @@
 
 # Go workspace file
 go.work
+
+# Snaps of the fetch service
+/*.snap

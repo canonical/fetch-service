@@ -23,7 +23,7 @@ jobs:
           sudo cpanm --notest https://cpan.metacpan.org/authors/id/P/PE/PEVANS/Syntax-Keyword-Try-0.27.tar.gz
           sudo cpanm --notest https://cpan.metacpan.org/authors/id/J/JO/JONASS/App-Licensecheck-v3.3.9.tar.gz
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up Go
@@ -40,3 +40,33 @@ jobs:
       - name: Run unit tests
         run: |
           go test -race ./...
+  snap-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build snap
+        uses: snapcore/action-build@v1
+        id: snap
+      - name: Upload snap artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: snap
+          path: ${{ steps.snap.outputs.snap }}
+  snap-tests:
+    needs:
+      - snap-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Download snap artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: snap
+      - name: Install snap
+        run: sudo snap install --dangerous *.snap
+      - name: Run snap tests
+        run: sudo tests/snap-test.sh

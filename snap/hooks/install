@@ -1,0 +1,4 @@
+#!/bin/bash -e
+# Initialise the snap upon install
+
+mkdir -m 0700 "${SNAP_COMMON}/spool"
