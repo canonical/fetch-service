@@ -99,7 +99,7 @@ type Identifiable interface {
 }
 
 func (a *Artefact) AuthorizeRequest(id Identifiable) {
-	logger.Infof("request approved by inspector %q", id.ID())
+	logger.Infof("request authorized by inspector %q", id.ID())
 	a.AuthorizedIDs = append(a.AuthorizedIDs, id.ID())
 }
 

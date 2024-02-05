@@ -181,6 +181,9 @@ func (ins DefaultInspector) InspectRequest(a *metadata.Artefact) error {
 	if ins.permissive {
 		logger.Infof("request to %s would be rejected (permissive)", a.CurrentDownload.URL)
 		a.AuthorizeRequest(ins)
+	} else if len(a.AuthorizedIDs) > 0 {
+		logger.Debugf("request authorized by inspectors: %v", a.AuthorizedIDs)
+		a.AuthorizeRequest(ins)
 	}
 	return nil
 }
