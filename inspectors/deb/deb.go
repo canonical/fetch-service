@@ -57,7 +57,7 @@ func (ins DebInspector) InspectRequest(a *metadata.Artefact) error {
 
 	for _, re := range validReqs {
 		if re.MatchString(a.CurrentDownload.URL) {
-			a.AuthorizeRequest(ins)
+			a.Consider(ins, "URL matches expression '%s'", re)
 			return nil
 		}
 	}

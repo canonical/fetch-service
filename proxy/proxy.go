@@ -137,9 +137,9 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 	a.CurrentDownload.UserAgent = req.Header.Get("User-Agent")
 	a.CurrentDownload.RequestHeader = requestHeader
 
-	authReq := messages.NewRequestAuthorization(a)
-	p.ch <- authReq
-	err := <-authReq.Rch
+	reqInsp := messages.NewRequestInspection(a)
+	p.ch <- reqInsp
+	err := <-reqInsp.Rch
 	if err != nil {
 		logger.Info(err.Error())
 		return req, goproxy.NewResponse(

@@ -154,4 +154,5 @@ type SessionMetadata struct {
 	EndTime    time.Time `json:"end-time"`   // When the session finished (UTC)
 	Inspectors []string  `json:"inspectors"` // A list of registered inspector IDs
 	SpoolPath  string    `json:"spool-path"` // The filesystem path to session artefacts
+	Policy     string    `json:"policy"`     // Session policy (strict or permissive)
 }

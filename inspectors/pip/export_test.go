@@ -25,4 +25,5 @@ var (
 	ReadWheelMetadata = readWheelMetadata
 	ListWheelFiles    = listWheelFiles
 	ReadWheelRecord   = readWheelRecord
+	ProcessOpinion    = processOpinion
 )
