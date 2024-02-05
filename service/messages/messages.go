@@ -23,27 +23,27 @@ import (
 	"github.com/canonical/fetch-service/metadata"
 )
 
-// ArtefactDownloadMessage has the metadata of a downloaded file and details
-// about the download operation.
-type ArtefactDownload struct {
+// Inspection
+
+type RequestInspection struct {
 	Rch chan error         // Handler response channel
 	A   *metadata.Artefact // Artefact and download metadata
 }
 
-func NewArtefactDownload(a *metadata.Artefact) ArtefactDownload {
-	return ArtefactDownload{
+func NewRequestInspection(a *metadata.Artefact) RequestInspection {
+	return RequestInspection{
 		Rch: make(chan error, 1),
 		A:   a,
 	}
 }
 
-type RequestAuthorization struct {
+type ResponseInspection struct {
 	Rch chan error         // Handler response channel
 	A   *metadata.Artefact // Artefact and download metadata
 }
 
-func NewRequestAuthorization(a *metadata.Artefact) RequestAuthorization {
-	return RequestAuthorization{
+func NewResponseInspection(a *metadata.Artefact) ResponseInspection {
+	return ResponseInspection{
 		Rch: make(chan error, 1),
 		A:   a,
 	}

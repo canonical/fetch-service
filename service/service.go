@@ -25,6 +25,7 @@ import (
 
 	"gopkg.in/tomb.v2"
 
+	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/proxy"
@@ -67,29 +68,23 @@ func (svc *Service) Start() error {
 			select {
 			case msg := <-svc.ch:
 				switch v := msg.(type) {
-				case messages.RequestAuthorization:
+				case messages.RequestInspection:
 					sessionId := v.A.SessionId
+
 					s := session.GetSession(sessionId)
 					if s == nil {
 						logger.Warningf("session %s is not active", sessionId)
 						break
 					}
 
-					go func(a *metadata.Artefact, rch chan error) {
-						// Check request
-						if err := s.Insps.RunRequestInspectors(a); err != nil {
-							logger.Errorf("%s", err)
-							rch <- err
-							return
-						}
+					// Run request inspectors
+					go func(s *session.Session, a *metadata.Artefact) {
+						err := runRequestInspection(s, a)
+						s.AddArtefact(v.A) // Add metadata to session
+						v.Rch <- err
+					}(s, v.A)
 
-						dl := v.A.CurrentDownload
-						logger.Infof("[%s] %s %s: request approved", sessionId, dl.Method, dl.URL)
-						rch <- nil
-					}(v.A, v.Rch)
-
-				case messages.ArtefactDownload:
-					assetDir := v.A.AssetDir
+				case messages.ResponseInspection:
 					sessionId := v.A.SessionId
 					digest := v.A.Metadata.Sha256
 
@@ -119,17 +114,10 @@ func (svc *Service) Start() error {
 
 					s.AddDownload(v.A.CurrentDownload)
 
-					go func(a *metadata.Artefact, rch chan error) {
-						// Extract metadata from file
-						if err := s.Insps.RunArtefactInspectors(assetDir, a); err != nil {
-							logger.Errorf("%s", err)
-							rch <- err
-							return
-						}
-
-						logger.Infof("[%s] artefact %s %d (%s)", sessionId, digest, a.Metadata.Size, a.Metadata.Type)
-						rch <- nil
-					}(v.A, v.Rch)
+					// Run response inspectors
+					go func(s *session.Session, a *metadata.Artefact) {
+						v.Rch <- runResponseInspection(s, a)
+					}(s, v.A)
 
 				case proxy.ProxyAuth:
 					v.Rch <- session.CheckAuth(v.Id, v.Pw)
@@ -165,4 +153,54 @@ func (svc *Service) Stop() error {
 
 func (svc *Service) Dying() <-chan struct{} {
 	return svc.tomb.Dying()
+}
+
+func runRequestInspection(s *session.Session, a *metadata.Artefact) error {
+	// Check request
+	if err := s.Insps.RunRequestInspectors(a); err != nil {
+		logger.Errorf("[%s] %s", s.Id, err)
+		return err
+	}
+
+	dl := a.CurrentDownload
+	sessionId := s.Id
+
+	if a.Rejected() {
+		if s.Permissive {
+			logger.Infof("[%s] request would be rejected: %s %s", sessionId, dl.Method, dl.URL)
+		} else {
+			logger.Infof("[%s] request rejected: %s %s", sessionId, dl.Method, dl.URL)
+			return ErrRejectedRequest
+		}
+	} else {
+		logger.Infof("[%s] request approved: %s %s", sessionId, dl.Method, dl.URL)
+	}
+
+	return nil
+}
+
+func runResponseInspection(s *session.Session, a *metadata.Artefact) error {
+	// Extract metadata from file
+	if err := s.Insps.RunArtefactInspectors(a.AssetDir, a); err != nil {
+		logger.Errorf("%s", err)
+		return err
+	}
+
+	sessionId := s.Id
+	digest := a.Metadata.Sha256
+
+	if a.Rejected() {
+		if s.Permissive {
+			logger.Infof("[%s] artefact %s %d (%s) would be rejected (permissive)",
+				sessionId, digest, a.Metadata.Size, a.Metadata.Type)
+		} else {
+			logger.Infof("[%s] artefact rejected: %s %d (%s)",
+				sessionId, digest, a.Metadata.Size, a.Metadata.Type)
+			return ErrRejectedArtefact
+		}
+	} else {
+		logger.Infof("[%s] artefact approved: %s %d (%s)", sessionId, digest, a.Metadata.Size, a.Metadata.Type)
+	}
+
+	return nil
 }
