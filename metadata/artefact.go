@@ -24,6 +24,7 @@ import (
 	"fmt"
 
 	"github.com/gabriel-vasile/mimetype"
+	"golang.org/x/exp/slices"
 
 	"github.com/canonical/fetch-service/logger"
 )
@@ -72,15 +73,15 @@ type Opinion struct {
 }
 
 type Artefact struct {
-	Opinions        []Opinion           `json:"opinions"`
-	Metadata        Metadata            `json:"metadata"`
-	Downloads       []Download          `json:"downloads"` // Information about artefact downloads
-	CurrentDownload Download            `json:"-"`         // Information about the current download
-	AssetDir        string              `json:"-"`         // Location to store files and metadata
-	Tempfile        string              `json:"-"`         // Path to temporary file containing downloaded data
-	SessionId       string              `json:"-"`         // The current session ID
-	MimeType        *mimetype.MIME      `json:"-"`         // The artefact MIME type
-	ApprovedReqs    map[string]struct{} `json:"-"`         // Inspector IDs with approved requests
+	Opinions        []Opinion      `json:"opinions"`
+	Metadata        Metadata       `json:"metadata"`
+	Downloads       []Download     `json:"downloads"` // Information about artefact downloads
+	CurrentDownload Download       `json:"-"`         // Information about the current download
+	AssetDir        string         `json:"-"`         // Location to store files and metadata
+	Tempfile        string         `json:"-"`         // Path to temporary file containing downloaded data
+	SessionId       string         `json:"-"`         // The current session ID
+	MimeType        *mimetype.MIME `json:"-"`         // The artefact MIME type
+	AuthorizedIDs   []string       `json:"-"`         // Inspector IDs with authorized requests
 }
 
 func NewArtefact() *Artefact {
@@ -89,7 +90,7 @@ func NewArtefact() *Artefact {
 		Metadata:        Metadata{},
 		Downloads:       []Download{},
 		CurrentDownload: Download{},
-		ApprovedReqs:    map[string]struct{}{},
+		AuthorizedIDs:   []string{},
 	}
 }
 
@@ -97,9 +98,13 @@ type Identifiable interface {
 	ID() string
 }
 
-func (a *Artefact) ApproveRequest(id Identifiable) {
-	logger.Infof("request approved by inspector %q", id.ID())
-	a.ApprovedReqs[id.ID()] = struct{}{}
+func (a *Artefact) AuthorizeRequest(id Identifiable) {
+	logger.Infof("request authorized by inspector %q", id.ID())
+	a.AuthorizedIDs = append(a.AuthorizedIDs, id.ID())
+}
+
+func (a *Artefact) AuthorizedBy(name string) bool {
+	return slices.Contains(a.AuthorizedIDs, name)
 }
 
 func (a *Artefact) Reject(id Identifiable, reason string, args ...interface{}) {
