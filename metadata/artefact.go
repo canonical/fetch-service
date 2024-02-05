@@ -24,7 +24,6 @@ import (
 	"fmt"
 
 	"github.com/gabriel-vasile/mimetype"
-	"golang.org/x/exp/slices"
 
 	"github.com/canonical/fetch-service/logger"
 )
@@ -35,6 +34,7 @@ const (
 	Unknown OpinionKind = iota
 	Rejected
 	Approved
+	Pending
 )
 
 func (t OpinionKind) MarshalJSON() ([]byte, error) {
@@ -45,6 +45,8 @@ func (t OpinionKind) MarshalJSON() ([]byte, error) {
 		return []byte(`"Rejected"`), nil
 	case Approved:
 		return []byte(`"Approved"`), nil
+	case Pending:
+		return []byte(`"Pending"`), nil
 	default:
 		return nil, errors.New("invalid opinion kind")
 	}
@@ -66,31 +68,70 @@ func (t *OpinionKind) UnmarshalJSON(data []byte) error {
 	}
 }
 
-type Opinion struct {
-	InspectorID string      `json:"inspector-id"`
-	Opinion     OpinionKind `json:"opinion"`
-	Reason      string      `json:"reason"`
+// Inspection
+
+type InspectionState string
+
+const (
+	InitialState  = "Waiting for inspection"
+	RequestState  = "Inspecting request"
+	ResponseState = "Inspecting Response"
+	ApprovedState = "Approved"
+	RejectedState = "Rejected"
+)
+
+type Annotation map[string]any
+
+func (ann Annotation) Add(key string, val any) {
+	ann[key] = val
 }
 
+func (ann Annotation) Append(more Annotation) {
+	for key, val := range more {
+		ann[key] = val
+	}
+}
+
+type Inspection struct {
+	Opinion     OpinionKind `json:"opinion"`
+	Reason      string      `json:"reason"`
+	Annotations Annotation  `json:"annotations,omitempty"`
+}
+
+func (in *Inspection) Annotate(a Annotation) {
+	if in.Annotations == nil {
+		in.Annotations = make(map[string]any, len(a))
+	}
+	for key := range a { // shallow copy the map
+		in.Annotations[key] = a[key]
+	}
+}
+
+type InspectionMap map[string]*Inspection
+
+// Artefact
+
 type Artefact struct {
-	Opinions        []Opinion      `json:"opinions"`
-	Metadata        Metadata       `json:"metadata"`
-	Downloads       []Download     `json:"downloads"` // Information about artefact downloads
-	CurrentDownload Download       `json:"-"`         // Information about the current download
-	AssetDir        string         `json:"-"`         // Location to store files and metadata
-	Tempfile        string         `json:"-"`         // Path to temporary file containing downloaded data
-	SessionId       string         `json:"-"`         // The current session ID
-	MimeType        *mimetype.MIME `json:"-"`         // The artefact MIME type
-	AuthorizedIDs   []string       `json:"-"`         // Inspector IDs with authorized requests
+	RequestInspection  InspectionMap   `json:"request-inspection"`  // Opinions from request inspection
+	ResponseInspection InspectionMap   `json:"response-inspection"` // Opinions from result and artefact inspection
+	State              InspectionState `json:"result"`              // Final inspection result
+	Metadata           Metadata        `json:"metadata"`            // Artefact metadata
+	Downloads          []Download      `json:"downloads"`           // Information about artefact downloads
+	CurrentDownload    Download        `json:"-"`                   // Information about the current download
+	AssetDir           string          `json:"-"`                   // Location to store files and metadata
+	Tempfile           string          `json:"-"`                   // Path to temporary file containing downloaded data
+	SessionId          string          `json:"-"`                   // The current session ID
+	MimeType           *mimetype.MIME  `json:"-"`                   // The artefact MIME type
 }
 
 func NewArtefact() *Artefact {
 	return &Artefact{
-		Opinions:        []Opinion{},
-		Metadata:        Metadata{},
-		Downloads:       []Download{},
-		CurrentDownload: Download{},
-		AuthorizedIDs:   []string{},
+		RequestInspection:  InspectionMap{},
+		ResponseInspection: InspectionMap{},
+		State:              InitialState,
+		Metadata:           Metadata{},
+		Downloads:          []Download{},
+		CurrentDownload:    Download{},
 	}
 }
 
@@ -98,39 +139,74 @@ type Identifiable interface {
 	ID() string
 }
 
-func (a *Artefact) AuthorizeRequest(id Identifiable) {
+func (a *Artefact) ConsideredBy(name string) bool {
+	in, ok := a.RequestInspection[name]
+	return ok && in.Opinion == Pending
+}
+
+func (a *Artefact) Consider(id Identifiable, reason string, args ...any) *Inspection {
 	logger.Infof("request authorized by inspector %q", id.ID())
-	a.AuthorizedIDs = append(a.AuthorizedIDs, id.ID())
-}
-
-func (a *Artefact) AuthorizedBy(name string) bool {
-	return slices.Contains(a.AuthorizedIDs, name)
-}
-
-func (a *Artefact) Reject(id Identifiable, reason string, args ...interface{}) {
-	o := Opinion{
-		InspectorID: id.ID(),
-		Opinion:     Rejected,
-		Reason:      fmt.Sprintf(reason, args...),
+	in := &Inspection{
+		Opinion: Pending,
+		Reason:  fmt.Sprintf(reason, args...),
 	}
-	a.Opinions = append(a.Opinions, o)
+
+	a.RequestInspection[id.ID()] = in
+
+	return in
 }
 
-func (a *Artefact) Approve(id Identifiable, reason string, args ...interface{}) {
-	o := Opinion{
-		InspectorID: id.ID(),
-		Opinion:     Approved,
-		Reason:      fmt.Sprintf(reason, args...),
+func (a *Artefact) Reject(id Identifiable, reason string, args ...any) *Inspection {
+	in := &Inspection{
+		Opinion: Rejected,
+		Reason:  fmt.Sprintf(reason, args...),
 	}
-	a.Opinions = append(a.Opinions, o)
+
+	if a.State == ResponseState {
+		a.ResponseInspection[id.ID()] = in
+	} else {
+		a.RequestInspection[id.ID()] = in
+	}
+
+	return in
+
+}
+
+func (a *Artefact) Approve(id Identifiable, reason string, args ...any) *Inspection {
+	in := &Inspection{
+		Opinion: Approved,
+		Reason:  fmt.Sprintf(reason, args...),
+	}
+
+	a.ResponseInspection[id.ID()] = in
+
+	return in
+}
+
+func (a *Artefact) Pending() bool {
+	if len(a.RequestInspection) == 0 {
+		return false
+	}
+	for _, in := range a.RequestInspection {
+		if in.Opinion == Pending {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *Artefact) Approved() bool {
-	if len(a.Opinions) == 0 {
+	for _, in := range a.RequestInspection {
+		if in.Opinion == Rejected {
+			return false
+		}
+	}
+
+	if len(a.ResponseInspection) == 0 {
 		return false
 	}
-	for _, o := range a.Opinions {
-		if o.Opinion != Approved {
+	for _, in := range a.ResponseInspection {
+		if in.Opinion != Approved {
 			return false
 		}
 	}
@@ -138,8 +214,13 @@ func (a *Artefact) Approved() bool {
 }
 
 func (a *Artefact) Rejected() bool {
-	for _, o := range a.Opinions {
-		if o.Opinion == Rejected {
+	for _, in := range a.RequestInspection {
+		if in.Opinion == Rejected {
+			return true
+		}
+	}
+	for _, in := range a.ResponseInspection {
+		if in.Opinion == Rejected {
 			return true
 		}
 	}
@@ -147,8 +228,8 @@ func (a *Artefact) Rejected() bool {
 }
 
 func (a *Artefact) Unknown() bool {
-	for _, o := range a.Opinions {
-		if o.Opinion != Unknown {
+	for _, in := range a.ResponseInspection {
+		if in.Opinion != Unknown {
 			return false
 		}
 	}

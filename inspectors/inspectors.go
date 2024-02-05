@@ -94,6 +94,8 @@ func New(permissive bool) Inspectors {
 
 // RunRequestInspectors determine whether the HTTP request is valid.
 func (insps Inspectors) RunRequestInspectors(a *metadata.Artefact) error {
+	a.State = metadata.RequestState
+
 	logger.Debugf("Inspect request: %s", a.CurrentDownload.URL)
 	for _, id := range insps.ids {
 		ins := insps.insmap[id]
@@ -103,9 +105,8 @@ func (insps Inspectors) RunRequestInspectors(a *metadata.Artefact) error {
 		}
 	}
 
-	if len(a.AuthorizedIDs) == 0 {
-		url := a.CurrentDownload.URL
-		return fmt.Errorf("request to %q rejected", url)
+	if a.Rejected() {
+		a.State = metadata.RejectedState
 	}
 
 	return nil
@@ -113,6 +114,8 @@ func (insps Inspectors) RunRequestInspectors(a *metadata.Artefact) error {
 
 // RunArtefactInspectors examines the artefact in the given assets directory.
 func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) error {
+	a.State = metadata.ResponseState
+
 	// detect file type
 	filename := filepath.Join(dir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
 	logger.Debugf("run artefact inspectors on %s", filename)
@@ -138,10 +141,18 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 	}
 
 	// run artefact inspectors
-	// only inspectors with approved requests can inspect artefacts
-	for _, id := range a.AuthorizedIDs {
+	for _, id := range insps.ids {
+		// if not permissive, only inspectors with pending opinions can run
+		// (default inspector always runs)
+		if !insps.permissive {
+			reqin, ok := a.RequestInspection[id]
+			if (!ok || reqin.Opinion != metadata.Pending) && id != "default" {
+				continue
+			}
+		}
+
 		ins := insps.insmap[id]
-		logger.Debugf("run artefact inspector: %s", ins.ID())
+		logger.Debugf("run artefact inspector: %s", id)
 		if _, err := f.Seek(0, io.SeekStart); err != nil {
 			return err
 		}
@@ -151,8 +162,13 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 		}
 	}
 
-	if !a.Approved() && !insps.permissive {
-		return ErrRejectedArtefact
+	if a.Approved() {
+		a.State = metadata.ApprovedState
+	} else {
+		a.State = metadata.RejectedState
+		if !insps.permissive {
+			return ErrRejectedArtefact
+		}
 	}
 
 	return nil
@@ -170,7 +186,7 @@ func (insps Inspectors) GetInspector(name string) (Inspector, error) {
 // DefaultInspector is a fallback artefact inspector for unknown file
 // formats.
 type DefaultInspector struct {
-	permissive bool
+	Permissive bool
 }
 
 func (ins DefaultInspector) ID() string {
@@ -178,12 +194,13 @@ func (ins DefaultInspector) ID() string {
 }
 
 func (ins DefaultInspector) InspectRequest(a *metadata.Artefact) error {
-	if ins.permissive {
-		logger.Infof("request to %s would be rejected (permissive)", a.CurrentDownload.URL)
-		a.AuthorizeRequest(ins)
-	} else if len(a.AuthorizedIDs) > 0 {
-		logger.Debugf("request authorized by inspectors: %v", a.AuthorizedIDs)
-		a.AuthorizeRequest(ins)
+	if !a.Pending() {
+		if ins.Permissive {
+			logger.Infof("request to %s would be rejected (permissive)", a.CurrentDownload.URL)
+			a.Consider(ins, "allowed because running in permissive mode")
+		} else {
+			a.Reject(ins, "no further inspection pending")
+		}
 	}
 	return nil
 }
