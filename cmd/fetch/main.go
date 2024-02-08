@@ -28,6 +28,7 @@ import (
 	"github.com/jessevdk/go-flags"
 
 	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/profile"
 	"github.com/canonical/fetch-service/service"
 )
 
@@ -39,6 +40,12 @@ craft tools.`
 )
 
 var opts struct {
+	// Enable profiling API
+	Profile bool `long:"profile" description:"Enable profiling"`
+
+	// Profiling API port number
+	ProfilePort int `long:"profile-port" description:"Profiling API port number" default:"6060"`
+
 	// The TCP port the service will listen on.
 	Port int `short:"p" long:"port" description:"Port number" default:"9988"`
 
@@ -77,6 +84,11 @@ func main() {
 
 	logger.Debug("Running in debug mode")
 
+	pp := profile.NewProfiler(opts.ProfilePort)
+	if opts.Profile {
+		pp.Start()
+	}
+
 	svc := service.New(&opt)
 	if err := svc.Start(); err != nil {
 		logger.Fatalf("Cannot start service: %s", err)
@@ -96,6 +108,10 @@ loop:
 			// something called Stop()
 			logger.Info("Server exiting!")
 			break loop
+
+		case <-pp.Dying():
+			// profiling server died
+			logger.Errorf("Profiling error: %s", pp.Err())
 
 			// TODO: add watchdog
 		}
