@@ -40,7 +40,7 @@ import (
 var (
 	// FIXME: using PyPI URLs as placeholders
 	reRequestURL = regexp.MustCompile(
-		`^https://files\.pythonhosted\.org:443/packages/[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{60}/\w+-[a-zA-Z0-9\.-]+\.whl`)
+		`^https://files\.pythonhosted\.org:443/packages/[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{60}/\w+-[a-zA-Z0-9\.-]+\.whl$`)
 )
 
 func WheelDetector(raw []byte, limit uint32) bool {
