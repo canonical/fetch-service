@@ -79,8 +79,8 @@ func NewResponseInspection(a *metadata.Artefact) ResponseInspection {
 // Session creation
 
 type SessionCredentials struct {
-	Id string `json:"id"`
-	Pw string `json:"pw"`
+	Id    string `json:"id"`
+	Token string `json:"token"`
 }
 
 type CreateSession struct {

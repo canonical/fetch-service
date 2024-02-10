@@ -135,7 +135,7 @@ func (svc *Service) Start() error {
 
 				case messages.CreateSession:
 					s := session.New(svc.opt.Spool, svc.opt.PermissiveMode)
-					v.Rch <- messages.SessionCredentials{Id: s.Id, Pw: s.Pw}
+					v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Pw}
 					svc.sCount++
 
 				case messages.ProxyAuth:
