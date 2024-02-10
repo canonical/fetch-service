@@ -44,8 +44,8 @@ var proxyNewHttpProxy = proxy.NewHttpProxy
 
 func New(opt *Options) *Service {
 	ch := make(chan interface{})
-	p := proxyNewHttpProxy(opt.Port, opt.Spool, ch)
-	ctl := control.NewServer(9999, ch)
+	p := proxyNewHttpProxy(opt.ProxyPort, opt.Spool, ch)
+	ctl := control.NewServer(opt.ControlPort, ch)
 
 	return &Service{p: p, ctl: ctl, opt: opt, ch: ch}
 }

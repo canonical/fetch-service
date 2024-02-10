@@ -50,7 +50,7 @@ func (s *serviceSuite) TestProxyPort(c *C) {
 	})
 	defer restorer()
 
-	opt := service.Options{Port: 1337}
+	opt := service.Options{ProxyPort: 1337}
 
 	svc := service.New(&opt)
 	c.Assert(svc, FitsTypeOf, &service.Service{})
@@ -64,7 +64,7 @@ func (s *serviceSuite) TestServiceEntombment(c *C) {
 	})
 	defer restorer()
 
-	opt := service.Options{Port: 1337}
+	opt := service.Options{ProxyPort: 1337}
 	svc := service.New(&opt)
 
 	err := svc.Start()

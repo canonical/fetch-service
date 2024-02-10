@@ -20,7 +20,8 @@
 package service
 
 type Options struct {
-	Port           int    // proxy port number
+	ControlPort    int    // control api tcp port number
+	ProxyPort      int    // proxy tcp port number
 	Spool          string // path to the local file spool
 	PermissiveMode bool   // allow permissive sessions
 }
