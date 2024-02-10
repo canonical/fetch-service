@@ -26,7 +26,6 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
@@ -57,8 +56,8 @@ func (t *inspectorsSuite) TestRunRequestInspectors(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(a.RequestInspection, DeepEquals, metadata.InspectionMap{
 		"default": &metadata.Inspection{
-			Opinion: metadata.Rejected,
-			Reason:  "no further inspection pending",
+			Opinion: metadata.Unknown,
+			Reason:  "the request was not recognized by any format inspector",
 		},
 	})
 }
@@ -73,8 +72,8 @@ func (t *inspectorsSuite) TestRunRequestInspectorsPermissive(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(a.RequestInspection, DeepEquals, metadata.InspectionMap{
 		"default": &metadata.Inspection{
-			Opinion: metadata.Pending,
-			Reason:  "allowed because running in permissive mode",
+			Opinion: metadata.Unknown,
+			Reason:  "the request was not recognized by any format inspector",
 		},
 	})
 }
@@ -95,12 +94,12 @@ func (t *inspectorsSuite) TestRunArtefactInspectors(c *C) {
 	defer s.Discard()
 
 	err = s.Insps.RunArtefactInspectors(dir, a)
-	c.Assert(err, Equals, ErrRejectedArtefact)
+	c.Assert(err, Equals, nil)
 	c.Assert(a.Metadata.Type, Equals, "text/plain; charset=utf-8")
 	c.Assert(a.ResponseInspection, DeepEquals, metadata.InspectionMap{
 		"default": &metadata.Inspection{
-			Opinion: metadata.Rejected,
-			Reason:  "artefact format unknown",
+			Opinion: metadata.Unknown,
+			Reason:  "the artefact format is unknown",
 		},
 	})
 	c.Assert(a.State, Equals, metadata.InspectionState("Rejected"))
@@ -126,8 +125,8 @@ func (t *inspectorsSuite) TestRunArtefactInspectorsPermissive(c *C) {
 	c.Assert(a.Metadata.Type, Equals, "text/plain; charset=utf-8")
 	c.Assert(a.ResponseInspection, DeepEquals, metadata.InspectionMap{
 		"default": &metadata.Inspection{
-			Opinion: metadata.Rejected,
-			Reason:  "artefact format unknown",
+			Opinion: metadata.Unknown,
+			Reason:  "the artefact format is unknown",
 		},
 	})
 	c.Assert(a.State, Equals, metadata.InspectionState("Rejected"))

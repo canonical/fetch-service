@@ -34,10 +34,31 @@ type ProxyAuth struct {
 
 // Service status
 
+type SessionStatus []metadata.SessionInfo
+
 type ServiceStatus struct {
-	StartTime      time.Time `json:"start-time"`      // service creation time
-	SessionCount   int       `json:"session-count"`   // number of created sessions
-	ActiveSessions []string  `json:"active-sessions"` // list of active sessiond IDs
+	Uptime                     uint64        `json:"uptime"`                        // service uptime in seconds
+	StartTime                  time.Time     `json:"start-time"`                    // service creation time
+	SessionCount               uint64        `json:"session-count"`                 // number of created sessions
+	SessionErrors              uint64        `json:"session-errors"`                // number of sessions ended with an error
+	ActiveSessions             SessionStatus `json:"active-sessions"`               // list of active sessiond IDs
+	TotalSessionTime           uint64        `json:"total-session-time"`            // cumulative time of all sessions in seconds
+	ProcessedRequests          uint64        `json:"processed-requests"`            // total number of processed requests
+	ApprovedRequests           uint64        `json:"approved-requests"`             // total number of approved requests
+	RejectedRequests           uint64        `json:"rejected-requests"`             // total number of rejected requests
+	ProcessedArtefacts         uint64        `json:"processed-artefacts"`           // total number of processed artefacts
+	ApprovedArtefacts          uint64        `json:"approved-artefacts"`            // total number of approved artefacts
+	RejectedArtefacts          uint64        `json:"rejected-artefacts"`            // total number of rejected artefacts
+	AverageRequestsPerSession  float32       `json:"average-requests-per-session"`  // average number of requests processed per session
+	AverageArtefactsPerSession float32       `json:"average-artefacts-per-session"` // average number of artefacts processed per session
+	AverageSessionTime         float32       `json:"average-session-time"`          // average time per session
+	LongestSessionTime         uint64        `json:"longest-session-time"`          // longest session duration in seconds
+
+	// Performance stats
+	NumCPU      int    `json:"num-cpu"`       // number of available logical CPUs
+	NumRoutines int    `json:"num-routines"`  // number of goroutines
+	TotalMem    uint64 `json:"total-mem"`     // available memory
+	Alloc       uint64 `json:"memstat-alloc"` // bytes allocated
 }
 
 func NewGetServiceStatus() GetServiceStatus {

@@ -62,7 +62,7 @@ func (c *Server) Start() {
 }
 
 func (c *Server) getServiceStatus(w http.ResponseWriter, r *http.Request) {
-	logger.Debugf("get session status")
+	logger.Debugf("get service status")
 
 	msg := messages.NewGetServiceStatus()
 	c.ch <- msg
@@ -111,7 +111,7 @@ func (c *Server) endSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Debugf("end session parameters: %+v\n", params)
+	logger.Debugf("end session %s: %+v\n", id, params)
 
 	msg := messages.NewEndSession(id)
 	c.ch <- msg

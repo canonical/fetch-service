@@ -143,10 +143,25 @@ type Download struct {
 
 // SessionMetadata holds information about each session.
 type SessionMetadata struct {
-	SessionId  string    `json:"session-id"` // The unique session ID
-	StartTime  time.Time `json:"start-time"` // When the session started (UTC)
-	EndTime    time.Time `json:"end-time"`   // When the session finished (UTC)
-	Inspectors []string  `json:"inspectors"` // A list of registered inspector IDs
-	SpoolPath  string    `json:"spool-path"` // The filesystem path to session artefacts
-	Policy     string    `json:"policy"`     // Session policy (strict or permissive)
+	SessionId          string    `json:"session-id"`              // The unique session ID
+	StartTime          time.Time `json:"start-time"`              // When the session started (UTC)
+	EndTime            time.Time `json:"end-time"`                // When the session finished (UTC)
+	Inspectors         []string  `json:"inspectors"`              // A list of registered inspector IDs
+	SpoolPath          string    `json:"spool-path"`              // The filesystem path to session artefacts
+	Policy             string    `json:"policy"`                  // Session policy (strict or permissive)
+	SessionError       string    `json:"session-error,omitempty"` // Session error message, if any
+	ProcessedRequests  int64     `json:"processed-requests"`      // Number of processed requests
+	ProcessedArtefacts int64     `json:"processed-artefacts"`     // Number of processed artefacts
+	RejectedRequests   int64     `json:"rejected-requests"`       // Number of rejected requests
+	RejectedArtefacts  int64     `json:"rejected-artefacts"`      // Number of rejected artefacts
+	Err                error     `json:"-"`
+}
+
+// SessionInfo contains brief information to be listed in service status.
+type SessionInfo struct {
+	SessionId string `json:"session-id"` // session ID
+	StartTime string `json:"start-time"` // session start timestamp
+	Policy    string `json:"policy"`     // session policy ("strict" or "permissive")
+	Age       uint64 `json:"age"`        // session age in seconds
+	Timeout   uint64 `json:"timeout"`    // session timeout in seconds
 }

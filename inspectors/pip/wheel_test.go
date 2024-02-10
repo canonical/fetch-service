@@ -94,7 +94,7 @@ func (s *wheelSuite) TestInspectArtefactBadType(c *C) {
 	err := ins.InspectArtefact(nil, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, false)
-	c.Assert(a.Rejected(), Equals, false)
+	c.Assert(a.Rejected(), Equals, true)
 }
 
 func (s *wheelSuite) TestWheelInspectArtefactBadContent(c *C) {

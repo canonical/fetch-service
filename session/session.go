@@ -47,6 +47,12 @@ type Session struct {
 	A          map[metadata.Sha256Digest]*metadata.Artefact
 	Permissive bool
 	SessionDir string
+
+	// Some stats
+	NumRequests       int64
+	RejectedRequests  int64
+	NumArtefacts      int64
+	RejectedArtefacts int64
 }
 
 var (
@@ -86,44 +92,59 @@ func New(spoolDir string, permissive bool) *Session {
 }
 
 // Finish ends the session and saves metadata.
-func (s *Session) Finish() (*metadata.SessionMetadata, error) {
+func (s *Session) Finish() *metadata.SessionMetadata {
+	s.End = time.Now().UTC()
+
+	sm := &metadata.SessionMetadata{
+		SessionId:          s.Id,
+		StartTime:          s.Start,
+		EndTime:            s.End,
+		Inspectors:         s.Insps.List(),
+		SpoolPath:          s.SessionDir,
+		ProcessedRequests:  s.NumRequests,
+		ProcessedArtefacts: s.NumArtefacts,
+		RejectedRequests:   s.RejectedRequests,
+		RejectedArtefacts:  s.RejectedArtefacts,
+		Err:                nil,
+	}
+
 	for k := range s.A {
 		logger.Infof("save metadata for artefact %s", k)
 		if err := s.SaveMetadata(k); err != nil {
-			return nil, err
+			sm.SessionError = err.Error()
+			sm.Err = err
+			return sm
 		}
 	}
 
-	sm, err := s.SaveSessionMetadata()
-	if err != nil {
-		return nil, err
+	if err := s.SaveSessionMetadata(sm); err != nil {
+		sm.SessionError = err.Error()
+		sm.Err = err
+		return sm
 	}
 
 	s.Discard()
-	return sm, nil
+	return sm
 }
 
 // SaveSessionMetadata adds session information to the file spool.
-func (s *Session) SaveSessionMetadata() (*metadata.SessionMetadata, error) {
-	sm := &metadata.SessionMetadata{
-		SessionId:  s.Id,
-		StartTime:  s.Start,
-		EndTime:    s.End,
-		Inspectors: s.Insps.List(),
-		SpoolPath:  s.SessionDir,
-	}
+func (s *Session) SaveSessionMetadata(sm *metadata.SessionMetadata) error {
 
 	j, err := json.MarshalIndent(sm, "", "\t")
 	if err != nil {
-		return nil, err
+		return err
+	}
+
+	if err := os.MkdirAll(s.SessionDir, 0755); err != nil {
+		return err
 	}
 
 	dest := filepath.Join(s.SessionDir, "session.json")
 	if err := os.WriteFile(dest, j, 0644); err != nil {
-		return nil, err
+		return err
 	}
 
-	return sm, nil
+	return nil
 
 }
 
@@ -244,21 +265,12 @@ type SessionMap struct {
 	sync.Map
 }
 
-func (sm *SessionMap) Get(id string) *Session {
-	s, ok := sm.Load(id)
+func (smap *SessionMap) Get(id string) *Session {
+	s, ok := smap.Load(id)
 	if !ok {
 		return nil
 	}
 	return s.(*Session)
-}
-
-func (sm *SessionMap) ListIds() []string {
-	res := make([]string, 0, 100)
-	sm.Range(func(key, value interface{}) bool {
-		res = append(res, key.(string))
-		return true
-	})
-	return res
 }
 
 var sessions = &SessionMap{}
@@ -283,8 +295,8 @@ func FinishAll() {
 		id := key.(string)
 		s := value.(*Session)
 		logger.Infof("finishing session %s", id)
-		if _, err := s.Finish(); err != nil {
-			logger.Errorf("%s", err)
+		if sm := s.Finish(); sm.Err != nil {
+			logger.Errorf("%s", sm.Err)
 		}
 		return true
 	})
@@ -292,6 +304,27 @@ func FinishAll() {
 }
 
 // ListAll lists all active session IDs.
-func ListAll() []string {
-	return sessions.ListIds()
+func ListAll() []metadata.SessionInfo {
+	res := make([]metadata.SessionInfo, 0, 100)
+	sessions.Range(func(key, value any) bool {
+		id := key.(string)
+		s := value.(*Session)
+
+		var policy string
+		if s.Permissive {
+			policy = "permissive"
+		} else {
+			policy = "strict"
+		}
+
+		res = append(res, metadata.SessionInfo{
+			SessionId: id,
+			StartTime: s.Start.String(),
+			Policy:    policy,
+			Age:       uint64(time.Since(s.Start).Seconds()),
+			Timeout:   uint64(s.Timeout.Seconds()),
+		})
+		return true
+	})
+	return res
 }

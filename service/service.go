@@ -21,6 +21,7 @@ package service
 
 import (
 	"math/rand"
+	"runtime"
 	"time"
 
 	"gopkg.in/tomb.v2"
@@ -36,13 +37,25 @@ import (
 
 // Service implements the fetch service main loop.
 type Service struct {
-	p      *proxy.HttpProxy // proxy instance
-	ctl    *control.Server  // control server
-	ch     chan interface{} // channel to get feedback from handlers
-	start  time.Time        // service start time (UTC)
-	opt    *Options         // configuration options
-	tomb   tomb.Tomb        // service dispacher loop reaper
-	sCount int              // total number of sessions
+	p     *proxy.HttpProxy // proxy instance
+	ctl   *control.Server  // control server
+	ch    chan interface{} // channel to get feedback from handlers
+	start time.Time        // service start time (UTC)
+	opt   *Options         // configuration options
+	tomb  tomb.Tomb        // service dispacher loop reaper
+
+	// statistics
+	sCount            uint64        // total number of sessions
+	sErrors           uint64        // total number of session errors
+	sTime             time.Duration // cumulative session time
+	sRequests         uint64        // processed requests
+	sApprovedRequests uint64        // approved requests
+	sRejectedRequests uint64        // rejected requests
+	sArtefacts        uint64        // cumulative number of artefacts processed
+	sApproved         uint64        // approved artefacts
+	sRejected         uint64        // rejected artefacts
+	sMaxTime          time.Duration // maximum session duration
+
 }
 
 var proxyNewHttpProxy = proxy.NewHttpProxy
@@ -76,10 +89,41 @@ func (svc *Service) Start() error {
 			case msg := <-svc.ch:
 				switch v := msg.(type) {
 				case messages.GetServiceStatus:
+					var (
+						avgTime time.Duration
+						avgArts float32
+						avgReqs float32
+					)
+					if svc.sCount > 0 {
+						avgTime = time.Duration(uint64(svc.sTime) / svc.sCount)
+						avgArts = float32(svc.sArtefacts) / float32(svc.sCount)
+						avgReqs = float32(svc.sRequests) / float32(svc.sCount)
+					}
+
+					var mem runtime.MemStats
+					runtime.ReadMemStats(&mem)
+
 					v.Rch <- messages.ServiceStatus{
-						StartTime:      svc.start,
-						ActiveSessions: session.ListAll(),
-						SessionCount:   svc.sCount,
+						Uptime:                     uint64(time.Since(svc.start).Seconds()),
+						StartTime:                  svc.start,
+						ActiveSessions:             session.ListAll(),
+						SessionCount:               svc.sCount,
+						SessionErrors:              svc.sErrors,
+						TotalSessionTime:           uint64(svc.sTime.Seconds()),
+						ProcessedRequests:          svc.sRequests,
+						ApprovedRequests:           svc.sApprovedRequests,
+						RejectedRequests:           svc.sRejectedRequests,
+						ProcessedArtefacts:         svc.sArtefacts,
+						ApprovedArtefacts:          svc.sApproved,
+						RejectedArtefacts:          svc.sRejected,
+						AverageArtefactsPerSession: avgArts,
+						AverageRequestsPerSession:  avgReqs,
+						AverageSessionTime:         float32(avgTime.Milliseconds()) / 1000,
+						LongestSessionTime:         uint64(svc.sMaxTime.Seconds()),
+						NumCPU:                     runtime.NumCPU(),
+						NumRoutines:                runtime.NumGoroutine(),
+						TotalMem:                   mem.Sys,
+						Alloc:                      mem.Alloc,
 					}
 
 				case messages.RequestInspection:
@@ -91,10 +135,18 @@ func (svc *Service) Start() error {
 						break
 					}
 
+					svc.sRequests++
+					s.NumRequests++
+
 					// Run request inspectors
 					go func(s *session.Session, a *metadata.Artefact) {
 						err := runRequestInspection(s, a)
-						s.AddArtefact(v.A) // Add metadata to session
+						if a.Rejected() {
+							svc.sRejectedRequests++
+							s.RejectedRequests++
+						} else {
+							svc.sApprovedRequests++
+						}
 						v.Rch <- err
 					}(s, v.A)
 
@@ -107,6 +159,9 @@ func (svc *Service) Start() error {
 						logger.Warningf("session %s is not active", sessionId)
 						break
 					}
+
+					svc.sArtefacts++
+					s.NumArtefacts++
 
 					// Add download info to artefact metadata
 					dl := v.A.CurrentDownload
@@ -130,7 +185,14 @@ func (svc *Service) Start() error {
 
 					// Run response inspectors
 					go func(s *session.Session, a *metadata.Artefact) {
-						v.Rch <- runResponseInspection(s, a)
+						err := runResponseInspection(s, a)
+						if a.Rejected() {
+							svc.sRejected++
+							s.RejectedArtefacts++
+						} else {
+							svc.sApproved++
+						}
+						v.Rch <- err
 					}(s, v.A)
 
 				case messages.CreateSession:
@@ -144,16 +206,27 @@ func (svc *Service) Start() error {
 				case messages.EndSession:
 					sessionId := v.Id
 					s := session.GetSession(sessionId)
-					var res messages.SessionResult
-
-					sm, err := s.Finish()
-					if err != nil {
-						res = messages.SessionResult{Err: err}
-					} else {
-						res = messages.SessionResult{SessionMetadata: sm}
-						res.Artefacts = s.Artefacts()
+					if s == nil {
+						logger.Warningf("session %s is not active", sessionId)
+						break
 					}
-					v.Rch <- res
+
+					sm := s.Finish()
+
+					// update stats
+					duration := sm.EndTime.Sub(sm.StartTime)
+					svc.sTime += duration
+					if duration > svc.sMaxTime {
+						svc.sMaxTime = duration
+					}
+					if sm.Err != nil {
+						svc.sErrors++
+					}
+
+					v.Rch <- messages.SessionResult{
+						SessionMetadata: sm,
+						Artefacts:       s.Artefacts(),
+					}
 
 				default:
 					logger.Warningf("Unknown message type %T", v)
