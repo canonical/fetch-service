@@ -111,7 +111,13 @@ type InspectionMap map[string]*Inspection
 
 // Artefact
 
+const (
+	MetadataVersionMajor = 0 // Updated when incompatible changes are made
+	MetadataVersionMinor = 1 // Existing fields not changed, may contain additional fields
+)
+
 type Artefact struct {
+	MetadataVersion    string          `json:"metadata-version"`    // Metadata version in X.Y format
 	RequestInspection  InspectionMap   `json:"request-inspection"`  // Opinions from request inspection
 	ResponseInspection InspectionMap   `json:"response-inspection"` // Opinions from result and artefact inspection
 	State              InspectionState `json:"result"`              // Final inspection result
@@ -126,6 +132,7 @@ type Artefact struct {
 
 func NewArtefact() *Artefact {
 	return &Artefact{
+		MetadataVersion:    fmt.Sprintf("%d.%d", MetadataVersionMajor, MetadataVersionMinor),
 		RequestInspection:  InspectionMap{},
 		ResponseInspection: InspectionMap{},
 		State:              InitialState,
