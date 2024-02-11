@@ -150,10 +150,10 @@ type SessionMetadata struct {
 	SpoolPath          string    `json:"spool-path"`              // The filesystem path to session artefacts
 	Policy             string    `json:"policy"`                  // Session policy (strict or permissive)
 	SessionError       string    `json:"session-error,omitempty"` // Session error message, if any
-	ProcessedRequests  int64     `json:"processed-requests"`      // Number of processed requests
-	ProcessedArtefacts int64     `json:"processed-artefacts"`     // Number of processed artefacts
-	RejectedRequests   int64     `json:"rejected-requests"`       // Number of rejected requests
-	RejectedArtefacts  int64     `json:"rejected-artefacts"`      // Number of rejected artefacts
+	ProcessedRequests  uint64    `json:"processed-requests"`      // Number of processed requests
+	ProcessedArtefacts uint64    `json:"processed-artefacts"`     // Number of processed artefacts
+	RejectedRequests   uint64    `json:"rejected-requests"`       // Number of rejected requests
+	RejectedArtefacts  uint64    `json:"rejected-artefacts"`      // Number of rejected artefacts
 	Err                error     `json:"-"`
 }
 

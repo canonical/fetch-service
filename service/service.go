@@ -20,8 +20,10 @@
 package service
 
 import (
+	"fmt"
 	"math/rand"
 	"runtime"
+	"sync/atomic"
 	"time"
 
 	"gopkg.in/tomb.v2"
@@ -45,15 +47,15 @@ type Service struct {
 	tomb  tomb.Tomb        // service dispacher loop reaper
 
 	// statistics
-	sCount            uint64        // total number of sessions
-	sErrors           uint64        // total number of session errors
+	sCount            atomic.Uint64 // total number of sessions
+	sErrors           atomic.Uint64 // total number of session errors
 	sTime             time.Duration // cumulative session time
-	sRequests         uint64        // processed requests
-	sApprovedRequests uint64        // approved requests
-	sRejectedRequests uint64        // rejected requests
-	sArtefacts        uint64        // cumulative number of artefacts processed
-	sApproved         uint64        // approved artefacts
-	sRejected         uint64        // rejected artefacts
+	sRequests         atomic.Uint64 // processed requests
+	sApprovedRequests atomic.Uint64 // approved requests
+	sRejectedRequests atomic.Uint64 // rejected requests
+	sArtefacts        atomic.Uint64 // cumulative number of artefacts processed
+	sApproved         atomic.Uint64 // approved artefacts
+	sRejected         atomic.Uint64 // rejected artefacts
 	sMaxTime          time.Duration // maximum session duration
 
 }
@@ -94,10 +96,11 @@ func (svc *Service) Start() error {
 						avgArts float32
 						avgReqs float32
 					)
-					if svc.sCount > 0 {
-						avgTime = time.Duration(uint64(svc.sTime) / svc.sCount)
-						avgArts = float32(svc.sArtefacts) / float32(svc.sCount)
-						avgReqs = float32(svc.sRequests) / float32(svc.sCount)
+					count := svc.sCount.Load()
+					if count > 0 {
+						avgTime = time.Duration(uint64(svc.sTime) / count)
+						avgArts = float32(svc.sArtefacts.Load()) / float32(count)
+						avgReqs = float32(svc.sRequests.Load()) / float32(count)
 					}
 
 					var mem runtime.MemStats
@@ -107,15 +110,15 @@ func (svc *Service) Start() error {
 						Uptime:                     uint64(time.Since(svc.start).Seconds()),
 						StartTime:                  svc.start,
 						ActiveSessions:             session.ListAll(),
-						SessionCount:               svc.sCount,
-						SessionErrors:              svc.sErrors,
+						SessionCount:               svc.sCount.Load(),
+						SessionErrors:              svc.sErrors.Load(),
 						TotalSessionTime:           uint64(svc.sTime.Seconds()),
-						ProcessedRequests:          svc.sRequests,
-						ApprovedRequests:           svc.sApprovedRequests,
-						RejectedRequests:           svc.sRejectedRequests,
-						ProcessedArtefacts:         svc.sArtefacts,
-						ApprovedArtefacts:          svc.sApproved,
-						RejectedArtefacts:          svc.sRejected,
+						ProcessedRequests:          svc.sRequests.Load(),
+						ApprovedRequests:           svc.sApprovedRequests.Load(),
+						RejectedRequests:           svc.sRejectedRequests.Load(),
+						ProcessedArtefacts:         svc.sArtefacts.Load(),
+						ApprovedArtefacts:          svc.sApproved.Load(),
+						RejectedArtefacts:          svc.sRejected.Load(),
 						AverageArtefactsPerSession: avgArts,
 						AverageRequestsPerSession:  avgReqs,
 						AverageSessionTime:         float32(avgTime.Milliseconds()) / 1000,
@@ -131,24 +134,25 @@ func (svc *Service) Start() error {
 
 					s := session.GetSession(sessionId)
 					if s == nil {
-						logger.Warningf("session %s is not active", sessionId)
+						svc.sErrors.Add(1)
+						v.Rch <- fmt.Errorf("cannot inspect request: session %s is not active", sessionId)
 						break
 					}
 
-					svc.sRequests++
-					s.NumRequests++
+					svc.sRequests.Add(1)
+					s.NumRequests.Add(1)
 
 					// Run request inspectors
-					go func(s *session.Session, a *metadata.Artefact) {
+					go func(svc *Service, s *session.Session, a *metadata.Artefact) {
 						err := runRequestInspection(s, a)
 						if a.Rejected() {
-							svc.sRejectedRequests++
-							s.RejectedRequests++
+							svc.sRejectedRequests.Add(1)
+							s.RejectedRequests.Add(1)
 						} else {
-							svc.sApprovedRequests++
+							svc.sApprovedRequests.Add(1)
 						}
 						v.Rch <- err
-					}(s, v.A)
+					}(svc, s, v.A)
 
 				case messages.ResponseInspection:
 					sessionId := v.A.SessionId
@@ -156,12 +160,13 @@ func (svc *Service) Start() error {
 
 					s := session.GetSession(sessionId)
 					if s == nil {
-						logger.Warningf("session %s is not active", sessionId)
+						svc.sErrors.Add(1)
+						v.Rch <- fmt.Errorf("cannot inspect response: session %s is not active", sessionId)
 						break
 					}
 
-					svc.sArtefacts++
-					s.NumArtefacts++
+					svc.sArtefacts.Add(1)
+					s.NumArtefacts.Add(1)
 
 					// Add download info to artefact metadata
 					dl := v.A.CurrentDownload
@@ -184,30 +189,49 @@ func (svc *Service) Start() error {
 					s.AddDownload(v.A.CurrentDownload)
 
 					// Run response inspectors
-					go func(s *session.Session, a *metadata.Artefact) {
+					go func(svc *Service, s *session.Session, a *metadata.Artefact) {
 						err := runResponseInspection(s, a)
 						if a.Rejected() {
-							svc.sRejected++
-							s.RejectedArtefacts++
+							svc.sRejected.Add(1)
+							s.RejectedArtefacts.Add(1)
 						} else {
-							svc.sApproved++
+							svc.sApproved.Add(1)
 						}
 						v.Rch <- err
-					}(s, v.A)
+					}(svc, s, v.A)
 
 				case messages.CreateSession:
-					s := session.New(svc.opt.Spool, svc.opt.PermissiveMode)
-					v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Pw}
-					svc.sCount++
+					permissive := false
+					if v.Policy == "permissive" {
+						if svc.opt.PermissiveMode {
+							permissive = true
+						} else {
+							svc.sErrors.Add(1)
+							v.Rch <- messages.SessionCredentials{
+								Err: session.ErrInvalidSessionPolicy,
+							}
+							break
+						}
+					}
 
-				case messages.ProxyAuth:
-					v.Rch <- session.CheckAuth(v.Id, v.Pw)
+					s := session.New(svc.opt.Spool, permissive)
+					if v.Timeout > 0 {
+						s.Timeout = time.Duration(v.Timeout * uint64(time.Second))
+					}
+					v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Pw}
+					svc.sCount.Add(1)
 
 				case messages.EndSession:
 					sessionId := v.Id
 					s := session.GetSession(sessionId)
 					if s == nil {
-						logger.Warningf("session %s is not active", sessionId)
+						svc.sErrors.Add(1)
+						v.Rch <- messages.SessionResult{
+							SessionMetadata: &metadata.SessionMetadata{
+								Err: fmt.Errorf("cannot end session: session %s is not active", sessionId),
+							},
+							Artefacts: []*metadata.Artefact{},
+						}
 						break
 					}
 
@@ -220,13 +244,29 @@ func (svc *Service) Start() error {
 						svc.sMaxTime = duration
 					}
 					if sm.Err != nil {
-						svc.sErrors++
+						svc.sErrors.Add(1)
 					}
 
 					v.Rch <- messages.SessionResult{
 						SessionMetadata: sm,
 						Artefacts:       s.Artefacts(),
 					}
+
+				case messages.DeleteResources:
+					sessionId := v.Id
+					s := session.GetSession(sessionId)
+					if s != nil {
+						v.Rch <- messages.ErrSessionActive
+						break
+					}
+
+					// Delete session resources
+					go func(spoolDir, sessionId string) {
+						v.Rch <- session.RemoveResources(spoolDir, sessionId)
+					}(svc.opt.Spool, sessionId)
+
+				case messages.ProxyAuth:
+					v.Rch <- session.CheckAuth(v.Id, v.Pw)
 
 				default:
 					logger.Warningf("Unknown message type %T", v)

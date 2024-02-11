@@ -22,12 +22,14 @@ package session
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -35,6 +37,14 @@ import (
 	"github.com/canonical/fetch-service/inspectors"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
+)
+
+const (
+	DefaultSessionTimeout = time.Duration(3 * time.Hour)
+)
+
+var (
+	ErrInvalidSessionPolicy = errors.New("Invalid session policy")
 )
 
 // Session has information about each authorized client.
@@ -47,12 +57,13 @@ type Session struct {
 	A          map[metadata.Sha256Digest]*metadata.Artefact
 	Permissive bool
 	SessionDir string
+	Timeout    time.Duration
 
 	// Some stats
-	NumRequests       int64
-	RejectedRequests  int64
-	NumArtefacts      int64
-	RejectedArtefacts int64
+	NumRequests       atomic.Uint64
+	RejectedRequests  atomic.Uint64
+	NumArtefacts      atomic.Uint64
+	RejectedArtefacts atomic.Uint64
 }
 
 var (
@@ -69,6 +80,7 @@ func New(spoolDir string, permissive bool) *Session {
 		A:          map[metadata.Sha256Digest]*metadata.Artefact{},
 		Permissive: permissive,
 		SessionDir: filepath.Join(spoolDir, sessionId),
+		Timeout:    DefaultSessionTimeout,
 	}
 
 	s.Insps = inspectors.New(permissive)
@@ -101,10 +113,10 @@ func (s *Session) Finish() *metadata.SessionMetadata {
 		EndTime:            s.End,
 		Inspectors:         s.Insps.List(),
 		SpoolPath:          s.SessionDir,
-		ProcessedRequests:  s.NumRequests,
-		ProcessedArtefacts: s.NumArtefacts,
-		RejectedRequests:   s.RejectedRequests,
-		RejectedArtefacts:  s.RejectedArtefacts,
+		ProcessedRequests:  s.NumRequests.Load(),
+		ProcessedArtefacts: s.NumArtefacts.Load(),
+		RejectedRequests:   s.RejectedRequests.Load(),
+		RejectedArtefacts:  s.RejectedArtefacts.Load(),
 		Err:                nil,
 	}
 

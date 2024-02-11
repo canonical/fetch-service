@@ -20,6 +20,7 @@
 package messages
 
 import (
+	"errors"
 	"time"
 
 	"github.com/canonical/fetch-service/metadata"
@@ -102,15 +103,20 @@ func NewResponseInspection(a *metadata.Artefact) ResponseInspection {
 type SessionCredentials struct {
 	Id    string `json:"id"`
 	Token string `json:"token"`
+	Err   error  `json:"-"`
 }
 
 type CreateSession struct {
-	Rch chan SessionCredentials // Handler response channel
+	Rch     chan SessionCredentials // Handler response channel
+	Timeout uint64
+	Policy  string
 }
 
-func NewCreateSession() CreateSession {
+func NewCreateSession(policy string, timeout uint64) CreateSession {
 	return CreateSession{
-		Rch: make(chan SessionCredentials, 1),
+		Rch:     make(chan SessionCredentials, 1),
+		Policy:  policy,
+		Timeout: timeout,
 	}
 }
 
@@ -119,7 +125,6 @@ func NewCreateSession() CreateSession {
 type SessionResult struct {
 	*metadata.SessionMetadata
 	Artefacts []*metadata.Artefact `json:"artefacts"`
-	Err       error                `json:"-"`
 }
 
 type EndSession struct {
@@ -130,6 +135,22 @@ type EndSession struct {
 func NewEndSession(sessionId string) EndSession {
 	return EndSession{
 		Rch: make(chan SessionResult, 1),
+		Id:  sessionId,
+	}
+}
+
+// Delete resources
+
+var ErrSessionActive = errors.New("session is active")
+
+type DeleteResources struct {
+	Rch chan error // Handler response channel
+	Id  string
+}
+
+func NewDeleteResources(sessionId string) DeleteResources {
+	return DeleteResources{
+		Rch: make(chan error, 1),
 		Id:  sessionId,
 	}
 }

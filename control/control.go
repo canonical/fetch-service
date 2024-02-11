@@ -31,11 +31,14 @@ import (
 )
 
 type createSessionParameters struct {
-	Timeout int    `json:"timeout"`
+	Timeout uint64 `json:"timeout"`
 	Policy  string `json:"policy"`
 }
 
 type endSessionParameters struct {
+}
+
+type deleteResourcesParameters struct {
 }
 
 type Server struct {
@@ -53,6 +56,7 @@ func (c *Server) Start() {
 	router.HandleFunc("/status", c.getServiceStatus).Methods("GET")
 	router.HandleFunc("/session", c.createSession).Methods("POST")
 	router.HandleFunc("/session/{id}", c.endSession).Methods("DELETE")
+	router.HandleFunc("/resources/{id}", c.deleteResources).Methods("DELETE")
 
 	logger.Infof("control server listening on %s\n", addr)
 
@@ -86,9 +90,13 @@ func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
 
 	logger.Debugf("create session parameters: %+v\n", params)
 
-	msg := messages.NewCreateSession()
+	msg := messages.NewCreateSession(params.Policy, params.Timeout)
 	c.ch <- msg
 	cred := <-msg.Rch
+	if cred.Err != nil {
+		badRequest(w, r, cred.Err.Error())
+		return
+	}
 	j, err := json.Marshal(cred)
 	if err != nil {
 		internalServerError(w, r)
@@ -106,10 +114,10 @@ func (c *Server) endSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var params endSessionParameters
-	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-		internalServerError(w, r)
-		return
-	}
+	// if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+	//	internalServerError(w, r)
+	//	return
+	// }
 
 	logger.Debugf("end session %s: %+v\n", id, params)
 
@@ -123,6 +131,40 @@ func (c *Server) endSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write(j)
+}
+
+func (c *Server) deleteResources(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, ok := vars["id"]
+	if !ok {
+		notFound(w, r)
+		return
+	}
+
+	var params deleteResourcesParameters
+	// if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+	//	internalServerError(w, r)
+	//	return
+	// }
+
+	logger.Debugf("delete resources from session %s: %+v\n", id, params)
+
+	msg := messages.NewDeleteResources(id)
+	c.ch <- msg
+	err := <-msg.Rch
+	if err != nil {
+		if err == messages.ErrSessionActive {
+			badRequest(w, r, err.Error())
+		} else {
+			internalServerError(w, r)
+		}
+	}
+}
+
+func badRequest(w http.ResponseWriter, r *http.Request, reason string) {
+	logger.Warningf("bad request response: %s", r.URL)
+	w.WriteHeader(http.StatusBadRequest)
+	w.Write([]byte(reason))
 }
 
 func internalServerError(w http.ResponseWriter, r *http.Request) {
