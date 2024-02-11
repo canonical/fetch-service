@@ -7,7 +7,7 @@ require (
 	github.com/elazarl/goproxy v0.0.0-20221015165544-a0805db90819
 	github.com/gabriel-vasile/mimetype v1.4.2
 	github.com/go-mmap/mmap v0.7.0
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.6.0
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/klauspost/compress v1.16.7
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
