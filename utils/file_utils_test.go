@@ -23,7 +23,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -48,10 +47,10 @@ func (t *fileutilsSuite) TestZipMatches(c *C) {
 	err := os.Mkdir(src, 0755)
 	c.Assert(err, IsNil)
 
-	err = ioutil.WriteFile(filepath.Join(src, "foo.txt"), content, 0644)
+	err = os.WriteFile(filepath.Join(src, "foo.txt"), content, 0644)
 	c.Assert(err, IsNil)
 
-	err = ioutil.WriteFile(filepath.Join(src, "bar.txt"), content, 0644)
+	err = os.WriteFile(filepath.Join(src, "bar.txt"), content, 0644)
 	c.Assert(err, IsNil)
 
 	var buf bytes.Buffer
