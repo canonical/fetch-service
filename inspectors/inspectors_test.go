@@ -56,8 +56,9 @@ func (t *inspectorsSuite) TestRunRequestInspectors(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(a.RequestInspection, DeepEquals, metadata.InspectionMap{
 		"default": &metadata.Inspection{
-			Opinion: metadata.Unknown,
-			Reason:  "the request was not recognized by any format inspector",
+			Opinion:     metadata.Unknown,
+			Reason:      "the request was not recognized by any format inspector",
+			Annotations: metadata.Annotation{},
 		},
 	})
 }
@@ -72,8 +73,9 @@ func (t *inspectorsSuite) TestRunRequestInspectorsPermissive(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(a.RequestInspection, DeepEquals, metadata.InspectionMap{
 		"default": &metadata.Inspection{
-			Opinion: metadata.Unknown,
-			Reason:  "the request was not recognized by any format inspector",
+			Opinion:     metadata.Unknown,
+			Reason:      "the request was not recognized by any format inspector",
+			Annotations: metadata.Annotation{},
 		},
 	})
 }
@@ -98,8 +100,9 @@ func (t *inspectorsSuite) TestRunArtefactInspectors(c *C) {
 	c.Assert(a.Metadata.Type, Equals, "text/plain; charset=utf-8")
 	c.Assert(a.ResponseInspection, DeepEquals, metadata.InspectionMap{
 		"default": &metadata.Inspection{
-			Opinion: metadata.Unknown,
-			Reason:  "the artefact format is unknown",
+			Opinion:     metadata.Unknown,
+			Reason:      "the artefact format is unknown",
+			Annotations: metadata.Annotation{},
 		},
 	})
 	c.Assert(a.State, Equals, metadata.InspectionState("Rejected"))
@@ -125,8 +128,9 @@ func (t *inspectorsSuite) TestRunArtefactInspectorsPermissive(c *C) {
 	c.Assert(a.Metadata.Type, Equals, "text/plain; charset=utf-8")
 	c.Assert(a.ResponseInspection, DeepEquals, metadata.InspectionMap{
 		"default": &metadata.Inspection{
-			Opinion: metadata.Unknown,
-			Reason:  "the artefact format is unknown",
+			Opinion:     metadata.Unknown,
+			Reason:      "the artefact format is unknown",
+			Annotations: metadata.Annotation{},
 		},
 	})
 	c.Assert(a.State, Equals, metadata.InspectionState("Rejected"))

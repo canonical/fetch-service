@@ -151,16 +151,19 @@ func (c *Server) deleteResources(w http.ResponseWriter, r *http.Request) {
 
 	logger.Debugf("delete resources from session %s: %+v\n", id, params)
 
-	msg := messages.NewDeleteResources(id)
-	c.ch <- msg
-	err := <-msg.Rch
-	if err != nil {
-		if err == messages.ErrSessionActive {
-			badRequest(w, r, err.Error())
-		} else {
-			internalServerError(w, r)
-		}
-	}
+	/*
+	   msg := messages.NewDeleteResources(id)
+	   c.ch <- msg
+	   err := <-msg.Rch
+
+	   	if err != nil {
+	   		if err == messages.ErrSessionActive {
+	   			badRequest(w, r, err.Error())
+	   		} else {
+	   			internalServerError(w, r)
+	   		}
+	   	}
+	*/
 }
 
 func badRequest(w http.ResponseWriter, r *http.Request, reason string) {
