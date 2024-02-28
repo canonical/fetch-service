@@ -22,7 +22,6 @@ package session_test
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -176,14 +175,14 @@ func (t *sessionSuite) TestSaveData(c *C) {
 	s.AddArtefact(a)
 
 	content := []byte("hello world")
-	err := ioutil.WriteFile(tempfile, content, 0644)
+	err := os.WriteFile(tempfile, content, 0644)
 	c.Assert(err, IsNil)
 
 	err = s.SaveData(h)
 	c.Assert(err, IsNil)
 
 	// data is stored in file named after the digest value
-	data, err := ioutil.ReadFile(filepath.Join(tmp, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.data"))
+	data, err := os.ReadFile(filepath.Join(tmp, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.data"))
 	c.Assert(err, IsNil)
 	c.Assert(data, DeepEquals, []byte("hello world"))
 
@@ -209,7 +208,7 @@ func (t *sessionSuite) TestSaveMetadata(c *C) {
 	err := s.SaveMetadata(h)
 	c.Assert(err, IsNil)
 
-	data, err := ioutil.ReadFile(filepath.Join(tmp, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.json"))
+	data, err := os.ReadFile(filepath.Join(tmp, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.json"))
 	c.Assert(err, IsNil)
 
 	var j metadata.Artefact

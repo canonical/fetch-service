@@ -23,7 +23,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -170,7 +169,7 @@ func (s *Session) SaveMetadata(digest metadata.Sha256Digest) error {
 	}
 
 	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.json", a.Metadata.Sha256))
-	if err := ioutil.WriteFile(dest, j, 0644); err != nil {
+	if err := os.WriteFile(dest, j, 0644); err != nil {
 		return err
 	}
 

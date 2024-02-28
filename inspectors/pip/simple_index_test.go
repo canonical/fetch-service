@@ -20,7 +20,7 @@
 package pip_test
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/gabriel-vasile/mimetype"
@@ -94,7 +94,7 @@ func (s *simpleIndexSuite) TestInspectArtefactBadType(c *C) {
 func (s *simpleIndexSuite) TestWheelInspectArtefactBadContent(c *C) {
 	tmp := c.MkDir()
 	filename := filepath.Join(tmp, "index.html")
-	err := ioutil.WriteFile(filename, []byte("random content"), 0755)
+	err := os.WriteFile(filename, []byte("random content"), 0755)
 	c.Assert(err, IsNil)
 
 	ins := pip.NewSimpleIndexInspector()
@@ -121,7 +121,7 @@ func (s *simpleIndexSuite) TestWheelInspectArtefactBadContent(c *C) {
 func (s *simpleIndexSuite) TestWheelInspectArtefact(c *C) {
 	tmp := c.MkDir()
 	filename := filepath.Join(tmp, "index.html")
-	err := ioutil.WriteFile(filename, []byte("<!DOCTYPE html>\n"+
+	err := os.WriteFile(filename, []byte("<!DOCTYPE html>\n"+
 		"<html>\n"+
 		"  <head>\n"+
 		`    <meta name="pypi:repository-version" content="1.1">\n`+
