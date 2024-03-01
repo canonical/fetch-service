@@ -20,9 +20,6 @@
 package service
 
 import (
-	"math/rand"
-	"time"
-
 	"gopkg.in/tomb.v2"
 
 	"github.com/canonical/fetch-service/logger"
@@ -41,10 +38,6 @@ type Service struct {
 }
 
 var proxyNewHttpProxy = proxy.NewHttpProxy
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 func New(opt *Options) *Service {
 	ch := make(chan interface{})
