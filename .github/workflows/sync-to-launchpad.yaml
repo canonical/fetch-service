@@ -1,0 +1,17 @@
+name: Sync to Launchpad
+
+on:
+  push:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Sync to Launchpad
+        run: |
+          git remote add launchpad https://lengau:${{ secrets.LP_TOKEN }}@git.launchpad.net/fetch-service
+          git push --all launchpad
