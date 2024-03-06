@@ -52,7 +52,7 @@ func (ins *SimpleIndexInspector) InspectRequest(a *metadata.Artefact) error {
 
 	m := re.FindStringSubmatch(url)
 	if len(m) > 1 {
-		a.Consider(ins, "URL matches expression '%s'", re)
+		a.Hold(ins, "URL matches expression '%s'", re)
 		ins.Name = m[1]
 		return nil
 	}

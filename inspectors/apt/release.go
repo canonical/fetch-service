@@ -131,7 +131,7 @@ func (ins *AptReleaseInspector) InspectRequest(a *metadata.Artefact) error {
 
 	for _, re := range validReqs {
 		if re.MatchString(a.CurrentDownload.URL) {
-			a.Consider(ins, "URL matches expression '%s'", re)
+			a.Hold(ins, "URL matches expression '%s'", re)
 		}
 	}
 

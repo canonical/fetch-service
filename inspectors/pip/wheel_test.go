@@ -82,7 +82,7 @@ func (s *wheelSuite) TestInspectRequest(c *C) {
 		err := ins.InspectRequest(a)
 		c.Assert(err, IsNil)
 
-		c.Assert(a.ConsideredBy(ins.ID()), Equals, tc.approved)
+		c.Assert(a.HeldBy(ins.ID()), Equals, tc.approved)
 	}
 }
 
@@ -121,7 +121,7 @@ func (s *wheelSuite) TestWheelInspectArtefactBadContent(c *C) {
 	ins := pip.NewWheelInspector()
 	a := metadata.NewArtefact()
 	a.Metadata.Type = "application/x.python.wheel"
-	a.Consider(ins, "test")
+	a.Hold(ins, "test")
 	a.State = metadata.ResponseState
 
 	err = ins.InspectArtefact(f, a)
@@ -171,7 +171,7 @@ func (s *wheelSuite) TestWheelReadMetadata(c *C) {
 	ins := pip.NewWheelInspector()
 	a := metadata.NewArtefact()
 	a.Metadata.Type = "application/x.python.wheel"
-	a.Consider(ins, "test")
+	a.Hold(ins, "test")
 	a.State = metadata.ResponseState
 
 	err = pip.ReadWheelMetadata(ins, f, int64(f.Len()), a)
@@ -320,7 +320,7 @@ func (s *wheelSuite) TestReadWheelRecord(c *C) {
 
 		ins := pip.NewWheelInspector()
 		a := metadata.NewArtefact()
-		a.Consider(ins, "test")
+		a.Hold(ins, "test")
 		a.State = metadata.ResponseState
 
 		files, err := pip.ListWheelFiles(ins, f, int64(f.Len()), a)

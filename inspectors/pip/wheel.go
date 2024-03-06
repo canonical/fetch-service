@@ -91,7 +91,7 @@ func (ins *WheelInspector) extraFileFault(name string) {
 // InspectRequest verifies if the request complies with policy.
 func (ins WheelInspector) InspectRequest(a *metadata.Artefact) error {
 	if reRequestURL.MatchString(a.CurrentDownload.URL) {
-		a.Consider(ins, "URL matches expression '%s'", reRequestURL)
+		a.Hold(ins, "URL matches expression '%s'", reRequestURL)
 	}
 
 	return nil // we don't recognize this request

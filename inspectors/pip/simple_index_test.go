@@ -77,7 +77,7 @@ func (s *simpleIndexSuite) TestInspectRequest(c *C) {
 		err := ins.InspectRequest(a)
 		c.Assert(err, IsNil)
 
-		c.Assert(a.ConsideredBy(ins.ID()), Equals, tc.approved)
+		c.Assert(a.HeldBy(ins.ID()), Equals, tc.approved)
 		c.Assert(ins.Name, Equals, tc.name)
 	}
 }
@@ -104,7 +104,7 @@ func (s *simpleIndexSuite) TestWheelInspectArtefactBadContent(c *C) {
 	a := metadata.NewArtefact()
 	a.Metadata.Type = "text/plain"
 	a.MimeType = mimetype.Lookup("text/plain")
-	a.Consider(ins, "test")
+	a.Hold(ins, "test")
 
 	f, err := mmap.Open(filename)
 	c.Assert(err, IsNil)

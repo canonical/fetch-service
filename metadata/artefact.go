@@ -146,12 +146,12 @@ type Identifiable interface {
 	ID() string
 }
 
-func (a *Artefact) ConsideredBy(name string) bool {
+func (a *Artefact) HeldBy(name string) bool {
 	in, ok := a.RequestInspection[name]
 	return ok && in.Opinion == Pending
 }
 
-func (a *Artefact) Consider(id Identifiable, reason string, args ...any) *Inspection {
+func (a *Artefact) Hold(id Identifiable, reason string, args ...any) *Inspection {
 	logger.Infof("request authorized by inspector %q", id.ID())
 	in := &Inspection{
 		Opinion: Pending,
