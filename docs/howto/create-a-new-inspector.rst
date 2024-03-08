@@ -16,7 +16,7 @@ request should be allowed to reach the HTTP server, or be blocked.
 The inspector's ``InspectRequest`` method is used to verify whether the
 HTTP request is valid. If no opinion is emitted the fetch service assumes that
 the request was ignored by this inspector. The ``Hold`` artefact method is
-used when the request seems correct and artefact must be inspected.
+used when the request seems correct and the artefact must be inspected.
 
 An inspector can block a request using the ``Reject`` artefact method, but
 this must be done carefully. If an inspector rejects a request, the artefact
@@ -41,16 +41,12 @@ How to inspect an artefact
 --------------------------
 
 After the artefact is downloaded, it can be examined for metadata extraction.
-We are interested in the document author name, which will be used to populate the
-corresponding artefact metadata field. Furthermore, only documents authored by
-Canonical are allowed to be downloaded.
+Although it was cleared by the request inspector, the inspector must make sure
+the file is what it expects it to be before approving _or_ rejecting it. Inspectors
+must emit only one opinion about a recognized artefact.
 
-Although it was cleared by the request inspector, there's no information about
-about the actual file contents. The inspector must make sure the file is what
-it expects to be before rejecting it.
-
-Here is how to implement an artefact inspector that examines a JSON file, extracts
-author metadata, and only allows documents created by a specific author to reach
+This example shows how to implement an artefact inspector that examines a JSON file,
+extracts author metadata, and only allows documents created by a specific author to reach
 the requesting client::
 
   func (ins *JsonInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
