@@ -1,0 +1,184 @@
+Service control
+===============
+
+The fetch service requires external control to operate. This document details
+the API used by external controllers to command, monitor, and retrieve data
+from fetch service instances.
+
+The control API
+---------------
+
+Normal fetch service operation includes creating and ending sessions, as well
+as obtaining status information and cleaning the file spool. These functionalities
+are available through an API to be used by the build orchestrator.
+
+The fetch service requires artefact requests to happen inside build sessions. Each
+build session must be created by the orchestrator, and session data provided by
+the fetch service must be provisioned to build instances for proper proxying setup
+and authentication.
+
+Endpoints
+---------
+
+``GET /status``
+^^^^^^^^^^^^^^^
+
+:Description:
+  Obtain current service information and statistics.
+
+:Parameters:
+  None.
+
+:Response:
+::
+
+  {
+      "uptime": <int>,				// service uptime in seconds
+      "start-time": <string>,			// start timestamp in RFC-3339 format
+      "session-count": <int>,			// total number of created sessions
+      "session-errors": <int>,			// total number of session errors
+      "active-sessions": [			// list of sessions currently active
+          {
+              "session-id": <string>,		// session ID
+              "start-time": <string>,		// start timestamp in RFC-3339 format
+              "policy": <string>,		// "strict" or "permissive"
+              "age": <int>,			// seconds since session start
+              "timeout": <int>			// session TTL in seconds	
+          },
+          (...)
+      ],
+      
+      // Statistics
+      "total-session-time": <int>,		// total session time in seconds
+      "processed-requests": <int>,		// total number of requests
+      "approved-requests": <int>,		// total number of approved requests
+      "rejected-requests": <int>,		// total number of rejected requests
+      "processed-artefacts": <int>,		// total number of artefacts
+      "approved-artefacts": <int>,		// total number of approved artefacts
+      "rejected-artefacts": <int>,		// total number of rejected artefacts
+      "average-requests-per-session": <float>,
+      "average-artefacts-per-session": <float>,
+      "average-session-time": <float>,
+      "longest-session-time": <int>,
+  
+      // Profiling information
+      "num-cpu": <int>,
+      "num-routines": <int>,
+      "total-mem": <int>,
+      "memstat-alloc": <int>
+  }
+
+
+``POST /session``
+^^^^^^^^^^^^^^^^^
+
+:Description:
+  Create a new fetch service session. It returns the session ID along with an authentication
+  token to be used in client requests. Permissive sessions are only allowed if the fetch
+  service is started in permissive mode.
+
+:Parameters:
+::
+
+  {
+      "timeout": <int>,			// session timeout in seconds
+      "policy": <string>		// "strict" or "permissive"
+  }
+
+:Response:
+::
+
+  {
+      "id": <string>,			// session ID
+      "token": <string>			// session token
+  }
+
+
+``DELETE /session/<id>``
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+:Description:
+  Finalize an active fetch service session. The server returns session metadata containing
+  a list of all downloaded artefacts.
+
+:Parameters:
+  None.
+
+:Response:
+::
+
+  {
+      "session-id": <string>,		// session ID
+      "start-time": <string>,		// session start timestamp in RFC-3339 format
+      "end-time": <string>,		// session end timestamp in RFC-3339 format
+      "inspectors": <list of string>,	// list of registered inspector IDs
+      "artefacts": [
+        {
+           "metadata-version": <string>,	// metadata compatibility (major.minor)
+           "request-inspection": {
+               <inspector id>: {
+                   "opinion": <string>,		// "Unknown", "Rejected" or "Pending"
+                   "reason": <string>,		// Explanation for opinion
+                   "annotations": <inspector-specific optional map of string to any>
+               },
+               (...)
+           }.
+           "response-inspection": {
+               <inspector id>: {
+                   "opinion": <string>,		// "Unknown", "Rejected" or "Approved"
+                   "reason": <string>,		// Explanation for opinion
+                   "annotations": <inspector-specific optional map of string to any>
+               },
+               (...)
+           },
+           "result": <string>,			// "Approved" or "Rejected"
+           "metadata": {
+               "type": <string>,		// artefact mimetype
+               "sha1": <string>,		// artefact SHA1 digest
+               "sha256": <string>,		// artefact SHA256 digest
+               "size": <int>,			// artefact size in bytes
+               "name": <string>,		// artefact name
+               "version": <string>,		// artefact version
+               "vendor": <string>,		// artefact vendor
+               "description": <string>,		// brief description of the artefact
+               "author": <string>,		// author name
+               "author-email": <string>,	// author email address
+               "architecture": <string>,	// binary architecture in debian format
+               "license": <string>,		// license in SPDX format
+               "copyright": <string>,		// copyright information
+           },
+           "downloads": [
+               {
+                   "start-time": <string>,	// start timestamp in RFC-3339 format
+                   "end-time": <string>,	// end timestamp in RFC-3339 format
+                   "method": <string>,		// URL request method
+                   "url": <string>,		// URL
+                   "address": <string>,		// client IP address and port
+                   "user-agent": <string>,	// client user agent string
+                   "status-code": <int>,	// HTTP request status code
+                   "status": <string>,		// textual status message
+                   "content-type": <string>,	// content type informed by the server
+                   "request-header": <map of string to string list>,
+                   "response-header": <map of string to string list>
+               },
+               (...)
+           ]
+        },
+        (...)
+      ],
+      "spool-path": <string>		// file spool pathname
+  }         
+
+``DELETE /resources/<id>``
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:Description:
+  Remove session files from the fetch service's file spool. The session must finish
+  before resources can be deleted, otherwise a 400 Bad Request status will be returned.
+
+:Parameters:
+  None.
+
+:Result:
+  None.
+
