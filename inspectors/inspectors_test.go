@@ -49,7 +49,7 @@ var _ = Suite(&inspectorsSuite{})
 func (t *inspectorsSuite) TestRunRequestInspectors(c *C) {
 	a := metadata.NewArtefact()
 
-	s := session.New(false)
+	s := session.New(c.MkDir(), false)
 	defer s.Discard()
 
 	err := s.Insps.RunRequestInspectors(a)
@@ -65,7 +65,7 @@ func (t *inspectorsSuite) TestRunRequestInspectors(c *C) {
 func (t *inspectorsSuite) TestRunRequestInspectorsPermissive(c *C) {
 	a := metadata.NewArtefact()
 
-	s := session.New(true)
+	s := session.New(c.MkDir(), true)
 	defer s.Discard()
 
 	err := s.Insps.RunRequestInspectors(a)
@@ -90,7 +90,7 @@ func (t *inspectorsSuite) TestRunArtefactInspectors(c *C) {
 	a.CurrentDownload.Sha256 = h
 	a.Metadata.Sha256 = h
 
-	s := session.New(false)
+	s := session.New(c.MkDir(), false)
 	defer s.Discard()
 
 	err = s.Insps.RunArtefactInspectors(dir, a)
