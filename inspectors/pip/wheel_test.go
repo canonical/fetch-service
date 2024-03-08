@@ -82,7 +82,7 @@ func (s *wheelSuite) TestInspectRequest(c *C) {
 		err := ins.InspectRequest(a)
 		c.Assert(err, IsNil)
 
-		c.Assert(a.AuthorizedBy(ins.ID()), Equals, tc.approved)
+		c.Assert(a.ConsideredBy(ins.ID()), Equals, tc.approved)
 	}
 }
 
@@ -94,7 +94,7 @@ func (s *wheelSuite) TestInspectArtefactBadType(c *C) {
 	err := ins.InspectArtefact(nil, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, false)
-	c.Assert(a.Rejected(), Equals, false)
+	c.Assert(a.Rejected(), Equals, true)
 }
 
 func (s *wheelSuite) TestWheelInspectArtefactBadContent(c *C) {
@@ -121,30 +121,24 @@ func (s *wheelSuite) TestWheelInspectArtefactBadContent(c *C) {
 	ins := pip.NewWheelInspector()
 	a := metadata.NewArtefact()
 	a.Metadata.Type = "application/x.python.wheel"
+	a.Consider(ins, "test")
+	a.State = metadata.ResponseState
 
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Rejected(), Equals, true)
-	c.Assert(a.Opinions, DeepEquals, []metadata.Opinion{
-		metadata.Opinion{
-			InspectorID: "pip.wheel",
-			Opinion:     metadata.Rejected,
-			Reason:      "wheel name not found",
-		},
-		metadata.Opinion{
-			InspectorID: "pip.wheel",
-			Opinion:     metadata.Rejected,
-			Reason:      "wheel version not found",
-		},
-		metadata.Opinion{
-			InspectorID: "pip.wheel",
-			Opinion:     metadata.Rejected,
-			Reason:      "wheel metadata version not found",
-		},
-		metadata.Opinion{
-			InspectorID: "pip.wheel",
-			Opinion:     metadata.Rejected,
-			Reason:      "malformed RECORD entry: 'record'",
+	c.Assert(a.ResponseInspection, DeepEquals, metadata.InspectionMap{
+		"pip.wheel": &metadata.Inspection{
+			Opinion: metadata.Rejected,
+			Reason:  "wheel file requirements not met",
+			Annotations: map[string]any{
+				"files": 3,
+				"faults": []string{
+					"wheel name not found",
+					"wheel version not found",
+					"wheel metadata version not found",
+				},
+			},
 		},
 	})
 }
@@ -177,10 +171,11 @@ func (s *wheelSuite) TestWheelReadMetadata(c *C) {
 	ins := pip.NewWheelInspector()
 	a := metadata.NewArtefact()
 	a.Metadata.Type = "application/x.python.wheel"
+	a.Consider(ins, "test")
+	a.State = metadata.ResponseState
 
-	ver, err := pip.ReadWheelMetadata(ins, f, int64(f.Len()), a)
+	err = pip.ReadWheelMetadata(ins, f, int64(f.Len()), a)
 	c.Assert(err, IsNil)
-	c.Assert(ver, Equals, "2.1")
 	c.Assert(a.Metadata.Name, Equals, "trololo")
 	c.Assert(a.Metadata.Version, Equals, "3.14159")
 	c.Assert(a.Metadata.Description, Equals, "A trove of marvelous thingies")
@@ -192,77 +187,109 @@ func (s *wheelSuite) TestWheelReadMetadata(c *C) {
 
 func (s *wheelSuite) TestReadWheelRecord(c *C) {
 	for _, tc := range []struct {
-		record   string
-		opinions []metadata.Opinion
+		record     string
+		inspection metadata.InspectionMap
 	}{
 		{
 			// happy case
-			record:   "foobar/somefile,sha256=cv3m7lT96eh7Jn_TPtdhxFzCusNN-nlFMmiAeq1TGOQ,54",
-			opinions: []metadata.Opinion{},
+			record: "foobar/somefile,sha256=cv3m7lT96eh7Jn_TPtdhxFzCusNN-nlFMmiAeq1TGOQ,54",
+			inspection: metadata.InspectionMap{
+				"pip.wheel": &metadata.Inspection{
+					Opinion: metadata.Approved,
+					Reason:  "wheel file successfully parsed",
+					Annotations: map[string]any{
+						"files":                 2,
+						"parsed-record-entries": 1,
+					},
+				},
+			},
 		},
 		{
 			// size mismatch
 			record: "foobar/somefile,sha256=cv3m7lT96eh7Jn_TPtdhxFzCusNN-nlFMmiAeq1TGOQ,55",
-			opinions: []metadata.Opinion{
-				metadata.Opinion{
-					InspectorID: "pip.wheel",
-					Opinion:     metadata.Rejected,
-					Reason:      "foobar/somefile: file size 54 does not match recorded size 55",
+			inspection: metadata.InspectionMap{
+				"pip.wheel": &metadata.Inspection{
+					Opinion: metadata.Rejected,
+					Reason:  "wheel file parsed but failed integrity verification",
+					Annotations: map[string]any{
+						"files": 2,
+						"faults": []string{
+							"foobar/somefile: file size 54 does not match recorded size 55",
+						},
+					},
 				},
 			},
 		},
 		{
 			// digest mismatch
 			record: "foobar/somefile,sha256=cv3m7lT96eh7Jn_TPtdhxFzCusNN-nlFMmiAeq1TGOP,54",
-			opinions: []metadata.Opinion{
-				metadata.Opinion{
-					InspectorID: "pip.wheel",
-					Opinion:     metadata.Rejected,
-					Reason:      "foobar/somefile: digest mismatch",
+			inspection: metadata.InspectionMap{
+				"pip.wheel": &metadata.Inspection{
+					Opinion: metadata.Rejected,
+					Reason:  "wheel file parsed but failed integrity verification",
+					Annotations: map[string]any{
+						"files":  2,
+						"faults": []string{"foobar/somefile: digest mismatch"},
+					},
 				},
 			},
 		},
 		{
 			// malformed record entry
 			record: "foobar/somefile\n",
-			opinions: []metadata.Opinion{
-				metadata.Opinion{
-					InspectorID: "pip.wheel",
-					Opinion:     metadata.Rejected,
-					Reason:      "malformed RECORD entry: 'foobar/somefile'",
+			inspection: metadata.InspectionMap{
+				"pip.wheel": &metadata.Inspection{
+					Opinion: metadata.Rejected,
+					Reason:  "wheel file parsed but failed integrity verification",
+					Annotations: map[string]any{
+						"files":  2,
+						"faults": []string{"malformed RECORD entry: 'foobar/somefile'"},
+					},
 				},
 			},
 		},
 		{
 			// unknown digest type
 			record: "foobar/somefile,sha1=cv3m7lT96eh7Jn_TPtdhxFzCusNN-nlFMmiAeq1TGOP,54",
-			opinions: []metadata.Opinion{
-				metadata.Opinion{
-					InspectorID: "pip.wheel",
-					Opinion:     metadata.Rejected,
-					Reason:      "foobar/somefile: unknown digest type 'sha1'",
+			inspection: metadata.InspectionMap{
+				"pip.wheel": &metadata.Inspection{
+					Opinion: metadata.Rejected,
+					Reason:  "wheel file parsed but failed integrity verification",
+					Annotations: map[string]any{
+						"files":  2,
+						"faults": []string{"foobar/somefile: unknown digest type 'sha1'"},
+					},
 				},
 			},
 		},
 		{
 			// bad sha256 digest
 			record: "foobar/somefile,sha256=abcd!!!,54",
-			opinions: []metadata.Opinion{
-				metadata.Opinion{
-					InspectorID: "pip.wheel",
-					Opinion:     metadata.Rejected,
-					Reason:      "foobar/somefile: digest decode error: illegal base64 data at input byte 4",
+			inspection: metadata.InspectionMap{
+				"pip.wheel": &metadata.Inspection{
+					Opinion: metadata.Rejected,
+					Reason:  "wheel file parsed but failed integrity verification",
+					Annotations: map[string]any{
+						"files": 2,
+						"faults": []string{
+							"foobar/somefile: digest decode error: illegal base64 data at input byte 4",
+						},
+					},
 				},
 			},
 		},
 		{
 			// unlisted file
 			record: "",
-			opinions: []metadata.Opinion{
-				metadata.Opinion{
-					InspectorID: "pip.wheel",
-					Opinion:     metadata.Rejected,
-					Reason:      "foobar/somefile: file not in RECORD",
+			inspection: metadata.InspectionMap{
+				"pip.wheel": &metadata.Inspection{
+					Opinion: metadata.Rejected,
+					Reason:  "wheel file parsed but failed integrity verification",
+					Annotations: map[string]any{
+						"files":                 2,
+						"parsed-record-entries": 0,
+						"extra-files":           []string{"foobar/somefile"},
+					},
 				},
 			},
 		},
@@ -293,6 +320,9 @@ func (s *wheelSuite) TestReadWheelRecord(c *C) {
 
 		ins := pip.NewWheelInspector()
 		a := metadata.NewArtefact()
+		a.Consider(ins, "test")
+		a.State = metadata.ResponseState
+
 		files, err := pip.ListWheelFiles(ins, f, int64(f.Len()), a)
 		c.Assert(err, IsNil)
 
@@ -302,7 +332,10 @@ func (s *wheelSuite) TestReadWheelRecord(c *C) {
 
 		err = pip.ReadWheelRecord(ins, f, int64(f.Len()), a, files)
 		c.Assert(err, IsNil)
-		c.Assert(a.Opinions, DeepEquals, tc.opinions)
+
+		pip.ProcessOpinion(ins, a)
+
+		c.Assert(a.ResponseInspection, DeepEquals, tc.inspection)
 	}
 }
 

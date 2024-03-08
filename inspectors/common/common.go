@@ -31,5 +31,6 @@ type ReadAtSeeker interface {
 }
 
 var (
+	ErrRejectedRequest  = errors.New("request rejected by inspectors")
 	ErrRejectedArtefact = errors.New("artefact rejected by inspectors")
 )

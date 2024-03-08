@@ -78,7 +78,7 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	}()
 
 	msg := <-ch
-	v := msg.(messages.ArtefactDownload)
+	v := msg.(messages.ResponseInspection)
 
 	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
 	err = os.MkdirAll(filepath.Dir(dest), 0755)
@@ -130,7 +130,7 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	}()
 
 	msg = <-ch
-	v = msg.(messages.ArtefactDownload)
+	v = msg.(messages.ResponseInspection)
 
 	// check download info
 	dl = v.A.CurrentDownload

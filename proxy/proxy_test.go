@@ -105,12 +105,12 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 
 	// run request inspectors
 	msg = <-ch
-	v := msg.(messages.RequestAuthorization)
+	v := msg.(messages.RequestInspection)
 	v.Rch <- nil // no errors
 
 	// artefact downloaded
 	msg = <-ch
-	u := msg.(messages.ArtefactDownload)
+	u := msg.(messages.ResponseInspection)
 
 	dest := filepath.Join(u.A.AssetDir, fmt.Sprintf("%s.data", u.A.Metadata.Sha256))
 	err = os.MkdirAll(filepath.Dir(dest), 0755)
