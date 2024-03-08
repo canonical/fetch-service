@@ -157,7 +157,6 @@ func (s *Session) SaveSessionMetadata(sm *metadata.SessionMetadata) error {
 	}
 
 	return nil
-
 }
 
 // Discard deletes this session.

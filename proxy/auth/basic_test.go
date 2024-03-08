@@ -35,7 +35,6 @@ package auth_test
 import (
 	"encoding/base64"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -165,7 +164,7 @@ func TestBasicAuth(t *testing.T) {
 	if resp.StatusCode != 200 {
 		t.Error("Expected status 200 OK, got", resp.Status)
 	}
-	msg, err := ioutil.ReadAll(resp.Body)
+	msg, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatal(err)
 	}

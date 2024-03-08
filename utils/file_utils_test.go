@@ -25,11 +25,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"testing"
 
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/utils"
 )
+
+func Test(t *testing.T) { TestingT(t) }
 
 type fileutilsSuite struct{}
 

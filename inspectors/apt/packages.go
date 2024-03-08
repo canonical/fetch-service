@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -23,7 +23,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"regexp"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -32,6 +32,7 @@ import (
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
+	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 )
 
@@ -83,27 +84,41 @@ func AptPackagesDetector(raw []byte, limit uint32) bool {
 	sc := bufio.NewScanner(bytes.NewReader(buf))
 	sc.Split(bufio.ScanLines)
 
-	score := 0
+	fields := map[string]struct{}{}
 
 	for sc.Scan() {
 		line := sc.Text()
+		if len(line) == 0 {
+			break
+		}
 
-		k, _, ok := strings.Cut(line, ": ")
+		k, _, ok := strings.Cut(line, ":")
 		if !ok {
 			return false
 		}
 
-		switch k {
-		case "Package", "Architecture", "Version", "Priority", "Section", "Origin", "Maintainer":
-			score++
-			if score == 7 {
-				return true
-			}
-			continue
-		case "Source": // optional
-			continue
-		default:
-			return false
+		if k == "Size" {
+			break // We have enough data to work on
+		}
+
+		fields[k] = struct{}{}
+	}
+
+	expected_fields := []string{
+		"Package",
+		"Architecture",
+		"Version",
+		"Priority",
+		"Section",
+		"Origin",
+		"Maintainer",
+	}
+
+	for _, k := range expected_fields {
+		_, ok := fields[k]
+		if !ok {
+			logger.Debugf("expected field %q not found", k)
+			return false // we don't recognize this file
 		}
 	}
 
@@ -113,23 +128,64 @@ func AptPackagesDetector(raw []byte, limit uint32) bool {
 // aptPackagesEntry stores selected fields from each package listed in
 // each downloaded Packages.* file.
 type aptPackagesEntry struct {
-	Package      string
-	Version      string
-	Architecture string
-	Size         int64
+	pkg          string // package name
+	architecture string // package architecture
+	version      string // package version
+	size         int64  // package size in bytes
+}
+
+// aptPackages holds information about the Packages.xz file.
+type aptPackages struct {
+	sha256       metadata.Sha256Digest
+	origin       string // URL origin of the archive
+	distribution string // name of the distribution
+	component    string // name of the component
+	architecture string
+
+	entries     map[metadata.Sha256Digest]aptPackagesEntry
+	entriesLock sync.Mutex
+}
+
+func newAptPackages(origin, distribution, component, architecture string) *aptPackages {
+	return &aptPackages{
+		origin:       origin,
+		distribution: distribution,
+		component:    component,
+		architecture: architecture,
+
+		entries: make(map[metadata.Sha256Digest]aptPackagesEntry),
+	}
+}
+
+// addPackagesEntry adds package information the inspector state.
+func (pkg *aptPackages) addPackagesEntry(digest metadata.Sha256Digest, e aptPackagesEntry) {
+	pkg.entriesLock.Lock()
+	defer pkg.entriesLock.Unlock()
+
+	pkg.entries[digest] = e
+}
+
+// getPackagesEntry retrieves package information from the inspector state.
+func (pkg *aptPackages) getPackagesEntry(digest metadata.Sha256Digest) (aptPackagesEntry, bool) {
+	pkg.entriesLock.Lock()
+	defer pkg.entriesLock.Unlock()
+
+	if e, ok := pkg.entries[digest]; ok {
+		return e, true
+	}
+	return aptPackagesEntry{}, false
 }
 
 // AptPackagesInspector contains inspector-specific contextual data for stateful
 // analysis within a fetch session.
 type AptPackagesInspector struct {
-	// packagesEntries maps Packages.* file digests to package digest to metadata.
-	packagesEntries map[metadata.Sha256Digest]map[metadata.Sha256Digest]aptPackagesEntry
-	packagesLock    sync.Mutex
+	packages     map[string]map[string]*aptPackages // maps origin to Packages file data
+	packagesLock sync.Mutex
 }
 
 func NewAptPackagesInspector() *AptPackagesInspector {
 	return &AptPackagesInspector{
-		packagesEntries: make(map[metadata.Sha256Digest]map[metadata.Sha256Digest]aptPackagesEntry),
+		packages: make(map[string]map[string]*aptPackages),
 	}
 }
 
@@ -138,33 +194,59 @@ func (ins *AptPackagesInspector) ID() string {
 }
 
 func (ins *AptPackagesInspector) InspectRequest(a *metadata.Artefact) error {
-	validReqs := []*regexp.Regexp{
-		regexp.MustCompile(`http://archive\.ubuntu\.com/`),
-		regexp.MustCompile(`http://security\.ubuntu\.com/`),
-		regexp.MustCompile(`https://esm\.ubuntu\.com:443/`),
-		regexp.MustCompile(`http://repo.ros2.org/`),
+	u, err := url.Parse(a.CurrentDownload.URL)
+	if err != nil {
+		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	for _, re := range validReqs {
-		if re.MatchString(a.CurrentDownload.URL) {
-			a.Hold(ins, "URL matches expression '%s'", re)
-			return nil
-		}
+	if info, err := newPackagesUrlInfo(u); err == nil {
+		a.Hold(ins, "valid URL for Packages file").Annotate(
+			metadata.Annotation{
+				"repository":   info.repository,
+				"distribution": info.distribution,
+				"component":    info.component,
+				"architecture": info.architecture,
+			},
+		)
+		packages := newAptPackages(info.origin, info.distribution, info.component, info.architecture)
+		ins.addPackages(info.origin, u.Path, packages)
+	} else if info, err := newDebPackageUrlInfo(u); err == nil {
+		a.Hold(ins, "valid URL for deb package").Annotate(
+			metadata.Annotation{
+				"repository":   info.repository,
+				"component":    info.component,
+				"name":         info.name,
+				"version":      info.version,
+				"architecture": info.architecture,
+			},
+		)
 	}
-	return nil // we don't recognize this request
+
+	return nil
 }
 
 func (ins *AptPackagesInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
 	if a.Metadata.Type == mimetypes.DebianBinaryPackage {
-		ins.validateDebianPackage(f, a)
-		return nil
+		return ins.validateDebianPackage(f, a)
 	}
 
 	if a.Metadata.Type != mimetypes.AptPackages {
 		return nil
 	}
 
-	// Cache some data to check deb packages
+	u, err := url.Parse(a.CurrentDownload.URL)
+	if err != nil {
+		return fmt.Errorf("cannot parse URL: %s", err)
+	}
+
+	origin := fmt.Sprintf("%s://%s", u.Scheme, u.Host)
+	pkg, ok := ins.getPackages(origin, u.Path)
+	if !ok {
+		return fmt.Errorf("inconsistent package state: %q, %q", origin, u.Path)
+	}
+	pkg.sha256 = a.Metadata.Sha256
+
+	// Add packages list to inspector state
 	r, err := xz.NewReader(f, 0)
 	if err != nil {
 		return err
@@ -197,61 +279,122 @@ func (ins *AptPackagesInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 
 		switch k {
 		case "Package":
-			e.Package = v
+			e.pkg = v
 			num++
 		case "Version":
-			e.Version = v
+			e.version = v
 		case "Architecture":
-			e.Architecture = v
+			e.architecture = v
 		case "Size":
-			e.Size, _ = strconv.ParseInt(v, 10, 32)
+			var err error
+			e.size, err = strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				return fmt.Errorf("error parsing size '%s': %s", v, err)
+			}
 		case "SHA256":
 			var h metadata.Sha256Digest
 			h, err = metadata.NewSha256Digest(v)
 			if err != nil {
 				return fmt.Errorf("error parsing digest '%s': %s", v, err)
 			}
-			ins.addPackagesEntry(a.Metadata.Sha256, h, e)
+			pkg.addPackagesEntry(h, e)
 		}
 	}
 
-	a.Approve(ins, "%d packages parsed", num)
+	a.Metadata.Name = "Packages.xz"
+	a.Metadata.Version = pkg.distribution
+	a.Metadata.Description = fmt.Sprintf("%s %s Packages file",
+		pkg.distribution, pkg.component)
+	a.Metadata.Architecture = pkg.architecture
+
+	// the file should be also annotated by the release inspector
+	rins, ok := a.ResponseInspection["apt.release"]
+	if ok {
+		v, ok := rins.Annotations["vendor"]
+		if ok {
+			a.Metadata.Author = fmt.Sprintf("%s", v)
+			a.Metadata.Vendor = fmt.Sprintf("%s", v)
+		}
+	}
+
+	a.Approve(ins, "packages file succesfully parsed").Annotate(
+		metadata.Annotation{
+			"package-count": num,
+		},
+	)
 
 	return nil
 }
 
-func (ins *AptPackagesInspector) addPackagesEntry(pkgsDigest metadata.Sha256Digest, digest metadata.Sha256Digest, e aptPackagesEntry) {
+func (ins *AptPackagesInspector) addPackages(origin, packagesPath string, data *aptPackages) {
 	ins.packagesLock.Lock()
 	defer ins.packagesLock.Unlock()
 
-	if ins.packagesEntries[pkgsDigest] == nil {
-		ins.packagesEntries[pkgsDigest] = make(map[metadata.Sha256Digest]aptPackagesEntry)
+	if ins.packages[origin] == nil {
+		ins.packages[origin] = map[string]*aptPackages{}
 	}
-	ins.packagesEntries[pkgsDigest][digest] = e
+	logger.Debugf("adding packages origin %q, %q", origin, packagesPath)
+	ins.packages[origin][packagesPath] = data
 }
 
-func (ins *AptPackagesInspector) getPackagesEntry(digest metadata.Sha256Digest) (metadata.Sha256Digest, aptPackagesEntry, bool) {
+func (ins *AptPackagesInspector) getPackages(origin, packagesPath string) (*aptPackages, bool) {
 	ins.packagesLock.Lock()
 	defer ins.packagesLock.Unlock()
 
-	for d, entries := range ins.packagesEntries {
-		if e, ok := entries[digest]; ok {
-			return d, e, ok
-		}
+	logger.Debugf("retrieving packages origin %q, %q", origin, packagesPath)
+	pkg, ok := ins.packages[origin]
+	if !ok {
+		logger.Warningf("package origin %q is unknown", origin)
+		return nil, false
 	}
-	return metadata.Sha256Digest{}, aptPackagesEntry{}, false
+	data, ok := pkg[packagesPath]
+	if !ok {
+		logger.Warningf("package path %q is unknown", packagesPath)
+		return nil, false
+	}
+
+	return data, true
 }
 
-func (ins *AptPackagesInspector) validateDebianPackage(f ReadAtSeeker, a *metadata.Artefact) {
-	digest, e, ok := ins.getPackagesEntry(a.Metadata.Sha256)
-	if ok {
-		md := a.Metadata
-		if md.Name == e.Package && md.Version == e.Version && md.Architecture == e.Architecture && md.Size == e.Size {
-			a.Approve(ins, "deb file validated by packages file %s", digest)
-		} else {
-			a.Reject(ins, "deb file metadata does not match packages file %s", digest)
-		}
-	} else {
-		a.Reject(ins, "deb file digest not listed in packages file")
+// validateDebianPackage verifies if the deb package is listed in the
+// Packages.xz file. The package downloaded from the package pool.
+func (ins *AptPackagesInspector) validateDebianPackage(f ReadAtSeeker, a *metadata.Artefact) error {
+
+	u, err := url.Parse(a.CurrentDownload.URL)
+	if err != nil {
+		return fmt.Errorf("cannot parse URL: %s", err)
 	}
+	origin := fmt.Sprintf("%s://%s", u.Scheme, u.Host)
+
+	info, err := newDebPackageUrlInfo(u)
+	if err != nil {
+		return fmt.Errorf("invalid deb package URL")
+	}
+
+	// check this deb against the packages file we know
+	for _, pkg := range ins.packages[origin] {
+		entry, ok := pkg.getPackagesEntry(a.Metadata.Sha256)
+		if ok {
+			notes := metadata.Annotation{
+				"packages-name":         entry.pkg,           // package name in the Packages file
+				"packages-version":      entry.version,       // package version in the Packages file
+				"packages-architecture": entry.architecture,  // package architecture in the Packages file
+				"packages-size":         entry.size,          // package size in the Packages file
+				"packages-file":         pkg.sha256.String(), // digest of the validating Packages file
+				"distribution":          pkg.distribution,    // distribution from packages file
+				"component":             info.component,      // component from URL
+			}
+			if a.Metadata.Size != entry.size {
+				a.Reject(ins, "artefact size does not match Packages entry").Annotate(notes)
+			} else if info.architecture != entry.architecture {
+				a.Reject(ins, "URL architecture does not match Packages entry").Annotate(notes)
+			} else {
+				a.Approve(ins, "deb file matches packages entry").Annotate(notes)
+			}
+			return nil
+		}
+	}
+
+	a.Reject(ins, "deb file digest not listed in packages file")
+	return nil
 }

@@ -99,9 +99,6 @@ type Inspection struct {
 }
 
 func (in *Inspection) Annotate(a Annotation) {
-	if in.Annotations == nil {
-		in.Annotations = make(map[string]any, len(a))
-	}
 	for key := range a { // shallow copy the map
 		in.Annotations[key] = a[key]
 	}
@@ -154,8 +151,9 @@ func (a *Artefact) HeldBy(name string) bool {
 func (a *Artefact) Hold(id Identifiable, reason string, args ...any) *Inspection {
 	logger.Infof("request authorized by inspector %q", id.ID())
 	in := &Inspection{
-		Opinion: Pending,
-		Reason:  fmt.Sprintf(reason, args...),
+		Opinion:     Pending,
+		Reason:      fmt.Sprintf(reason, args...),
+		Annotations: Annotation{},
 	}
 
 	a.RequestInspection[id.ID()] = in
@@ -165,8 +163,9 @@ func (a *Artefact) Hold(id Identifiable, reason string, args ...any) *Inspection
 
 func (a *Artefact) Comment(id Identifiable, reason string, args ...any) *Inspection {
 	in := &Inspection{
-		Opinion: Unknown,
-		Reason:  fmt.Sprintf(reason, args...),
+		Opinion:     Unknown,
+		Reason:      fmt.Sprintf(reason, args...),
+		Annotations: Annotation{},
 	}
 
 	if a.State == RequestState {
@@ -180,8 +179,9 @@ func (a *Artefact) Comment(id Identifiable, reason string, args ...any) *Inspect
 
 func (a *Artefact) Reject(id Identifiable, reason string, args ...any) *Inspection {
 	in := &Inspection{
-		Opinion: Rejected,
-		Reason:  fmt.Sprintf(reason, args...),
+		Opinion:     Rejected,
+		Reason:      fmt.Sprintf(reason, args...),
+		Annotations: Annotation{},
 	}
 
 	if a.State == RequestState {
@@ -196,8 +196,9 @@ func (a *Artefact) Reject(id Identifiable, reason string, args ...any) *Inspecti
 
 func (a *Artefact) Approve(id Identifiable, reason string, args ...any) *Inspection {
 	in := &Inspection{
-		Opinion: Approved,
-		Reason:  fmt.Sprintf(reason, args...),
+		Opinion:     Approved,
+		Reason:      fmt.Sprintf(reason, args...),
+		Annotations: Annotation{},
 	}
 
 	a.ResponseInspection[id.ID()] = in

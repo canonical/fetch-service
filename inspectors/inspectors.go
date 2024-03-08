@@ -39,7 +39,7 @@ import (
 func init() {
 	mimetype.SetLimit(1 << 30) // input data is mmapped
 	mimetype.Lookup("application/zip").Extend(pip.WheelDetector, mimetypes.PythonWheel, ".whl")
-	mimetype.Lookup("text/plain").Extend(apt.AptReleaseDetector, mimetypes.AptRelease, "")
+	//mimetype.Lookup("text/plain").Extend(apt.AptReleaseDetector, mimetypes.AptRelease, "")
 	mimetype.Lookup("application/x-xz").Extend(apt.AptPackagesDetector, mimetypes.AptPackages, "")
 }
 
@@ -104,6 +104,9 @@ func (insps Inspectors) RunRequestInspectors(a *metadata.Artefact) error {
 		ins := insps.insmap[id]
 		logger.Debugf("run request inspector: %s", ins.ID())
 		if err := ins.InspectRequest(a); err != nil {
+			a.Reject(ins, "error inspecting request").Annotate(
+				metadata.Annotation{"error-message": err.Error()})
+			a.State = metadata.RejectedState
 			return err
 		}
 	}
@@ -160,7 +163,8 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 			return err
 		}
 		if err := ins.InspectArtefact(f, a); err != nil {
-			a.Reject(ins, err.Error())
+			a.Reject(ins, "error inspecting artefact").Annotate(
+				metadata.Annotation{"error-message": err.Error()})
 			return err
 		}
 	}
