@@ -14,7 +14,7 @@ import (
 func DecodeKeys(armoredData []byte) (pubKeys []*packet.PublicKey, privKeys []*packet.PrivateKey, err error) {
 	block, err := armor.Decode(bytes.NewReader(armoredData))
 	if err != nil {
-		return nil, nil, fmt.Errorf("cannot decode armored data")
+		return nil, nil, fmt.Errorf("cannot decode armored data: %w", err)
 	}
 
 	reader := packet.NewReader(block.Body)
