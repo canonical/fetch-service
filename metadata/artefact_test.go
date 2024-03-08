@@ -70,3 +70,61 @@ func (t *metadataSuite) TestOpinionKindUnmarshal(c *C) {
 		c.Assert(kind.K, Equals, tc.res)
 	}
 }
+
+func (t *metadataSuite) TestRequestOpinions(c *C) {
+	for _, tc := range []struct {
+		opinions []metadata.OpinionKind
+		rejected bool
+		pending  bool
+	}{
+		{[]metadata.OpinionKind{}, true, false},
+		{[]metadata.OpinionKind{metadata.Unknown}, true, false},
+		{[]metadata.OpinionKind{metadata.Rejected}, true, false},
+		{[]metadata.OpinionKind{metadata.Pending}, false, true},
+		{[]metadata.OpinionKind{metadata.Unknown, metadata.Unknown, metadata.Unknown}, true, false},
+		{[]metadata.OpinionKind{metadata.Unknown, metadata.Pending, metadata.Unknown}, false, true},
+		{[]metadata.OpinionKind{metadata.Unknown, metadata.Unknown, metadata.Rejected}, true, false},
+		{[]metadata.OpinionKind{metadata.Pending, metadata.Rejected, metadata.Unknown}, true, false},
+	} {
+		a := metadata.NewArtefact()
+		a.State = metadata.RequestState
+
+		for i, o := range tc.opinions {
+			id := fmt.Sprintf("insp%d", i)
+			a.RequestInspection[id] = &metadata.Inspection{Opinion: o}
+		}
+
+		c.Assert(a.Approved(), Equals, false)
+		c.Assert(a.Rejected(), Equals, tc.rejected)
+		c.Assert(a.Pending(), Equals, tc.pending)
+	}
+}
+
+func (t *metadataSuite) TestResponseOpinions(c *C) {
+	for _, tc := range []struct {
+		opinions []metadata.OpinionKind
+		rejected bool
+		approved bool
+	}{
+		{[]metadata.OpinionKind{}, true, false},
+		{[]metadata.OpinionKind{metadata.Unknown}, true, false},
+		{[]metadata.OpinionKind{metadata.Rejected}, true, false},
+		{[]metadata.OpinionKind{metadata.Approved}, false, true},
+		{[]metadata.OpinionKind{metadata.Unknown, metadata.Unknown, metadata.Unknown}, true, false},
+		{[]metadata.OpinionKind{metadata.Unknown, metadata.Approved, metadata.Unknown}, false, true},
+		{[]metadata.OpinionKind{metadata.Unknown, metadata.Unknown, metadata.Rejected}, true, false},
+		{[]metadata.OpinionKind{metadata.Approved, metadata.Rejected, metadata.Unknown}, true, false},
+	} {
+		a := metadata.NewArtefact()
+		a.State = metadata.ResponseState
+
+		for i, o := range tc.opinions {
+			id := fmt.Sprintf("insp%d", i)
+			a.ResponseInspection[id] = &metadata.Inspection{Opinion: o}
+		}
+
+		c.Assert(a.Pending(), Equals, false)
+		c.Assert(a.Rejected(), Equals, tc.rejected)
+		c.Assert(a.Approved(), Equals, tc.approved)
+	}
+}

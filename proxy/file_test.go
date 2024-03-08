@@ -22,7 +22,7 @@ package proxy_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -50,7 +50,7 @@ var _ = Suite(&fileSuite{})
 
 func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	ch := make(chan interface{}, 1)
-	body := ioutil.NopCloser(bytes.NewBufferString("Request body"))
+	body := io.NopCloser(bytes.NewBufferString("Request body"))
 	req, err := http.NewRequest("GET", "http://foo/bar", body)
 	req.Header.Set("User-Agent", "test/1.0")
 	c.Assert(err, IsNil)
@@ -62,7 +62,7 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 		StatusCode: 200,
 		Status:     "200 'Tis good",
 		Request:    req,
-		Body:       ioutil.NopCloser(bytes.NewBufferString("Response body")),
+		Body:       io.NopCloser(bytes.NewBufferString("Response body")),
 		Header:     http.Header{"Content-Type": []string{"application/x-test"}},
 	}
 
@@ -78,7 +78,7 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	}()
 
 	msg := <-ch
-	v := msg.(messages.ArtefactDownload)
+	v := msg.(messages.ResponseInspection)
 
 	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
 	err = os.MkdirAll(filepath.Dir(dest), 0755)
@@ -116,7 +116,7 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 		StatusCode: 200,
 		Status:     "200 Still good",
 		Request:    req,
-		Body:       ioutil.NopCloser(bytes.NewBufferString("Response body")), // same content
+		Body:       io.NopCloser(bytes.NewBufferString("Response body")), // same content
 	}
 
 	a = metadata.NewArtefact()
@@ -130,7 +130,7 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	}()
 
 	msg = <-ch
-	v = msg.(messages.ArtefactDownload)
+	v = msg.(messages.ResponseInspection)
 
 	// check download info
 	dl = v.A.CurrentDownload

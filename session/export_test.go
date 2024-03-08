@@ -21,7 +21,7 @@ package session
 
 var (
 	RandomString = randomString
-	Sessions     = sessions
+	Sessions     = &sessions
 )
 
 func MockMakeSessionId(mock func() string) (restorer func()) {

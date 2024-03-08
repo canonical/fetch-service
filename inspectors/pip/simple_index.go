@@ -48,11 +48,11 @@ func (ins *SimpleIndexInspector) InspectRequest(a *metadata.Artefact) error {
 	url := a.CurrentDownload.URL
 
 	// FIXME: using PyPI URLs as placeholders
-	re := regexp.MustCompile(`^https://pypi.org:443/simple/(\w+)$`)
+	re := regexp.MustCompile(`^https://pypi.org:443/simple/([\w-]+)/$`)
 
 	m := re.FindStringSubmatch(url)
 	if len(m) > 1 {
-		a.AuthorizeRequest(ins)
+		a.Consider(ins, "URL matches expression '%s'", re)
 		ins.Name = m[1]
 		return nil
 	}
@@ -61,15 +61,14 @@ func (ins *SimpleIndexInspector) InspectRequest(a *metadata.Artefact) error {
 }
 
 func (ins *SimpleIndexInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
+	content_type := a.CurrentDownload.ContentType
+
 	switch {
 	case a.MimeType.Is("text/html"):
 		return parseHtmlIndex(ins, f, a)
-
-	case a.MimeType.Is("application/json"):
+	case a.MimeType.Is("application/json") && content_type == "application/vnd.pypi.simple.v1+json":
 		return parseJsonIndex(ins, f, a)
-
 	default:
-		a.Reject(ins, "Repository index format not recognized")
 		return nil
 	}
 }
@@ -111,7 +110,12 @@ func parseHtmlIndex(ins *SimpleIndexInspector, f ReadAtSeeker, a *metadata.Artef
 					md.Vendor = host
 					md.Author = host
 
-					a.Approve(ins, "pip simple index, version %s", ver)
+					a.Approve(ins, "document contains pypi repository version").Annotate(
+						metadata.Annotation{
+							"format":             "HTML",
+							"repository-version": ver,
+						},
+					)
 					return nil
 				}
 			}
@@ -134,31 +138,34 @@ func extractMetaProperty(t html.Token, name string) (content string, ok bool) {
 }
 
 func parseJsonIndex(ins *SimpleIndexInspector, f ReadAtSeeker, a *metadata.Artefact) error {
-	if a.CurrentDownload.ContentType == "application/vnd.pypi.simple.v1+json" {
-		// FIXME: add better verification or remove if internal repo doesn't use json
+	// FIXME: add better format verification, e.g. check schema
 
-		md := &a.Metadata
+	md := &a.Metadata
 
-		u, err := url.Parse(a.CurrentDownload.URL)
-		if err != nil {
-			return err
-		}
-
-		md.Name = fmt.Sprintf("JSON index for '%s'", ins.Name)
-		md.Version = "v1+json"
-		md.Description = fmt.Sprintf(
-			"PyPI repository index JSON file for package '%s'", ins.Name)
-
-		var host = u.Host
-		if vidx := strings.IndexByte(host, ':'); vidx > 0 {
-			host = host[:vidx]
-		}
-
-		md.Vendor = host
-		md.Author = host
-
-		a.Approve(ins, "pip simple index v1 (JSON)")
+	u, err := url.Parse(a.CurrentDownload.URL)
+	if err != nil {
+		return err
 	}
+
+	md.Name = fmt.Sprintf("JSON index for '%s'", ins.Name)
+	md.Version = "v1+json"
+	md.Description = fmt.Sprintf(
+		"PyPI repository index JSON file for package '%s'", ins.Name)
+
+	var host = u.Host
+	if vidx := strings.IndexByte(host, ':'); vidx > 0 {
+		host = host[:vidx]
+	}
+
+	md.Vendor = host
+	md.Author = host
+
+	a.Approve(ins, "content type is pip simple index").Annotate(
+		metadata.Annotation{
+			"format":             "JSON",
+			"repository-version": "v1",
+		},
+	)
 
 	return nil
 }

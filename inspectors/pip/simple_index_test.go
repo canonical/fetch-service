@@ -20,7 +20,7 @@
 package pip_test
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"github.com/gabriel-vasile/mimetype"
@@ -60,7 +60,9 @@ func (s *simpleIndexSuite) TestInspectRequest(c *C) {
 		name     string
 		approved bool
 	}{
-		{"https://pypi.org:443/simple/foo", "foo", true},
+		{"https://pypi.org:443/simple/foo/", "foo", true},
+		{"https://pypi.org:443/simple/foo-bar/", "foo-bar", true},
+		{"https://pypi.org:443/simple/foo", "", false},
 		{"http://pypi.org/simple/foo", "", false},
 		{"https://pypi.org:443/simple/foo/bar", "", false},
 		{"https://pypi.org:444/simple/foo", "", false},
@@ -75,7 +77,7 @@ func (s *simpleIndexSuite) TestInspectRequest(c *C) {
 		err := ins.InspectRequest(a)
 		c.Assert(err, IsNil)
 
-		c.Assert(a.AuthorizedBy(ins.ID()), Equals, tc.approved)
+		c.Assert(a.ConsideredBy(ins.ID()), Equals, tc.approved)
 		c.Assert(ins.Name, Equals, tc.name)
 	}
 }
@@ -88,19 +90,21 @@ func (s *simpleIndexSuite) TestInspectArtefactBadType(c *C) {
 
 	err := ins.InspectArtefact(nil, a)
 	c.Assert(err, IsNil)
+	c.Assert(a.Approved(), Equals, false)
 	c.Assert(a.Rejected(), Equals, true)
 }
 
 func (s *simpleIndexSuite) TestWheelInspectArtefactBadContent(c *C) {
 	tmp := c.MkDir()
 	filename := filepath.Join(tmp, "index.html")
-	err := ioutil.WriteFile(filename, []byte("random content"), 0755)
+	err := os.WriteFile(filename, []byte("random content"), 0755)
 	c.Assert(err, IsNil)
 
 	ins := pip.NewSimpleIndexInspector()
 	a := metadata.NewArtefact()
 	a.Metadata.Type = "text/plain"
 	a.MimeType = mimetype.Lookup("text/plain")
+	a.Consider(ins, "test")
 
 	f, err := mmap.Open(filename)
 	c.Assert(err, IsNil)
@@ -108,20 +112,15 @@ func (s *simpleIndexSuite) TestWheelInspectArtefactBadContent(c *C) {
 
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
+	c.Assert(a.Approved(), Equals, false)
 	c.Assert(a.Rejected(), Equals, true)
-	c.Assert(a.Opinions, DeepEquals, []metadata.Opinion{
-		metadata.Opinion{
-			InspectorID: "pip.simple-index",
-			Opinion:     metadata.Rejected,
-			Reason:      "Repository index format not recognized",
-		},
-	})
+	c.Assert(a.ResponseInspection, DeepEquals, metadata.InspectionMap{})
 }
 
 func (s *simpleIndexSuite) TestWheelInspectArtefact(c *C) {
 	tmp := c.MkDir()
 	filename := filepath.Join(tmp, "index.html")
-	err := ioutil.WriteFile(filename, []byte("<!DOCTYPE html>\n"+
+	err := os.WriteFile(filename, []byte("<!DOCTYPE html>\n"+
 		"<html>\n"+
 		"  <head>\n"+
 		`    <meta name="pypi:repository-version" content="1.1">\n`+
