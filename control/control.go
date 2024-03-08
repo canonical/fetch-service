@@ -76,7 +76,8 @@ func (c *Server) getServiceStatus(w http.ResponseWriter, r *http.Request) {
 		internalServerError(w, r)
 		return
 	}
-	w.Write(j)
+
+	write_response(w, j)
 }
 
 func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
@@ -102,7 +103,8 @@ func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
 		internalServerError(w, r)
 		return
 	}
-	w.Write(j)
+
+	write_response(w, j)
 }
 
 func (c *Server) endSession(w http.ResponseWriter, r *http.Request) {
@@ -130,7 +132,7 @@ func (c *Server) endSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write(j)
+	write_response(w, j)
 }
 
 func (c *Server) deleteResources(w http.ResponseWriter, r *http.Request) {
@@ -164,17 +166,25 @@ func (c *Server) deleteResources(w http.ResponseWriter, r *http.Request) {
 func badRequest(w http.ResponseWriter, r *http.Request, reason string) {
 	logger.Warningf("bad request response: %s", r.URL)
 	w.WriteHeader(http.StatusBadRequest)
-	w.Write([]byte(reason))
+	write_response(w, []byte(reason))
 }
 
 func internalServerError(w http.ResponseWriter, r *http.Request) {
 	logger.Warningf("internal server error response: %s", r.URL)
 	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte("500 Internal Server Error"))
+	write_response(w, []byte("500 Internal Server Error"))
 }
 
 func notFound(w http.ResponseWriter, r *http.Request) {
 	logger.Warningf("not found response: %s", r.URL)
 	w.WriteHeader(http.StatusNotFound)
-	w.Write([]byte("404 Not Found"))
+	write_response(w, []byte("404 Not Found"))
+}
+
+func write_response(w http.ResponseWriter, b []byte) {
+	var err error
+	_, err = w.Write(b)
+	if err != nil {
+		logger.Errorf("write response error: %s", err)
+	}
 }
