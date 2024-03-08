@@ -202,7 +202,6 @@ func (ins *AptPackagesInspector) InspectRequest(a *metadata.Artefact) error {
 	if info, err := newPackagesUrlInfo(u); err == nil {
 		a.Hold(ins, "valid URL for Packages file").Annotate(
 			metadata.Annotation{
-				"origin":       info.origin,
 				"repository":   info.repository,
 				"distribution": info.distribution,
 				"component":    info.component,
@@ -214,7 +213,6 @@ func (ins *AptPackagesInspector) InspectRequest(a *metadata.Artefact) error {
 	} else if info, err := newDebPackageUrlInfo(u); err == nil {
 		a.Hold(ins, "valid URL for deb package").Annotate(
 			metadata.Annotation{
-				"origin":       info.origin,
 				"repository":   info.repository,
 				"component":    info.component,
 				"name":         info.name,
