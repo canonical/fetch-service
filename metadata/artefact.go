@@ -60,9 +60,6 @@ type Inspection struct {
 }
 
 func (in *Inspection) Annotate(a Annotation) {
-	if in.Annotations == nil {
-		in.Annotations = make(map[string]any, len(a))
-	}
 	for key := range a { // shallow copy the map
 		in.Annotations[key] = a[key]
 	}

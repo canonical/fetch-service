@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -17,23 +17,25 @@
  *
  */
 
-package apt_test
+package apt
 
 import (
-	"testing"
+	"io"
 
-	. "gopkg.in/check.v1"
-
-	"github.com/canonical/fetch-service/logger"
-	"github.com/canonical/fetch-service/logger/testlogger"
+	"github.com/canonical/fetch-service/metadata"
 )
 
-type aptSuite struct{}
+type ReleaseFile = releaseFile
+type ReleaseEntry = releaseEntry
 
-func (t *aptSuite) SetUpTest(c *C) {
-	testlogger.Init(logger.InfoLevel)
+func MockCheckSignature(mock func(io.ReadSeeker, metadata.Annotation) (io.ReadSeeker, error)) (restorer func()) {
+	old := checkSignature
+	checkSignature = mock
+	return func() {
+		checkSignature = old
+	}
 }
 
-var _ = Suite(&aptSuite{})
-
-func Test(t *testing.T) { TestingT(t) }
+func (ins *AptReleaseInspector) Release() map[string]ReleaseFile {
+	return ins.release
+}
