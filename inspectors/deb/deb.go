@@ -81,7 +81,7 @@ func (ins *DebInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) e
 		return err
 	}
 
-	if a.Metadata.Name != "" && a.Metadata.Version != "" && a.Metadata.Architecture != "" {
+	if !a.Rejected() {
 		a.Approve(ins, "deb package parsed")
 	}
 
@@ -104,6 +104,7 @@ func (ins DebInspector) readDebMetadata(f io.Reader, a *metadata.Artefact) error
 		case "debian-binary":
 			if ver := ins.getDebianBinaryVersion(af, a); ver != "2.0" {
 				a.Reject(ins, "unknown debian binary version %q", ver)
+				return nil
 			}
 		case "control.tar.gz":
 			zf, err := gzip.NewReader(af)
