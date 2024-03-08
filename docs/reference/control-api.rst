@@ -174,7 +174,7 @@ Endpoints
 
 :Description:
   Remove session files from the fetch service's file spool. The session must finish
-  before resources can be deleted.
+  before resources can be deleted, otherwise a 400 Bad Request status will be returned.
 
 :Parameters:
   None.
