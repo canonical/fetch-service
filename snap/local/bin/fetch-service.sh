@@ -2,6 +2,7 @@
 # Wrapper for running the fetch service using snap configuration.
 
 proxy_port="$(snapctl get proxy.port)"
+control_port="$(snapctl get control.port)"
 verbosity="$(snapctl get verbosity)"
 permissive="$(snapctl get permissive)"
 if [[ "${permissive,,}" == "true" ]]; then
@@ -11,7 +12,8 @@ else
 fi
 
 exec "${SNAP}/bin/fetch"\
-  "--port=${proxy_port}"\
+  "--proxy-port=${proxy_port}"\
+  "--control-port=${control_port}"\
   "${permissive}"\
   "--spool=${SNAP_COMMON}/spool"\
   "--verbosity=${verbosity}"
