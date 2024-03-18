@@ -22,6 +22,7 @@ package metadata
 import (
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/gabriel-vasile/mimetype"
 
@@ -125,6 +126,7 @@ type Artefact struct {
 	Tempfile           string          `json:"-"`                   // Path to temporary file containing downloaded data
 	SessionId          string          `json:"-"`                   // The current session ID
 	MimeType           *mimetype.MIME  `json:"-"`                   // The artefact MIME type
+	Request            *http.Request   `json:"-"`                   // request handle for body content inspection
 }
 
 func NewArtefact() *Artefact {
@@ -136,6 +138,7 @@ func NewArtefact() *Artefact {
 		Metadata:           Metadata{},
 		Downloads:          []Download{},
 		CurrentDownload:    Download{},
+		Request:            nil,
 	}
 }
 
@@ -204,6 +207,18 @@ func (a *Artefact) Approve(id Identifiable, reason string, args ...any) *Inspect
 	a.ResponseInspection[id.ID()] = in
 
 	return in
+}
+
+func (a *Artefact) RequestAnnotation(id Identifiable, key string) (any, bool) {
+	inspection, ok := a.RequestInspection[id.ID()]
+	if !ok {
+		return nil, false
+	}
+	ann, ok := inspection.Annotations[key]
+	if !ok {
+		return nil, false
+	}
+	return ann, true
 }
 
 func (a *Artefact) Pending() bool {

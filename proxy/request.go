@@ -55,10 +55,5 @@ func (h *RequestHandler) Read(b []byte) (n int, err error) {
 
 // Close finalizes the request.
 func (h *RequestHandler) Close() error {
-	res := h.body.Close()
-
-	// update request information
-	// TODO?
-
-	return res
+	return h.body.Close()
 }
