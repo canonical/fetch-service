@@ -10,20 +10,32 @@ if [[ "${permissive,,}" == "true" ]]; then
 else
   permissive=""
 fi
+if [[ "$(snapctl get profile.enabled)" == "true" ]]; then
+  profile="--profile"
+else
+  profile=""
+fi
+profile_port="$(snapctl get profile.port)"
+control_port="$(snapctl get control.port)"
+
 log_file="$(snapctl get log.file)"
 
 if [[ -z "${log_file}" ]]; then
   exec "${SNAP}/bin/fetch"\
     "--proxy-port=${proxy_port}"\
     "--control-port=${control_port}"\
-    "${permissive}"\
+    "${profile}"\
+    "--profile-port=${profile_port}"\
     "--spool=${SNAP_COMMON}/spool"\
+    "${permissive}"\
     "--verbosity=${verbosity}"
 else
   exec "${SNAP}/bin/fetch"\
     "--proxy-port=${proxy_port}"\
     "--control-port=${control_port}"\
-    "${permissive}"\
+    "${profile}"\
+    "--profile-port=${profile_port}"\
     "--spool=${SNAP_COMMON}/spool"\
+    "${permissive}"\
     "--verbosity=${verbosity}" >  >(tee -a "${SNAP_DATA}/${log_file}")
 fi
