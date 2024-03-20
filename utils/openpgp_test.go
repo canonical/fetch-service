@@ -46,10 +46,10 @@ var archiveKeyTests = []archiveKeyTest{{
 		Roses are red
 		Violets are blue
 	`,
-	relerror: "cannot decode armored data",
+	relerror: "cannot decode armored data: EOF",
 }, {
 	summary:  "Empty armored data",
-	relerror: "cannot decode armored data",
+	relerror: "cannot decode armored data: EOF",
 }, {
 	summary:  "Armored data: bad packets",
 	armor:    invalidPubKeyArmor,
