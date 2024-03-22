@@ -20,22 +20,24 @@ control_port="$(snapctl get control.port)"
 
 log_file="$(snapctl get log.file)"
 
+keyring="/usr/share/keyrings/ubuntu-archive-keyring.gpg"
+key="F6ECB3762474EDA9D21B7022871920D1991BC93C"
+export FETCH_APT_RELEASE_PUBLIC_KEY=$(gpg --export --armor --no-default-keyring --keyring "$keyring" "$key")
+
 if [[ -z "${log_file}" ]]; then
   exec "${SNAP}/bin/fetch"\
     "--proxy-port=${proxy_port}"\
     "--control-port=${control_port}"\
-    "${profile}"\
     "--profile-port=${profile_port}"\
     "--spool=${SNAP_COMMON}/spool"\
-    "${permissive}"\
+    "${profile} ${permissive}"\
     "--verbosity=${verbosity}"
 else
   exec "${SNAP}/bin/fetch"\
     "--proxy-port=${proxy_port}"\
     "--control-port=${control_port}"\
-    "${profile}"\
     "--profile-port=${profile_port}"\
     "--spool=${SNAP_COMMON}/spool"\
-    "${permissive}"\
+    "${profile} ${permissive}"\
     "--verbosity=${verbosity}" >  >(tee -a "${SNAP_DATA}/${log_file}")
 fi
