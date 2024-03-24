@@ -36,40 +36,34 @@ func getGitProtocol(a *metadata.Artefact) string {
 	return proto[0]
 }
 
-func decodeGitProtocol(buf []byte) (msgs []string, err error) {
+func decodeGitProtocol(buf []byte) ([]string, error) {
+	msgs := []string{}
 	for {
 		if len(buf) < 4 {
-			err = errors.New("git protocol decode error")
-			return
+			return msgs, errors.New("git protocol decode error")
 		}
 
-		// consistency check
-		if buf[0] != 0x30 {
-			err = errors.New("git protocol long message error")
-			return
-		}
-
-		var size uint64
-		size, err = strconv.ParseUint(string(buf[:4]), 16, 32)
+		size, err := strconv.ParseUint(string(buf[:4]), 16, 32)
 		if err != nil {
-			return
+			return msgs, err
 		}
 
 		switch size {
-		case 0, 3, 4: // flush or end
-			return
+		case 0, 2: // flush or end
+			return msgs, nil
 		case 1: // delim
 			size = 4
+		case 3, 4: // error
+			return msgs, errors.New("git protocol decode error")
 		}
 
 		if size > uint64(len(buf)) {
-			err = errors.New("git protocol short message error")
-			return
+			return msgs, errors.New("git protocol short message error")
 		}
 
 		// stop decoding if packfile found
 		if size == 13 && slices.Equal(buf[4:13], []byte("packfile\n")) {
-			return
+			return msgs, nil
 		}
 
 		m := string(buf[4:size])
