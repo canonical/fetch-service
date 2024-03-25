@@ -67,8 +67,8 @@ func newSmartQueryUrlInfo(u *url.URL) (*smartQueryUrlInfo, error) {
 	}
 
 	q := u.Query()
-	if q.Get("service") != "git-upload-pack" {
-		return nil, fmt.Errorf("invalid service query")
+	if val := q.Get("service"); val != "git-upload-pack" {
+		return nil, fmt.Errorf("invalid service query %q", val)
 	}
 
 	info := &smartQueryUrlInfo{

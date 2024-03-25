@@ -64,6 +64,7 @@ func (s *smartQuerySuite) TestInspectRequest(c *C) {
 		{"http://github.com/user/project.git/info/refs?service=git-upload-pack", false},
 		{"ahttps://github.com:443/user/project.git/info/refs?service=git-upload-pack", false},
 		{"https://github.com:443/user/project.git/info/refs?service=git-upload-packs", false},
+		{"https://github.com:443/user/project.git/info/refs?service=something-else", false},
 		{"https://github.com:443/user/project.git/info/refs", false},
 	} {
 		ins := git.NewSmartQueryInspector()
