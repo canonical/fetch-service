@@ -30,6 +30,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/apt"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/deb"
+	"github.com/canonical/fetch-service/inspectors/git"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/inspectors/pip"
 	"github.com/canonical/fetch-service/logger"
@@ -39,7 +40,6 @@ import (
 func init() {
 	mimetype.SetLimit(1 << 30) // input data is mmapped
 	mimetype.Lookup("application/zip").Extend(pip.WheelDetector, mimetypes.PythonWheel, ".whl")
-	//mimetype.Lookup("text/plain").Extend(apt.AptReleaseDetector, mimetypes.AptRelease, "")
 	mimetype.Lookup("application/x-xz").Extend(apt.AptPackagesDetector, mimetypes.AptPackages, "")
 }
 
@@ -74,6 +74,12 @@ func New(permissive bool) Inspectors {
 		deb.NewDebInspector(),
 		apt.NewAptReleaseInspector(),
 		apt.NewAptPackagesInspector(),
+
+		// git
+		git.NewSmartQueryInspector(),
+		git.NewUploadPackInspector(),
+
+		// default inspector
 		DefaultInspector{},
 	}
 
@@ -201,14 +207,14 @@ func (ins DefaultInspector) ID() string {
 }
 
 func (ins DefaultInspector) InspectRequest(a *metadata.Artefact) error {
-	if !a.Pending() {
+	if len(a.RequestInspection) == 0 {
 		a.Comment(ins, "the request was not recognized by any format inspector")
 	}
 	return nil
 }
 
 func (ins DefaultInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
-	if a.Unknown() {
+	if len(a.ResponseInspection) == 0 {
 		a.Comment(ins, "the artefact format is unknown")
 	}
 	return nil

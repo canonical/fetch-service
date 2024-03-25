@@ -116,6 +116,7 @@ func (p *HttpProxy) Stop() error {
 
 // processRequest handles HTTP requests to the server.
 func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+	logger.Debugf("process request for %s", req.URL.String())
 	requestHeader := copyHeader(req.Header)
 
 	if ctx.UserData != nil {
@@ -128,6 +129,7 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 	}
 
 	a := metadata.NewArtefact()
+	a.Request = req
 	a.SessionId = req.Header.Get(sessionIdHeader)
 
 	a.CurrentDownload.StartTime = time.Now().UTC()
@@ -164,6 +166,7 @@ func (p *HttpProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) 
 	if resp == nil || resp.StatusCode != http.StatusOK {
 		return resp
 	}
+	logger.Debugf("process response for %s", resp.Request.URL.String())
 
 	a := ctx.UserData.(proxyData).a
 
