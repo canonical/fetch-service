@@ -21,6 +21,7 @@ package apt
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"net/url"
@@ -179,6 +180,16 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 	format_errors := []string{}
 	integrity_errors := []string{}
 
+	// Quick check for clearsigned file
+	buf := make([]byte, 34)
+	n, err := f.Read(buf)
+	if err != nil || n != 34 {
+		return nil // not our clearsigned file
+	}
+	if !bytes.Equal(buf, []byte("-----BEGIN PGP SIGNED MESSAGE-----")) {
+		return nil
+	}
+
 	// InRelease files must be signed
 	signotes := metadata.Annotation{}
 	body, err := checkSignature(f, signotes)
@@ -202,7 +213,7 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 
 	fields := map[string]string{}
 
-	n := 0
+	n = 0
 	for sc.Scan() {
 		line := sc.Text()
 		if len(line) == 0 || line[0] == ' ' {
