@@ -92,7 +92,7 @@ func (ins *SmartQueryInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 
 	if len(msgs) == 1 && msgs[0] == "# service=git-upload-pack\n" {
 		var err error
-		msgs, err = decodeGitProtocol(buf[0x1e+4:])
+		msgs, err = decodeGitProtocol(buf[0x1e+4:]) // skip previous size+content
 		if err != nil {
 			a.Reject(ins, "cannot decode pack advertisement: %s", err)
 			return nil
