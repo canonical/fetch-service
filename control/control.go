@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -35,6 +35,10 @@ type createSessionParameters struct {
 	Policy  string `json:"policy"`
 }
 
+type modifySessionParameters struct {
+	Action string `json:"action"`
+}
+
 type endSessionParameters struct {
 }
 
@@ -55,7 +59,8 @@ func (c *Server) Start() {
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/status", c.getServiceStatus).Methods("GET")
 	router.HandleFunc("/session", c.createSession).Methods("POST")
-	router.HandleFunc("/session/{id}", c.endSession).Methods("DELETE")
+	router.HandleFunc("/session/{id}", c.modifySession).Methods("POST")
+	router.HandleFunc("/session/{id}", c.getSessionReport).Methods("GET")
 	router.HandleFunc("/resources/{id}", c.deleteResources).Methods("DELETE")
 
 	logger.Infof("control server listening on %s\n", addr)
@@ -107,7 +112,52 @@ func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
 	write_response(w, j)
 }
 
-func (c *Server) endSession(w http.ResponseWriter, r *http.Request) {
+func (c *Server) modifySession(w http.ResponseWriter, r *http.Request) {
+	logger.Debugf("modify session")
+
+	vars := mux.Vars(r)
+	id, ok := vars["id"]
+	if !ok {
+		notFound(w, r)
+		return
+	}
+
+	var params modifySessionParameters
+	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+		internalServerError(w, r)
+		return
+	}
+
+	logger.Debugf("modify session parameters: %+v\n", params)
+
+	if params.Action != "revoke-token" {
+		badRequest(w, r, fmt.Sprintf("invalid action %q", params.Action))
+		return
+	}
+
+	logger.Debug("revoke token")
+	msg := messages.NewModifySession(id, params.Action)
+	c.ch <- msg
+	res := <-msg.Rch
+	if res.Err != nil {
+		if res.SessionId == "" {
+			notFound(w, r)
+		} else {
+			badRequest(w, r, res.Err.Error())
+		}
+		return
+	}
+
+	j, err := json.Marshal(res)
+	if err != nil {
+		internalServerError(w, r)
+		return
+	}
+
+	write_response(w, j)
+}
+
+func (c *Server) getSessionReport(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, ok := vars["id"]
 	if !ok {
@@ -151,19 +201,17 @@ func (c *Server) deleteResources(w http.ResponseWriter, r *http.Request) {
 
 	logger.Debugf("delete resources from session %s: %+v\n", id, params)
 
-	/*
-	   msg := messages.NewDeleteResources(id)
-	   c.ch <- msg
-	   err := <-msg.Rch
+	msg := messages.NewDeleteResources(id)
+	c.ch <- msg
+	err := <-msg.Rch
 
-	   	if err != nil {
-	   		if err == messages.ErrSessionActive {
-	   			badRequest(w, r, err.Error())
-	   		} else {
-	   			internalServerError(w, r)
-	   		}
-	   	}
-	*/
+	if err != nil {
+		if err == messages.ErrSessionActive {
+			badRequest(w, r, err.Error())
+		} else {
+			internalServerError(w, r)
+		}
+	}
 }
 
 func badRequest(w http.ResponseWriter, r *http.Request, reason string) {
