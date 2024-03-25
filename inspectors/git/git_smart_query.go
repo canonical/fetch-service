@@ -99,13 +99,18 @@ func (ins *SmartQueryInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 		}
 	}
 
+	if len(msgs) < 1 || msgs[0] != "version 2\n" {
+		a.Reject(ins, "git protocol is not version 2")
+		return nil
+	}
+
 	var server_msgs []string
 	for _, msg := range msgs {
 		server_msgs = append(server_msgs, strings.TrimSpace(msg))
 	}
 
 	// A server which decides to communicate (based on a request from a client)
-	// using protocol version 2, notifies the client by sending a version string
+	// using protocol version 2 notifies the client by sending a version string
 	// in its initial response followed by an advertisement of its capabilities.
 	// Each capability is a key with an optional value.
 	a.Approve(ins, "upload pack advertisement received").Annotate(
