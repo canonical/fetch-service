@@ -60,6 +60,9 @@ type Inspection struct {
 }
 
 func (in *Inspection) Annotate(a Annotation) {
+	if in.Annotations == nil {
+		in.Annotations = make(map[string]any, len(a))
+	}
 	for key := range a { // shallow copy the map
 		in.Annotations[key] = a[key]
 	}
@@ -97,6 +100,7 @@ func NewArtefact() *Artefact {
 		Metadata:           Metadata{},
 		Downloads:          []Download{},
 		CurrentDownload:    Download{},
+		Request:            nil,
 	}
 }
 
@@ -163,6 +167,20 @@ func (a *Artefact) RequestPending() bool {
 		}
 	}
 	return res
+}
+
+// RequestAnnotation verifies whether the inspector has a request
+// opinion and returns its annotation.
+func (a *Artefact) RequestAnnotation(id string, key string) (any, bool) {
+	inspection, ok := a.RequestInspection[id]
+	if !ok {
+		return nil, false
+	}
+	ann, ok := inspection.Annotations[key]
+	if !ok {
+		return nil, false
+	}
+	return ann, true
 }
 
 // Approved returns true when there's at least one approval opinion

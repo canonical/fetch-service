@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -17,14 +17,9 @@
  *
  */
 
-package mimetypes
+package git
 
-const (
-	DebianBinaryPackage        = "application/vnd.debian.binary-package"
-	PythonWheel                = "application/x.python.wheel"
-	AptRelease                 = "application/x.apt.release"
-	AptPackages                = "application/x.apt.packages"
-	GitUploadPackAdvertisement = "application/x.git.upload-pack-advertisement"
-	GitUploadPackLsRef         = "application/x.git.upload-pack-result.ls-ref"
-	GitUploadPackFetch         = "application/x.git.upload-pack-result.fetch"
+var (
+	GetGitProtocol    = getGitProtocol
+	DecodeGitProtocol = decodeGitProtocol
 )
