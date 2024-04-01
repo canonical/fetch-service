@@ -20,6 +20,9 @@
 package service
 
 import (
+	"fmt"
+	"time"
+
 	"gopkg.in/tomb.v2"
 
 	"github.com/canonical/fetch-service/control"
@@ -116,23 +119,46 @@ func (svc *Service) Start() error {
 					}(s, v.A)
 
 				case messages.CreateSession:
-					s := session.New(svc.opt.PermissiveMode)
-					v.Rch <- messages.SessionCredentials{Id: s.Id, Pw: s.Pw}
+					permissive := false
+					if v.Policy == "permissive" {
+						if svc.opt.PermissiveMode {
+							permissive = true
+						} else {
+							v.Rch <- messages.SessionCredentials{
+								Err: session.ErrInvalidSessionPolicy,
+							}
+							break
+						}
+					}
 
-				case messages.ProxyAuth:
-					v.Rch <- session.CheckAuth(v.Id, v.Pw)
+					s := session.New(svc.opt.Spool, permissive)
+					if v.Timeout > 0 {
+						s.Timeout = time.Duration(v.Timeout * uint64(time.Second))
+					}
+					v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Pw}
 
 				case messages.EndSession:
 					sessionId := v.Id
 					s := session.GetSession(sessionId)
-					err := s.Finish()
-					res := messages.SessionResult{}
-					if err != nil {
-						res.Err = err
-					} else {
-						res.Artefacts = s.Artefacts()
+					if s == nil {
+						v.Rch <- messages.SessionResult{
+							SessionMetadata: &metadata.SessionMetadata{
+								Err: fmt.Errorf("cannot end session: session %s is not active", sessionId),
+							},
+							Artefacts: []*metadata.Artefact{},
+						}
+						break
 					}
-					v.Rch <- res
+
+					sm := s.Finish()
+
+					v.Rch <- messages.SessionResult{
+						SessionMetadata: sm,
+						Artefacts:       s.Artefacts(),
+					}
+
+				case messages.ProxyAuth:
+					v.Rch <- session.CheckAuth(v.Id, v.Pw)
 
 				default:
 					logger.Warningf("Unknown message type %T", v)

@@ -22,6 +22,7 @@ package session
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -37,6 +38,14 @@ import (
 	"github.com/canonical/fetch-service/metadata"
 )
 
+const (
+	DefaultSessionTimeout = time.Duration(6 * time.Hour)
+)
+
+var (
+	ErrInvalidSessionPolicy = errors.New("Invalid session policy")
+)
+
 // Session has information about each authorized client.
 type Session struct {
 	Id         string
@@ -47,6 +56,7 @@ type Session struct {
 	A          map[metadata.Sha256Digest]*metadata.Artefact
 	Permissive bool
 	SessionDir string
+	Timeout    time.Duration
 }
 
 var (
@@ -84,44 +94,52 @@ func New(spoolDir string, permissive bool) *Session {
 }
 
 // Finish ends the session and saves metadata.
-func (s *Session) Finish() (*metadata.SessionMetadata, error) {
-	for k := range s.A {
-		logger.Infof("save metadata for artefact %s", k)
-		if err := s.SaveMetadata(k); err != nil {
-			return nil, err
-		}
-	}
+func (s *Session) Finish() *metadata.SessionMetadata {
+	s.End = time.Now().UTC()
 
-	sm, err := s.SaveSessionMetadata()
-	if err != nil {
-		return nil, err
-	}
-
-	s.Discard()
-	return sm, nil
-}
-
-// SaveSessionMetadata adds session information to the file spool.
-func (s *Session) SaveSessionMetadata() (*metadata.SessionMetadata, error) {
 	sm := &metadata.SessionMetadata{
 		SessionId:  s.Id,
 		StartTime:  s.Start,
 		EndTime:    s.End,
 		Inspectors: s.Insps.List(),
+		Err:        nil,
 	}
 
+	for k := range s.A {
+		logger.Infof("save metadata for artefact %s", k)
+		if err := s.SaveMetadata(k); err != nil {
+			sm.Err = err
+			return sm
+		}
+	}
+
+	if err := s.SaveSessionMetadata(sm); err != nil {
+		sm.Err = err
+		return sm
+	}
+
+	s.Discard()
+	return sm
+
+}
+
+// SaveSessionMetadata adds session information to the file spool.
+func (s *Session) SaveSessionMetadata(sm *metadata.SessionMetadata) error {
 	j, err := json.MarshalIndent(sm, "", "\t")
 	if err != nil {
-		return nil, err
+		return err
+	}
+
+	if err := os.MkdirAll(s.SessionDir, 0755); err != nil {
+		return err
 	}
 
 	dest := filepath.Join(s.SessionDir, "session.json")
 	if err := os.WriteFile(dest, j, 0644); err != nil {
-		return nil, err
+		return err
 	}
 
-	return sm, nil
-
+	return nil
 }
 
 // Discard deletes this session.
@@ -271,8 +289,8 @@ func FinishAll() {
 		id := key.(string)
 		s := value.(*Session)
 		logger.Infof("finishing session %s", id)
-		if _, err := s.Finish(); err != nil {
-			logger.Errorf("%s", err)
+		if sm := s.Finish(); sm.Err != nil {
+			logger.Errorf("%s", sm.Err)
 		}
 		return true
 	})

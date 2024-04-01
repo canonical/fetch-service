@@ -59,13 +59,15 @@ func NewResponseInspection(a *metadata.Artefact) ResponseInspection {
 // Session creation
 
 type SessionCredentials struct {
-	Id     string `json:"id"`
-	Pw     string `json:"pw"`
-	Policy string `json:"policy"`
+	Id    string `json:"id"`
+	Token string `json:"token"`
+	Err   error  `json:"-"`
 }
 
 type CreateSession struct {
-	Rch chan SessionCredentials // Handler response channel
+	Rch     chan SessionCredentials // Handler response channel
+	Timeout uint64                  // Session timeout in seconds
+	Policy  string                  // Session policy (strict or permissive)
 }
 
 func NewCreateSession() CreateSession {
@@ -77,8 +79,7 @@ func NewCreateSession() CreateSession {
 // Session end
 
 type SessionResult struct {
-	Err error `json:"-"`
-	// TODO: add session stats
+	*metadata.SessionMetadata
 	Artefacts []*metadata.Artefact `json:"artefacts"`
 }
 

@@ -116,6 +116,9 @@ func (p *HttpProxy) Stop() error {
 
 // processRequest handles HTTP requests to the server.
 func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+	logger.Debugf("process request for %s", req.URL.String())
+	requestHeader := copyHeader(req.Header)
+
 	if ctx.UserData != nil {
 		sessionId, ok := ctx.UserData.(string)
 		if ok {
@@ -133,7 +136,7 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 	a.CurrentDownload.Address = req.RemoteAddr
 	a.CurrentDownload.Method = req.Method
 	a.CurrentDownload.UserAgent = req.Header.Get("User-Agent")
-	a.CurrentDownload.RequestHeader = copyHeader(req.Header)
+	a.CurrentDownload.RequestHeader = requestHeader
 
 	reqInsp := messages.NewRequestInspection(a)
 	p.ch <- reqInsp
