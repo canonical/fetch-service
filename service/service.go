@@ -21,7 +21,7 @@ package service
 
 import (
 	"fmt"
-	"math/rand"
+	"os"
 	"runtime"
 	"sync/atomic"
 	"time"
@@ -61,10 +61,6 @@ type Service struct {
 }
 
 var proxyNewHttpProxy = proxy.NewHttpProxy
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 func New(opt *Options) *Service {
 	ch := make(chan interface{})
@@ -166,6 +162,7 @@ func (svc *Service) Start() error {
 
 					svc.sArtefacts.Add(1)
 					s.NumArtefacts.Add(1)
+					v.A.CurrentDownload.EndTime = time.Now().UTC()
 
 					// Add download info to artefact metadata
 					dl := v.A.CurrentDownload
@@ -174,6 +171,7 @@ func (svc *Service) Start() error {
 					if s.HasArtefact(digest) {
 						logger.Infof("artefact %s already downloaded", digest)
 						s.AddDownload(v.A.CurrentDownload)
+						os.Remove(v.A.Tempfile)
 						v.Rch <- nil
 						break
 					}

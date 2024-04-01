@@ -21,7 +21,6 @@ package git
 
 import (
 	"fmt"
-	"io"
 	"net/url"
 	"strings"
 
@@ -56,8 +55,6 @@ func (ins *SmartQueryInspector) InspectRequest(a *metadata.Artefact) error {
 		a.Hold(ins, "valid URL for git smart request").Annotate(
 			metadata.Annotation{
 				"protocol": proto,
-				"user":     info.user,
-				"project":  info.project,
 				"service":  info.service,
 			},
 		)
@@ -79,12 +76,7 @@ func (ins *SmartQueryInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 	a.Metadata.Type = mimetypes.GitUploadPackAdvertisement
 	a.Metadata.Name = "git-upload-pack-advertisement"
 
-	buf, err := io.ReadAll(f)
-	if err != nil {
-		return err
-	}
-
-	msgs, err := decodeGitProtocol(buf)
+	msgs, err := decodeGitProtocol(f)
 	if err != nil {
 		a.Reject(ins, "cannot decode git V2 protocol: %s", err)
 		return nil
@@ -92,7 +84,7 @@ func (ins *SmartQueryInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 
 	if len(msgs) == 1 && msgs[0] == "# service=git-upload-pack\n" {
 		var err error
-		msgs, err = decodeGitProtocol(buf[0x1e+4:]) // skip previous size+content
+		msgs, err = decodeGitProtocol(f) // skip previous size+content
 		if err != nil {
 			a.Reject(ins, "cannot decode pack advertisement: %s", err)
 			return nil

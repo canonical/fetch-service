@@ -61,10 +61,12 @@ func (s *uploadPackSuite) TestInspectLsRefsRequest(c *C) {
 	}{
 		// FIXME: using github as placeholder, final URLs will change
 		{"https://github.com:443/user/project.git/git-upload-pack", true},
+		{"https://invalid.com:443/user/project.git/git-upload-pack", false},
 		{"http://github.com/user/project.git/git-upload-pack", false},
 		{"https://gothub.com:443/user/project.git/git-upload-pack", false},
 		{"ahttps://github.com:443/user/project.git/git-upload-pack", false},
 		{"https://github.com:443/user/project.git/git-upload-packs", false},
+		{"https://github.com:443/user/project.git/something-else", false},
 	} {
 		ins := git.NewUploadPackInspector()
 		a := fakeGitArtefact()
@@ -74,7 +76,6 @@ func (s *uploadPackSuite) TestInspectLsRefsRequest(c *C) {
 
 		err := ins.InspectRequest(a)
 		c.Assert(err, IsNil)
-
 		c.Assert(a.HeldBy(ins.ID()), Equals, tc.approved)
 	}
 }
@@ -104,8 +105,11 @@ func (s *uploadPackSuite) TestUploadPackInspectLsRefsArtefact(c *C) {
 		errmsg string
 	}{
 		{uploadPackLsRefsArtefactData, ""},
-		{uploadPackLsRefsArtefactData[1:], "git protocol short message error"},
-		{uploadPackLsRefsArtefactData[:len(uploadPackLsRefsArtefactData)-1], "git protocol decode error"},
+		{uploadPackLsRefsArtefactData[1:], "decode error"},
+		{
+			uploadPackLsRefsArtefactData[:len(uploadPackLsRefsArtefactData)-1],
+			`strconv.ParseUint: parsing "000\x00": invalid syntax`,
+		},
 	} {
 		a := fakeGitArtefact()
 		a.Request, _ = http.NewRequest("GET", "https://github.com:443/user/project.git/git-upload-pack", nil)
@@ -134,10 +138,10 @@ func (s *uploadPackSuite) TestUploadPackInspectLsRefsArtefact(c *C) {
 						"ref-prefix refs/remotes/master/HEAD",
 						"ref-prefix refs/tags/",
 					},
-					"command":  "ls-refs",
-					"project":  "bump2version",
-					"protocol": "version=2",
-					"user":     "c4urself",
+					"repository": "https://my.repo/foo",
+					"command":    "ls-refs",
+					"project":    "bump2version",
+					"protocol":   "version=2",
 				},
 			},
 		}
@@ -179,9 +183,10 @@ func (s *uploadPackSuite) TestInspectFetchRequest(c *C) {
 		Opinion: metadata.Pending,
 		Reason:  "valid URL for git upload-pack",
 		Annotations: metadata.Annotation{
+			"repository": "https://github.com:443/user/project.git",
 			"num-wants":  1,
+			"wants":      []string{"6b99254b1c5c823d054bc0ae1ebccfa070380fce"},
 			"is-shallow": true,
-			"user":       "user",
 			"project":    "project",
 			"protocol":   "version=2",
 			"command":    "fetch",
@@ -219,9 +224,14 @@ func (s *uploadPackSuite) TestInspectFetchRequestReject(c *C) {
 		Opinion: metadata.Rejected,
 		Reason:  "fetch is only allowed with depth 1",
 		Annotations: metadata.Annotation{
-			"num-wants":  3,
+			"num-wants": 3,
+			"wants": []string{
+				"6b99254b1c5c823d054bc0ae1ebccfa070380fce013f",
+				"006e69941b9d152f7b42289f5f5741ec040b6f0a2c05",
+				"006f0bfe79093aaafeb51c6bf16e884c8acc3629deeb",
+			},
+			"repository": "https://github.com:443/user/project.git",
 			"is-shallow": false,
-			"user":       "user",
 			"project":    "project",
 			"protocol":   "version=2",
 			"command":    "fetch",
@@ -271,10 +281,10 @@ func (s *uploadPackSuite) TestUploadPackInspectFetchArtefact(c *C) {
 						"want 6b99254b1c5c823d054bc0ae1ebccfa070380fce",
 						"done",
 					},
-					"command":  "ls-refs",
-					"project":  "bump2version",
-					"protocol": "version=2",
-					"user":     "c4urself",
+					"repository": "https://my.repo/foo",
+					"command":    "ls-refs",
+					"project":    "bump2version",
+					"protocol":   "version=2",
 				},
 			},
 		}

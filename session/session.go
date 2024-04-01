@@ -221,12 +221,14 @@ func (s *Session) SaveData(digest metadata.Sha256Digest) error {
 
 	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
 	if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
+		os.Remove(a.Tempfile)
 		return err
 	}
 
 	// Save file data only if it doesn't exist already
 	if _, err := os.Stat(dest); err != nil {
 		if os.IsNotExist(err) {
+			// Move temporary file to spool
 			if err := os.Rename(a.Tempfile, dest); err != nil {
 				os.Remove(a.Tempfile)
 				return err
@@ -235,6 +237,9 @@ func (s *Session) SaveData(digest metadata.Sha256Digest) error {
 			os.Remove(a.Tempfile)
 			return err
 		}
+	} else {
+		// Remove temporary file if it already exists
+		os.Remove(a.Tempfile)
 	}
 
 	return nil

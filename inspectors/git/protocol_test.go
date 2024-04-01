@@ -20,6 +20,8 @@
 package git_test
 
 import (
+	"bytes"
+
 	"github.com/gabriel-vasile/mimetype"
 	. "gopkg.in/check.v1"
 
@@ -51,9 +53,11 @@ func (s *protocolSuite) TestGetGitProtocolFail(c *C) {
 }
 
 func (s *protocolSuite) TestDecodeGitProtocolFail(c *C) {
-	protocolDecodeError := "git protocol decode error"
-	protocolShortMessage := "git protocol short message error"
+	protocolDecodeError := "decode error"
+	parseIntError := "strconv.ParseUint: parsing \"0\\x00\\x00\\x00\": invalid syntax"
+	protocolShortMessage := "cannot read 5 bytes from input: EOF"
 	parseUintError := `strconv.ParseUint: parsing "xxxx": invalid syntax`
+	shortReadError := "cannot read 4 bytes from input: EOF"
 
 	for _, tc := range []struct {
 		data   []byte
@@ -62,9 +66,9 @@ func (s *protocolSuite) TestDecodeGitProtocolFail(c *C) {
 	}{
 		{nil, []string{}, protocolDecodeError},                      // nil input
 		{[]byte(""), []string{}, protocolDecodeError},               // empty input
-		{[]byte("0"), []string{}, protocolDecodeError},              // invalid short input
+		{[]byte("0"), []string{}, parseIntError},                    // invalid short input
 		{[]byte("0000"), []string{}, ""},                            // valid flush
-		{[]byte("0001"), []string{""}, protocolDecodeError},         // valid delimiter, missing rest of message
+		{[]byte("0001"), []string{}, shortReadError},                // valid delimiter, missing rest of message
 		{[]byte("0002"), []string{}, ""},                            // valid finalizer
 		{[]byte("0003"), []string{}, protocolDecodeError},           // invalid error
 		{[]byte("0004"), []string{}, protocolDecodeError},           // invalid error
@@ -75,7 +79,7 @@ func (s *protocolSuite) TestDecodeGitProtocolFail(c *C) {
 		{[]byte("0007foo0005!0000"), []string{"foo", "!"}, ""},      // valid message with finalizer
 		{[]byte("0007foo000dpackfile\nstuff"), []string{"foo"}, ""}, // end at packfile
 	} {
-		msgs, err := git.DecodeGitProtocol(tc.data)
+		msgs, err := git.DecodeGitProtocol(bytes.NewReader(tc.data))
 		if tc.errmsg == "" {
 			c.Assert(err, IsNil)
 		} else {
