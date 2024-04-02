@@ -141,21 +141,19 @@ func NewEndSession(sessionId string) EndSession {
 
 // Revoke session token
 
-type ModifySession struct {
-	Rch    chan ModifySessionResult // Handler response channel
-	Id     string
-	Action string
+type RevokeToken struct {
+	Rch chan RevokeTokenResult // Handler response channel
+	Id  string
 }
 
-func NewModifySession(sessionId, action string) ModifySession {
-	return ModifySession{
-		Rch:    make(chan ModifySessionResult, 1),
-		Id:     sessionId,
-		Action: action,
+func NewRevokeToken(sessionId string) RevokeToken {
+	return RevokeToken{
+		Rch: make(chan RevokeTokenResult, 1),
+		Id:  sessionId,
 	}
 }
 
-type ModifySessionResult struct {
+type RevokeTokenResult struct {
 	SessionId string `json:"session-id"`
 	StartTime string `json:"start-time"`
 	SpoolPath string `json:"spool-path"`

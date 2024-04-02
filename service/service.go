@@ -82,7 +82,6 @@ func (svc *Service) Start() error {
 		return err
 	}
 
-	//_ = session.New(svc.opt.PermissiveMode) // FIXME: to be created using the API
 	svc.ctl.Start()
 
 	svc.tomb.Go(func() error {
@@ -221,22 +220,20 @@ func (svc *Service) Start() error {
 					v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Token}
 					svc.sCount.Add(1)
 
-				case messages.ModifySession:
+				case messages.RevokeToken:
 					sessionId := v.Id
 					s := session.GetSession(sessionId)
 					if s == nil {
 						svc.sErrors.Add(1)
-						v.Rch <- messages.ModifySessionResult{
-							Err: fmt.Errorf("cannot modify session: session %s is not active", sessionId),
+						v.Rch <- messages.RevokeTokenResult{
+							Err: fmt.Errorf("cannot revoke token: session %s is not active", sessionId),
 						}
 						break
 					}
 
-					if v.Action == "revoke-token" {
-						s.Revoke()
-					}
+					s.Revoke()
 
-					v.Rch <- messages.ModifySessionResult{
+					v.Rch <- messages.RevokeTokenResult{
 						SessionId: s.Id,
 						StartTime: s.Start.String(),
 						SpoolPath: svc.opt.Spool,
@@ -251,18 +248,6 @@ func (svc *Service) Start() error {
 							SessionMetadata: &metadata.SessionMetadata{
 								Err: fmt.Errorf(
 									"cannot get session report: session %s is not active", sessionId),
-							},
-							Artefacts: []*metadata.Artefact{},
-						}
-						break
-					}
-
-					if !s.IsRevoked() {
-						svc.sErrors.Add(1)
-						v.Rch <- messages.SessionResult{
-							SessionMetadata: &metadata.SessionMetadata{
-								Err: fmt.Errorf(
-									"cannot get session report: session %s token is active", sessionId),
 							},
 							Artefacts: []*metadata.Artefact{},
 						}

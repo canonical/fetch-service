@@ -305,7 +305,9 @@ func CheckAuth(id string, pw string) bool {
 }
 
 // GetSession returns the session corresponding to the given session ID.
-func GetSession(id string) *Session {
+var GetSession = GetSessionImpl
+
+func GetSessionImpl(id string) *Session {
 	return sessions.Get(id)
 }
 

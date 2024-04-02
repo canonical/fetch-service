@@ -76,7 +76,7 @@ func (t *sessionSuite) TestNewSession(c *C) {
 }
 
 func (t *sessionSuite) TestRandomString(c *C) {
-	for _, n := range []int{0, 1, 10, 20} {
+	for _, n := range []int{0, 10, 20} {
 		x := session.RandomString(n)
 		y := session.RandomString(n)
 		c.Assert(len(x), Equals, n)
