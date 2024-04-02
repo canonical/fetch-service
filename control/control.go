@@ -49,7 +49,7 @@ func (c *Server) Start() {
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/status", c.getServiceStatus).Methods("GET")
 	router.HandleFunc("/session", c.createSession).Methods("POST")
-	router.HandleFunc("/session/{id}", c.deleteSessionToken).Methods("DELETE")
+	router.HandleFunc("/session/{id}/token", c.deleteSessionToken).Methods("DELETE")
 	router.HandleFunc("/session/{id}", c.deleteSession).Methods("DELETE")
 	router.HandleFunc("/resources/{id}", c.deleteResources).Methods("DELETE")
 
