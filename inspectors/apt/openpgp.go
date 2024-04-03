@@ -35,7 +35,9 @@ import (
 	"github.com/canonical/fetch-service/utils"
 )
 
-func checkSignature(f io.ReadSeeker, notes metadata.Annotation) (io.ReadSeeker, error) {
+var checkSignature = checkSignatureImpl
+
+func checkSignatureImpl(f io.ReadSeeker, notes metadata.Annotation) (io.ReadSeeker, error) {
 	public_key := os.Getenv("FETCH_APT_RELEASE_PUBLIC_KEY")
 	if public_key == "" {
 		return nil, fmt.Errorf("public key not found")
