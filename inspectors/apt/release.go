@@ -65,20 +65,20 @@ import (
 
 // releaseEntry holds information about metadata files listed in the Release file.
 type releaseEntry struct {
-	name string // file path
-	size uint64 // size of entry
+	Name string // file path
+	Size uint64 // size of entry
 }
 
 // releaseFile holds information about the Release file
 type releaseFile struct {
-	sha256 metadata.Sha256Digest                  // SHA256 digest of the release file
-	vendor string                                 // release file vendor
-	files  map[metadata.Sha256Digest]releaseEntry // file entries listed in this release file
+	Sha256 metadata.Sha256Digest                  // SHA256 digest of the release file
+	Vendor string                                 // release file vendor
+	Files  map[metadata.Sha256Digest]releaseEntry // file entries listed in this release file
 }
 
 func NewReleaseFile() releaseFile {
 	return releaseFile{
-		files: make(map[metadata.Sha256Digest]releaseEntry, 100),
+		Files: make(map[metadata.Sha256Digest]releaseEntry, 100),
 	}
 }
 
@@ -248,7 +248,7 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 	for _, k := range expected_fields {
 		_, ok := fields[k]
 		if !ok {
-			logger.Debugf("expected fields %q not found", k)
+			logger.Debugf("expected field %q not found", k)
 			return nil // we don't recognize this file
 		}
 	}
@@ -258,8 +258,8 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 	a.Metadata.Type = mimetypes.AptRelease
 
 	release := NewReleaseFile()
-	release.sha256 = a.Metadata.Sha256
-	release.vendor = fields["Origin"]
+	release.Sha256 = a.Metadata.Sha256
+	release.Vendor = fields["Origin"]
 
 	for sc.Scan() {
 		line := sc.Text()
@@ -287,8 +287,8 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 			continue
 		}
 
-		entry := releaseEntry{size: size, name: filepath}
-		release.files[digest] = entry
+		entry := releaseEntry{Size: size, Name: filepath}
+		release.Files[digest] = entry
 	}
 
 	repo := strings.TrimSuffix(a.CurrentDownload.URL, "/InRelease")
@@ -357,7 +357,7 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ReadAtSeeker, a *metadata
 		return nil
 	}
 
-	entry, ok := rel.files[sha256]
+	entry, ok := rel.Files[sha256]
 	if !ok {
 		a.Reject(ins, "Packages file not listed in Release file")
 		return nil
@@ -375,9 +375,9 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ReadAtSeeker, a *metadata
 
 	a.Approve(ins, "Packages file listed in Release").Annotate(
 		metadata.Annotation{
-			"file-path":    entry.name,
-			"release-file": ins.release[repo].sha256.String(),
-			"vendor":       rel.vendor,
+			"file-path":    entry.Name,
+			"release-file": ins.release[repo].Sha256.String(),
+			"vendor":       rel.Vendor,
 		},
 	)
 
