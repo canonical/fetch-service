@@ -1,7 +1,7 @@
 #!/bin/bash -e
 # Run some basic tests for the fetch service snap.
 # These mostly cover testing the hooks and other scripts.
-# To run run these tests, ensure the snap for testing is installed and
+# To run these tests, ensure the snap for testing is installed and
 # execute this script. Check the return value for success or failure.
 
 echo "Testing that default values of config options get set..."
@@ -37,3 +37,23 @@ snap start fetch-service.fetchd
 snap services fetch-service.fetchd | grep -q '\bactive\b'
 snap stop fetch-service.fetchd
 snap services fetch-service.fetchd | grep -q '\binactive\b'
+
+echo "Testing fetch service logging to file"
+snap stop fetch-service.fetchd
+log_file_name="$(date -Is).log"
+old_log_file="$(snap get fetch-service log.file || true)"
+snap set fetch-service "log.file=${log_file_name}"
+snap restart fetch-service.fetchd
+sleep 2  # Give it a moment to start
+test -f "/var/snap/fetch-service/current/${log_file_name}" || (echo "Log file not created"; exit 1)
+echo "Testing fetch service starts without log file"
+snap stop fetch-service.fetchd
+snap unset fetch-service log.file
+snap start fetch-service.fetchd
+sleep 2
+systemctl status snap.fetch-service.fetchd.service || (echo "Fetch service did not start"; exit 1)
+if [[ -z "${old_log_file}" ]]; then
+    snap unset fetch-service log.file
+else
+    snap set fetch-service "log.file=${old_log_file}"
+fi

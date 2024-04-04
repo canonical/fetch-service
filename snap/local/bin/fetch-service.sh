@@ -9,9 +9,18 @@ if [[ "${permissive,,}" == "true" ]]; then
 else
   permissive=""
 fi
+log_file="$(snapctl get log.file)"
 
-exec "${SNAP}/bin/fetch"\
-  "--port=${proxy_port}"\
-  "${permissive}"\
-  "--spool=${SNAP_COMMON}/spool"\
-  "--verbosity=${verbosity}"
+if [[ -z "${log_file}" ]]; then
+  exec "${SNAP}/bin/fetch"\
+    "--port=${proxy_port}"\
+    "${permissive}"\
+    "--spool=${SNAP_COMMON}/spool"\
+    "--verbosity=${verbosity}"
+else
+  exec "${SNAP}/bin/fetch"\
+    "--port=${proxy_port}"\
+    "${permissive}"\
+    "--spool=${SNAP_COMMON}/spool"\
+    "--verbosity=${verbosity}" >  >(tee -a "${SNAP_DATA}/${log_file}")
+fi
