@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -82,7 +82,6 @@ func (svc *Service) Start() error {
 		return err
 	}
 
-	//_ = session.New(svc.opt.PermissiveMode) // FIXME: to be created using the API
 	svc.ctl.Start()
 
 	svc.tomb.Go(func() error {
@@ -218,8 +217,27 @@ func (svc *Service) Start() error {
 					if v.Timeout > 0 {
 						s.Timeout = time.Duration(v.Timeout * uint64(time.Second))
 					}
-					v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Pw}
+					v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Token}
 					svc.sCount.Add(1)
+
+				case messages.RevokeToken:
+					sessionId := v.Id
+					s := session.GetSession(sessionId)
+					if s == nil {
+						svc.sErrors.Add(1)
+						v.Rch <- messages.RevokeTokenResult{
+							Err: fmt.Errorf("cannot revoke token: session %s is not active", sessionId),
+						}
+						break
+					}
+
+					s.Revoke()
+
+					v.Rch <- messages.RevokeTokenResult{
+						SessionId: s.Id,
+						StartTime: s.Start.String(),
+						SpoolPath: svc.opt.Spool,
+					}
 
 				case messages.EndSession:
 					sessionId := v.Id
@@ -228,7 +246,8 @@ func (svc *Service) Start() error {
 						svc.sErrors.Add(1)
 						v.Rch <- messages.SessionResult{
 							SessionMetadata: &metadata.SessionMetadata{
-								Err: fmt.Errorf("cannot end session: session %s is not active", sessionId),
+								Err: fmt.Errorf(
+									"cannot get session report: session %s is not active", sessionId),
 							},
 							Artefacts: []*metadata.Artefact{},
 						}

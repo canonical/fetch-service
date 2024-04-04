@@ -49,10 +49,10 @@ var (
 
 // Session has information about each authorized client.
 type Session struct {
-	Id         string
-	Pw         string
-	Start      time.Time
-	End        time.Time
+	Id         string    // the session ID
+	Token      string    // the session token
+	Start      time.Time // session start time
+	End        time.Time // session end time
 	Insps      inspectors.Inspectors
 	A          map[metadata.Sha256Digest]*metadata.Artefact
 	Permissive bool
@@ -64,6 +64,8 @@ type Session struct {
 	RejectedRequests  atomic.Uint64
 	NumArtefacts      atomic.Uint64
 	RejectedArtefacts atomic.Uint64
+
+	revoked bool // session token has been revoked
 }
 
 var (
@@ -75,7 +77,7 @@ func New(spoolDir string, permissive bool) *Session {
 	sessionId := makeSessionId()
 	s := &Session{
 		Id:         sessionId,
-		Pw:         randomString(20),
+		Token:      randomString(20),
 		Start:      time.Now().UTC(),
 		A:          map[metadata.Sha256Digest]*metadata.Artefact{},
 		Permissive: permissive,
@@ -84,13 +86,6 @@ func New(spoolDir string, permissive bool) *Session {
 	}
 
 	s.Insps = inspectors.New(permissive)
-
-	/*
-		// FIXME: predictable values for testing convenience until the session
-		//        creation API is implemented.
-		s.Id = "6ba7b8109dad11d180b400c04fd430c8"
-		s.Pw = "1ItfzwGBeJ8wsJdP0Nlx"
-	*/
 
 	var sType string
 	if permissive {
@@ -137,6 +132,17 @@ func (s *Session) Finish() *metadata.SessionMetadata {
 
 	s.Discard()
 	return sm
+}
+
+// Revoke revokes the session token.
+func (s *Session) Revoke() {
+	logger.Debugf("[%s] token revoked", s.Id)
+	s.revoked = true
+}
+
+// IsRevoked returns whether the session token has been revoked.
+func (s *Session) IsRevoked() bool {
+	return s.revoked
 }
 
 // SaveSessionMetadata adds session information to the file spool.
@@ -292,11 +298,16 @@ func CheckAuth(id string, pw string) bool {
 	if s == nil {
 		return false
 	}
-	return s.Pw == pw
+	if s.revoked {
+		return false
+	}
+	return s.Token == pw
 }
 
 // GetSession returns the session corresponding to the given session ID.
-func GetSession(id string) *Session {
+var GetSession = GetSessionImpl
+
+func GetSessionImpl(id string) *Session {
 	return sessions.Get(id)
 }
 

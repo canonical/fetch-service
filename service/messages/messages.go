@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -120,7 +120,7 @@ func NewCreateSession(policy string, timeout uint64) CreateSession {
 	}
 }
 
-// Session end
+// Session report and end
 
 type SessionResult struct {
 	*metadata.SessionMetadata
@@ -137,6 +137,27 @@ func NewEndSession(sessionId string) EndSession {
 		Rch: make(chan SessionResult, 1),
 		Id:  sessionId,
 	}
+}
+
+// Revoke session token
+
+type RevokeToken struct {
+	Rch chan RevokeTokenResult // Handler response channel
+	Id  string
+}
+
+func NewRevokeToken(sessionId string) RevokeToken {
+	return RevokeToken{
+		Rch: make(chan RevokeTokenResult, 1),
+		Id:  sessionId,
+	}
+}
+
+type RevokeTokenResult struct {
+	SessionId string `json:"session-id"`
+	StartTime string `json:"start-time"`
+	SpoolPath string `json:"spool-path"`
+	Err       error  `json:"-"`
 }
 
 // Delete resources

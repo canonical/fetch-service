@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -35,12 +35,6 @@ type createSessionParameters struct {
 	Policy  string `json:"policy"`
 }
 
-type endSessionParameters struct {
-}
-
-type deleteResourcesParameters struct {
-}
-
 type Server struct {
 	port int
 	ch   chan interface{}
@@ -55,7 +49,8 @@ func (c *Server) Start() {
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/status", c.getServiceStatus).Methods("GET")
 	router.HandleFunc("/session", c.createSession).Methods("POST")
-	router.HandleFunc("/session/{id}", c.endSession).Methods("DELETE")
+	router.HandleFunc("/session/{id}/token", c.deleteSessionToken).Methods("DELETE")
+	router.HandleFunc("/session/{id}", c.deleteSession).Methods("DELETE")
 	router.HandleFunc("/resources/{id}", c.deleteResources).Methods("DELETE")
 
 	logger.Infof("control server listening on %s\n", addr)
@@ -107,7 +102,9 @@ func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
 	write_response(w, j)
 }
 
-func (c *Server) endSession(w http.ResponseWriter, r *http.Request) {
+func (c *Server) deleteSessionToken(w http.ResponseWriter, r *http.Request) {
+	logger.Debugf("modify session")
+
 	vars := mux.Vars(r)
 	id, ok := vars["id"]
 	if !ok {
@@ -115,13 +112,37 @@ func (c *Server) endSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var params endSessionParameters
-	// if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-	//	internalServerError(w, r)
-	//	return
-	// }
+	logger.Debug("revoke token")
+	msg := messages.NewRevokeToken(id)
+	c.ch <- msg
+	res := <-msg.Rch
+	if res.Err != nil {
+		if res.SessionId == "" {
+			notFound(w, r)
+		} else {
+			internalServerError(w, r)
+		}
+		return
+	}
 
-	logger.Debugf("end session %s: %+v\n", id, params)
+	j, err := json.Marshal(res)
+	if err != nil {
+		internalServerError(w, r)
+		return
+	}
+
+	write_response(w, j)
+}
+
+func (c *Server) deleteSession(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, ok := vars["id"]
+	if !ok {
+		notFound(w, r)
+		return
+	}
+
+	logger.Debugf("end session %s\n", id)
 
 	msg := messages.NewEndSession(id)
 	c.ch <- msg
@@ -143,27 +164,19 @@ func (c *Server) deleteResources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var params deleteResourcesParameters
-	// if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-	//	internalServerError(w, r)
-	//	return
-	// }
+	logger.Debugf("delete resources from session %s\n", id)
 
-	logger.Debugf("delete resources from session %s: %+v\n", id, params)
+	msg := messages.NewDeleteResources(id)
+	c.ch <- msg
+	err := <-msg.Rch
 
-	/*
-	   msg := messages.NewDeleteResources(id)
-	   c.ch <- msg
-	   err := <-msg.Rch
-
-	   	if err != nil {
-	   		if err == messages.ErrSessionActive {
-	   			badRequest(w, r, err.Error())
-	   		} else {
-	   			internalServerError(w, r)
-	   		}
-	   	}
-	*/
+	if err != nil {
+		if err == messages.ErrSessionActive {
+			badRequest(w, r, err.Error())
+		} else {
+			internalServerError(w, r)
+		}
+	}
 }
 
 func badRequest(w http.ResponseWriter, r *http.Request, reason string) {
