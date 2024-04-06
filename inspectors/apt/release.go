@@ -158,6 +158,10 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 		return ins.validatePackagesFile(f, a)
 	}
 
+	if a.Metadata.Type == mimetypes.AptTranslation {
+		return ins.validateTranslationFile(f, a)
+	}
+
 	if !a.MimeType.Is("text/plain") {
 		return nil // certainly not a Release file
 	}
@@ -374,6 +378,65 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ReadAtSeeker, a *metadata
 	}
 
 	a.Approve(ins, "Packages file listed in Release").Annotate(
+		metadata.Annotation{
+			"file-path":    entry.Name,
+			"release-file": ins.release[repo].Sha256.String(),
+			"vendor":       rel.Vendor,
+		},
+	)
+
+	return nil
+}
+
+// InspectArtefact examines InRelease files and validates Translation-<lang>
+// files against InRelease entries.
+// https://wiki.debian.org/DebianRepository/Format#A.22Translation.22_indices
+func (ins *AptReleaseInspector) validateTranslationFile(f ReadAtSeeker, a *metadata.Artefact) error {
+	logger.Debug("validate translation file")
+
+	u, err := url.Parse(a.CurrentDownload.URL)
+	if err != nil {
+		return fmt.Errorf("cannot parse URL: %s", err)
+	}
+
+	logger.Debugf("translation file path: %s", u.Path)
+	info, err := newTranslationUrlInfo(u)
+	if err != nil {
+		a.Reject(ins, "invalid path for translation file")
+		return nil
+	}
+
+	sha256FromFileName, err := metadata.NewSha256Digest(info.digest)
+	if err != nil {
+		a.Reject(ins, "invalid SHA256 digest: %s", err)
+		return nil
+	}
+	logger.Debugf("by-hash SHA256 digest: %s", sha256FromFileName.String())
+
+	repo := fmt.Sprintf("%s/dists/%s", info.repository, info.distribution)
+	rel, ok := ins.release[repo]
+	if !ok {
+		a.Reject(ins, "Release data not found for this repository")
+		return nil
+	}
+
+	entry, ok := rel.Files[sha256FromFileName]
+	if !ok {
+		a.Reject(ins, "Translation file not listed in Release file")
+		return nil
+	}
+	logger.Debugf("release entry: %+v", entry)
+
+	if sha256FromFileName != a.Metadata.Sha256 {
+		a.Reject(ins, "SHA256 digest mismatch").Annotate(
+			metadata.Annotation{
+				"expected-sha256": sha256FromFileName.String(),
+			},
+		)
+		return nil
+	}
+
+	a.Approve(ins, "Translation file listed in Release").Annotate(
 		metadata.Annotation{
 			"file-path":    entry.Name,
 			"release-file": ins.release[repo].Sha256.String(),
