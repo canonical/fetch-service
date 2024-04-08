@@ -20,8 +20,10 @@
 package apt_test
 
 import (
+	"bytes"
 	"errors"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/gabriel-vasile/mimetype"
@@ -60,6 +62,7 @@ SHA256:
  65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6           240952 main/binary-amd64/Packages
  3b2b1ad6f76bec3c692d5932ceffed8c3c261c8b5fde78cd084432352c83d14d            49419 main/binary-amd64/Packages.gz
  9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6            40928 main/binary-amd64/Packages.xz
+ 4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed              792 main/i18n/Translation-zh_TW.xz
 Acquire-By-Hash: yes
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1
@@ -121,6 +124,7 @@ func (s *aptSuite) TestAptReleaseArtefactInspector(c *C) {
 			sha256_1, _ := metadata.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
 			sha256_2, _ := metadata.NewSha256Digest("3b2b1ad6f76bec3c692d5932ceffed8c3c261c8b5fde78cd084432352c83d14d")
 			sha256_3, _ := metadata.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
+			sha256_4, _ := metadata.NewSha256Digest("4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed")
 
 			// verify internal state
 			state := ins.Release()
@@ -130,8 +134,70 @@ func (s *aptSuite) TestAptReleaseArtefactInspector(c *C) {
 					sha256_1: apt.ReleaseEntry{Name: "main/binary-amd64/Packages", Size: 240952},
 					sha256_2: apt.ReleaseEntry{Name: "main/binary-amd64/Packages.gz", Size: 49419},
 					sha256_3: apt.ReleaseEntry{Name: "main/binary-amd64/Packages.xz", Size: 40928},
+					sha256_4: apt.ReleaseEntry{Name: "main/i18n/Translation-zh_TW.xz", Size: 792},
 				},
 			})
+		}
+	}
+
+}
+
+func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
+	for _, tc := range []struct {
+		dataRelease              string
+		translationLocalFileName string
+		translationHashFileName  string
+		translationFileSize      int64
+		result                   bool
+	}{
+		{inReleaseArtefactData, "tests/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 792, true},
+
+		//{inReleaseArtefactData, "tests/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 600, false},
+		{inReleaseArtefactData, "tests/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 792, false},
+		{inReleaseArtefactData, "tests/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 600, false},
+	} {
+		translationArtefactFile, _ := os.Open(tc.translationLocalFileName)
+		translationArtefactData := make([]byte, tc.translationFileSize)
+		_, err := translationArtefactFile.Read(translationArtefactData)
+
+		c.Assert(err, IsNil)
+
+		// Load the release file first
+		a_release := metadata.NewArtefact()
+		a_release.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/devel/InRelease"
+		a_release.MimeType = mimetype.Lookup("text/plain")
+
+		f_release := strings.NewReader(inReleaseArtefactData)
+
+		ins := apt.NewAptReleaseInspector()
+		err = ins.InspectArtefact(f_release, a_release)
+
+		c.Assert(err, IsNil)
+
+		// Now load the translation file
+		a := metadata.NewArtefact()
+		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/devel/main/i18n/by-hash/SHA256/" + tc.translationHashFileName
+		a.Metadata.Type = "application/x.apt.translation"
+		a.Metadata.Size = tc.translationFileSize
+		a.Metadata.Sha256, err = metadata.NewSha256Digest("4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed")
+
+		c.Assert(err, IsNil)
+
+		tanslationFile, _ := os.Open(tc.translationLocalFileName)
+		data := make([]byte, 1024*128)
+		_, err = tanslationFile.Read(data)
+
+		c.Assert(err, IsNil)
+
+		f := bytes.NewReader(data)
+
+		err = ins.InspectArtefact(f, a)
+		c.Assert(err, IsNil)
+
+		c.Assert(a.Approved(), Equals, tc.result)
+
+		if tc.result {
+			c.Check(a.Metadata.Type, Equals, "application/x.apt.translation")
 		}
 	}
 
