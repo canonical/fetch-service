@@ -70,11 +70,11 @@ func AptTranslationDetector(raw []byte, limit uint32) bool {
 			return false
 		}
 
+		fields[k] = struct{}{}
+
 		if k == "Description-md5" {
 			break // We have enough data to work on
 		}
-
-		fields[k] = struct{}{}
 	}
 
 	expected_fields := []string{
@@ -234,7 +234,7 @@ func (ins *AptTranslationInspector) InspectArtefact(f ReadAtSeeker, a *metadata.
 		}
 	}
 
-	a.Approve(ins, "translations file succesfully parsed").Annotate(
+	a.Approve(ins, "Translation file succesfully parsed").Annotate(
 		metadata.Annotation{
 			"translation-language": lang,
 			"translation-count":    item_count,
