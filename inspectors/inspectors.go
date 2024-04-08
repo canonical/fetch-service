@@ -41,6 +41,7 @@ func init() {
 	mimetype.SetLimit(1 << 30) // input data is mmapped
 	mimetype.Lookup("application/zip").Extend(pip.WheelDetector, mimetypes.PythonWheel, ".whl")
 	mimetype.Lookup("application/x-xz").Extend(apt.AptPackagesDetector, mimetypes.AptPackages, "")
+	mimetype.Lookup("application/x-xz").Extend(apt.AptTranslationsDetector, mimetypes.AptTranslation, "")
 }
 
 // Inspector is the interface implemented by artefact metadata
