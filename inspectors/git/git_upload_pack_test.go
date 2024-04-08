@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gabriel-vasile/mimetype"
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/inspectors"
@@ -71,7 +72,7 @@ func (s *uploadPackSuite) TestInspectLsRefsRequest(c *C) {
 		ins := git.NewUploadPackInspector()
 		a := fakeGitArtefact()
 		a.CurrentDownload.URL = tc.url
-		a.Request, _ = http.NewRequest("GET", "https://github.com:443/user/project.git/git-upload-pack", nil)
+		a.Request, _ = http.NewRequest("GET", tc.url, nil)
 		a.Request.Body = io.NopCloser(strings.NewReader("0014command=ls-refs\n0000"))
 
 		err := ins.InspectRequest(a)
@@ -169,7 +170,7 @@ func (s *uploadPackSuite) TestInspectFetchRequest(c *C) {
 	a := fakeGitArtefact()
 	a.CurrentDownload.URL = url
 	a.State = metadata.RequestState
-	a.Request, _ = http.NewRequest("GET", "https://github.com:443/user/project.git/git-upload-pack", nil)
+	a.Request, _ = http.NewRequest("GET", url, nil)
 	a.Request.Body = io.NopCloser(strings.NewReader(
 		"0012command=fetch\n" +
 			"000ddeepen 1\n" +
@@ -209,7 +210,7 @@ func (s *uploadPackSuite) TestInspectFetchRequestReject(c *C) {
 	a := fakeGitArtefact()
 	a.CurrentDownload.URL = url
 	a.State = metadata.RequestState
-	a.Request, _ = http.NewRequest("GET", "https://github.com:443/user/project.git/git-upload-pack", nil)
+	a.Request, _ = http.NewRequest("GET", url, nil)
 	a.Request.Body = io.NopCloser(strings.NewReader(
 		"0012command=fetch\n" +
 			"0036want 6b99254b1c5c823d054bc0ae1ebccfa070380fce013f\n" +
@@ -257,11 +258,12 @@ func (s *uploadPackSuite) TestUploadPackInspectFetchArtefact(c *C) {
 		errmsg string
 	}{
 		{uploadPackFetchArtefactData, ""},
-		{uploadPackFetchArtefactData[1:], `strconv.ParseUint: parsing "011s": invalid syntax`},
+		{uploadPackFetchArtefactData[1:], `error decoding git protocol: strconv.ParseUint: parsing "011s": invalid syntax`},
 	} {
 		a := fakeGitArtefact()
 		a.Request, _ = http.NewRequest("GET", "https://github.com:443/user/project.git/git-upload-pack", nil)
 		a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
+		a.MimeType = mimetype.Lookup("application/octet-stream")
 		a.Request.Body = io.NopCloser(strings.NewReader("0014command=fetch\n0000"))
 		a.RequestInspection = metadata.InspectionMap{
 			"git.upload-pack": &metadata.Inspection{
@@ -282,9 +284,10 @@ func (s *uploadPackSuite) TestUploadPackInspectFetchArtefact(c *C) {
 						"done",
 					},
 					"repository": "https://my.repo/foo",
-					"command":    "ls-refs",
+					"command":    "fetch",
 					"project":    "bump2version",
 					"protocol":   "version=2",
+					"num-wants":  1,
 				},
 			},
 		}
@@ -295,11 +298,12 @@ func (s *uploadPackSuite) TestUploadPackInspectFetchArtefact(c *C) {
 		err := ins.InspectArtefact(f, a)
 		if tc.errmsg == "" {
 			c.Assert(err, IsNil)
+			c.Assert(a.Unknown(), Equals, true)
 		} else {
 			c.Assert(err.Error(), Equals, tc.errmsg)
+			c.Assert(a.Rejected(), Equals, true)
 		}
 
-		c.Check(a.Metadata.Type, Equals, "application/x.git.upload-pack-result.ls-ref")
-		c.Assert(a.Approved(), Equals, tc.errmsg == "")
+		c.Check(a.Metadata.Type, Equals, "application/x.git.upload-pack-result.fetch")
 	}
 }
