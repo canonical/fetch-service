@@ -50,7 +50,7 @@ var opts struct {
 	ControlPort int `long:"control-port" description:"Control port number" default:"9999"`
 
 	// The TCP port the proxy server will listen on.
-	ProxyPort int `short:"p" long:"proxy-port" description:"Port number" default:"9988"`
+	ProxyPort int `short:"p" long:"proxy-port" description:"Proxy port number" default:"9988"`
 
 	// Path to the local spool containing downloaded files and extracted metadata.
 	Spool string `long:"spool" description:"Path to downloaded dependencies" default:"/var/lib/fetch"`
