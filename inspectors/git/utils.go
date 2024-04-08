@@ -1,7 +1,6 @@
 package git
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -51,7 +50,7 @@ func UnpackObjects(f io.ReadSeeker, dir string) error {
 	err = readPack(f, pipe)
 	if err != nil {
 		pipe.Close()
-		cmd.Wait()
+		_ = cmd.Wait()
 		return fmt.Errorf("error reading git pack: %s", err)
 	}
 
@@ -114,21 +113,4 @@ func execCommand(name string, args ...string) *exec.Cmd {
 	logger.Debugf("command to execute: %s %v", name, args)
 	cmd := exec.Command(name, args...)
 	return cmd
-}
-
-func sliceIndex(s1 []byte, s2 []byte) int {
-	l1 := len(s1)
-	l2 := len(s2)
-
-	if l1 < l2 {
-		return -1
-	}
-
-	for n := 0; n < l1-l2; n++ {
-		if bytes.Equal(s1[n:n+l2], s2) {
-			return n
-		}
-	}
-
-	return -1
 }
