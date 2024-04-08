@@ -35,6 +35,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/utils"
 )
 
 // Session has information about each authorized client.
@@ -176,7 +177,7 @@ func (s *Session) SaveData(digest metadata.Sha256Digest) error {
 	// Save file data only if it doesn't exist already
 	if _, err := os.Stat(dest); err != nil {
 		if os.IsNotExist(err) {
-			if err := os.Rename(a.Tempfile, dest); err != nil {
+			if err := utils.MoveFile(a.Tempfile, dest); err != nil {
 				os.Remove(a.Tempfile)
 				return err
 			}
@@ -186,6 +187,7 @@ func (s *Session) SaveData(digest metadata.Sha256Digest) error {
 		}
 	}
 
+	os.Remove(a.Tempfile)
 	return nil
 }
 
