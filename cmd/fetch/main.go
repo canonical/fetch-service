@@ -47,7 +47,7 @@ var opts struct {
 	ProfilePort int `long:"profile-port" description:"Profiling API port number" default:"6060"`
 
 	// The TCP port the control API server will listen on.
-	ControlPort int `long:"control-port" description:"Port number" default:"9999"`
+	ControlPort int `long:"control-port" description:"Control port number" default:"9999"`
 
 	// The TCP port the proxy server will listen on.
 	ProxyPort int `short:"p" long:"proxy-port" description:"Port number" default:"9988"`
