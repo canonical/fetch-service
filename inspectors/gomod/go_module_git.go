@@ -208,6 +208,8 @@ func (ins *GoModuleGitInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 		[]string{
 			filepath.Join(dir, "LICENSE"),
 			filepath.Join(dir, "COPYING"),
+			filepath.Join(dir, "License"),
+			filepath.Join(dir, "Copying"),
 		},
 	)
 	a.Metadata.License = license
