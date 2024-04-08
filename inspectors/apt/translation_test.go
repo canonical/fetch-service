@@ -32,7 +32,7 @@ import (
 //
 //	will be extended after the metadata format is approved.
 
-func (s *aptSuite) TestAptTranslationsInspector(c *C) {
+func (s *aptSuite) TestAptTranslationInspector(c *C) {
 
 	for _, tc := range []struct {
 		dataFile          string
@@ -49,7 +49,7 @@ func (s *aptSuite) TestAptTranslationsInspector(c *C) {
 
 		c.Assert(err, IsNil)
 
-		ins := apt.NewAptTranslationsInspector()
+		ins := apt.NewAptTranslationInspector()
 		t := metadata.NewArtefact()
 		t.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/devel/main/i18n/by-hash/SHA256/4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed"
 		t.Metadata.Type = "application/x.apt.translation"

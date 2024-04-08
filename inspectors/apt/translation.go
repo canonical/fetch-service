@@ -40,7 +40,7 @@ import (
 // - Package
 // - Description-md5
 // - Description-<lang>
-func AptTranslationsDetector(raw []byte, limit uint32) bool {
+func AptTranslationDetector(raw []byte, limit uint32) bool {
 	r, err := xz.NewReader(bytes.NewReader(raw), 0)
 	if err != nil {
 		return false
@@ -95,18 +95,18 @@ func AptTranslationsDetector(raw []byte, limit uint32) bool {
 
 // AptTranslationInspector contains inspector-specific contextual data for stateful
 // analysis within a fetch session.
-type AptTranslationsInspector struct {
+type AptTranslationInspector struct {
 }
 
-func NewAptTranslationsInspector() *AptTranslationsInspector {
-	return &AptTranslationsInspector{}
+func NewAptTranslationInspector() *AptTranslationInspector {
+	return &AptTranslationInspector{}
 }
 
-func (ins *AptTranslationsInspector) ID() string {
+func (ins *AptTranslationInspector) ID() string {
 	return "apt.translations"
 }
 
-func (ins *AptTranslationsInspector) InspectRequest(a *metadata.Artefact) error {
+func (ins *AptTranslationInspector) InspectRequest(a *metadata.Artefact) error {
 	u, err := url.Parse(a.CurrentDownload.URL)
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -125,7 +125,7 @@ func (ins *AptTranslationsInspector) InspectRequest(a *metadata.Artefact) error 
 	return nil
 }
 
-func (ins *AptTranslationsInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
+func (ins *AptTranslationInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
 	if a.Metadata.Type != mimetypes.AptTranslation {
 		return nil
 	}
