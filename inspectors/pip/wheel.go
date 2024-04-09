@@ -39,7 +39,7 @@ import (
 
 var (
 	// FIXME: using PyPI URLs as placeholders
-	reRequestURL = regexp.MustCompile(
+	wheelRequestURL = regexp.MustCompile(
 		`^https://files\.pythonhosted\.org:443/packages/[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{60}/\w+-[a-zA-Z0-9\.-]+\.whl$`)
 )
 
@@ -51,47 +51,22 @@ func WheelDetector(raw []byte, limit uint32) bool {
 }
 
 type WheelInspector struct {
-	notes             metadata.Annotation // Inspection annotations
-	requirementFaults []string            // missing requirements to be a valid wheel file
-	integrityFaults   []string            // integrity errors in wheel file
-	missingFiles      []string            // files missing from the wheel file
-	extraFiles        []string            // extra files found in the wheel file
 }
 
 func NewWheelInspector() *WheelInspector {
-	return &WheelInspector{
-		notes:             metadata.Annotation{},
-		requirementFaults: []string{},
-		integrityFaults:   []string{},
-		missingFiles:      []string{},
-		extraFiles:        []string{},
-	}
+	return &WheelInspector{}
 }
 
 func (WheelInspector) ID() string {
 	return "pip.wheel"
 }
 
-func (ins *WheelInspector) requirementFault(msg string) {
-	ins.requirementFaults = append(ins.requirementFaults, msg)
-}
-
-func (ins *WheelInspector) integrityFault(msg string, args ...any) {
-	ins.integrityFaults = append(ins.integrityFaults, fmt.Sprintf(msg, args...))
-}
-
-func (ins *WheelInspector) missingFileFault(name string) {
-	ins.missingFiles = append(ins.missingFiles, name)
-}
-
-func (ins *WheelInspector) extraFileFault(name string) {
-	ins.extraFiles = append(ins.extraFiles, name)
-}
-
 // InspectRequest verifies if the request complies with policy.
 func (ins WheelInspector) InspectRequest(a *metadata.Artefact) error {
-	if reRequestURL.MatchString(a.CurrentDownload.URL) {
-		a.Hold(ins, "URL matches expression '%s'", reRequestURL)
+	if wheelRequestURL.MatchString(a.CurrentDownload.URL) {
+		a.Hold(ins, "request matches valid URL").Annotate(
+			metadata.Annotation{"match": wheelRequestURL},
+		)
 	}
 
 	return nil // we don't recognize this request
@@ -105,53 +80,54 @@ func (ins *WheelInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact)
 	}
 
 	size := int64(f.Len())
+	notes := newWheelNotes()
 
-	if err := readWheelMetadata(ins, f, size, a); err != nil {
+	if err := readWheelMetadata(ins, f, size, a, notes); err != nil {
 		return err
 	}
 
-	fileList, err := listWheelFiles(ins, f, size, a)
+	fileList, err := listWheelFiles(ins, f, size, a, notes)
 	if err != nil {
 		return err
 	}
 
-	if err := readWheelRecord(ins, f, size, a, fileList); err != nil {
+	if err := readWheelRecord(ins, f, size, a, fileList, notes); err != nil {
 		return err
 	}
 
-	processOpinion(ins, a)
+	processOpinion(ins, a, notes)
 
 	return nil
 }
 
-func processOpinion(ins *WheelInspector, a *metadata.Artefact) {
+func processOpinion(ins *WheelInspector, a *metadata.Artefact, notes *wheelNotes) {
 	// Reject if required files not found
-	if len(ins.requirementFaults) > 0 {
-		ins.notes.Add("faults", ins.requirementFaults)
-		a.Reject(ins, "wheel file requirements not met").Annotate(ins.notes)
+	if len(notes.requirementFaults) > 0 {
+		notes.Add("faults", notes.requirementFaults)
+		a.Reject(ins, "wheel file requirements not met").Annotate(notes.Annotation)
 		return
 	}
 
 	// Reject if wheel integrity check fails
-	if len(ins.integrityFaults) > 0 || len(ins.missingFiles) > 0 || len(ins.extraFiles) > 0 {
-		if len(ins.integrityFaults) > 0 {
-			ins.notes.Add("faults", ins.integrityFaults)
+	if len(notes.integrityFaults) > 0 || len(notes.missingFiles) > 0 || len(notes.extraFiles) > 0 {
+		if len(notes.integrityFaults) > 0 {
+			notes.Add("faults", notes.integrityFaults)
 		}
-		if len(ins.missingFiles) > 0 {
-			ins.notes.Add("missing-files", ins.missingFiles)
+		if len(notes.missingFiles) > 0 {
+			notes.Add("missing-files", notes.missingFiles)
 		}
-		if len(ins.extraFiles) > 0 {
-			ins.notes.Add("extra-files", ins.extraFiles)
+		if len(notes.extraFiles) > 0 {
+			notes.Add("extra-files", notes.extraFiles)
 		}
-		a.Reject(ins, "wheel file parsed but failed integrity verification").Annotate(ins.notes)
+		a.Reject(ins, "wheel file parsed but failed integrity verification").Annotate(notes.Annotation)
 		return
 	}
 
-	a.Approve(ins, "wheel file successfully parsed").Annotate(ins.notes)
+	a.Approve(ins, "wheel file successfully parsed").Annotate(notes.Annotation)
 }
 
 // readWheelMetadata reads the wheel's METADATA file.
-func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a *metadata.Artefact) error {
+func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a *metadata.Artefact, notes *wheelNotes) error {
 	z, err := zip.NewReader(f, size)
 	if err != nil {
 		return err
@@ -172,22 +148,22 @@ func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a *metada
 				return err
 			}
 			if a.Metadata.Name == "" {
-				ins.requirementFault("wheel name not found")
+				notes.requirementFault("wheel name not found")
 			}
 			if a.Metadata.Version == "" {
-				ins.requirementFault("wheel version not found")
+				notes.requirementFault("wheel version not found")
 			}
 			if ver == "" {
-				ins.requirementFault("wheel metadata version not found")
+				notes.requirementFault("wheel metadata version not found")
 				return nil
 			}
 
-			ins.notes.Add("metadata-version", ver)
+			notes.Add("metadata-version", ver)
 			return nil
 		}
 	}
 
-	ins.requirementFault("METADATA file not found")
+	notes.requirementFault("METADATA file not found")
 
 	return nil
 }
@@ -271,7 +247,7 @@ type memberFile struct {
 }
 
 // listWheelFiles gets a list of wheel files and their sha1 digests.
-func listWheelFiles(ins *WheelInspector, f io.ReaderAt, size int64, a *metadata.Artefact) ([]memberFile, error) {
+func listWheelFiles(ins *WheelInspector, f io.ReaderAt, size int64, a *metadata.Artefact, notes *wheelNotes) ([]memberFile, error) {
 	res := []memberFile{}
 
 	z, err := zip.NewReader(f, size)
@@ -303,14 +279,14 @@ func listWheelFiles(ins *WheelInspector, f io.ReaderAt, size int64, a *metadata.
 		})
 	}
 
-	ins.notes.Add("files", len(res))
+	notes.Add("files", len(res))
 
 	return res, nil
 }
 
 // readWheelRecord reads the wheel's RECORD file and verifies the
 // checksum of the listed files.
-func readWheelRecord(ins *WheelInspector, f io.ReaderAt, size int64, a *metadata.Artefact, files []memberFile) error {
+func readWheelRecord(ins *WheelInspector, f io.ReaderAt, size int64, a *metadata.Artefact, files []memberFile, notes *wheelNotes) error {
 	z, err := zip.NewReader(f, size)
 	if err != nil {
 		return err
@@ -328,7 +304,7 @@ func readWheelRecord(ins *WheelInspector, f io.ReaderAt, size int64, a *metadata
 			}
 			defer zf.Close()
 
-			if err := checkRecord(ins, zf, f.Name, a, files); err != nil {
+			if err := checkRecord(ins, zf, f.Name, a, files, notes); err != nil {
 				return err
 			}
 			break
@@ -343,7 +319,7 @@ func readWheelRecord(ins *WheelInspector, f io.ReaderAt, size int64, a *metadata
 }
 
 // checkRecord verifies files against the RECORD file checksum.
-func checkRecord(ins *WheelInspector, zf io.ReadCloser, rname string, a *metadata.Artefact, files []memberFile) error {
+func checkRecord(ins *WheelInspector, zf io.ReadCloser, rname string, a *metadata.Artefact, files []memberFile, notes *wheelNotes) error {
 	sc := bufio.NewScanner(zf)
 	sc.Split(bufio.ScanLines)
 
@@ -357,7 +333,7 @@ func checkRecord(ins *WheelInspector, zf io.ReadCloser, rname string, a *metadat
 		line := sc.Text()
 		x := strings.Split(line, ",")
 		if len(x) != 3 {
-			ins.integrityFault("malformed RECORD entry: '%s'", line)
+			notes.integrityFault("malformed RECORD entry: '%s'", line)
 			return nil
 		}
 		name, digest := x[0], x[1]
@@ -368,38 +344,38 @@ func checkRecord(ins *WheelInspector, zf io.ReadCloser, rname string, a *metadat
 		}
 		size, err := strconv.Atoi(x[2])
 		if err != nil {
-			ins.integrityFault("%s: malformed size '%s' in RECORD", name, x[2])
+			notes.integrityFault("%s: malformed size '%s' in RECORD", name, x[2])
 			return nil
 		}
 
 		// check file size
 		f := fileMap[name]
 		if int64(size) != f.Size {
-			ins.integrityFault("%s: file size %d does not match recorded size %d", name, f.Size, size)
+			notes.integrityFault("%s: file size %d does not match recorded size %d", name, f.Size, size)
 			return nil
 		}
 
 		// check file digest
 		d := strings.SplitN(digest, "=", 2)
 		if d[0] != "sha256" {
-			ins.integrityFault("%s: unknown digest type '%s'", name, d[0])
+			notes.integrityFault("%s: unknown digest type '%s'", name, d[0])
 			return nil
 		}
 		dst, err := base64.RawURLEncoding.DecodeString(d[1])
 		if err != nil {
-			ins.integrityFault("%s: digest decode error: %v", name, err)
+			notes.integrityFault("%s: digest decode error: %v", name, err)
 			return nil
 		}
 
 		member, ok := fileMap[name]
 		if !ok {
-			ins.missingFileFault(name)
+			notes.missingFile(name)
 			return nil
 		}
 		recordDigest := metadata.Sha256Digest{}
 		copy(recordDigest[:], dst)
 		if member.Sha256 != recordDigest {
-			ins.integrityFault("%s: digest mismatch", name)
+			notes.integrityFault("%s: digest mismatch", name)
 			return nil
 		}
 
@@ -407,11 +383,47 @@ func checkRecord(ins *WheelInspector, zf io.ReadCloser, rname string, a *metadat
 		num++
 	}
 
-	ins.notes.Add("parsed-record-entries", num)
+	notes.Add("parsed-record-entries", num)
 
 	for k := range fileMap {
-		ins.extraFileFault(k)
+		notes.extraFile(k)
 	}
 
 	return nil
+}
+
+// Annotation helper for wheel inspection
+
+type wheelNotes struct {
+	metadata.Annotation          // inspection annotations
+	requirementFaults   []string // missing requirements to be a valid wheel file
+	integrityFaults     []string // integrity errors in wheel file
+	missingFiles        []string // files missing from the wheel file
+	extraFiles          []string // extra files found in the wheel file
+}
+
+func newWheelNotes() *wheelNotes {
+	return &wheelNotes{
+		Annotation:        metadata.Annotation{},
+		requirementFaults: []string{},
+		integrityFaults:   []string{},
+		missingFiles:      []string{},
+		extraFiles:        []string{},
+	}
+}
+
+func (t *wheelNotes) requirementFault(msg string, args ...any) {
+	t.requirementFaults = append(t.requirementFaults, fmt.Sprintf(msg, args...))
+}
+
+func (t *wheelNotes) integrityFault(msg string, args ...any) {
+	t.integrityFaults = append(t.integrityFaults, fmt.Sprintf(msg, args...))
+}
+
+func (t *wheelNotes) missingFile(name string) {
+	t.missingFiles = append(t.missingFiles, name)
+}
+
+func (t *wheelNotes) extraFile(name string) {
+	t.extraFiles = append(t.extraFiles, name)
 }

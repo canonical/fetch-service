@@ -174,7 +174,8 @@ func (s *wheelSuite) TestWheelReadMetadata(c *C) {
 	a.Hold(ins, "test")
 	a.State = metadata.ResponseState
 
-	err = pip.ReadWheelMetadata(ins, f, int64(f.Len()), a)
+	notes := pip.NewWheelNotes()
+	err = pip.ReadWheelMetadata(ins, f, int64(f.Len()), a, notes)
 	c.Assert(err, IsNil)
 	c.Assert(a.Metadata.Name, Equals, "trololo")
 	c.Assert(a.Metadata.Version, Equals, "3.14159")
@@ -323,17 +324,18 @@ func (s *wheelSuite) TestReadWheelRecord(c *C) {
 		a.Hold(ins, "test")
 		a.State = metadata.ResponseState
 
-		files, err := pip.ListWheelFiles(ins, f, int64(f.Len()), a)
+		notes := pip.NewWheelNotes()
+		files, err := pip.ListWheelFiles(ins, f, int64(f.Len()), a, notes)
 		c.Assert(err, IsNil)
 
 		h, _ := metadata.NewSha256Digest("72fde6ee54fde9e87b267fd33ed761c45cc2bac34dfa79453268807aad5318e4")
 		c.Assert(len(files), Equals, 2)
 		c.Assert(pip.MemberFile(files[0]), DeepEquals, pip.MemberFile{Name: "foobar/somefile", Sha256: h, Size: 54})
 
-		err = pip.ReadWheelRecord(ins, f, int64(f.Len()), a, files)
+		err = pip.ReadWheelRecord(ins, f, int64(f.Len()), a, files, notes)
 		c.Assert(err, IsNil)
 
-		pip.ProcessOpinion(ins, a)
+		pip.ProcessOpinion(ins, a, notes)
 
 		c.Assert(a.ResponseInspection, DeepEquals, tc.inspection)
 	}

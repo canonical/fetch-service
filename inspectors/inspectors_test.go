@@ -118,6 +118,7 @@ func (t *inspectorsSuite) TestRunArtefactInspectorsPermissive(c *C) {
 	a := metadata.NewArtefact()
 	a.CurrentDownload.ContentType = "text/plain"
 	a.CurrentDownload.Sha256 = h
+	a.CurrentDownload.URL = "http://some.url"
 	a.Metadata.Sha256 = h
 
 	s := session.New(dir, true)
