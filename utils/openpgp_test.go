@@ -66,11 +66,6 @@ func (s *pgputilSuite) TestDecodeArchivePubKey(c *C) {
 			continue
 		}
 		c.Assert(err, IsNil)
-
-		c.Logf(">>>> %+v", archiveKeyTests[0])
-		c.Logf(">>>> %+v", key1.PubKey)
-		c.Logf("==== pubkey = %+v", pubKey)
-		c.Logf("==== tested = %+v", test.pubKey)
 		c.Assert(pubKey, DeepEquals, test.pubKey)
 	}
 }

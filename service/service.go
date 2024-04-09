@@ -102,6 +102,8 @@ func (svc *Service) Start() error {
 						break
 					}
 
+					v.A.CurrentDownload.EndTime = time.Now().UTC()
+
 					// Add download info to artefact metadata
 					dl := v.A.CurrentDownload
 					logger.Infof("[%s] %s %s: %s (%s)", sessionId, dl.Method, dl.URL, dl.Status, dl.ContentType)

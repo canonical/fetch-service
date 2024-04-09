@@ -117,7 +117,7 @@ func (ins *AptTranslationInspector) InspectRequest(a *metadata.Artefact) error {
 	}
 
 	if info, err := newTranslationUrlInfo(u); err == nil {
-		a.Hold(ins, "valid URL for Translation file").Annotate(
+		a.SetRequestOpinion(ins.ID(), opinions.Pending, "valid URL for Translation file").Annotate(
 			metadata.Annotation{
 				"repository":   info.repository,
 				"distribution": info.distribution,
@@ -168,21 +168,24 @@ func (ins *AptTranslationInspector) InspectArtefact(f ReadAtSeeker, a *metadata.
 
 		if strings.HasPrefix(line, "Package: ") {
 			if state_package {
-				a.Reject(ins, "Misplaced Package fields in Translation file")
+				a.SetResponseOpinion(ins.ID(), opinions.Rejected,
+					"Misplaced Package fields in Translation file")
 				return nil
 			}
 			state_package = true
 			continue
 		} else if strings.HasPrefix(line, "Description-md5: ") {
 			if !state_package {
-				a.Reject(ins, "Description-md5 field without Package field")
+				a.SetResponseOpinion(ins.ID(), opinions.Rejected,
+					"Description-md5 field without Package field")
 				return nil
 			}
 			state_md5sum = true
 			continue
 		} else if strings.HasPrefix(line, "Description-") {
 			if !state_md5sum || !state_package {
-				a.Reject(ins, "Description field without Package or Description-md5 field")
+				a.SetResponseOpinion(ins.ID(), opinions.Rejected,
+					"Description field without Package or Description-md5 field")
 				return nil
 			}
 			state_description = true
@@ -195,7 +198,8 @@ func (ins *AptTranslationInspector) InspectArtefact(f ReadAtSeeker, a *metadata.
 			continue
 		} else if strings.HasPrefix(line, " ") { // Description field continuation with leading space
 			if !state_description {
-				a.Reject(ins, "Description field without Package or Description-md5 field")
+				a.SetResponseOpinion(ins.ID(), opinions.Rejected,
+					"Description field without Package or Description-md5 field")
 				return nil
 			}
 			continue
@@ -213,16 +217,18 @@ func (ins *AptTranslationInspector) InspectArtefact(f ReadAtSeeker, a *metadata.
 	if item_count > 0 {
 		if state_package {
 			if !state_md5sum {
-				a.Reject(ins, "Description-md5 field missing for the last Package")
+				a.SetResponseOpinion(ins.ID(), opinions.Rejected,
+					"Description-md5 field missing for the last Package")
 				return nil
 			}
 			if !state_description {
-				a.Reject(ins, "Description field missing for the last Package")
+				a.SetResponseOpinion(ins.ID(), opinions.Rejected,
+					"Description field missing for the last Package")
 				return nil
 			}
 		}
 	} else if fSize > 0 {
-		a.Reject(ins, "Not a valid Translation file")
+		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "Not a valid Translation file")
 		return nil
 	}
 

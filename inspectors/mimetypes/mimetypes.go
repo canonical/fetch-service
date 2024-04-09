@@ -28,4 +28,5 @@ const (
 	GitUploadPackAdvertisement = "application/x.git.upload-pack-advertisement"
 	GitUploadPackLsRef         = "application/x.git.upload-pack-result.ls-ref"
 	GitUploadPackFetch         = "application/x.git.upload-pack-result.fetch"
+	GoModuleGit                = "application/x.go.module.git-repo"
 )

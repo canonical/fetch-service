@@ -21,7 +21,8 @@ package git
 
 import (
 	"errors"
-	"slices"
+	"fmt"
+	"io"
 	"strconv"
 
 	"github.com/canonical/fetch-service/logger"
@@ -36,14 +37,16 @@ func getGitProtocol(a *metadata.Artefact) string {
 	return proto[0]
 }
 
-func decodeGitProtocol(buf []byte) ([]string, error) {
+func decodeGitProtocol(f io.Reader) ([]string, error) {
 	msgs := []string{}
 	for {
-		if len(buf) < 4 {
-			return msgs, errors.New("git protocol decode error")
+		buf := make([]byte, 4)
+		var err error
+		if _, err = f.Read(buf); err != nil {
+			return msgs, fmt.Errorf("decode error")
 		}
 
-		size, err := strconv.ParseUint(string(buf[:4]), 16, 32)
+		size, err := strconv.ParseUint(string(buf), 16, 32)
 		if err != nil {
 			return msgs, err
 		}
@@ -54,22 +57,24 @@ func decodeGitProtocol(buf []byte) ([]string, error) {
 		case 1: // delim
 			size = 4
 		case 3, 4: // error
-			return msgs, errors.New("git protocol decode error")
+			return msgs, errors.New("decode error")
 		}
 
-		if size > uint64(len(buf)) {
-			return msgs, errors.New("git protocol short message error")
+		line := make([]byte, size-4)
+		if _, err = f.Read(line); err != nil {
+			return msgs, fmt.Errorf("cannot read %d bytes from input: %w", size, err)
 		}
 
 		// stop decoding if packfile found
-		if size == 13 && slices.Equal(buf[4:13], []byte("packfile\n")) {
+		if string(line) == "packfile\n" || string(line) == "\x01packfile\n" {
 			return msgs, nil
 		}
 
-		m := string(buf[4:size])
-		msgs = append(msgs, string(m))
-		logger.Debugf(":: %s", m)
-
-		buf = buf[size:]
+		msgs = append(msgs, string(line))
+		if len(line) < 256 {
+			logger.Debugf(":: %04x  %q", size, line)
+		} else {
+			logger.Debugf(":: %04x  <line too long>", size)
+		}
 	}
 }

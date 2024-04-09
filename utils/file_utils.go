@@ -84,6 +84,25 @@ func GetLicense(filename string) (string, error) {
 	return license, nil
 }
 
+// CheckLicenseFiles examines common files to determine the license.
+func CheckLicenseFiles(files []string) (string, error) {
+	for _, f := range files {
+		_, err := os.Stat(f)
+		if err != nil {
+			continue
+		}
+
+		license, err := GetLicense(f)
+		if err != nil {
+			return "", err
+		}
+
+		return license, nil
+	}
+
+	return "", nil
+}
+
 var osRename = osRenameImpl
 
 func osRenameImpl(oldpath, newpath string) error {
