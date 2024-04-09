@@ -99,11 +99,8 @@ func New(spoolDir string, permissive bool) *Session {
 	return s
 }
 
-// Finish ends the session and saves metadata.
-func (s *Session) Finish() *metadata.SessionMetadata {
-	s.End = time.Now().UTC()
-
-	sm := &metadata.SessionMetadata{
+func (s *Session) Metadata() *metadata.SessionMetadata {
+	return &metadata.SessionMetadata{
 		SessionId:          s.Id,
 		StartTime:          s.Start,
 		EndTime:            s.End,
@@ -115,30 +112,32 @@ func (s *Session) Finish() *metadata.SessionMetadata {
 		RejectedArtefacts:  s.RejectedArtefacts.Load(),
 		Err:                nil,
 	}
+}
+
+// Finish ends the session and saves metadata.
+func (s *Session) Finish() error {
+	sm := s.Metadata()
 
 	for k := range s.A {
 		logger.Infof("save metadata for artefact %s", k)
 		if err := s.SaveMetadata(k); err != nil {
-			sm.SessionError = err.Error()
-			sm.Err = err
-			return sm
+			return err
 		}
 	}
 
 	if err := s.SaveSessionMetadata(sm); err != nil {
-		sm.SessionError = err.Error()
-		sm.Err = err
-		return sm
+		return err
 	}
 
 	s.Discard()
-	return sm
+	return nil
 }
 
 // Revoke revokes the session token.
 func (s *Session) Revoke() {
 	logger.Debugf("[%s] token revoked", s.Id)
 	s.revoked = true
+	s.End = time.Now().UTC()
 }
 
 // IsRevoked returns whether the session token has been revoked.
@@ -324,8 +323,8 @@ func FinishAll() {
 		id := key.(string)
 		s := value.(*Session)
 		logger.Infof("finishing session %s", id)
-		if sm := s.Finish(); sm.Err != nil {
-			logger.Errorf("%s", sm.Err)
+		if err := s.Finish(); err != nil {
+			logger.Errorf("%s", err)
 		}
 		return true
 	})

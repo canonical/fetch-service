@@ -50,6 +50,7 @@ func (c *Server) Start() {
 	router.HandleFunc("/status", c.getServiceStatus).Methods("GET")
 	router.HandleFunc("/session", c.createSession).Methods("POST")
 	router.HandleFunc("/session/{id}/token", c.deleteSessionToken).Methods("DELETE")
+	router.HandleFunc("/session/{id}", c.getSessionReport).Methods("GET")
 	router.HandleFunc("/session/{id}", c.deleteSession).Methods("DELETE")
 	router.HandleFunc("/resources/{id}", c.deleteResources).Methods("DELETE")
 
@@ -93,6 +94,7 @@ func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
 		badRequest(w, r, cred.Err.Error())
 		return
 	}
+
 	j, err := json.Marshal(cred)
 	if err != nil {
 		internalServerError(w, r)
@@ -116,13 +118,47 @@ func (c *Server) deleteSessionToken(w http.ResponseWriter, r *http.Request) {
 	msg := messages.NewRevokeToken(id)
 	c.ch <- msg
 	res := <-msg.Rch
+
 	if res.Err != nil {
-		if res.SessionId == "" {
+		if res.Err == messages.ErrSessionNotFound {
 			notFound(w, r)
 		} else {
 			internalServerError(w, r)
 		}
 		return
+	}
+
+	j, err := json.Marshal(res)
+	if err != nil {
+		internalServerError(w, r)
+		return
+	}
+
+	write_response(w, j)
+}
+
+func (c *Server) getSessionReport(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, ok := vars["id"]
+	if !ok {
+		notFound(w, r)
+		return
+	}
+
+	logger.Debugf("get session %s data\n", id)
+
+	msg := messages.NewSessionReport(id)
+	c.ch <- msg
+	res := <-msg.Rch
+
+	if res.Err != nil {
+		if res.Err == messages.ErrSessionNotFound {
+			notFound(w, r)
+		} else if res.Err == messages.ErrSessionActive {
+			badRequest(w, r, res.Err.Error())
+		} else {
+			internalServerError(w, r)
+		}
 	}
 
 	j, err := json.Marshal(res)
@@ -146,14 +182,16 @@ func (c *Server) deleteSession(w http.ResponseWriter, r *http.Request) {
 
 	msg := messages.NewEndSession(id)
 	c.ch <- msg
-	result := <-msg.Rch
-	j, err := json.Marshal(result)
+	err := <-msg.Rch
+
 	if err != nil {
-		internalServerError(w, r)
+		if err == messages.ErrSessionNotFound {
+			notFound(w, r)
+		} else {
+			internalServerError(w, r)
+		}
 		return
 	}
-
-	write_response(w, j)
 }
 
 func (c *Server) deleteResources(w http.ResponseWriter, r *http.Request) {
@@ -171,7 +209,9 @@ func (c *Server) deleteResources(w http.ResponseWriter, r *http.Request) {
 	err := <-msg.Rch
 
 	if err != nil {
-		if err == messages.ErrSessionActive {
+		if err == messages.ErrSessionNotFound {
+			notFound(w, r)
+		} else if err == messages.ErrSessionActive {
 			badRequest(w, r, err.Error())
 		} else {
 			internalServerError(w, r)

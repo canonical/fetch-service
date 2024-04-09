@@ -120,25 +120,6 @@ func NewCreateSession(policy string, timeout uint64) CreateSession {
 	}
 }
 
-// Session report and end
-
-type SessionResult struct {
-	*metadata.SessionMetadata
-	Artefacts []*metadata.Artefact `json:"artefacts"`
-}
-
-type EndSession struct {
-	Rch chan SessionResult // Handler response channel
-	Id  string
-}
-
-func NewEndSession(sessionId string) EndSession {
-	return EndSession{
-		Rch: make(chan SessionResult, 1),
-		Id:  sessionId,
-	}
-}
-
 // Revoke session token
 
 type RevokeToken struct {
@@ -160,9 +141,45 @@ type RevokeTokenResult struct {
 	Err       error  `json:"-"`
 }
 
+// Session report
+
+type SessionReport struct {
+	Rch chan SessionReportResult // Handler response channel
+	Id  string
+}
+
+func NewSessionReport(sessionId string) SessionReport {
+	return SessionReport{
+		Rch: make(chan SessionReportResult, 1),
+		Id:  sessionId,
+	}
+}
+
+type SessionReportResult struct {
+	*metadata.SessionMetadata
+	Artefacts []*metadata.Artefact `json:"artefacts"`
+	Err       error                `json:"-"`
+}
+
+// Session end
+
+type EndSession struct {
+	Rch chan error // Handler response channel
+	Id  string
+}
+
+func NewEndSession(sessionId string) EndSession {
+	return EndSession{
+		Rch: make(chan error, 1),
+		Id:  sessionId,
+	}
+}
+
 // Delete resources
 
-var ErrSessionActive = errors.New("session is active")
+var ErrSessionNotFound = errors.New("session not found")
+var ErrSessionActive = errors.New("session token is active")
+var ErrSessionNotFinished = errors.New("session not finished")
 
 type DeleteResources struct {
 	Rch chan error // Handler response channel
