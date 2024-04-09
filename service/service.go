@@ -226,37 +226,15 @@ func (svc *Service) Start() error {
 					if s == nil {
 						svc.sErrors.Add(1)
 						v.Rch <- messages.RevokeTokenResult{
-							Err: fmt.Errorf("cannot revoke token: session %s is not active", sessionId),
+							Err: messages.ErrSessionNotFound,
 						}
 						break
 					}
 
 					s.Revoke()
 
-					v.Rch <- messages.RevokeTokenResult{
-						SessionId: s.Id,
-						StartTime: s.Start.String(),
-						SpoolPath: svc.opt.Spool,
-					}
-
-				case messages.EndSession:
-					sessionId := v.Id
-					s := session.GetSession(sessionId)
-					if s == nil {
-						svc.sErrors.Add(1)
-						v.Rch <- messages.SessionResult{
-							SessionMetadata: &metadata.SessionMetadata{
-								Err: fmt.Errorf(
-									"cannot get session report: session %s is not active", sessionId),
-							},
-							Artefacts: []*metadata.Artefact{},
-						}
-						break
-					}
-
-					sm := s.Finish()
-
 					// update stats
+					sm := s.Metadata()
 					duration := sm.EndTime.Sub(sm.StartTime)
 					svc.sTime += duration
 					if duration > svc.sMaxTime {
@@ -266,16 +244,57 @@ func (svc *Service) Start() error {
 						svc.sErrors.Add(1)
 					}
 
-					v.Rch <- messages.SessionResult{
-						SessionMetadata: sm,
+					v.Rch <- messages.RevokeTokenResult{
+						SessionId: s.Id,
+						StartTime: s.Start.String(),
+						SpoolPath: svc.opt.Spool,
+					}
+
+				case messages.SessionReport:
+					sessionId := v.Id
+					s := session.GetSession(sessionId)
+					if s == nil {
+						svc.sErrors.Add(1)
+						v.Rch <- messages.SessionReportResult{
+							SessionMetadata: &metadata.SessionMetadata{Err: messages.ErrSessionNotFound},
+							Artefacts:       []*metadata.Artefact{},
+							Err:             messages.ErrSessionNotFound,
+						}
+						break
+					}
+
+					if !s.IsRevoked() {
+						svc.sErrors.Add(1)
+						err := fmt.Errorf("cannot get session report: session %s token was not revoked", sessionId)
+						v.Rch <- messages.SessionReportResult{
+							SessionMetadata: &metadata.SessionMetadata{Err: err},
+							Artefacts:       []*metadata.Artefact{},
+							Err:             messages.ErrSessionActive,
+						}
+						break
+					}
+
+					v.Rch <- messages.SessionReportResult{
+						SessionMetadata: s.Metadata(),
 						Artefacts:       s.Artefacts(),
 					}
+
+				case messages.EndSession:
+					sessionId := v.Id
+					s := session.GetSession(sessionId)
+					if s == nil {
+						svc.sErrors.Add(1)
+						v.Rch <- messages.ErrSessionNotFound
+						break
+					}
+
+					v.Rch <- s.Finish()
 
 				case messages.DeleteResources:
 					sessionId := v.Id
 					s := session.GetSession(sessionId)
 					if s != nil {
-						v.Rch <- messages.ErrSessionActive
+						v.Rch <- messages.ErrSessionNotFinished
 						break
 					}
 
