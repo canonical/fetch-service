@@ -39,3 +39,7 @@ func MockCheckSignature(mock func(io.ReadSeeker, metadata.Annotation) (io.ReadSe
 func (ins *AptReleaseInspector) Release() map[string]ReleaseFile {
 	return ins.release
 }
+
+func (ins *AptReleaseInspector) SetRelease(release map[string]ReleaseFile) {
+	ins.release = release
+}
