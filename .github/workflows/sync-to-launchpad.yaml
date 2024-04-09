@@ -14,4 +14,4 @@ jobs:
       - name: Sync to Launchpad
         run: |
           git remote add launchpad https://lengau:${{ secrets.LP_TOKEN }}@git.launchpad.net/fetch-service
-          git push --all launchpad
+          git push --all --force launchpad
