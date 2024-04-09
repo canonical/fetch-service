@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -23,6 +23,8 @@ import (
 	"archive/zip"
 	"bytes"
 	"fmt"
+	"io"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -80,4 +82,53 @@ func GetLicense(filename string) (string, error) {
 	}
 
 	return license, nil
+}
+
+var osRename = osRenameImpl
+
+func osRenameImpl(oldpath, newpath string) error {
+	return os.Rename(oldpath, newpath)
+}
+
+// MoveFile renames a file or recreates it at the destination if
+// renaming is not possible.
+func MoveFile(oldpath, newpath string) error {
+	// Try renaming first
+	if err := osRename(oldpath, newpath); err == nil {
+		return nil
+	}
+
+	oldfile, err := os.Open(oldpath)
+	if err != nil {
+		return err
+	}
+	defer oldfile.Close()
+
+	// Open old file
+	fi, err := oldfile.Stat()
+	if err != nil {
+		return err
+	}
+
+	// Open new file
+	perm := fi.Mode() & os.ModePerm
+	newfile, err := os.OpenFile(newpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
+	if err != nil {
+		return err
+	}
+	defer newfile.Close()
+
+	// Move file content
+	if _, err := io.Copy(newfile, oldfile); err != nil {
+		newfile.Close()
+		os.Remove(newpath)
+		return err
+	}
+
+	// Remove old file
+	if err := os.Remove(oldpath); err != nil {
+		return err
+	}
+
+	return nil
 }

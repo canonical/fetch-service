@@ -36,6 +36,7 @@ import (
 	"github.com/canonical/fetch-service/proxy"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
+	"github.com/canonical/fetch-service/utils"
 )
 
 func Test(t *testing.T) { TestingT(t) }
@@ -116,7 +117,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 	err = os.MkdirAll(filepath.Dir(dest), 0755)
 	c.Assert(err, IsNil)
 
-	err = os.Rename(u.A.Tempfile, dest)
+	err = utils.MoveFile(u.A.Tempfile, dest)
 	c.Assert(err, IsNil)
 	os.Remove(u.A.Tempfile)
 

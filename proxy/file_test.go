@@ -34,6 +34,7 @@ import (
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/proxy"
 	"github.com/canonical/fetch-service/service/messages"
+	"github.com/canonical/fetch-service/utils"
 )
 
 const (
@@ -84,7 +85,7 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	err = os.MkdirAll(filepath.Dir(dest), 0755)
 	c.Assert(err, IsNil)
 
-	err = os.Rename(v.A.Tempfile, dest)
+	err = utils.MoveFile(v.A.Tempfile, dest)
 	c.Assert(err, IsNil)
 	os.Remove(a.Tempfile)
 

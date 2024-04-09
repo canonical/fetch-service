@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,6 +22,7 @@ package utils_test
 import (
 	"archive/zip"
 	"bytes"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -66,6 +67,62 @@ func (t *fileutilsSuite) TestZipMatches(c *C) {
 	c.Check(utils.ZipMatches(dest, `baz.txt`), Equals, false)
 	c.Check(utils.ZipMatches(dest, `/b.*\.txt`, `/f.*\.txt`), Equals, true)
 	c.Check(utils.ZipMatches(dest, `/b*.txt`, `/z*.txt`), Equals, false)
+}
+
+func (t *fileutilsSuite) TestMoveFileRename(c *C) {
+	restorer := utils.MockOsRename(func(newp, oldp string) error {
+		err := os.Rename(newp, oldp)
+		c.Assert(err, IsNil)
+		return nil
+	})
+	defer restorer()
+
+	tmp := c.MkDir()
+	oldpath := filepath.Join(tmp, "oldfile")
+	newpath := filepath.Join(tmp, "newfile")
+	err := os.WriteFile(oldpath, []byte("Lorem ipsum dolor sit amet\n"), 0640)
+	c.Assert(err, IsNil)
+
+	err = utils.MoveFile(oldpath, newpath)
+	c.Assert(err, IsNil)
+
+	fi, err := os.Stat(newpath)
+	c.Assert(err, IsNil)
+	c.Assert(int(fi.Mode()&0777), Equals, 0640)
+
+	content, err := os.ReadFile(newpath)
+	c.Assert(err, IsNil)
+	c.Assert(content, DeepEquals, []byte("Lorem ipsum dolor sit amet\n"))
+
+	_, err = os.Stat(oldpath)
+	c.Assert(err, ErrorMatches, "stat.*no such file or directory")
+}
+
+func (t *fileutilsSuite) TestMoveFileCopy(c *C) {
+	restorer := utils.MockOsRename(func(newp, oldp string) error {
+		return errors.New("rename failed")
+	})
+	defer restorer()
+
+	tmp := c.MkDir()
+	oldpath := filepath.Join(tmp, "oldfile")
+	newpath := filepath.Join(tmp, "newfile")
+	err := os.WriteFile(oldpath, []byte("Lorem ipsum dolor sit amet\n"), 0640)
+	c.Assert(err, IsNil)
+
+	err = utils.MoveFile(oldpath, newpath)
+	c.Assert(err, IsNil)
+
+	fi, err := os.Stat(newpath)
+	c.Assert(err, IsNil)
+	c.Assert(int(fi.Mode()&0777), Equals, 0640)
+
+	content, err := os.ReadFile(newpath)
+	c.Assert(err, IsNil)
+	c.Assert(content, DeepEquals, []byte("Lorem ipsum dolor sit amet\n"))
+
+	_, err = os.Stat(oldpath)
+	c.Assert(err, ErrorMatches, "stat.*no such file or directory")
 }
 
 func createZip(src string, dest io.Writer) error {
