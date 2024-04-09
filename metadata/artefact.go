@@ -221,6 +221,50 @@ func (a *Artefact) RequestAnnotation(id Identifiable, key string) (any, bool) {
 	return ann, true
 }
 
+func (a *Artefact) RequestStringAnnotation(id Identifiable, key string) (string, bool) {
+	inspection, ok := a.RequestInspection[id.ID()]
+	if !ok {
+		return "", false
+	}
+	ann, ok := inspection.Annotations[key]
+	if !ok {
+		return "", false
+	}
+	val, ok := ann.(string)
+	if !ok {
+		return "", false
+	}
+	return val, true
+}
+
+func (a *Artefact) RequestBoolAnnotation(id Identifiable, key string) (bool, bool) {
+	inspection, ok := a.RequestInspection[id.ID()]
+	if !ok {
+		return false, false
+	}
+	ann, ok := inspection.Annotations[key]
+	if !ok {
+		return false, false
+	}
+	val, ok := ann.(bool)
+	if !ok {
+		return false, false
+	}
+	return val, true
+}
+
+func (a *Artefact) ResponseAnnotation(id Identifiable, key string) (any, bool) {
+	inspection, ok := a.ResponseInspection[id.ID()]
+	if !ok {
+		return nil, false
+	}
+	ann, ok := inspection.Annotations[key]
+	if !ok {
+		return nil, false
+	}
+	return ann, true
+}
+
 func (a *Artefact) Pending() bool {
 	// An artefact can only be pending during request.
 	if a.State != RequestState {

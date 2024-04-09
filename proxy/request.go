@@ -42,7 +42,7 @@ func NewRequestHandler(req *http.Request, a *metadata.Artefact, ch chan interfac
 		ch:         ch,
 		a:          a,
 		body:       req.Body,
-		insTimeout: 60 * time.Second,
+		insTimeout: 180 * time.Second,
 	}
 
 	return h, nil

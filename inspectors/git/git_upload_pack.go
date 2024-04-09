@@ -28,6 +28,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
@@ -38,13 +39,20 @@ import (
 // The UploadPackInspector handles upload-pack requests. It recognizes
 // the "ls-refs" and "fetch" commands.
 type UploadPackInspector struct {
+	heads map[string]map[string]string // head list stored by ls-refs per repository
+	tags  map[string]map[string]string // tag list stored by ls-refs per repository
+
+	lock sync.Mutex
 }
 
 func NewUploadPackInspector() *UploadPackInspector {
-	return &UploadPackInspector{}
+	return &UploadPackInspector{
+		heads: map[string]map[string]string{},
+		tags:  map[string]map[string]string{},
+	}
 }
 
-func (UploadPackInspector) ID() string {
+func (ins *UploadPackInspector) ID() string {
 	return "git.upload-pack"
 }
 
@@ -68,6 +76,17 @@ func (ins *UploadPackInspector) InspectRequest(a *metadata.Artefact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
+	repo := fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, u.Path)
+	repo, _ = strings.CutSuffix(repo, "/git-upload-pack")
+	ins.Lock()
+	if _, ok := ins.heads[repo]; !ok {
+		ins.heads[repo] = map[string]string{}
+	}
+	if _, ok := ins.tags[repo]; !ok {
+		ins.tags[repo] = map[string]string{}
+	}
+	ins.Unlock()
+
 	content_type, ok := a.CurrentDownload.RequestHeader["Content-Type"]
 	if !ok || len(content_type) < 1 || content_type[0] != "application/x-git-upload-pack-request" {
 		return nil // we don't recognize this request
@@ -78,9 +97,10 @@ func (ins *UploadPackInspector) InspectRequest(a *metadata.Artefact) error {
 		return nil // we don't recognize this request
 	}
 
+	// FIXME: adjust according to internal git repository url format
 	info, err := newUploadPackUrlInfo(u)
 	if err != nil {
-		return nil // we don't recognize this request
+		info = &uploadPackUrlInfo{}
 	}
 
 	// We're now sure this is a git upload pack request
@@ -88,9 +108,9 @@ func (ins *UploadPackInspector) InspectRequest(a *metadata.Artefact) error {
 	// Set body to a new reader that inspects the git protocol so we can
 	// examine the request body.
 	notes := metadata.Annotation{
-		"protocol": proto,
-		"user":     info.user,
-		"project":  info.project,
+		"repository": repo,
+		"protocol":   proto,
+		"project":    info.project,
 	}
 
 	// Read request body and get protocol messages
@@ -114,26 +134,39 @@ func (ins *UploadPackInspector) InspectRequest(a *metadata.Artefact) error {
 	// Special actions for commands
 	switch command {
 	case "ls-refs":
-		// allow ls-refs
+		// check if url matches
+		if info.project == "" {
+			return nil
+		}
 	case "fetch":
 		// allow fetch only if shallow and single ref
 		isShallow := false
-		numWants := 0
+		wants := []string{}
+		want_refs := []string{}
 
 		for _, msg := range client_msgs {
 			if strings.HasPrefix(msg, "deepen ") {
 				isShallow = (msg == "deepen 1")
 			} else if strings.HasPrefix(msg, "want ") {
-				numWants++
+				wants = append(wants, msg[5:])
+			} else if strings.HasPrefix(msg, "want-ref ") {
+				want_refs = append(want_refs, msg[9:])
 			}
-			notes.Add("is-shallow", isShallow)
-			notes.Add("num-wants", numWants)
+		}
+
+		notes.Add("is-shallow", isShallow)
+		notes.Add("num-wants", len(wants)+len(want_refs))
+		if len(wants) > 0 {
+			notes.Add("wants", wants)
+		}
+		if len(want_refs) > 0 {
+			notes.Add("want-refs", want_refs)
 		}
 
 		if !isShallow {
 			a.Reject(ins, "fetch is only allowed with depth 1").Annotate(notes)
 			return nil
-		} else if numWants > 1 {
+		} else if len(wants) > 1 {
 			a.Reject(ins, "fetch is only allowed on a single ref").Annotate(notes)
 			return nil
 		}
@@ -163,7 +196,7 @@ func (ins *UploadPackInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 		return nil
 	}
 
-	command, ok := a.RequestAnnotation(ins, "command") // the upload-pack request command
+	command, ok := a.RequestStringAnnotation(ins, "command") // the upload-pack request command
 	if !ok {
 		// this must have been set by the request inspector
 		return errors.New("cannot read request command annotation")
@@ -171,6 +204,20 @@ func (ins *UploadPackInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 	notes := metadata.Annotation{}
 
 	logger.Debugf("inspect git upload-pack artefact: command %q", command)
+
+	repo, ok := a.RequestStringAnnotation(ins, "repository") // the upload-pack request command
+	if !ok {
+		// this must have been set by the request inspector
+		return errors.New("cannot read repository annotation")
+	}
+	ins.Lock()
+	if _, ok := ins.heads[repo]; !ok {
+		ins.heads[repo] = map[string]string{}
+	}
+	if _, ok := ins.tags[repo]; !ok {
+		ins.tags[repo] = map[string]string{}
+	}
+	ins.Unlock()
 
 	// Supported upload-pack commands are 'ls-refs' and 'fetch'
 	switch command {
@@ -182,21 +229,34 @@ func (ins *UploadPackInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 
 		a.Metadata.Type = mimetypes.GitUploadPackLsRef
 
-		buf, err := io.ReadAll(f)
-		if err != nil {
-			return fmt.Errorf("cannot read ls-refs response: %w", err)
-		}
-
-		msgs, err := decodeGitProtocol(buf)
+		msgs, err := decodeGitProtocol(f)
 		if err != nil {
 			return err
 		}
 
-		server_msgs := []string{}
+		refs := []string{}
 		for _, msg := range msgs {
-			server_msgs = append(server_msgs, strings.TrimSpace(msg))
+			refs = append(refs, strings.TrimSpace(msg))
 		}
-		notes.Add("server-response", server_msgs)
+		notes.Add("server-response", refs)
+
+		// store heads and tags in the inspector state for this repository
+		for _, ref := range refs {
+			p := strings.Split(ref, " ")
+			if len(p) < 2 {
+				continue
+			}
+
+			if tag, ok := strings.CutPrefix(p[1], "refs/tags/"); ok {
+				ins.Lock()
+				ins.tags[repo][tag] = p[0]
+				ins.Unlock()
+			} else if head, ok := strings.CutPrefix(p[1], "refs/heads/"); ok {
+				ins.Lock()
+				ins.heads[repo][head] = p[0]
+				ins.Unlock()
+			}
+		}
 
 		a.Approve(ins, "git ls-refs response decoded").Annotate(notes)
 
@@ -208,20 +268,14 @@ func (ins *UploadPackInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 
 		a.Metadata.Type = mimetypes.GitUploadPackFetch
 
-		if numWants, ok := a.RequestAnnotation(ins, "num-wants"); !ok || numWants != 1 {
-			notes.Add("num-wants", numWants)
-			a.Reject(ins, "fetch is allowed only on a single ref").Annotate(notes)
-			return nil
-		}
+		ins.Lock()
+		notes.Add("heads", ins.heads[repo])
+		notes.Add("tags", ins.tags[repo])
+		ins.Unlock()
 
-		buf := make([]byte, 512)
-		if _, err := f.Read(buf); err != nil {
-			return errors.New("cannot read fetch response")
-		}
-
-		msgs, err := decodeGitProtocol(buf)
+		msgs, err := decodeGitProtocol(f)
 		if err != nil {
-			return errors.New("error decoding git protocol")
+			return fmt.Errorf("error decoding git protocol: %w", err)
 		}
 
 		if _, err := f.Seek(0, io.SeekStart); err != nil {
@@ -236,13 +290,19 @@ func (ins *UploadPackInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 			}
 			server_msgs = append(server_msgs, strings.TrimSpace(msg))
 		}
+		notes.Add("server-response", server_msgs)
 
 		if !isShallow {
 			a.Reject(ins, "fetch is only allowed with depth 1").Annotate(notes)
 			return nil
 		}
 
-		notes.Add("server-response", server_msgs)
+		if numWants, ok := a.RequestAnnotation(ins, "num-wants"); !ok || numWants != 1 {
+			notes.Add("num-wants", numWants)
+			a.Reject(ins, "fetch is allowed only on a single ref").Annotate(notes)
+			return nil
+		}
+
 		a.Comment(ins, "git fetch response is valid but content is unknown").Annotate(notes)
 
 	default:
@@ -250,6 +310,14 @@ func (ins *UploadPackInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 	}
 
 	return nil
+}
+
+func (ins *UploadPackInspector) Lock() {
+	ins.lock.Lock()
+}
+
+func (ins *UploadPackInspector) Unlock() {
+	ins.lock.Unlock()
 }
 
 // uploadPackRequestHandler is a ReaderCloser that decodes the body of
@@ -282,7 +350,7 @@ func newUploadPackRequestHandler(ins metadata.Identifiable, req *http.Request, c
 	req.ContentLength = int64(len(buf))
 
 	// Decode protocol
-	msgs, err := decodeGitProtocol(buf)
+	msgs, err := decodeGitProtocol(bytes.NewReader(buf))
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode upload pack request: %w", err)
 	}
