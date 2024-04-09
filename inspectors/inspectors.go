@@ -31,6 +31,7 @@ import (
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/deb"
 	"github.com/canonical/fetch-service/inspectors/git"
+	"github.com/canonical/fetch-service/inspectors/gomod"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/inspectors/pip"
 	"github.com/canonical/fetch-service/logger"
@@ -82,7 +83,12 @@ func New(permissive bool) Inspectors {
 		git.NewSmartQueryInspector(),
 		git.NewUploadPackInspector(),
 
+		// go
+		// must run after git
+		gomod.NewGoModuleGitInspector(),
+
 		// default inspector
+		// must be the last inspector to run
 		DefaultInspector{},
 	}
 

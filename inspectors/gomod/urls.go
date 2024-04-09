@@ -17,19 +17,18 @@
  *
  */
 
-package git
+package gomod
 
 import (
 	"fmt"
 	"net/url"
 	"regexp"
-	"strings"
 )
 
 // Recognized URL formats:
 // -----------------------
-// https://github.com:443/user/project.git/info/refs?service=git-upload-pack
-// https://github.com:443/user/project.git/git-upload-pack
+// https://github.com:443/user/project/git-upload-pack
+// https://gopkg.in:443/project/git-upload-pack
 
 var (
 	// FIXME: using github URL for now
@@ -38,8 +37,7 @@ var (
 		regexp.MustCompile(`^https://gopkg\.in:443$`),
 	}
 
-	reSmartQuery = regexp.MustCompile(`^/.*/info/refs$`)
-	reUploadPack = regexp.MustCompile(`^/([^/]+/)?([^/]+)/git-upload-pack$`)
+	reGoModuleGit = regexp.MustCompile(`^/([^/]+/)?([^/]+)/git-upload-pack$`)
 )
 
 func checkValidOrigin(u *url.URL) error {
@@ -52,47 +50,22 @@ func checkValidOrigin(u *url.URL) error {
 	return fmt.Errorf("invalid origin %s", origin)
 }
 
-type smartQueryUrlInfo struct {
-	service string
-}
-
-func newSmartQueryUrlInfo(u *url.URL) (*smartQueryUrlInfo, error) {
-	if err := checkValidOrigin(u); err != nil {
-		return nil, err
-	}
-
-	if !reSmartQuery.MatchString(u.Path) {
-		return nil, fmt.Errorf("%s: not a valid git smart request URL path", u.Path)
-	}
-
-	q := u.Query()
-	if val := q.Get("service"); val != "git-upload-pack" {
-		return nil, fmt.Errorf("invalid service query %q", val)
-	}
-
-	info := &smartQueryUrlInfo{
-		service: q.Get("service"),
-	}
-	return info, nil
-}
-
-type uploadPackUrlInfo struct {
+type goModuleUrlInfo struct {
 	project string
 }
 
-func newUploadPackUrlInfo(u *url.URL) (*uploadPackUrlInfo, error) {
+func newGoModuleGitUrlInfo(u *url.URL) (*goModuleUrlInfo, error) {
 	if err := checkValidOrigin(u); err != nil {
 		return nil, err
 	}
 
-	m := reUploadPack.FindStringSubmatch(u.Path)
+	m := reGoModuleGit.FindStringSubmatch(u.Path)
 	if len(m) != 3 && len(m) != 2 {
-		return nil, fmt.Errorf("%s: not a valid git upload-pack URL path", u.Path)
+		return nil, fmt.Errorf("%s: not a valid URL path for git go modules", u.Path)
 	}
-	info := &uploadPackUrlInfo{
+	info := &goModuleUrlInfo{
 		project: m[len(m)-1],
 	}
-	info.project, _ = strings.CutSuffix(info.project, ".git")
 
 	return info, nil
 }

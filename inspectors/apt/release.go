@@ -408,7 +408,7 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ReadAtSeeker, a *metadata
 	return nil
 }
 
-// InspectArtefact examines InRelease files and validates Translation-<lang>
+// validateTranslationFile examines InRelease files and validates Translation-<lang>
 // files against InRelease entries.
 // https://wiki.debian.org/DebianRepository/Format#A.22Translation.22_indices
 func (ins *AptReleaseInspector) validateTranslationFile(f ReadAtSeeker, a *metadata.Artefact) error {
@@ -422,20 +422,20 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ReadAtSeeker, a *metad
 	logger.Debugf("translation file path: %s", u.Path)
 	info, err := newTranslationUrlInfo(u)
 	if err != nil {
-		a.Reject(ins, "invalid path for translation file")
+		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "invalid path for translation file")
 		return nil
 	}
 
 	repo := fmt.Sprintf("%s/dists/%s", info.repository, info.distribution)
 	rel, ok := ins.release[repo]
 	if !ok {
-		a.Reject(ins, "Release data not found for this repository")
+		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "Release data not found for this repository")
 		return nil
 	}
 
 	entry, ok := rel.Files[a.Metadata.Sha256]
 	if !ok {
-		a.Reject(ins, "Translation file not listed in Release file")
+		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "Translation file not listed in Release file")
 		return nil
 	}
 	logger.Debugf("release entry: %+v", entry)
@@ -449,7 +449,7 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ReadAtSeeker, a *metad
 		return nil
 	}
 
-	a.Approve(ins, "Translation file listed in Release").Annotate(
+	a.SetResponseOpinion(ins.ID(), opinions.Approved, "Translation file listed in Release").Annotate(
 		metadata.Annotation{
 			"file-path":    entry.Name,
 			"release-file": ins.release[repo].Sha256.String(),

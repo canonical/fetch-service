@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/elazarl/goproxy"
@@ -143,6 +144,7 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 	p.ch <- reqInsp
 	err := <-reqInsp.Rch
 	if err != nil {
+		//a.CurrentDownload.EndTime = time.Now().UTC()
 		logger.Info(err.Error())
 		return req, goproxy.NewResponse(
 			req, goproxy.ContentTypeText,
@@ -153,6 +155,7 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 
 	req.Body, err = NewRequestHandler(req, a, p.ch)
 	if err != nil {
+		//a.CurrentDownload.EndTime = time.Now().UTC()
 		return req, internalErrorResponse(req, "Cannot handle requests")
 	}
 
@@ -173,6 +176,10 @@ func (p *HttpProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) 
 	var err error
 	resp.Body, err = NewFileDownloadHandler(resp, a, p.spool, p.ch)
 	if err != nil {
+		if a.Tempfile != "" {
+			os.Remove(a.Tempfile)
+		}
+		//a.CurrentDownload.EndTime = time.Now().UTC()
 		logger.Infof("%s: %s", a.Metadata.Sha256, err)
 		if err == common.ErrRejectedArtefact {
 			return forbiddenResponse(resp.Request, "Download not authorized")

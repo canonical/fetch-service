@@ -183,6 +183,50 @@ func (a *Artefact) RequestAnnotation(id string, key string) (any, bool) {
 	return ann, true
 }
 
+func (a *Artefact) RequestStringAnnotation(id string, key string) (string, bool) {
+	inspection, ok := a.RequestInspection[id]
+	if !ok {
+		return "", false
+	}
+	ann, ok := inspection.Annotations[key]
+	if !ok {
+		return "", false
+	}
+	val, ok := ann.(string)
+	if !ok {
+		return "", false
+	}
+	return val, true
+}
+
+func (a *Artefact) RequestBoolAnnotation(id string, key string) (bool, bool) {
+	inspection, ok := a.RequestInspection[id]
+	if !ok {
+		return false, false
+	}
+	ann, ok := inspection.Annotations[key]
+	if !ok {
+		return false, false
+	}
+	val, ok := ann.(bool)
+	if !ok {
+		return false, false
+	}
+	return val, true
+}
+
+func (a *Artefact) ResponseAnnotation(id string, key string) (any, bool) {
+	inspection, ok := a.ResponseInspection[id]
+	if !ok {
+		return nil, false
+	}
+	ann, ok := inspection.Annotations[key]
+	if !ok {
+		return nil, false
+	}
+	return ann, true
+}
+
 // Approved returns true when there's at least one approval opinion
 // and no rejections in the response inspection.
 func (a *Artefact) Approved() bool {
