@@ -30,11 +30,9 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/inspectors/apt"
+	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/metadata"
 )
-
-// XXX: This file contains minimal testing for apt file formats. Tests
-//      will be extended after the metadata format is approved.
 
 var inReleaseArtefactData = `-----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA512
@@ -200,5 +198,80 @@ func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
 			c.Check(a.Metadata.Type, Equals, "application/x.apt.translation")
 		}
 	}
+}
 
+func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
+	sha256_rel, _ := metadata.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
+	sha256_pkg, _ := metadata.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
+
+	a := metadata.NewArtefact()
+	a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6"
+	a.Metadata.Type = mimetypes.AptPackages
+	a.Metadata.Sha256 = sha256_pkg
+
+	f := strings.NewReader("fake content")
+
+	rf := apt.ReleaseFile{
+		Sha256: sha256_rel,
+		Vendor: "Canonical",
+		Files: map[metadata.Sha256Digest]apt.ReleaseEntry{
+			sha256_pkg: apt.ReleaseEntry{
+				Size: 1337,
+				Name: "main/binary-amd64/Packages.xz",
+			},
+		},
+	}
+
+	ins := apt.NewAptReleaseInspector()
+	ins.SetRelease(map[string]apt.ReleaseFile{"http://archive.ubuntu.com/ubuntu/dists/jammy": rf})
+	err := ins.InspectArtefact(f, a)
+	c.Assert(err, IsNil)
+	c.Assert(a.Approved(), Equals, true)
+	c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &metadata.Inspection{
+		Opinion: metadata.Approved,
+		Reason:  "Packages file listed in Release",
+		Annotations: metadata.Annotation{
+			"file-path":    "main/binary-amd64/Packages.xz",
+			"release-file": "9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6",
+			"vendor":       "Canonical",
+		},
+	})
+}
+
+func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
+	sha256_rel, _ := metadata.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
+	sha256_trn, _ := metadata.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
+
+	a := metadata.NewArtefact()
+	a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/i18n/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6"
+	a.Metadata.Type = mimetypes.AptTranslation
+	a.Metadata.Sha256 = sha256_trn
+
+	f := strings.NewReader("fake content")
+
+	rf := apt.ReleaseFile{
+		Sha256: sha256_rel,
+		Vendor: "Canonical",
+		Files: map[metadata.Sha256Digest]apt.ReleaseEntry{
+			sha256_trn: apt.ReleaseEntry{
+				Size: 1337,
+				Name: "main/i18n/Translation-en.xz",
+			},
+		},
+	}
+
+	ins := apt.NewAptReleaseInspector()
+	ins.SetRelease(map[string]apt.ReleaseFile{"http://archive.ubuntu.com/ubuntu/dists/jammy": rf})
+	err := ins.InspectArtefact(f, a)
+	c.Assert(err, IsNil)
+	c.Assert(a.Approved(), Equals, true)
+	c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &metadata.Inspection{
+		Opinion: metadata.Approved,
+		Reason:  "Translation file listed in Release",
+		Annotations: metadata.Annotation{
+			"file-path":    "main/i18n/Translation-en.xz",
+			"release-file": "9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6",
+			"vendor":       "Canonical",
+		},
+	})
 }
