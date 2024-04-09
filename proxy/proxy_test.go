@@ -99,7 +99,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 
 	// authorize download
 	msg := <-ch
-	auth := msg.(proxy.ProxyAuth)
+	auth := msg.(messages.ProxyAuth)
 	c.Assert(auth.Id, Equals, s.Id)
 	c.Assert(auth.Pw, Equals, s.Pw)
 	auth.Rch <- true
@@ -134,9 +134,8 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 	c.Assert(dl.ContentType, Equals, "application/x-debian-package")
 	c.Assert(dl.UserAgent, Equals, "Go-http-client/1.1")
 	c.Assert(dl.RequestHeader, DeepEquals, map[string][]string{
-		"Accept-Encoding":    []string{"gzip"},
-		"User-Agent":         []string{"Go-http-client/1.1"},
-		"X-Fetch-Session-Id": []string{"6ba7b8109dad11d180b400c04fd430c8"},
+		"Accept-Encoding": []string{"gzip"},
+		"User-Agent":      []string{"Go-http-client/1.1"},
 	})
 	c.Assert(dl.ResponseHeader["Content-Length"], DeepEquals, []string{"26600"})
 	c.Assert(dl.ResponseHeader["Content-Type"], DeepEquals, []string{"application/x-debian-package"})

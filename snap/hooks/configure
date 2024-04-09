@@ -32,5 +32,6 @@ coerce_lower verbosity
 coerce_bool permissive
 
 set_default proxy.port 9988
+set_default control.port 9999
 set_default verbosity debug
 set_default permissive false

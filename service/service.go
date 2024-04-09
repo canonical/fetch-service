@@ -20,8 +20,12 @@
 package service
 
 import (
+	"fmt"
+	"time"
+
 	"gopkg.in/tomb.v2"
 
+	"github.com/canonical/fetch-service/control"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
@@ -33,6 +37,7 @@ import (
 // Service implements the fetch service main loop.
 type Service struct {
 	p    *proxy.HttpProxy // proxy instance
+	ctl  *control.Server  // control server
 	ch   chan interface{} // channel to get feedback from handlers
 	opt  *Options         // configuration options
 	tomb tomb.Tomb        // service dispacher loop reaper
@@ -42,9 +47,10 @@ var proxyNewHttpProxy = proxy.NewHttpProxy
 
 func New(opt *Options) *Service {
 	ch := make(chan interface{})
-	p := proxyNewHttpProxy(opt.Port, opt.Spool, ch)
+	p := proxyNewHttpProxy(opt.ProxyPort, opt.Spool, ch)
+	ctl := control.NewServer(opt.ControlPort, ch)
 
-	return &Service{p: p, opt: opt, ch: ch}
+	return &Service{p: p, ctl: ctl, opt: opt, ch: ch}
 }
 
 // Start runs the fetch service dispatcher.
@@ -54,7 +60,7 @@ func (svc *Service) Start() error {
 		return err
 	}
 
-	_ = session.New(svc.opt.Spool, svc.opt.PermissiveMode) // FIXME: to be created using the API
+	svc.ctl.Start()
 
 	svc.tomb.Go(func() error {
 		for {
@@ -112,7 +118,46 @@ func (svc *Service) Start() error {
 						v.Rch <- runResponseInspection(s, a)
 					}(s, v.A)
 
-				case proxy.ProxyAuth:
+				case messages.CreateSession:
+					permissive := false
+					if v.Policy == "permissive" {
+						if svc.opt.PermissiveMode {
+							permissive = true
+						} else {
+							v.Rch <- messages.SessionCredentials{
+								Err: session.ErrInvalidSessionPolicy,
+							}
+							break
+						}
+					}
+
+					s := session.New(svc.opt.Spool, permissive)
+					if v.Timeout > 0 {
+						s.Timeout = time.Duration(v.Timeout * uint64(time.Second))
+					}
+					v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Pw}
+
+				case messages.EndSession:
+					sessionId := v.Id
+					s := session.GetSession(sessionId)
+					if s == nil {
+						v.Rch <- messages.SessionResult{
+							SessionMetadata: &metadata.SessionMetadata{
+								Err: fmt.Errorf("cannot end session: session %s is not active", sessionId),
+							},
+							Artefacts: []*metadata.Artefact{},
+						}
+						break
+					}
+
+					sm := s.Finish()
+
+					v.Rch <- messages.SessionResult{
+						SessionMetadata: sm,
+						Artefacts:       s.Artefacts(),
+					}
+
+				case messages.ProxyAuth:
 					v.Rch <- session.CheckAuth(v.Id, v.Pw)
 
 				default:
@@ -122,6 +167,7 @@ func (svc *Service) Start() error {
 			case <-svc.tomb.Dying():
 				return nil
 			}
+
 		}
 	})
 

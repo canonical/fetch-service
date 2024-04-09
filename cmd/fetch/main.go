@@ -46,8 +46,11 @@ var opts struct {
 	// Profiling API port number
 	ProfilePort int `long:"profile-port" description:"Profiling API port number" default:"6060"`
 
-	// The TCP port the service will listen on.
-	Port int `short:"p" long:"port" description:"Port number" default:"9988"`
+	// The TCP port the control API server will listen on.
+	ControlPort int `long:"control-port" description:"Control port number" default:"9999"`
+
+	// The TCP port the proxy server will listen on.
+	ProxyPort int `short:"p" long:"proxy-port" description:"Proxy port number" default:"9988"`
 
 	// Path to the local spool containing downloaded files and extracted metadata.
 	Spool string `long:"spool" description:"Path to downloaded dependencies" default:"/var/lib/fetch"`
@@ -56,7 +59,7 @@ var opts struct {
 	Verbosity string `long:"verbosity" description:"Verbosity level" choice:"debug"`
 
 	// Enable permissive mode
-	PermissiveMode bool `long:"permissive-mode" description:"Don't reject invalid downloads"`
+	PermissiveMode bool `long:"permissive-mode" description:"Allow sessions to accept rejected artefacts"`
 }
 
 func main() {
@@ -69,7 +72,8 @@ func main() {
 	}
 
 	opt := service.Options{
-		Port:           opts.Port,
+		ControlPort:    opts.ControlPort,
+		ProxyPort:      opts.ProxyPort,
 		Spool:          opts.Spool,
 		PermissiveMode: opts.PermissiveMode,
 	}

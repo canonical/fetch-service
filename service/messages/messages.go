@@ -23,6 +23,13 @@ import (
 	"github.com/canonical/fetch-service/metadata"
 )
 
+// ProxyAuth contains credentials for basic authentication.
+type ProxyAuth struct {
+	Rch chan bool // return channel
+	Id  string    // user (session id)
+	Pw  string    // password
+}
+
 // Inspection
 
 type RequestInspection struct {
@@ -46,5 +53,44 @@ func NewResponseInspection(a *metadata.Artefact) ResponseInspection {
 	return ResponseInspection{
 		Rch: make(chan error, 1),
 		A:   a,
+	}
+}
+
+// Session creation
+
+type SessionCredentials struct {
+	Id    string `json:"id"`
+	Token string `json:"token"`
+	Err   error  `json:"-"`
+}
+
+type CreateSession struct {
+	Rch     chan SessionCredentials // Handler response channel
+	Timeout uint64                  // Session timeout in seconds
+	Policy  string                  // Session policy (strict or permissive)
+}
+
+func NewCreateSession() CreateSession {
+	return CreateSession{
+		Rch: make(chan SessionCredentials, 1),
+	}
+}
+
+// Session end
+
+type SessionResult struct {
+	*metadata.SessionMetadata
+	Artefacts []*metadata.Artefact `json:"artefacts"`
+}
+
+type EndSession struct {
+	Rch chan SessionResult // Handler response channel
+	Id  string
+}
+
+func NewEndSession(sessionId string) EndSession {
+	return EndSession{
+		Rch: make(chan SessionResult, 1),
+		Id:  sessionId,
 	}
 }
