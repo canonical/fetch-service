@@ -24,6 +24,7 @@ const (
 	PythonWheel                = "application/x.python.wheel"
 	AptRelease                 = "application/x.apt.release"
 	AptPackages                = "application/x.apt.packages"
+	AptTranslation             = "application/x.apt.translation"
 	GitUploadPackAdvertisement = "application/x.git.upload-pack-advertisement"
 	GitUploadPackLsRef         = "application/x.git.upload-pack-result.ls-ref"
 	GitUploadPackFetch         = "application/x.git.upload-pack-result.fetch"
