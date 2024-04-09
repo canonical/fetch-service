@@ -293,6 +293,7 @@ func runResponseInspection(s *session.Session, a *metadata.Artefact) error {
 			logger.Infof("[%s] artefact %s %d (%s) would be rejected (permissive)",
 				sessionId, digest, a.Metadata.Size, a.Metadata.Type)
 		} else {
+			a.Result = "Approved"
 			logger.Infof("[%s] artefact rejected: %s %d (%s)",
 				sessionId, digest, a.Metadata.Size, a.Metadata.Type)
 			return ErrRejectedArtefact

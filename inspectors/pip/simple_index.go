@@ -33,8 +33,11 @@ import (
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
+var (
+	indexRequestURL = regexp.MustCompile(`^https://pypi.org:443/simple/([\w-]+)/$`)
+)
+
 type SimpleIndexInspector struct {
-	Name string
 }
 
 func NewSimpleIndexInspector() *SimpleIndexInspector {
@@ -46,15 +49,14 @@ func (SimpleIndexInspector) ID() string {
 }
 
 func (ins *SimpleIndexInspector) InspectRequest(a *metadata.Artefact) error {
-	url := a.CurrentDownload.URL
-
-	// FIXME: using PyPI URLs as placeholders
-	re := regexp.MustCompile(`^https://pypi.org:443/simple/([\w-]+)/$`)
-
-	m := re.FindStringSubmatch(url)
+	m := indexRequestURL.FindStringSubmatch(a.CurrentDownload.URL)
 	if len(m) > 1 {
-		a.SetRequestOpinion(ins.ID(), opinions.Pending, "URL matches expression '%s'", re)
-		ins.Name = m[1]
+		a.SetRequestOpinion(ins.ID(), opinions.Pending, "request matches valid URL").Annotate(
+			metadata.Annotation{
+				"match":        indexRequestURL,
+				"package-name": m[1],
+			},
+		)
 		return nil
 	}
 
@@ -62,19 +64,24 @@ func (ins *SimpleIndexInspector) InspectRequest(a *metadata.Artefact) error {
 }
 
 func (ins *SimpleIndexInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
+	pkgName, ok := a.RequestStringAnnotation(ins, "package-name")
+	if !ok {
+		return nil
+	}
+
 	content_type := a.CurrentDownload.ContentType
 
 	switch {
 	case a.MimeType.Is("text/html"):
-		return parseHtmlIndex(ins, f, a)
+		return parseHtmlIndex(ins, f, a, pkgName)
 	case a.MimeType.Is("application/json") && content_type == "application/vnd.pypi.simple.v1+json":
-		return parseJsonIndex(ins, f, a)
+		return parseJsonIndex(ins, f, a, pkgName)
 	default:
 		return nil
 	}
 }
 
-func parseHtmlIndex(ins *SimpleIndexInspector, f ReadAtSeeker, a *metadata.Artefact) error {
+func parseHtmlIndex(ins *SimpleIndexInspector, f ReadAtSeeker, a *metadata.Artefact, pkgName string) error {
 	md := &a.Metadata
 
 	z := html.NewTokenizer(f)
@@ -98,10 +105,10 @@ func parseHtmlIndex(ins *SimpleIndexInspector, f ReadAtSeeker, a *metadata.Artef
 						return err
 					}
 
-					md.Name = fmt.Sprintf("Simple index for '%s'", ins.Name)
+					md.Name = fmt.Sprintf("Simple index for '%s'", pkgName)
 					md.Version = md.Sha1.String()[:7]
 					md.Description = fmt.Sprintf(
-						"PyPI repository index HTML file for package '%s'", ins.Name)
+						"PyPI repository index HTML file for package '%s'", pkgName)
 
 					var host = u.Host
 					if vidx := strings.IndexByte(host, ':'); vidx > 0 {
@@ -139,7 +146,7 @@ func extractMetaProperty(t html.Token, name string) (content string, ok bool) {
 	return
 }
 
-func parseJsonIndex(ins *SimpleIndexInspector, f ReadAtSeeker, a *metadata.Artefact) error {
+func parseJsonIndex(ins *SimpleIndexInspector, f ReadAtSeeker, a *metadata.Artefact, pkgName string) error {
 	// FIXME: add better format verification, e.g. check schema
 
 	md := &a.Metadata
@@ -149,10 +156,10 @@ func parseJsonIndex(ins *SimpleIndexInspector, f ReadAtSeeker, a *metadata.Artef
 		return err
 	}
 
-	md.Name = fmt.Sprintf("JSON index for '%s'", ins.Name)
+	md.Name = fmt.Sprintf("JSON index for '%s'", pkgName)
 	md.Version = "v1+json"
 	md.Description = fmt.Sprintf(
-		"PyPI repository index JSON file for package '%s'", ins.Name)
+		"PyPI repository index JSON file for package '%s'", pkgName)
 
 	var host = u.Host
 	if vidx := strings.IndexByte(host, ':'); vidx > 0 {

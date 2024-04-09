@@ -84,6 +84,10 @@ func (s *simpleIndexSuite) TestInspectRequest(c *C) {
 			c.Assert(insp.Opinion, Equals, opinions.Pending)
 		}
 		c.Assert(ins.Name, Equals, tc.name)
+
+		if tc.name != "" {
+			c.Assert(a.RequestInspection["pip.simple-index"].Annotations["package-name"], Equals, tc.name)
+		}
 	}
 }
 
@@ -92,6 +96,7 @@ func (s *simpleIndexSuite) TestInspectArtefactBadType(c *C) {
 	a := metadata.NewArtefact()
 	a.Metadata.Type = "text/plain"
 	a.MimeType = mimetype.Lookup("text/plain")
+	a.CurrentDownload.URL = "https://pypi.org:443/simple/foo/"
 
 	err := ins.InspectArtefact(nil, a)
 	c.Assert(err, IsNil)
@@ -109,6 +114,7 @@ func (s *simpleIndexSuite) TestWheelInspectArtefactBadContent(c *C) {
 	a := metadata.NewArtefact()
 	a.Metadata.Type = "text/plain"
 	a.MimeType = mimetype.Lookup("text/plain")
+	a.CurrentDownload.URL = "https://pypi.org:443/simple/foo/"
 	a.SetRequestOpinion(ins.ID(), opinions.Pending, "test")
 
 	f, err := mmap.Open(filename)
@@ -129,23 +135,27 @@ func (s *simpleIndexSuite) TestWheelInspectArtefact(c *C) {
 		"<html>\n"+
 		"  <head>\n"+
 		`    <meta name="pypi:repository-version" content="1.1">\n`+
-		"    <title>Links for craft-parts</title>\n"+
+		"    <title>Links for foobar</title>\n"+
 		"  </head>\n"+
 		"  <body>\n"+
-		"    <h1>Links for test-package</h1>\n"+
+		"    <h1>Links for foobar</h1>\n"+
 		"  </body>\n"+
 		"</html>"), 0755)
 	c.Assert(err, IsNil)
 
 	ins := pip.NewSimpleIndexInspector()
-	ins.Name = "foobar"
 	h, _ := metadata.NewSha1Digest("85fc2d2a3764089191e57cd552601278a5985c46")
 
 	a := metadata.NewArtefact()
 	a.Metadata.Type = "text/html"
 	a.Metadata.Sha1 = h
 	a.MimeType = mimetype.Lookup("text/html")
-	a.CurrentDownload.URL = "https://pypi.org/simple/foobar"
+	a.CurrentDownload.URL = "https://pypi.org:443/simple/foobar/"
+	a.RequestInspection["pip.simple-index"] = &metadata.Inspection{
+		Opinion:     metadata.Pending,
+		Reason:      "some reason",
+		Annotations: metadata.Annotation{"package-name": "foobar"},
+	}
 
 	f, err := mmap.Open(filename)
 	c.Assert(err, IsNil)

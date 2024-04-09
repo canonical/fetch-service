@@ -26,4 +26,5 @@ var (
 	ListWheelFiles    = listWheelFiles
 	ReadWheelRecord   = readWheelRecord
 	ProcessOpinion    = processOpinion
+	NewWheelNotes     = newWheelNotes
 )
