@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,6 +21,7 @@ package service
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"gopkg.in/tomb.v2"
@@ -36,11 +37,12 @@ import (
 
 // Service implements the fetch service main loop.
 type Service struct {
-	p    *proxy.HttpProxy // proxy instance
-	ctl  *control.Server  // control server
-	ch   chan interface{} // channel to get feedback from handlers
-	opt  *Options         // configuration options
-	tomb tomb.Tomb        // service dispacher loop reaper
+	p     *proxy.HttpProxy // proxy instance
+	ctl   *control.Server  // control server
+	ch    chan interface{} // channel to get feedback from handlers
+	start time.Time        // service start time (UTC)
+	opt   *Options         // configuration options
+	tomb  tomb.Tomb        // service dispacher loop reaper
 }
 
 var proxyNewHttpProxy = proxy.NewHttpProxy
@@ -49,8 +51,9 @@ func New(opt *Options) *Service {
 	ch := make(chan interface{})
 	p := proxyNewHttpProxy(opt.ProxyPort, opt.Spool, ch)
 	ctl := control.NewServer(opt.ControlPort, ch)
+	start := time.Now().UTC()
 
-	return &Service{p: p, ctl: ctl, opt: opt, ch: ch}
+	return &Service{p: p, ctl: ctl, opt: opt, ch: ch, start: start}
 }
 
 // Start runs the fetch service dispatcher.
@@ -67,20 +70,25 @@ func (svc *Service) Start() error {
 			select {
 			case msg := <-svc.ch:
 				switch v := msg.(type) {
+				case messages.GetServiceStatus:
+					v.Rch <- messages.ServiceStatus{
+						Uptime:         uint64(time.Since(svc.start).Seconds()),
+						StartTime:      svc.start,
+						ActiveSessions: session.ListAll(),
+					}
+
 				case messages.RequestInspection:
 					sessionId := v.A.SessionId
 
 					s := session.GetSession(sessionId)
 					if s == nil {
-						logger.Warningf("session %s is not active", sessionId)
+						v.Rch <- fmt.Errorf("cannot inspect request: session %s is not active", sessionId)
 						break
 					}
 
 					// Run request inspectors
 					go func(s *session.Session, a *metadata.Artefact) {
-						err := runRequestInspection(s, a)
-						s.AddArtefact(v.A) // Add metadata to session
-						v.Rch <- err
+						v.Rch <- runRequestInspection(s, a)
 					}(s, v.A)
 
 				case messages.ResponseInspection:
@@ -89,7 +97,7 @@ func (svc *Service) Start() error {
 
 					s := session.GetSession(sessionId)
 					if s == nil {
-						logger.Warningf("session %s is not active", sessionId)
+						v.Rch <- fmt.Errorf("cannot inspect response: session %s is not active", sessionId)
 						break
 					}
 
@@ -100,6 +108,7 @@ func (svc *Service) Start() error {
 					if s.HasArtefact(digest) {
 						logger.Infof("artefact %s already downloaded", digest)
 						s.AddDownload(v.A.CurrentDownload)
+						os.Remove(v.A.Tempfile)
 						v.Rch <- nil
 						break
 					}
@@ -135,27 +144,76 @@ func (svc *Service) Start() error {
 					if v.Timeout > 0 {
 						s.Timeout = time.Duration(v.Timeout * uint64(time.Second))
 					}
-					v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Pw}
+					v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Token}
+
+				case messages.RevokeToken:
+					sessionId := v.Id
+					s := session.GetSession(sessionId)
+					if s == nil {
+						v.Rch <- messages.RevokeTokenResult{
+							Err: messages.ErrSessionNotFound,
+						}
+						break
+					}
+
+					s.Revoke()
+
+					v.Rch <- messages.RevokeTokenResult{
+						SessionId: s.Id,
+						StartTime: s.Start.String(),
+						EndTime:   s.End.String(),
+						SpoolPath: svc.opt.Spool,
+					}
+
+				case messages.SessionReport:
+					sessionId := v.Id
+					s := session.GetSession(sessionId)
+					if s == nil {
+						v.Rch <- messages.SessionReportResult{
+							SessionMetadata: &metadata.SessionMetadata{Err: messages.ErrSessionNotFound},
+							Artefacts:       []*metadata.Artefact{},
+							Err:             messages.ErrSessionNotFound,
+						}
+						break
+					}
+
+					if !s.IsRevoked() {
+						err := fmt.Errorf("cannot get session report: session %s token was not revoked", sessionId)
+						v.Rch <- messages.SessionReportResult{
+							SessionMetadata: &metadata.SessionMetadata{Err: err},
+							Artefacts:       []*metadata.Artefact{},
+							Err:             messages.ErrSessionActive,
+						}
+						break
+					}
+
+					v.Rch <- messages.SessionReportResult{
+						SessionMetadata: s.Metadata(),
+						Artefacts:       s.Artefacts(),
+					}
 
 				case messages.EndSession:
 					sessionId := v.Id
 					s := session.GetSession(sessionId)
 					if s == nil {
-						v.Rch <- messages.SessionResult{
-							SessionMetadata: &metadata.SessionMetadata{
-								Err: fmt.Errorf("cannot end session: session %s is not active", sessionId),
-							},
-							Artefacts: []*metadata.Artefact{},
-						}
+						v.Rch <- messages.ErrSessionNotFound
 						break
 					}
 
-					sm := s.Finish()
+					v.Rch <- s.Finish()
 
-					v.Rch <- messages.SessionResult{
-						SessionMetadata: sm,
-						Artefacts:       s.Artefacts(),
+				case messages.DeleteResources:
+					sessionId := v.Id
+					s := session.GetSession(sessionId)
+					if s != nil {
+						v.Rch <- messages.ErrSessionNotFinished
+						break
 					}
+
+					// Delete session resources
+					go func(spoolDir, sessionId string) {
+						v.Rch <- session.RemoveResources(spoolDir, sessionId)
+					}(svc.opt.Spool, sessionId)
 
 				case messages.ProxyAuth:
 					v.Rch <- session.CheckAuth(v.Id, v.Pw)

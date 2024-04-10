@@ -49,15 +49,17 @@ var (
 
 // Session has information about each authorized client.
 type Session struct {
-	Id         string
-	Pw         string
-	Start      time.Time
-	End        time.Time
+	Id         string    // the session ID
+	Token      string    // the session token
+	Start      time.Time // session start time
+	End        time.Time // session end time
 	Insps      inspectors.Inspectors
 	A          map[metadata.Sha256Digest]*metadata.Artefact
 	Permissive bool
 	SessionDir string
 	Timeout    time.Duration
+
+	revoked bool // session token has been revoked
 }
 
 var (
@@ -69,19 +71,15 @@ func New(spoolDir string, permissive bool) *Session {
 	sessionId := makeSessionId()
 	s := &Session{
 		Id:         sessionId,
-		Pw:         randomString(20),
+		Token:      randomString(20),
 		Start:      time.Now().UTC(),
 		A:          map[metadata.Sha256Digest]*metadata.Artefact{},
 		Permissive: permissive,
 		SessionDir: filepath.Join(spoolDir, sessionId),
+		Timeout:    DefaultSessionTimeout,
 	}
 
 	s.Insps = inspectors.New(permissive)
-
-	// FIXME: predictable values for testing convenience until the session
-	//        creation API is implemented.
-	s.Id = "6ba7b8109dad11d180b400c04fd430c8"
-	s.Pw = "1ItfzwGBeJ8wsJdP0Nlx"
 
 	var sType string
 	if permissive {
@@ -94,34 +92,46 @@ func New(spoolDir string, permissive bool) *Session {
 	return s
 }
 
-// Finish ends the session and saves metadata.
-func (s *Session) Finish() *metadata.SessionMetadata {
-	s.End = time.Now().UTC()
-
-	sm := &metadata.SessionMetadata{
+func (s *Session) Metadata() *metadata.SessionMetadata {
+	return &metadata.SessionMetadata{
 		SessionId:  s.Id,
 		StartTime:  s.Start,
 		EndTime:    s.End,
 		Inspectors: s.Insps.List(),
-		Err:        nil,
+		SpoolPath:  s.SessionDir,
 	}
+}
+
+// Finish ends the session and saves metadata.
+func (s *Session) Finish() error {
+	sm := s.Metadata()
 
 	for k := range s.A {
 		logger.Infof("save metadata for artefact %s", k)
 		if err := s.SaveMetadata(k); err != nil {
-			sm.Err = err
-			return sm
+			return err
 		}
 	}
 
 	if err := s.SaveSessionMetadata(sm); err != nil {
-		sm.Err = err
-		return sm
+		return err
 	}
 
 	s.Discard()
-	return sm
+	return nil
 
+}
+
+// Revoke revokes the session token.
+func (s *Session) Revoke() {
+	logger.Debugf("[%s] token revoked", s.Id)
+	s.revoked = true
+	s.End = time.Now().UTC()
+}
+
+// IsRevoked returns whether the session token has been revoked.
+func (s *Session) IsRevoked() bool {
+	return s.revoked
 }
 
 // SaveSessionMetadata adds session information to the file spool.
@@ -199,12 +209,14 @@ func (s *Session) SaveData(digest metadata.Sha256Digest) error {
 
 	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
 	if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
+		os.Remove(a.Tempfile)
 		return err
 	}
 
 	// Save file data only if it doesn't exist already
 	if _, err := os.Stat(dest); err != nil {
 		if os.IsNotExist(err) {
+			// Move temporary file to spool
 			if err := utils.MoveFile(a.Tempfile, dest); err != nil {
 				os.Remove(a.Tempfile)
 				return err
@@ -213,9 +225,11 @@ func (s *Session) SaveData(digest metadata.Sha256Digest) error {
 			os.Remove(a.Tempfile)
 			return err
 		}
+	} else {
+		// Remove temporary file if it already exists
+		os.Remove(a.Tempfile)
 	}
 
-	os.Remove(a.Tempfile)
 	return nil
 }
 
@@ -277,11 +291,16 @@ func CheckAuth(id string, pw string) bool {
 	if s == nil {
 		return false
 	}
-	return s.Pw == pw
+	if s.revoked {
+		return false
+	}
+	return s.Token == pw
 }
 
 // GetSession returns the session corresponding to the given session ID.
-func GetSession(id string) *Session {
+var GetSession = GetSessionImpl
+
+func GetSessionImpl(id string) *Session {
 	return sessions.Get(id)
 }
 
@@ -291,10 +310,36 @@ func FinishAll() {
 		id := key.(string)
 		s := value.(*Session)
 		logger.Infof("finishing session %s", id)
-		if sm := s.Finish(); sm.Err != nil {
-			logger.Errorf("%s", sm.Err)
+		if err := s.Finish(); err != nil {
+			logger.Errorf("%s", err)
 		}
 		return true
 	})
 	logger.Info("all sessions finished")
+}
+
+// ListAll lists all active session IDs.
+func ListAll() []metadata.SessionInfo {
+	res := make([]metadata.SessionInfo, 0, 100)
+	sessions.Range(func(key, value any) bool {
+		id := key.(string)
+		s := value.(*Session)
+
+		var policy string
+		if s.Permissive {
+			policy = "permissive"
+		} else {
+			policy = "strict"
+		}
+
+		res = append(res, metadata.SessionInfo{
+			SessionId: id,
+			StartTime: s.Start.String(),
+			Policy:    policy,
+			Age:       uint64(time.Since(s.Start).Seconds()),
+			Timeout:   uint64(s.Timeout.Seconds()),
+		})
+		return true
+	})
+	return res
 }
