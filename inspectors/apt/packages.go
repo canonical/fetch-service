@@ -33,6 +33,7 @@ import (
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
 // Component Packages.xz file
@@ -147,7 +148,7 @@ func (ins *AptPackagesInspector) InspectRequest(a *metadata.Artefact) error {
 
 	for _, re := range validReqs {
 		if re.MatchString(a.CurrentDownload.URL) {
-			a.Consider(ins, "URL matches expression '%s'", re)
+			a.SetRequestOpinion(ins.ID(), opinions.Pending, "URL matches expression '%s'", re)
 			return nil
 		}
 	}
@@ -215,7 +216,7 @@ func (ins *AptPackagesInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 		}
 	}
 
-	a.Approve(ins, "%d packages parsed", num)
+	a.SetResponseOpinion(ins.ID(), opinions.Approved, "%d packages parsed", num)
 
 	return nil
 }
@@ -247,11 +248,11 @@ func (ins *AptPackagesInspector) validateDebianPackage(f ReadAtSeeker, a *metada
 	if ok {
 		md := a.Metadata
 		if md.Name == e.Package && md.Version == e.Version && md.Architecture == e.Architecture && md.Size == e.Size {
-			a.Approve(ins, "deb file validated by packages file %s", digest)
+			a.SetResponseOpinion(ins.ID(), opinions.Approved, "deb file validated by packages file %s", digest)
 		} else {
-			a.Reject(ins, "deb file metadata does not match packages file %s", digest)
+			a.SetResponseOpinion(ins.ID(), opinions.Rejected, "deb file metadata does not match packages file %s", digest)
 		}
 	} else {
-		a.Reject(ins, "deb file digest not listed in packages file")
+		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "deb file digest not listed in packages file")
 	}
 }

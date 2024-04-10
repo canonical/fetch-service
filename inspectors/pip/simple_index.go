@@ -30,6 +30,7 @@ import (
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
 type SimpleIndexInspector struct {
@@ -52,7 +53,7 @@ func (ins *SimpleIndexInspector) InspectRequest(a *metadata.Artefact) error {
 
 	m := re.FindStringSubmatch(url)
 	if len(m) > 1 {
-		a.Consider(ins, "URL matches expression '%s'", re)
+		a.SetRequestOpinion(ins.ID(), opinions.Pending, "URL matches expression '%s'", re)
 		ins.Name = m[1]
 		return nil
 	}
@@ -110,7 +111,8 @@ func parseHtmlIndex(ins *SimpleIndexInspector, f ReadAtSeeker, a *metadata.Artef
 					md.Vendor = host
 					md.Author = host
 
-					a.Approve(ins, "document contains pypi repository version").Annotate(
+					a.SetResponseOpinion(ins.ID(), opinions.Approved,
+						"document contains pypi repository version").Annotate(
 						metadata.Annotation{
 							"format":             "HTML",
 							"repository-version": ver,
@@ -160,7 +162,7 @@ func parseJsonIndex(ins *SimpleIndexInspector, f ReadAtSeeker, a *metadata.Artef
 	md.Vendor = host
 	md.Author = host
 
-	a.Approve(ins, "content type is pip simple index").Annotate(
+	a.SetResponseOpinion(ins.ID(), opinions.Approved, "content type is pip simple index").Annotate(
 		metadata.Annotation{
 			"format":             "JSON",
 			"repository-version": "v1",

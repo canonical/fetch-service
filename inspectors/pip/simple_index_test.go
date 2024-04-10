@@ -32,6 +32,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
 type simpleIndexSuite struct{}
@@ -77,7 +78,11 @@ func (s *simpleIndexSuite) TestInspectRequest(c *C) {
 		err := ins.InspectRequest(a)
 		c.Assert(err, IsNil)
 
-		c.Assert(a.ConsideredBy(ins.ID()), Equals, tc.approved)
+		insp, ok := a.RequestInspection[ins.ID()]
+		c.Assert(ok, Equals, tc.approved)
+		if tc.approved {
+			c.Assert(insp.Opinion, Equals, opinions.Pending)
+		}
 		c.Assert(ins.Name, Equals, tc.name)
 	}
 }
@@ -104,7 +109,7 @@ func (s *simpleIndexSuite) TestWheelInspectArtefactBadContent(c *C) {
 	a := metadata.NewArtefact()
 	a.Metadata.Type = "text/plain"
 	a.MimeType = mimetype.Lookup("text/plain")
-	a.Consider(ins, "test")
+	a.SetRequestOpinion(ins.ID(), opinions.Pending, "test")
 
 	f, err := mmap.Open(filename)
 	c.Assert(err, IsNil)

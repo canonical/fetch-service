@@ -34,6 +34,7 @@ import (
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/opinions"
 	"github.com/canonical/fetch-service/utils"
 )
 
@@ -91,7 +92,7 @@ func (ins *WheelInspector) extraFileFault(name string) {
 // InspectRequest verifies if the request complies with policy.
 func (ins WheelInspector) InspectRequest(a *metadata.Artefact) error {
 	if reRequestURL.MatchString(a.CurrentDownload.URL) {
-		a.Consider(ins, "URL matches expression '%s'", reRequestURL)
+		a.SetRequestOpinion(ins.ID(), opinions.Pending, "URL matches expression '%s'", reRequestURL)
 	}
 
 	return nil // we don't recognize this request
@@ -128,7 +129,7 @@ func processOpinion(ins *WheelInspector, a *metadata.Artefact) {
 	// Reject if required files not found
 	if len(ins.requirementFaults) > 0 {
 		ins.notes.Add("faults", ins.requirementFaults)
-		a.Reject(ins, "wheel file requirements not met").Annotate(ins.notes)
+		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "wheel file requirements not met").Annotate(ins.notes)
 		return
 	}
 
@@ -143,11 +144,12 @@ func processOpinion(ins *WheelInspector, a *metadata.Artefact) {
 		if len(ins.extraFiles) > 0 {
 			ins.notes.Add("extra-files", ins.extraFiles)
 		}
-		a.Reject(ins, "wheel file parsed but failed integrity verification").Annotate(ins.notes)
+		a.SetResponseOpinion(ins.ID(), opinions.Rejected,
+			"wheel file parsed but failed integrity verification").Annotate(ins.notes)
 		return
 	}
 
-	a.Approve(ins, "wheel file successfully parsed").Annotate(ins.notes)
+	a.SetResponseOpinion(ins.ID(), opinions.Approved, "wheel file successfully parsed").Annotate(ins.notes)
 }
 
 // readWheelMetadata reads the wheel's METADATA file.

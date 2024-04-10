@@ -170,9 +170,6 @@ func (h *LocalDownloadHandler) Read(b []byte) (n int, err error) {
 func (h *LocalDownloadHandler) Close() error {
 	res := h.body.Close()
 
-	mver := fmt.Sprintf("%d.%d", metadata.MetadataVersionMajor, metadata.MetadataVersionMinor)
-	h.a.Metadata.MetadataVersion = mver
-
 	h.a.Metadata.Size = h.size
 	h.a.Metadata.Sha1 = *(*metadata.Sha1Digest)(h.sha1.Sum(nil))
 	h.a.Metadata.Sha256 = *(*metadata.Sha256Digest)(h.sha256.Sum(nil))

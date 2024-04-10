@@ -29,6 +29,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/opinions"
 	"github.com/canonical/fetch-service/session"
 )
 
@@ -54,11 +55,10 @@ func (t *inspectorsSuite) TestRunRequestInspectors(c *C) {
 
 	err := s.Insps.RunRequestInspectors(a)
 	c.Assert(err, IsNil)
-	c.Assert(a.RequestInspection, DeepEquals, metadata.InspectionMap{
-		"default": &metadata.Inspection{
-			Opinion: metadata.Unknown,
-			Reason:  "the request was not recognized by any format inspector",
-		},
+	c.Assert(len(a.RequestInspection), Equals, 1)
+	c.Assert(a.RequestInspection["default"], DeepEquals, &metadata.Inspection{
+		Opinion: opinions.Unknown,
+		Reason:  "the request was not recognized by any format inspector",
 	})
 }
 
@@ -70,11 +70,10 @@ func (t *inspectorsSuite) TestRunRequestInspectorsPermissive(c *C) {
 
 	err := s.Insps.RunRequestInspectors(a)
 	c.Assert(err, IsNil)
-	c.Assert(a.RequestInspection, DeepEquals, metadata.InspectionMap{
-		"default": &metadata.Inspection{
-			Opinion: metadata.Unknown,
-			Reason:  "the request was not recognized by any format inspector",
-		},
+	c.Assert(len(a.RequestInspection), Equals, 1)
+	c.Assert(a.RequestInspection["default"], DeepEquals, &metadata.Inspection{
+		Opinion: opinions.Unknown,
+		Reason:  "the request was not recognized by any format inspector",
 	})
 }
 
@@ -95,15 +94,13 @@ func (t *inspectorsSuite) TestRunArtefactInspectors(c *C) {
 
 	err = s.Insps.RunArtefactInspectors(dir, a)
 	c.Assert(err, Equals, nil)
-	c.Assert(a.Rejected(), Equals, true)
 	c.Assert(a.Metadata.Type, Equals, "text/plain; charset=utf-8")
-	c.Assert(a.ResponseInspection, DeepEquals, metadata.InspectionMap{
-		"default": &metadata.Inspection{
-			Opinion: metadata.Unknown,
-			Reason:  "the artefact format is unknown",
-		},
+	c.Assert(len(a.ResponseInspection), Equals, 1)
+	c.Assert(a.ResponseInspection["default"], DeepEquals, &metadata.Inspection{
+		Opinion: opinions.Unknown,
+		Reason:  "the artefact format is unknown",
 	})
-	c.Assert(a.State, Equals, metadata.InspectionState("Rejected"))
+	c.Assert(a.Rejected(), Equals, true)
 }
 
 func (t *inspectorsSuite) TestRunArtefactInspectorsPermissive(c *C) {
@@ -116,6 +113,7 @@ func (t *inspectorsSuite) TestRunArtefactInspectorsPermissive(c *C) {
 	a := metadata.NewArtefact()
 	a.CurrentDownload.ContentType = "text/plain"
 	a.CurrentDownload.Sha256 = h
+	a.CurrentDownload.URL = "http://some.url"
 	a.Metadata.Sha256 = h
 
 	s := session.New(dir, true)
@@ -124,11 +122,10 @@ func (t *inspectorsSuite) TestRunArtefactInspectorsPermissive(c *C) {
 	err = s.Insps.RunArtefactInspectors(dir, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Metadata.Type, Equals, "text/plain; charset=utf-8")
-	c.Assert(a.ResponseInspection, DeepEquals, metadata.InspectionMap{
-		"default": &metadata.Inspection{
-			Opinion: metadata.Unknown,
-			Reason:  "the artefact format is unknown",
-		},
+	c.Assert(len(a.ResponseInspection), Equals, 1)
+	c.Assert(a.ResponseInspection["default"], DeepEquals, &metadata.Inspection{
+		Opinion: opinions.Unknown,
+		Reason:  "the artefact format is unknown",
 	})
-	c.Assert(a.State, Equals, metadata.InspectionState("Rejected"))
+	c.Assert(a.Rejected(), Equals, true)
 }

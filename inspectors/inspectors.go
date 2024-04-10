@@ -34,6 +34,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/pip"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
 func init() {
@@ -97,19 +98,15 @@ func New(permissive bool) Inspectors {
 
 // RunRequestInspectors determine whether the HTTP request is valid.
 func (insps Inspectors) RunRequestInspectors(a *metadata.Artefact) error {
-	a.State = metadata.RequestState
-
 	logger.Debugf("Inspect request: %s", a.CurrentDownload.URL)
 	for _, id := range insps.ids {
 		ins := insps.insmap[id]
 		logger.Debugf("run request inspector: %s", ins.ID())
 		if err := ins.InspectRequest(a); err != nil {
+			a.SetRequestOpinion(ins.ID(), opinions.Rejected, "error inspecting request").Annotate(
+				metadata.Annotation{"error-message": err.Error()})
 			return err
 		}
-	}
-
-	if a.Rejected() {
-		a.State = metadata.RejectedState
 	}
 
 	return nil
@@ -117,8 +114,6 @@ func (insps Inspectors) RunRequestInspectors(a *metadata.Artefact) error {
 
 // RunArtefactInspectors examines the artefact in the given assets directory.
 func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) error {
-	a.State = metadata.ResponseState
-
 	// detect file type
 	filename := filepath.Join(dir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
 	logger.Debugf("run artefact inspectors on %s", filename)
@@ -149,7 +144,7 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 		// (the default inspector always runs)
 		if !insps.permissive && id != "default" {
 			reqin, ok := a.RequestInspection[id]
-			if !ok || reqin.Opinion != metadata.Pending {
+			if !ok || reqin.Opinion != opinions.Pending {
 				continue
 			}
 		}
@@ -160,24 +155,19 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 			return err
 		}
 		if err := ins.InspectArtefact(f, a); err != nil {
-			a.Reject(ins, err.Error())
+			a.SetResponseOpinion(ins.ID(), opinions.Rejected, "error inspecting artefact").Annotate(
+				metadata.Annotation{"error-message": err.Error()})
 			return err
 		}
-	}
-
-	if a.Approved() {
-		a.State = metadata.ApprovedState
-	} else {
-		a.State = metadata.RejectedState
 	}
 
 	return nil
 }
 
-func (insps Inspectors) GetInspector(name string) (Inspector, error) {
-	ins, ok := insps.insmap[name]
+func (insps Inspectors) GetInspector(id string) (Inspector, error) {
+	ins, ok := insps.insmap[id]
 	if !ok {
-		return nil, fmt.Errorf("inspector '%s' not registered", name)
+		return nil, fmt.Errorf("inspector '%s' not registered", id)
 	}
 
 	return ins, nil
@@ -188,7 +178,7 @@ func (insps Inspectors) List() []string {
 	return insps.ids
 }
 
-// DefaultInspector is a fallback inspector for unknown requests or artefacts
+// DefaultInspector is a fallback inspector for unknown requests or artefacts.
 type DefaultInspector struct {
 }
 
@@ -197,15 +187,15 @@ func (ins DefaultInspector) ID() string {
 }
 
 func (ins DefaultInspector) InspectRequest(a *metadata.Artefact) error {
-	if !a.Pending() {
-		a.Comment(ins, "the request was not recognized by any format inspector")
+	if len(a.RequestInspection) == 0 {
+		a.SetRequestOpinion(ins.ID(), opinions.Unknown, "the request was not recognized by any format inspector")
 	}
 	return nil
 }
 
 func (ins DefaultInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
-	if a.Unknown() {
-		a.Comment(ins, "the artefact format is unknown")
+	if len(a.ResponseInspection) == 0 {
+		a.SetResponseOpinion(ins.ID(), opinions.Unknown, "the artefact format is unknown")
 	}
 	return nil
 }

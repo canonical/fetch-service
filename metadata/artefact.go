@@ -20,53 +20,14 @@
 package metadata
 
 import (
-	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/gabriel-vasile/mimetype"
 
 	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/metadata/opinions"
 )
-
-type OpinionKind int
-
-const (
-	Unknown OpinionKind = iota
-	Rejected
-	Approved
-	Pending
-)
-
-func (t OpinionKind) MarshalJSON() ([]byte, error) {
-	switch t {
-	case Unknown:
-		return []byte(`"Unknown"`), nil
-	case Rejected:
-		return []byte(`"Rejected"`), nil
-	case Approved:
-		return []byte(`"Approved"`), nil
-	case Pending:
-		return []byte(`"Pending"`), nil
-	default:
-		return nil, errors.New("invalid opinion kind")
-	}
-}
-
-func (t *OpinionKind) UnmarshalJSON(data []byte) error {
-	switch string(data) {
-	case `"Unknown"`:
-		*t = Unknown
-		return nil
-	case `"Rejected"`:
-		*t = Rejected
-		return nil
-	case `"Approved"`:
-		*t = Approved
-		return nil
-	default:
-		return errors.New("invalid opinion kind")
-	}
-}
 
 // Inspection
 
@@ -93,9 +54,9 @@ func (ann Annotation) Append(more Annotation) {
 }
 
 type Inspection struct {
-	Opinion     OpinionKind `json:"opinion"`
-	Reason      string      `json:"reason"`
-	Annotations Annotation  `json:"annotations,omitempty"`
+	Opinion     opinions.OpinionKind `json:"opinion"`
+	Reason      string               `json:"reason"`
+	Annotations Annotation           `json:"annotations,omitempty"`
 }
 
 func (in *Inspection) Annotate(a Annotation) {
@@ -111,142 +72,120 @@ type InspectionMap map[string]*Inspection
 
 // Artefact
 
+const (
+	MetadataVersionMajor = 0 // Updated when incompatible changes are made
+	MetadataVersionMinor = 1 // Existing fields not changed, may contain additional fields
+)
+
 type Artefact struct {
-	RequestInspection  InspectionMap   `json:"request-inspection"`  // Opinions from request inspection
-	ResponseInspection InspectionMap   `json:"response-inspection"` // Opinions from result and artefact inspection
-	State              InspectionState `json:"result"`              // Final inspection result
-	Metadata           Metadata        `json:"metadata"`            // Artefact metadata
-	Downloads          []Download      `json:"downloads"`           // Information about artefact downloads
-	CurrentDownload    Download        `json:"-"`                   // Information about the current download
-	AssetDir           string          `json:"-"`                   // Location to store files and metadata
-	Tempfile           string          `json:"-"`                   // Path to temporary file containing downloaded data
-	SessionId          string          `json:"-"`                   // The current session ID
-	MimeType           *mimetype.MIME  `json:"-"`                   // The artefact MIME type
+	MetadataVersion    string               `json:"metadata-version"`    // Metadata version in X.Y format
+	RequestInspection  InspectionMap        `json:"request-inspection"`  // Opinions from request inspection
+	ResponseInspection InspectionMap        `json:"response-inspection"` // Opinions from result and artefact inspection
+	Result             opinions.OpinionKind `json:"result"`              // Inspection result
+	Metadata           Metadata             `json:"metadata"`            // Artefact metadata
+	Downloads          []Download           `json:"downloads"`           // Information about artefact downloads
+	CurrentDownload    Download             `json:"-"`                   // Information about the current download
+	AssetDir           string               `json:"-"`                   // Location to store files and metadata
+	Tempfile           string               `json:"-"`                   // Path to temporary file containing downloaded data
+	SessionId          string               `json:"-"`                   // The current session ID
+	MimeType           *mimetype.MIME       `json:"-"`                   // The artefact MIME type
+	Request            *http.Request        `json:"-"`                   // request handle for body content inspection
 }
 
 func NewArtefact() *Artefact {
 	return &Artefact{
+		MetadataVersion:    fmt.Sprintf("%d.%d", MetadataVersionMajor, MetadataVersionMinor),
 		RequestInspection:  InspectionMap{},
 		ResponseInspection: InspectionMap{},
-		State:              InitialState,
 		Metadata:           Metadata{},
 		Downloads:          []Download{},
 		CurrentDownload:    Download{},
 	}
 }
 
-type Identifiable interface {
-	ID() string
-}
-
-func (a *Artefact) ConsideredBy(name string) bool {
-	in, ok := a.RequestInspection[name]
-	return ok && in.Opinion == Pending
-}
-
-func (a *Artefact) Consider(id Identifiable, reason string, args ...any) *Inspection {
-	logger.Infof("request authorized by inspector %q", id.ID())
-	in := &Inspection{
-		Opinion: Pending,
-		Reason:  fmt.Sprintf(reason, args...),
+// SetResponseOpinion adds the inspector's opinion to the artefact's
+// request inspection map.
+func (a *Artefact) SetRequestOpinion(id string, op opinions.OpinionKind, reason string, args ...any) *Inspection {
+	// Valid request opinions are Unknown, Rejected and Pending
+	if op != opinions.Unknown && op != opinions.Rejected && op != opinions.Pending {
+		logger.Fatalf("%s: cannot set request opinion to %v, rejecting", id, op)
+		op = opinions.Rejected
 	}
 
-	a.RequestInspection[id.ID()] = in
+	logger.Infof("%s: request opinion set to %v", id, op)
+	in := &Inspection{
+		Opinion: op,
+		Reason:  fmt.Sprintf(reason, args...),
+	}
+	a.RequestInspection[id] = in
 
 	return in
 }
 
-func (a *Artefact) Comment(id Identifiable, reason string, args ...any) *Inspection {
+// SetResponseOpinion adds the inspector's opinion to the artefact's
+// response inspection map.
+func (a *Artefact) SetResponseOpinion(id string, op opinions.OpinionKind, reason string, args ...any) *Inspection {
+	// Valid response opinions are Unknown, Rejected and Approved
+	if op != opinions.Unknown && op != opinions.Rejected && op != opinions.Approved {
+		logger.Errorf("%s: cannot set response opinion to %v, rejecting", id, op)
+		op = opinions.Rejected
+	}
+
+	logger.Infof("%s: response opinion set to %v", id, op)
 	in := &Inspection{
-		Opinion: Unknown,
+		Opinion: op,
 		Reason:  fmt.Sprintf(reason, args...),
 	}
-
-	if a.State == RequestState {
-		a.RequestInspection[id.ID()] = in
-	} else {
-		a.ResponseInspection[id.ID()] = in
-	}
-
-	return in
-}
-
-func (a *Artefact) Reject(id Identifiable, reason string, args ...any) *Inspection {
-	in := &Inspection{
-		Opinion: Rejected,
-		Reason:  fmt.Sprintf(reason, args...),
-	}
-
-	if a.State == RequestState {
-		a.RequestInspection[id.ID()] = in
-	} else {
-		a.ResponseInspection[id.ID()] = in
-	}
+	a.ResponseInspection[id] = in
 
 	return in
 
 }
 
-func (a *Artefact) Approve(id Identifiable, reason string, args ...any) *Inspection {
-	in := &Inspection{
-		Opinion: Approved,
-		Reason:  fmt.Sprintf(reason, args...),
+// RequestRejected returns true when the artefact was rejected
+// during request inspection.
+func (a *Artefact) RequestRejected() bool {
+	for _, in := range a.RequestInspection {
+		if in.Opinion == opinions.Rejected {
+			return true
+		}
 	}
-
-	a.ResponseInspection[id.ID()] = in
-
-	return in
+	return false
 }
 
-func (a *Artefact) Pending() bool {
-	// An artefact can only be pending during request.
-	if a.State != RequestState {
+// RequestPending returns true when the artefact was not rejected
+// during request inspection and there's at least one opinion pending.
+func (a *Artefact) RequestPending() bool {
+	res := false
+	for _, in := range a.RequestInspection {
+		if in.Opinion == opinions.Rejected {
+			return false
+		}
+		if in.Opinion == opinions.Pending {
+			res = true
+		}
+	}
+	return res
+}
+
+// Approved returns true when there's at least one approval opinion
+// and no rejections in the response inspection.
+func (a *Artefact) Approved() bool {
+	if a.RequestRejected() {
 		return false
 	}
 	res := false
-	for _, in := range a.RequestInspection {
-		if in.Opinion == Rejected {
-			return false
-		} else if in.Opinion == Pending {
-			res = true
-		}
-	}
-	return res
-}
-
-func (a *Artefact) Approved() bool {
-	// An artefact is approved if there's at least one approval opinion
-	// and no rejections in the response inspection.
-	res := false
 	for _, in := range a.ResponseInspection {
-		if in.Opinion == Rejected {
+		if in.Opinion == opinions.Rejected {
 			return false
-		} else if in.Opinion == Approved {
+		} else if in.Opinion == opinions.Approved {
 			res = true
 		}
 	}
 	return res
 }
 
+// Rejected returns the opposite of Approved.
 func (a *Artefact) Rejected() bool {
-	// Otherwise it's rejected
-	return !a.Pending() && !a.Approved()
-}
-
-func (a *Artefact) Unknown() bool {
-	// The artefact has no approval or rejection opinions.
-	if a.State == RequestState {
-		for _, in := range a.RequestInspection {
-			if in.Opinion != Unknown {
-				return false
-			}
-		}
-		return true
-	}
-	for _, in := range a.ResponseInspection {
-		if in.Opinion != Unknown {
-			return false
-		}
-	}
-	return true
+	return !a.Approved()
 }

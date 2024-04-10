@@ -25,21 +25,23 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/inspectors"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
 func (t *metadataSuite) TestOpinionKindMarshal(c *C) {
 	var kind struct {
-		K metadata.OpinionKind `json:"k"`
+		K opinions.OpinionKind `json:"k"`
 	}
 
 	for _, tc := range []struct {
-		kind metadata.OpinionKind
+		kind opinions.OpinionKind
 		res  string
 	}{
-		{metadata.Approved, "Approved"},
-		{metadata.Rejected, "Rejected"},
-		{metadata.Unknown, "Unknown"},
+		{opinions.Approved, "Approved"},
+		{opinions.Rejected, "Rejected"},
+		{opinions.Unknown, "Unknown"},
 	} {
 
 		kind.K = tc.kind
@@ -52,16 +54,16 @@ func (t *metadataSuite) TestOpinionKindMarshal(c *C) {
 
 func (t *metadataSuite) TestOpinionKindUnmarshal(c *C) {
 	var kind struct {
-		K metadata.OpinionKind `json:"k"`
+		K opinions.OpinionKind `json:"k"`
 	}
 
 	for _, tc := range []struct {
 		kind string
-		res  metadata.OpinionKind
+		res  opinions.OpinionKind
 	}{
-		{"Approved", metadata.Approved},
-		{"Rejected", metadata.Rejected},
-		{"Unknown", metadata.Unknown},
+		{"Approved", opinions.Approved},
+		{"Rejected", opinions.Rejected},
+		{"Unknown", opinions.Unknown},
 	} {
 		data := []byte(fmt.Sprintf(`{"k":"%s"}`, tc.kind))
 
@@ -73,21 +75,20 @@ func (t *metadataSuite) TestOpinionKindUnmarshal(c *C) {
 
 func (t *metadataSuite) TestRequestOpinions(c *C) {
 	for _, tc := range []struct {
-		opinions []metadata.OpinionKind
+		opinions []opinions.OpinionKind
 		rejected bool
 		pending  bool
 	}{
-		{[]metadata.OpinionKind{}, true, false},
-		{[]metadata.OpinionKind{metadata.Unknown}, true, false},
-		{[]metadata.OpinionKind{metadata.Rejected}, true, false},
-		{[]metadata.OpinionKind{metadata.Pending}, false, true},
-		{[]metadata.OpinionKind{metadata.Unknown, metadata.Unknown, metadata.Unknown}, true, false},
-		{[]metadata.OpinionKind{metadata.Unknown, metadata.Pending, metadata.Unknown}, false, true},
-		{[]metadata.OpinionKind{metadata.Unknown, metadata.Unknown, metadata.Rejected}, true, false},
-		{[]metadata.OpinionKind{metadata.Pending, metadata.Rejected, metadata.Unknown}, true, false},
+		{[]opinions.OpinionKind{}, false, false},
+		{[]opinions.OpinionKind{opinions.Unknown}, false, false},
+		{[]opinions.OpinionKind{opinions.Rejected}, true, false},
+		{[]opinions.OpinionKind{opinions.Pending}, false, true},
+		{[]opinions.OpinionKind{opinions.Unknown, opinions.Unknown, opinions.Unknown}, false, false},
+		{[]opinions.OpinionKind{opinions.Unknown, opinions.Pending, opinions.Unknown}, false, true},
+		{[]opinions.OpinionKind{opinions.Unknown, opinions.Unknown, opinions.Rejected}, true, false},
+		{[]opinions.OpinionKind{opinions.Pending, opinions.Rejected, opinions.Unknown}, true, false},
 	} {
 		a := metadata.NewArtefact()
-		a.State = metadata.RequestState
 
 		for i, o := range tc.opinions {
 			id := fmt.Sprintf("insp%d", i)
@@ -95,36 +96,78 @@ func (t *metadataSuite) TestRequestOpinions(c *C) {
 		}
 
 		c.Assert(a.Approved(), Equals, false)
-		c.Assert(a.Rejected(), Equals, tc.rejected)
-		c.Assert(a.Pending(), Equals, tc.pending)
+		c.Assert(a.RequestRejected(), Equals, tc.rejected)
+		c.Assert(a.RequestPending(), Equals, tc.pending)
 	}
 }
 
 func (t *metadataSuite) TestResponseOpinions(c *C) {
 	for _, tc := range []struct {
-		opinions []metadata.OpinionKind
+		opinions []opinions.OpinionKind
 		rejected bool
 		approved bool
 	}{
-		{[]metadata.OpinionKind{}, true, false},
-		{[]metadata.OpinionKind{metadata.Unknown}, true, false},
-		{[]metadata.OpinionKind{metadata.Rejected}, true, false},
-		{[]metadata.OpinionKind{metadata.Approved}, false, true},
-		{[]metadata.OpinionKind{metadata.Unknown, metadata.Unknown, metadata.Unknown}, true, false},
-		{[]metadata.OpinionKind{metadata.Unknown, metadata.Approved, metadata.Unknown}, false, true},
-		{[]metadata.OpinionKind{metadata.Unknown, metadata.Unknown, metadata.Rejected}, true, false},
-		{[]metadata.OpinionKind{metadata.Approved, metadata.Rejected, metadata.Unknown}, true, false},
+		{[]opinions.OpinionKind{}, true, false},
+		{[]opinions.OpinionKind{opinions.Unknown}, true, false},
+		{[]opinions.OpinionKind{opinions.Rejected}, true, false},
+		{[]opinions.OpinionKind{opinions.Approved}, false, true},
+		{[]opinions.OpinionKind{opinions.Unknown, opinions.Unknown, opinions.Unknown}, true, false},
+		{[]opinions.OpinionKind{opinions.Unknown, opinions.Approved, opinions.Unknown}, false, true},
+		{[]opinions.OpinionKind{opinions.Unknown, opinions.Unknown, opinions.Rejected}, true, false},
+		{[]opinions.OpinionKind{opinions.Approved, opinions.Rejected, opinions.Unknown}, true, false},
 	} {
 		a := metadata.NewArtefact()
-		a.State = metadata.ResponseState
 
 		for i, o := range tc.opinions {
 			id := fmt.Sprintf("insp%d", i)
 			a.ResponseInspection[id] = &metadata.Inspection{Opinion: o}
 		}
 
-		c.Assert(a.Pending(), Equals, false)
 		c.Assert(a.Rejected(), Equals, tc.rejected)
 		c.Assert(a.Approved(), Equals, tc.approved)
+	}
+}
+
+func (t *metadataSuite) TestSetRequestOpinion(c *C) {
+	for _, tc := range []struct {
+		op          opinions.OpinionKind
+		effectiveOp opinions.OpinionKind
+	}{
+		{opinions.Unknown, opinions.Unknown},
+		{opinions.Pending, opinions.Pending},
+		{opinions.Rejected, opinions.Rejected},
+		{opinions.Approved, opinions.Rejected}, // can't approve during request inspection
+	} {
+		a := metadata.NewArtefact()
+		a.SetRequestOpinion(inspectors.DefaultInspector{}.ID(), tc.op, "testing %d", 1).Annotate(
+			metadata.Annotation{"foo": "bar"},
+		)
+		c.Assert(*a.RequestInspection["default"], DeepEquals, metadata.Inspection{
+			Opinion:     tc.effectiveOp,
+			Reason:      "testing 1",
+			Annotations: metadata.Annotation{"foo": "bar"},
+		})
+	}
+}
+
+func (t *metadataSuite) TestSetResponseOpinion(c *C) {
+	for _, tc := range []struct {
+		op          opinions.OpinionKind
+		effectiveOp opinions.OpinionKind
+	}{
+		{opinions.Unknown, opinions.Unknown},
+		{opinions.Pending, opinions.Rejected}, // can't set opinion to pending in response inspection
+		{opinions.Rejected, opinions.Rejected},
+		{opinions.Approved, opinions.Approved},
+	} {
+		a := metadata.NewArtefact()
+		a.SetResponseOpinion(inspectors.DefaultInspector{}.ID(), tc.op, "testing %d", 1).Annotate(
+			metadata.Annotation{"foo": "bar"},
+		)
+		c.Assert(*a.ResponseInspection["default"], DeepEquals, metadata.Inspection{
+			Opinion:     tc.effectiveOp,
+			Reason:      "testing 1",
+			Annotations: metadata.Annotation{"foo": "bar"},
+		})
 	}
 }
