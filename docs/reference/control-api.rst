@@ -47,25 +47,6 @@ Endpoints
           },
           (...)
       ],
-      
-      // Statistics
-      "total-session-time": <int>,		// total session time in seconds
-      "processed-requests": <int>,		// total number of requests
-      "approved-requests": <int>,		// total number of approved requests
-      "rejected-requests": <int>,		// total number of rejected requests
-      "processed-artefacts": <int>,		// total number of artefacts
-      "approved-artefacts": <int>,		// total number of approved artefacts
-      "rejected-artefacts": <int>,		// total number of rejected artefacts
-      "average-requests-per-session": <float>,
-      "average-artefacts-per-session": <float>,
-      "average-session-time": <float>,
-      "longest-session-time": <int>,
-  
-      // Profiling information
-      "num-cpu": <int>,
-      "num-routines": <int>,
-      "total-mem": <int>,
-      "memstat-alloc": <int>
   }
 
 
@@ -94,12 +75,34 @@ Endpoints
   }
 
 
-``DELETE /session/<id>``
-^^^^^^^^^^^^^^^^^^^^^^^^
+``DELETE /session/<id>/token``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :Description:
-  Finalize an active fetch service session. The server returns session metadata containing
-  a list of all downloaded artefacts.
+  Revoke the session token. A Not Found (404) error is returned if the session does
+  not exist.
+
+:Parameters:
+  None.
+
+:Response:
+::
+
+  {
+      "session-id": <string>,		// session ID
+      "start-time": <string>,		// session start timestamp in RFC-3339 format
+      "end-time": <string>,		// session start timestamp in RFC-3339 format
+      "spool-path": <string>		// file spool pathname
+  }
+
+
+``GET /session/<id>``
+^^^^^^^^^^^^^^^^^^^^^
+
+:Description:
+  Retrieve the metadata containing a list of all downloaded artefacts. The information
+  must be requested only after the session token has been revoked, and before the
+  session is finished.
 
 :Parameters:
   None.
@@ -169,6 +172,19 @@ Endpoints
       "spool-path": <string>		// file spool pathname
   }         
 
+``DELETE /session/<id>``
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+:Description:
+  Finish a session.
+
+:Parameters:
+  None.
+
+:Response:
+  None.
+
+
 ``DELETE /resources/<id>``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -179,6 +195,6 @@ Endpoints
 :Parameters:
   None.
 
-:Result:
+:Response:
   None.
 

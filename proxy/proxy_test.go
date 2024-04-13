@@ -72,7 +72,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 	// download a test file
 	proxyURL := url.URL{
 		Scheme: "http",
-		User:   url.UserPassword(s.Id, s.Pw),
+		User:   url.UserPassword(s.Id, s.Token),
 		Host:   "localhost:5566",
 	}
 
@@ -101,7 +101,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 	msg := <-ch
 	auth := msg.(messages.ProxyAuth)
 	c.Assert(auth.Id, Equals, s.Id)
-	c.Assert(auth.Pw, Equals, s.Pw)
+	c.Assert(auth.Pw, Equals, s.Token)
 	auth.Rch <- true
 
 	// run request inspectors

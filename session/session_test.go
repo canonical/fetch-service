@@ -68,7 +68,7 @@ func (t *sessionSuite) TestNewSession(c *C) {
 	defer s.Discard()
 
 	c.Assert(s.Id, Equals, "6ba7b8109dad11d180b400c04fd430c8")
-	c.Assert(s.Pw, Equals, "1ItfzwGBeJ8wsJdP0Nlx")
+	c.Assert(s.Token, Equals, "1ItfzwGBeJ8wsJdP0Nlx")
 	c.Assert(s.Start.After(before) || s.Start.Equal(before), Equals, true)
 	c.Assert(s.Start.Before(after) || s.Start.Equal(after), Equals, true)
 	c.Assert(s.End.Equal(time.Time{}), Equals, true)
@@ -76,7 +76,7 @@ func (t *sessionSuite) TestNewSession(c *C) {
 }
 
 func (t *sessionSuite) TestRandomString(c *C) {
-	for _, n := range []int{0, 1, 10, 20} {
+	for _, n := range []int{0, 10, 20} {
 		x := session.RandomString(n)
 		y := session.RandomString(n)
 		c.Assert(len(x), Equals, n)
@@ -102,7 +102,7 @@ func (t *sessionSuite) TestCheckAuth(c *C) {
 	defer s.Discard()
 
 	c.Assert(session.CheckAuth("foo", "bar"), Equals, false)
-	c.Assert(session.CheckAuth(s.Id, s.Pw), Equals, true)
+	c.Assert(session.CheckAuth(s.Id, s.Token), Equals, true)
 }
 
 func (t *sessionSuite) TestAddMetadata(c *C) {

@@ -31,11 +31,8 @@ import (
 )
 
 type createSessionParameters struct {
-	Timeout    int  `json:"timeout"`
-	Permissive bool `json:"permissive"`
-}
-
-type endSessionParameters struct {
+	Timeout uint64 `json:"timeout"`
+	Policy  string `json:"policy"`
 }
 
 type Server struct {
@@ -50,14 +47,33 @@ func NewServer(port int, ch chan interface{}) *Server {
 func (c *Server) Start() {
 	addr := fmt.Sprintf(":%d", c.port)
 	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/new-session", c.createSession).Methods("POST")
-	router.HandleFunc("/end-session/{id}", c.endSession).Methods("POST")
+	router.HandleFunc("/status", c.getServiceStatus).Methods("GET")
+	router.HandleFunc("/session", c.createSession).Methods("POST")
+	router.HandleFunc("/session/{id}/token", c.deleteSessionToken).Methods("DELETE")
+	router.HandleFunc("/session/{id}", c.getSessionReport).Methods("GET")
+	router.HandleFunc("/session/{id}", c.deleteSession).Methods("DELETE")
+	router.HandleFunc("/resources/{id}", c.deleteResources).Methods("DELETE")
 
 	logger.Infof("control server listening on %s\n", addr)
 
 	go func() {
 		logger.Fatal(http.ListenAndServe(addr, router))
 	}()
+}
+
+func (c *Server) getServiceStatus(w http.ResponseWriter, r *http.Request) {
+	logger.Debugf("get service status")
+
+	msg := messages.NewGetServiceStatus()
+	c.ch <- msg
+	status := <-msg.Rch
+	j, err := json.Marshal(status)
+	if err != nil {
+		internalServerError(w, r)
+		return
+	}
+
+	write_response(w, j)
 }
 
 func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
@@ -71,18 +87,26 @@ func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
 
 	logger.Debugf("create session parameters: %+v\n", params)
 
-	msg := messages.NewCreateSession()
+	msg := messages.NewCreateSession(params.Policy, params.Timeout)
 	c.ch <- msg
 	cred := <-msg.Rch
+	if cred.Err != nil {
+		badRequest(w, r, cred.Err.Error())
+		return
+	}
+
 	j, err := json.Marshal(cred)
 	if err != nil {
 		internalServerError(w, r)
 		return
 	}
+
 	write_response(w, j)
 }
 
-func (c *Server) endSession(w http.ResponseWriter, r *http.Request) {
+func (c *Server) deleteSessionToken(w http.ResponseWriter, r *http.Request) {
+	logger.Debugf("modify session")
+
 	vars := mux.Vars(r)
 	id, ok := vars["id"]
 	if !ok {
@@ -90,23 +114,115 @@ func (c *Server) endSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var params endSessionParameters
-	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-		internalServerError(w, r)
+	logger.Debug("revoke token")
+	msg := messages.NewRevokeToken(id)
+	c.ch <- msg
+	res := <-msg.Rch
+
+	if res.Err != nil {
+		if res.Err == messages.ErrSessionNotFound {
+			notFound(w, r)
+		} else {
+			internalServerError(w, r)
+		}
 		return
 	}
 
-	logger.Debugf("end session parameters: %+v\n", params)
-
-	msg := messages.NewEndSession(id)
-	c.ch <- msg
-	result := <-msg.Rch
-	j, err := json.Marshal(result)
+	j, err := json.Marshal(res)
 	if err != nil {
 		internalServerError(w, r)
 		return
 	}
+
 	write_response(w, j)
+}
+
+func (c *Server) getSessionReport(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, ok := vars["id"]
+	if !ok {
+		notFound(w, r)
+		return
+	}
+
+	logger.Debugf("get session %s data\n", id)
+
+	msg := messages.NewSessionReport(id)
+	c.ch <- msg
+	res := <-msg.Rch
+
+	if res.Err != nil {
+		if res.Err == messages.ErrSessionNotFound {
+			notFound(w, r)
+		} else if res.Err == messages.ErrSessionActive {
+			badRequest(w, r, res.Err.Error())
+		} else {
+			internalServerError(w, r)
+		}
+	}
+
+	j, err := json.Marshal(res)
+	if err != nil {
+		internalServerError(w, r)
+		return
+	}
+
+	write_response(w, j)
+}
+
+func (c *Server) deleteSession(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, ok := vars["id"]
+	if !ok {
+		notFound(w, r)
+		return
+	}
+
+	logger.Debugf("end session %s\n", id)
+
+	msg := messages.NewEndSession(id)
+	c.ch <- msg
+	err := <-msg.Rch
+
+	if err != nil {
+		if err == messages.ErrSessionNotFound {
+			notFound(w, r)
+		} else {
+			internalServerError(w, r)
+		}
+		return
+	}
+}
+
+func (c *Server) deleteResources(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, ok := vars["id"]
+	if !ok {
+		notFound(w, r)
+		return
+	}
+
+	logger.Debugf("delete resources from session %s\n", id)
+
+	msg := messages.NewDeleteResources(id)
+	c.ch <- msg
+	err := <-msg.Rch
+
+	if err != nil {
+		if err == messages.ErrSessionNotFound {
+			notFound(w, r)
+		} else if err == messages.ErrSessionActive {
+			badRequest(w, r, err.Error())
+		} else {
+			internalServerError(w, r)
+		}
+	}
+}
+
+func badRequest(w http.ResponseWriter, r *http.Request, reason string) {
+	logger.Warningf("bad request response: %s", r.URL)
+	w.WriteHeader(http.StatusBadRequest)
+	write_response(w, []byte(reason))
 }
 
 func internalServerError(w http.ResponseWriter, r *http.Request) {
