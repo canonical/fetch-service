@@ -44,11 +44,11 @@ func (s *opinionsSuite) TestOpinionsValues(c *C) {
 
 func (s *opinionsSuite) TestOpinionsMarshal(c *C) {
 	type Foo struct {
-		Op opinions.OpinionKind `json:"op"`
+		K opinions.OpinionKind `json:"k"`
 	}
 
 	for _, tc := range []struct {
-		op     opinions.OpinionKind
+		kind   opinions.OpinionKind
 		result string
 	}{
 		{opinions.Unknown, "Unknown"},
@@ -56,19 +56,19 @@ func (s *opinionsSuite) TestOpinionsMarshal(c *C) {
 		{opinions.Approved, "Approved"},
 		{opinions.Pending, "Pending"},
 	} {
-		j, err := json.Marshal(Foo{tc.op})
+		j, err := json.Marshal(Foo{tc.kind})
 		c.Assert(err, IsNil)
-		c.Check(j, DeepEquals, []byte(fmt.Sprintf(`{"op":"%s"}`, tc.result)))
+		c.Check(j, DeepEquals, []byte(fmt.Sprintf(`{"k":"%s"}`, tc.result)))
 	}
 }
 
 func (s *opinionsSuite) TestSha1DigestUnmarshal(c *C) {
 	type Foo struct {
-		Op opinions.OpinionKind `json:"op"`
+		K opinions.OpinionKind `json:"k"`
 	}
 
 	for _, tc := range []struct {
-		opstr  string
+		kind   string
 		result opinions.OpinionKind
 	}{
 		{"Unknown", opinions.Unknown},
@@ -77,8 +77,8 @@ func (s *opinionsSuite) TestSha1DigestUnmarshal(c *C) {
 		{"Pending", opinions.Pending},
 	} {
 		var foo Foo
-		err := json.Unmarshal([]byte(fmt.Sprintf(`{"op":"%s"}`, tc.opstr)), &foo)
+		err := json.Unmarshal([]byte(fmt.Sprintf(`{"k":"%s"}`, tc.kind)), &foo)
 		c.Assert(err, IsNil)
-		c.Check(foo.Op, Equals, tc.result)
+		c.Check(foo.K, Equals, tc.result)
 	}
 }

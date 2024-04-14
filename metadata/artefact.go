@@ -108,7 +108,7 @@ func NewArtefact() *Artefact {
 func (a *Artefact) SetRequestOpinion(id string, op opinions.OpinionKind, reason string, args ...any) *Inspection {
 	// Valid request opinions are Unknown, Rejected and Pending
 	if op != opinions.Unknown && op != opinions.Rejected && op != opinions.Pending {
-		logger.Fatalf("%s: cannot set request opinion to %v, rejecting", id, op)
+		logger.Errorf("%s: cannot set request opinion to %v, rejecting", id, op)
 		op = opinions.Rejected
 	}
 

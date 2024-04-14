@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,58 +20,13 @@
 package metadata_test
 
 import (
-	"encoding/json"
 	"fmt"
 
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/inspectors"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
-
-func (t *metadataSuite) TestOpinionKindMarshal(c *C) {
-	var kind struct {
-		K opinions.OpinionKind `json:"k"`
-	}
-
-	for _, tc := range []struct {
-		kind opinions.OpinionKind
-		res  string
-	}{
-		{opinions.Approved, "Approved"},
-		{opinions.Rejected, "Rejected"},
-		{opinions.Unknown, "Unknown"},
-	} {
-
-		kind.K = tc.kind
-
-		data, err := json.Marshal(kind)
-		c.Assert(err, IsNil)
-		c.Assert(string(data), Equals, fmt.Sprintf(`{"k":"%s"}`, tc.res))
-	}
-}
-
-func (t *metadataSuite) TestOpinionKindUnmarshal(c *C) {
-	var kind struct {
-		K opinions.OpinionKind `json:"k"`
-	}
-
-	for _, tc := range []struct {
-		kind string
-		res  opinions.OpinionKind
-	}{
-		{"Approved", opinions.Approved},
-		{"Rejected", opinions.Rejected},
-		{"Unknown", opinions.Unknown},
-	} {
-		data := []byte(fmt.Sprintf(`{"k":"%s"}`, tc.kind))
-
-		err := json.Unmarshal(data, &kind)
-		c.Assert(err, IsNil)
-		c.Assert(kind.K, Equals, tc.res)
-	}
-}
 
 func (t *metadataSuite) TestRequestOpinions(c *C) {
 	for _, tc := range []struct {
@@ -134,15 +89,15 @@ func (t *metadataSuite) TestSetRequestOpinion(c *C) {
 		effectiveOp opinions.OpinionKind
 	}{
 		{opinions.Unknown, opinions.Unknown},
-		{opinions.Pending, opinions.Pending},
 		{opinions.Rejected, opinions.Rejected},
 		{opinions.Approved, opinions.Rejected}, // can't approve during request inspection
+		{opinions.Pending, opinions.Pending},
 	} {
 		a := metadata.NewArtefact()
-		a.SetRequestOpinion(inspectors.DefaultInspector{}.ID(), tc.op, "testing %d", 1).Annotate(
+		a.SetRequestOpinion("test-inspector", tc.op, "testing %d", 1).Annotate(
 			metadata.Annotation{"foo": "bar"},
 		)
-		c.Assert(*a.RequestInspection["default"], DeepEquals, metadata.Inspection{
+		c.Assert(*a.RequestInspection["test-inspector"], DeepEquals, metadata.Inspection{
 			Opinion:     tc.effectiveOp,
 			Reason:      "testing 1",
 			Annotations: metadata.Annotation{"foo": "bar"},
@@ -156,15 +111,15 @@ func (t *metadataSuite) TestSetResponseOpinion(c *C) {
 		effectiveOp opinions.OpinionKind
 	}{
 		{opinions.Unknown, opinions.Unknown},
-		{opinions.Pending, opinions.Rejected}, // can't set opinion to pending in response inspection
 		{opinions.Rejected, opinions.Rejected},
 		{opinions.Approved, opinions.Approved},
+		{opinions.Pending, opinions.Rejected}, // can't set opinion to pending in response inspection
 	} {
 		a := metadata.NewArtefact()
-		a.SetResponseOpinion(inspectors.DefaultInspector{}.ID(), tc.op, "testing %d", 1).Annotate(
+		a.SetResponseOpinion("test-inspector", tc.op, "testing %d", 1).Annotate(
 			metadata.Annotation{"foo": "bar"},
 		)
-		c.Assert(*a.ResponseInspection["default"], DeepEquals, metadata.Inspection{
+		c.Assert(*a.ResponseInspection["test-inspector"], DeepEquals, metadata.Inspection{
 			Opinion:     tc.effectiveOp,
 			Reason:      "testing 1",
 			Annotations: metadata.Annotation{"foo": "bar"},
