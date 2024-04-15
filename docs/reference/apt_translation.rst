@@ -21,7 +21,7 @@ None.
 Request verification
 --------------------
 
-The apt packages inspector accepts HTTP requests to the Ubuntu archive,
+The APT packages inspector accepts HTTP requests to the Ubuntu archive,
 including official ``*.archive.ubuntu.com`` mirrors, ``security.ubuntu.com``,
 and HTTPS requests to ``esm.ubuntu.com``.
 
