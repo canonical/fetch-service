@@ -1,7 +1,7 @@
 The APT release file inspector
 ==============================
 
-The APT release inspector examines different types of artefact. Besides
+The APT release inspector examines different types of artefacts. Besides
 the Ubuntu archive InRelease file, it verifies Packages.xz and Translation
 files are correctly listed in the InRelease file with a matching file
 digest.
