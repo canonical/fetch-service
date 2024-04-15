@@ -47,7 +47,7 @@ Acceptance criteria
 To be approved, the artefacts examined by this inspector must comply
 to the following rules:
 
-* The ``Packages.xz`` file must match the format described in the
+* The ``Packages.xz`` file must follow the format described in the
   previous section.
 * The deb file must match an entry in a previously downloaded Packages
   file.
