@@ -20,7 +20,7 @@ Internal state
 Request verification
 --------------------
 
-The apt release inspector accepts HTTP requests to the Ubuntu archive,
+The APT release inspector accepts HTTP requests to the Ubuntu archive,
 including official ``*.archive.ubuntu.com`` mirrors, ``security.ubuntu.com``,
 and HTTPS requests to ``esm.ubuntu.com``.
 
