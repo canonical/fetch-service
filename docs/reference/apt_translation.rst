@@ -25,8 +25,8 @@ The APT packages inspector accepts HTTP requests to the Ubuntu archive,
 including official ``*.archive.ubuntu.com`` mirrors, ``security.ubuntu.com``,
 and HTTPS requests to ``esm.ubuntu.com``.
 
-The Packages.xz file path is expected to match the regular expression
-``^/ubuntu/dists/[\w-]+/[\w-]+/i18n/by-hash/SHA256/[0-9a-f]{64}$``
+The translation file path is expected to match the regular expression
+``^/ubuntu/dists/[\w-]+/[\w-]+/i18n/by-hash/SHA256/[0-9a-f]{64}$``.
 
 File format
 -----------
