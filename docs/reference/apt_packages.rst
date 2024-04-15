@@ -5,7 +5,7 @@ The APT packages inspector verifies the APT repository's Packages.xz
 file and whether it has a matching entry for downloaded deb files.
 
 This inspector currently only examines the XZ-compressed version of
-the Packages file (it's the file download when running ``apt update``
+the Packages file (it's the file downloaded when running ``apt update``
 on Ubuntu).
 
 Inspector ID
