@@ -34,6 +34,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/gomod"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/inspectors/pip"
+	"github.com/canonical/fetch-service/inspectors/snap"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 )
@@ -43,6 +44,8 @@ func init() {
 	mimetype.Lookup("application/zip").Extend(pip.WheelDetector, mimetypes.PythonWheel, ".whl")
 	mimetype.Lookup("application/x-xz").Extend(apt.AptPackagesDetector, mimetypes.AptPackages, "")
 	mimetype.Lookup("application/x-xz").Extend(apt.AptTranslationDetector, mimetypes.AptTranslation, "")
+	mimetype.Lookup("application/octet-stream").Extend(snap.SquashFsDetector, mimetypes.SquashFs, "")
+	mimetype.Lookup("text/plain").Extend(snap.AssertionDetector, mimetypes.Assertion, ".assert")
 }
 
 // Inspector is the interface implemented by artefact metadata
@@ -68,6 +71,11 @@ type Inspectors struct {
 func New(permissive bool) Inspectors {
 
 	insList := []Inspector{
+		// snap
+		snap.NewSnapInfoInspector(),
+		snap.NewSnapAssertionInspector(),
+		snap.NewSnapInspector(),
+
 		// python
 		pip.NewSimpleIndexInspector(),
 		pip.NewWheelInspector(),
