@@ -103,8 +103,8 @@ func (ins *WheelInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact)
 
 func processOpinion(ins *WheelInspector, a *metadata.Artefact, notes *wheelNotes) {
 	// Reject if required files not found
-	if len(ins.requirementFaults) > 0 {
-		ins.notes.Add("faults", ins.requirementFaults)
+	if len(notes.requirementFaults) > 0 {
+		notes.Add("faults", notes.requirementFaults)
 		a.SetResponseOpinion(ins.ID(), opinions.Rejected,
 			"wheel file requirements not met").Annotate(notes.Annotation)
 		return

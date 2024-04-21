@@ -83,7 +83,6 @@ func (s *simpleIndexSuite) TestInspectRequest(c *C) {
 		if tc.approved {
 			c.Assert(insp.Opinion, Equals, opinions.Pending)
 		}
-		c.Assert(ins.Name, Equals, tc.name)
 
 		if tc.name != "" {
 			c.Assert(a.RequestInspection["pip.simple-index"].Annotations["package-name"], Equals, tc.name)
@@ -152,7 +151,7 @@ func (s *simpleIndexSuite) TestWheelInspectArtefact(c *C) {
 	a.MimeType = mimetype.Lookup("text/html")
 	a.CurrentDownload.URL = "https://pypi.org:443/simple/foobar/"
 	a.RequestInspection["pip.simple-index"] = &metadata.Inspection{
-		Opinion:     metadata.Pending,
+		Opinion:     opinions.Pending,
 		Reason:      "some reason",
 		Annotations: metadata.Annotation{"package-name": "foobar"},
 	}

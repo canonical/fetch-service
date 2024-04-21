@@ -33,6 +33,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/apt"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
 var inReleaseArtefactData = `-----BEGIN PGP SIGNED MESSAGE-----
@@ -224,7 +225,7 @@ func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
 	c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &metadata.Inspection{
-		Opinion: metadata.Approved,
+		Opinion: opinions.Approved,
 		Reason:  "Packages file listed in Release",
 		Annotations: metadata.Annotation{
 			"file-path":    "main/binary-amd64/Packages.xz",
@@ -263,7 +264,7 @@ func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
 	c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &metadata.Inspection{
-		Opinion: metadata.Approved,
+		Opinion: opinions.Approved,
 		Reason:  "Translation file listed in Release",
 		Annotations: metadata.Annotation{
 			"file-path":    "main/i18n/Translation-en.xz",
