@@ -64,7 +64,7 @@ func (ins *SimpleIndexInspector) InspectRequest(a *metadata.Artefact) error {
 }
 
 func (ins *SimpleIndexInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
-	pkgName, ok := a.RequestStringAnnotation(ins, "package-name")
+	pkgName, ok := a.RequestStringAnnotation(ins.ID(), "package-name")
 	if !ok {
 		return nil
 	}
