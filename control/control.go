@@ -238,6 +238,7 @@ func notFound(w http.ResponseWriter, r *http.Request) {
 }
 
 func write_response(w http.ResponseWriter, b []byte) {
+	logger.Debugf("control API response: %s\n", b)
 	var err error
 	_, err = w.Write(b)
 	if err != nil {

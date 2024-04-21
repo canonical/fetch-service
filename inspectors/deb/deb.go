@@ -34,6 +34,7 @@ import (
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
 type DebInspector struct {
@@ -57,7 +58,7 @@ func (ins DebInspector) InspectRequest(a *metadata.Artefact) error {
 
 	for _, re := range validReqs {
 		if re.MatchString(a.CurrentDownload.URL) {
-			a.Consider(ins, "URL matches expression '%s'", re)
+			a.SetRequestOpinion(ins.ID(), opinions.Pending, "URL matches expression '%s'", re)
 			return nil
 		}
 	}
@@ -74,7 +75,7 @@ func (ins *DebInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) e
 	}
 
 	if a.Metadata.Name != "" && a.Metadata.Version != "" && a.Metadata.Architecture != "" {
-		a.Approve(ins, "deb package parsed")
+		a.SetResponseOpinion(ins.ID(), opinions.Approved, "deb package parsed")
 	}
 
 	return nil
@@ -95,7 +96,7 @@ func (ins DebInspector) readDebMetadata(f io.Reader, a *metadata.Artefact) error
 		switch h.Name {
 		case "debian-binary":
 			if ver := ins.getDebianBinaryVersion(af, a); ver != "2.0" {
-				a.Reject(ins, "unknown debian binary version %q", ver)
+				a.SetResponseOpinion(ins.ID(), opinions.Rejected, "unknown debian binary version %q", ver)
 			}
 		case "control.tar.gz":
 			zf, err := gzip.NewReader(af)
@@ -201,7 +202,7 @@ func (ins DebInspector) parseControl(tf io.Reader, a *metadata.Artefact) error {
 	}
 
 	if a.Metadata.Name == "" || a.Metadata.Version == "" {
-		a.Reject(ins, "package name/version not in control file")
+		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "package name and version not listed in control file")
 	}
 
 	return nil

@@ -31,6 +31,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
 // Distribution Release/InRelease file
@@ -131,7 +132,7 @@ func (ins *AptReleaseInspector) InspectRequest(a *metadata.Artefact) error {
 
 	for _, re := range validReqs {
 		if re.MatchString(a.CurrentDownload.URL) {
-			a.Consider(ins, "URL matches expression '%s'", re)
+			a.SetRequestOpinion(ins.ID(), opinions.Pending, "URL matches expression '%s'", re)
 		}
 	}
 
@@ -214,7 +215,7 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 		}
 	}
 
-	a.Approve(ins, "release file parse successful")
+	a.SetResponseOpinion(ins.ID(), opinions.Approved, "release file parse successful")
 
 	a.Metadata.Name = "InRelease"
 
@@ -247,9 +248,9 @@ func (ins *AptReleaseInspector) getReleasePackages(digest metadata.Sha256Digest)
 func (ins *AptReleaseInspector) validatePackagesFile(f ReadAtSeeker, a *metadata.Artefact) {
 	digest, pinfo, ok := ins.getReleasePackages(a.Metadata.Sha256)
 	if ok {
-		a.Approve(ins, "packages file %s listed in release file", digest)
+		a.SetResponseOpinion(ins.ID(), opinions.Approved, "packages file %s listed in release file", digest)
 	} else {
-		a.Reject(ins, "packages file digest not listed in release file")
+		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "packages file digest not listed in release file")
 	}
 	a.Metadata.Vendor = pinfo.Vendor
 }

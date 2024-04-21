@@ -30,6 +30,7 @@ import (
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/opinions"
 	"github.com/canonical/fetch-service/proxy"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
@@ -262,7 +263,7 @@ func runRequestInspection(s *session.Session, a *metadata.Artefact) error {
 	dl := a.CurrentDownload
 	sessionId := s.Id
 
-	if a.Rejected() {
+	if a.RequestRejected() {
 		if s.Permissive {
 			logger.Infof("[%s] request would be rejected: %s %s", sessionId, dl.Method, dl.URL)
 		} else {
@@ -287,6 +288,7 @@ func runResponseInspection(s *session.Session, a *metadata.Artefact) error {
 	digest := a.Metadata.Sha256
 
 	if a.Rejected() {
+		a.Result = opinions.Rejected
 		if s.Permissive {
 			logger.Infof("[%s] artefact %s %d (%s) would be rejected (permissive)",
 				sessionId, digest, a.Metadata.Size, a.Metadata.Type)
@@ -296,6 +298,7 @@ func runResponseInspection(s *session.Session, a *metadata.Artefact) error {
 			return ErrRejectedArtefact
 		}
 	} else {
+		a.Result = opinions.Approved
 		logger.Infof("[%s] artefact approved: %s %d (%s)", sessionId, digest, a.Metadata.Size, a.Metadata.Type)
 	}
 

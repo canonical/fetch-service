@@ -26,11 +26,6 @@ import (
 	"time"
 )
 
-const (
-	MetadataVersionMajor = 0 // Updated when incompatible changes are made
-	MetadataVersionMinor = 1 // Existing fields not changed, may contain additional fields
-)
-
 // Sha1Digest contains a 120-bit SHA1 digest.
 type Sha1Digest [20]byte
 
@@ -115,20 +110,19 @@ func (h *Sha256Digest) UnmarshalJSON(data []byte) (err error) {
 
 // Metadata holds information about each artefact.
 type Metadata struct {
-	MetadataVersion string       `json:"metadata-version"`       // Metadata version in X.Y format
-	Type            string       `json:"type"`                   // The mime-type of the artefact file
-	Sha1            Sha1Digest   `json:"sha1"`                   // The SHA1 digest of the artefact file
-	Sha256          Sha256Digest `json:"sha256"`                 // The SHA256 digest of the artefact file
-	Size            int64        `json:"size"`                   // The size of the artefact file
-	Name            string       `json:"name"`                   // The artefact designation, given by its author
-	Version         string       `json:"version"`                // The artefact version, as published by the upstream
-	Vendor          string       `json:"vendor"`                 // The artefact vendor
-	Description     string       `json:"description"`            // A free-form description of the artefact
-	Author          string       `json:"author"`                 // The artefact author name
-	AuthorEmail     string       `json:"author-email,omitempty"` // The artefact author email address
-	Architecture    string       `json:"architecture,omitempty"` // The architecture, if the artefact contains binary code
-	License         string       `json:"license"`                // The license the artefact is published under
-	Copyright       string       `json:"copyright,omitempty"`    // The copyright line, if available
+	Type         string       `json:"type"`                   // The mime-type of the artefact file
+	Sha1         Sha1Digest   `json:"sha1"`                   // The SHA1 digest of the artefact file
+	Sha256       Sha256Digest `json:"sha256"`                 // The SHA256 digest of the artefact file
+	Size         int64        `json:"size"`                   // The size of the artefact file
+	Name         string       `json:"name"`                   // The artefact designation, given by its author
+	Version      string       `json:"version"`                // The artefact version, as published by the upstream
+	Vendor       string       `json:"vendor"`                 // The artefact vendor
+	Description  string       `json:"description"`            // A free-form description of the artefact
+	Author       string       `json:"author"`                 // The artefact author name
+	AuthorEmail  string       `json:"author-email,omitempty"` // The artefact author email address
+	Architecture string       `json:"architecture,omitempty"` // The architecture, if the artefact contains binary code
+	License      string       `json:"license"`                // The license the artefact is published under
+	Copyright    string       `json:"copyright,omitempty"`    // The copyright line, if available
 }
 
 // Download holds information about each artefact download.
@@ -154,6 +148,7 @@ type SessionMetadata struct {
 	EndTime    time.Time `json:"end-time"`   // When the session finished (UTC)
 	Inspectors []string  `json:"inspectors"` // A list of registered inspector IDs
 	SpoolPath  string    `json:"spool-path"` // The filesystem path to session artefacts
+	Policy     string    `json:"policy"`     // Session policy (strict or permissive)
 	Err        error     `json:"-"`
 }
 

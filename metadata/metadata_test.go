@@ -111,6 +111,7 @@ func (s *metadataSuite) TestSha256DigestError(c *C) {
 		c.Check(err.Error(), Equals, t.msg)
 	}
 }
+
 func (s *metadataSuite) TestSha256DigestMarshal(c *C) {
 	type Foo struct {
 		Bar metadata.Sha256Digest `json:"bar"`
