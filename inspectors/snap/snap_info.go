@@ -20,6 +20,7 @@
 package snap
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 
@@ -49,14 +50,29 @@ func (ins SnapInfoInspector) InspectRequest(a *metadata.Artefact) error {
 	if info, err := newSnapInfoUrlInfo(u); err == nil {
 		a.Hold(ins, "valid URL for snap info endpoint").Annotate(
 			metadata.Annotation{
+				"type": "info",
 				"name": info.name,
 			},
 		)
 	} else if _, err := newSnapRefreshUrlInfo(u); err == nil {
-		a.Hold(ins, "valid URL for snap refresh endpoint")
+		a.Hold(ins, "valid URL for snap refresh endpoint").Annotate(
+			metadata.Annotation{
+				"type": "refresh",
+			},
+		)
 	}
 
 	return nil // we don't recognize this request
+}
+
+type snapInfoBody struct {
+	ChannelMap []map[string]any `json:"channel-map"`
+	Name       string           `json:"name"`
+	SnapID     string           `json:"snap-id"`
+}
+
+type snapRefreshBody struct {
+	Results []map[string]any `json:"results"`
 }
 
 // InspectArtefact extracts metadata from a known artefact file format.
@@ -65,9 +81,53 @@ func (ins *SnapInfoInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefa
 		return nil
 	}
 
-	a.Metadata.Type = mimetypes.SnapInfo
+	t, ok := a.RequestAnnotation(ins, "type")
+	if !ok {
+		return nil
+	}
 
-	a.Approve(ins, "valid snap API response")
+	if t == "info" {
+		decoder := json.NewDecoder(f)
+		var b snapInfoBody
+		if err := decoder.Decode(&b); err != nil {
+			return nil
+		}
+
+		if len(b.ChannelMap) > 0 && b.ChannelMap[0]["version"] != "" && b.Name != "" && b.SnapID != "" {
+			a.Metadata.Type = mimetypes.SnapInfo
+			a.Approve(ins, "valid snap API info endpoint response").Annotate(
+				metadata.Annotation{
+					"name":    b.Name,
+					"snap-id": b.SnapID,
+				})
+			return nil
+		}
+
+		a.Reject(ins, "cannot decode snap API info endpoint response")
+		return nil
+
+	}
+
+	if t == "refresh" {
+		decoder := json.NewDecoder(f)
+		var b snapRefreshBody
+		if err := decoder.Decode(&b); err != nil {
+			return nil
+		}
+
+		if len(b.Results) > 0 && b.Results[0]["effective-channel"] != "" && b.Results[0]["name"] != "" && b.Results[0]["snap-id"] != "" {
+			a.Metadata.Type = mimetypes.SnapInfo
+			a.Approve(ins, "valid snap API refresh endpoint response").Annotate(
+				metadata.Annotation{
+					"name":    b.Results[0]["name"],
+					"snap-id": b.Results[0]["snap-id"],
+				})
+			return nil
+		}
+
+		a.Reject(ins, "cannot decode snap API refresh endpoint response")
+		return nil
+	}
 
 	return nil
 }
