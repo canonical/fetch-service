@@ -24,6 +24,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/ProtonMail/go-crypto/openpgp/packet"
 
@@ -37,6 +38,9 @@ var (
 	CanonicalPublicKey      *packet.PublicKey
 
 	nlnl = []byte("\n\n")
+
+	accountKeyCache      = map[string]*packet.PublicKey{}
+	accountKeyCacheMutex sync.Mutex
 )
 
 func init() {
@@ -220,6 +224,16 @@ func (assert assertion) VerifySignature() error {
 		return fmt.Errorf("cannot find sign-key-sha3-384 in snap-revision assertion")
 	}
 
+	accountKeyCacheMutex.Lock()
+	cachedKey, ok := accountKeyCache[signKey]
+	accountKeyCacheMutex.Unlock()
+
+	if ok {
+		// Cached keys were already verified.
+		logger.Infof("account key %s is cached", signKey)
+		return utils.VerifySignature(cachedKey, signature, assert.Content)
+	}
+
 	logger.Debugf("verify assertion signature %s", signKey)
 
 	if signKey == CanonicalRootAccountKey.SignKey() {
@@ -240,6 +254,13 @@ func (assert assertion) VerifySignature() error {
 	if err != nil {
 		return fmt.Errorf("cannot decode public key: %w", err)
 	}
+
+	// The signature is verified, add to cache
+	accountKeyCacheMutex.Lock()
+	accountKeyCache[signKey] = key
+	accountKeyCacheMutex.Unlock()
+
+	logger.Infof("account key %s verified", signKey)
 
 	return utils.VerifySignature(key, signature, assert.Content)
 }
