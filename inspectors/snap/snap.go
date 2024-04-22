@@ -33,6 +33,7 @@ import (
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
+	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 )
 
@@ -133,7 +134,12 @@ func (ins *SnapInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) 
 
 	snapId := snapRevisionAssertion.SnapID()
 	if snapId == "" {
-		return fmt.Errorf("cannot find snap-id in snap-revision assertion")
+		a.Reject(ins, "cannot find snap-id in snap-revision assertion").Annotate(
+			metadata.Annotation{
+				"snap-revision-assertion-header": snapRevisionAssertion.Header,
+			},
+		)
+		return nil
 	}
 
 	// Retrieve the snap-declaration assertion
@@ -148,11 +154,17 @@ func (ins *SnapInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) 
 				"snap-declaration-assertion-header": snapDeclarationAssertion.Header,
 			},
 		)
+		return nil
 	}
 
 	publisherId := snapDeclarationAssertion.PublisherID()
 	if publisherId == "" {
-		return fmt.Errorf("cannot find publisher-id in snap-declaration assertion")
+		a.Reject(ins, "cannot find publisher-id in snap-declaration assertion").Annotate(
+			metadata.Annotation{
+				"snap-declaration-assertion-header": snapDeclarationAssertion.Header,
+			},
+		)
+		return nil
 	}
 
 	// Obtain the account assertion
@@ -167,6 +179,7 @@ func (ins *SnapInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) 
 				"account-assertion-header": accountAssertion.Header,
 			},
 		)
+		return nil
 	}
 
 	// Extract additional metadata from snap.yaml
@@ -229,9 +242,11 @@ func downloadAccountKeyAssertion(signKey string) (*assertion, error) {
 }
 
 func downloadAssertion(url string) (*assertion, error) {
+	logger.Debugf("download assertion: %s", url)
+
 	client := http.Client{
 		Transport: &http.Transport{},
-		Timeout:   30 * time.Second,
+		Timeout:   60 * time.Second,
 	}
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -251,5 +266,10 @@ func downloadAssertion(url string) (*assertion, error) {
 		return nil, err
 	}
 
-	return newAssertion(data)
+	assert, err := newAssertion(data)
+	if err == nil {
+		logger.Debugf("assertion: %+v", assert.Header)
+	}
+
+	return assert, err
 }

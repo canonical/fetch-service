@@ -201,6 +201,10 @@ func parseHeaders(head []byte) (map[string]string, error) {
 	// Parse header
 	for sc.Scan() {
 		line := sc.Text()
+		if strings.HasPrefix(line, " ") {
+			// ignore multi-line entries for now
+			continue
+		}
 		k, v, ok := strings.Cut(line, ":")
 		if !ok {
 			break
@@ -215,6 +219,8 @@ func parseHeaders(head []byte) (map[string]string, error) {
 // VerifySignature checks the integrity of the assertion's
 // signed content.
 func (assert assertion) VerifySignature() error {
+	logger.Debugf("verify assertion signature: %s", assert.Header)
+
 	// Obtain the assertion signature
 	signature, err := decodeSignature(assert.Signature)
 	if err != nil {
@@ -224,7 +230,7 @@ func (assert assertion) VerifySignature() error {
 	// Obtain the public key used to sign the content
 	signKey := assert.SignKey()
 	if signKey == "" {
-		return fmt.Errorf("cannot find sign-key-sha3-384 in snap-revision assertion")
+		return fmt.Errorf("cannot find sign-key-sha3-384 in %s assertion", assert.Type())
 	}
 
 	accountKeyCacheMutex.Lock()
@@ -270,7 +276,13 @@ func (assert assertion) VerifySignature() error {
 	logger.Infof("account key %s verified", signKey)
 
 	// Finally verify if content signature is correct.
-	return utils.VerifySignature(key, signature, assert.Content)
+	err = utils.VerifySignature(key, signature, assert.Content)
+	if err != nil {
+		logger.Warningf("%s assertion signature failed: %s", assert.Type(), err)
+		return err
+	}
+
+	return nil
 }
 
 func (assert assertion) SnapID() string {
