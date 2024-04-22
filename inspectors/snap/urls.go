@@ -1,0 +1,138 @@
+// -*- Mode: Go; indent-tabs-mode: t -*-
+
+/*
+ * Copyright 2024 Canonical Ltd.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+package snap
+
+import (
+	"fmt"
+	"net/url"
+	"regexp"
+)
+
+// Recognized URL formats:
+// -----------------------
+// https://canonical-bos01.cdn.snapcraftcontent.com:443/download-origin/canonical-lgw01/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7_7.snap?...
+// https://api.snapcraft.io:443/v2/snaps/info/word-salad?...
+// https://api.snapcraft.io:443/v2/snaps/refresh
+// https://api.snapcraft.io:443/v2/assertions/snap-revision/Gsqj3QgpWFq2p0517nHNNMZWgX5rG6_vaeOjT9Nyua_l36qkC_HdiDw2iEd4t1J-?...
+// https://api.snapcraft.io:443/v2/assertions/snap-declaration/16/CSO04Jhav2yK0uz97cr0ipQRyqg0qQL6?...
+// https://api.snapcraft.io:443/v2/assertions/account/ekRMaarzOfN1Vu3sDY0Bt1aGnM8Cd4kG?..."
+// https://api.snapcraft.io:443/v2/assertions/account-key/BWDEoaqyr25nF5SNCvEv2v7QnM9QsfCc0PBMYD_i2NGSQ32EF2d4D0hqUel3m8ul?...
+
+var (
+	reSnapPackage    = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/snaps/download/([A-Za-z0-9]+)_([0-9]+)\.snap\?`)
+	reSnapPackageAlt = regexp.MustCompile(`^https://[^/]+\.snapcraftcontent\.com:443/[^?]+/([A-Za-z0-9]+)_([0-9]+)\.snap\?`)
+	reSnapInfo       = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/snaps/info/([^?/]+)`)
+	reSnapRefresh    = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/snaps/refresh$`)
+
+	reSnapRevisionAssertion    = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/assertions/snap-revision/`)
+	reSnapDeclarationAssertion = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/assertions/snap-declaration/`)
+	reAccountAssertion         = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/assertions/account/`)
+	reAccountKeyAssertion      = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/assertions/account-key/`)
+)
+
+type snapPackageUrlInfo struct {
+	snapId  string
+	release string
+}
+
+func newSnapPackageUrlInfo(u *url.URL) (*snapPackageUrlInfo, error) {
+	m := reSnapPackage.FindStringSubmatch(u.String())
+	if len(m) != 3 {
+		m = reSnapPackageAlt.FindStringSubmatch(u.String())
+		if len(m) != 3 {
+			return nil, fmt.Errorf("%s: not a valid snap package URL", u.Path)
+		}
+	}
+	info := &snapPackageUrlInfo{
+		snapId:  m[1],
+		release: m[2],
+	}
+	return info, nil
+}
+
+type snapInfoUrlInfo struct {
+	name string
+}
+
+func newSnapInfoUrlInfo(u *url.URL) (*snapInfoUrlInfo, error) {
+	m := reSnapInfo.FindStringSubmatch(u.String())
+	if len(m) != 2 {
+		return nil, fmt.Errorf("%s: not a valid snap info URL", u.Path)
+	}
+	info := &snapInfoUrlInfo{
+		name: m[1],
+	}
+	return info, nil
+}
+
+type snapRefreshUrlInfo struct {
+}
+
+func newSnapRefreshUrlInfo(u *url.URL) (*snapRefreshUrlInfo, error) {
+	if !reSnapRefresh.MatchString(u.String()) {
+		return nil, fmt.Errorf("%s: not a valid snap refresh URL", u.String())
+	}
+	info := &snapRefreshUrlInfo{}
+	return info, nil
+}
+
+type snapRevisionAssertionUrlInfo struct {
+}
+
+func newSnapRevisionAssertionUrlInfo(u *url.URL) (*snapRevisionAssertionUrlInfo, error) {
+	if !reSnapRevisionAssertion.MatchString(u.String()) {
+		return nil, fmt.Errorf("%s: not a valid snap-revision assertion URL", u.Path)
+	}
+	info := &snapRevisionAssertionUrlInfo{}
+	return info, nil
+}
+
+type snapDeclarationAssertionUrlInfo struct {
+}
+
+func newSnapDeclarationAssertionUrlInfo(u *url.URL) (*snapDeclarationAssertionUrlInfo, error) {
+	if !reSnapDeclarationAssertion.MatchString(u.String()) {
+		return nil, fmt.Errorf("%s: not a valid snap-declaration assertion URL", u.Path)
+	}
+	info := &snapDeclarationAssertionUrlInfo{}
+	return info, nil
+}
+
+type accountAssertionUrlInfo struct {
+}
+
+func newAccountAssertionUrlInfo(u *url.URL) (*accountAssertionUrlInfo, error) {
+	if !reAccountAssertion.MatchString(u.String()) {
+		return nil, fmt.Errorf("%s: not a valid account assertion URL", u.Path)
+	}
+	info := &accountAssertionUrlInfo{}
+	return info, nil
+}
+
+type accountKeyAssertionUrlInfo struct {
+}
+
+func newAccountKeyAssertionUrlInfo(u *url.URL) (*accountKeyAssertionUrlInfo, error) {
+	if !reAccountKeyAssertion.MatchString(u.String()) {
+		return nil, fmt.Errorf("%s: not a valid account-key assertion URL", u.Path)
+	}
+	info := &accountKeyAssertionUrlInfo{}
+	return info, nil
+}
