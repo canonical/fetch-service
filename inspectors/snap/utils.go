@@ -90,6 +90,8 @@ func decodePublicKey(pubKey []byte) (*packet.PublicKey, error) {
 	return packet.NewRSAPublicKey(v1FixedTimestamp, rsaPubKey), nil
 }
 
+// OpenPGP packet decoder V1 as defined in snapd. See snapd/asserts/crypto.go
+// for further details.
 func decodeV1(b []byte, kind string) (packet.Packet, error) {
 	if len(b) == 0 {
 		return nil, fmt.Errorf("cannot decode %s: no data", kind)
