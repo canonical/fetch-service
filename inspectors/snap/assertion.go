@@ -190,7 +190,8 @@ func newAssertion(serializedAssertion []byte) (*assertion, error) {
 }
 
 // parseHeaders is a simplified version of the snapd assertion
-// header parser, restricted to single-line entries.
+// header parser, restricted to single-line entries. See
+// snapd/asserts/headers.go for further information.
 func parseHeaders(head []byte) (map[string]string, error) {
 	sc := bufio.NewScanner(bytes.NewReader(head))
 	sc.Split(bufio.ScanLines)
