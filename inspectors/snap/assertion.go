@@ -215,11 +215,13 @@ func parseHeaders(head []byte) (map[string]string, error) {
 // VerifySignature checks the integrity of the assertion's
 // signed content.
 func (assert assertion) VerifySignature() error {
+	// Obtain the assertion signature
 	signature, err := decodeSignature(assert.Signature)
 	if err != nil {
 		return err
 	}
 
+	// Obtain the public key used to sign the content
 	signKey := assert.SignKey()
 	if signKey == "" {
 		return fmt.Errorf("cannot find sign-key-sha3-384 in snap-revision assertion")
@@ -232,12 +234,15 @@ func (assert assertion) VerifySignature() error {
 	if ok {
 		// Cached keys were already verified.
 		logger.Infof("account key %s is cached", signKey)
+		// Verify if content was signed with the cached key.
 		return utils.VerifySignature(cachedKey, signature, assert.Content)
 	}
 
 	logger.Debugf("verify assertion signature %s", signKey)
 
+	// Check if the key is the Canonical account root key.
 	if signKey == CanonicalRootAccountKey.SignKey() {
+		// Verify if content was signed with the root key.
 		return utils.VerifySignature(CanonicalPublicKey, signature, assert.Content)
 	}
 
@@ -247,6 +252,7 @@ func (assert assertion) VerifySignature() error {
 		return fmt.Errorf("cannot retrieve account-key assertion: %w", err)
 	}
 
+	// Recursively check the account key assertion signature
 	if err := accountKeyAssertion.VerifySignature(); err != nil {
 		return err
 	}
@@ -263,6 +269,7 @@ func (assert assertion) VerifySignature() error {
 
 	logger.Infof("account key %s verified", signKey)
 
+	// Finally verify if content signature is correct.
 	return utils.VerifySignature(key, signature, assert.Content)
 }
 
