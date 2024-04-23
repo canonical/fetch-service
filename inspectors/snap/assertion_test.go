@@ -267,3 +267,69 @@ UXHaql1tEmG8xpLx+/SE8jFRqo/b
 	err = assert.VerifySignature()
 	c.Assert(err, IsNil)
 }
+
+func (t *snapSuite) TestAssertionWithMultilineEntries(c *C) {
+	encodedAssertion := `type: snap-declaration
+authority-id: canonical
+revision: 2
+series: 16
+snap-id: Md1HBASHzP4i0bniScAjXGnOII9cEK6e
+aliases:
+  -
+    name: gofmt
+    target: gofmt
+auto-aliases:
+  - gofmt
+publisher-id: canonical
+snap-name: go
+timestamp: 2023-03-21T15:47:07.267177Z
+sign-key-sha3-384: BWDEoaqyr25nF5SNCvEv2v7QnM9QsfCc0PBMYD_i2NGSQ32EF2d4D0hqUel3m8ul
+
+AcLBUgQAAQoABgUCZBnRewAA0PwQAIvALUmv5/M8EMX7z8lZ5ZAsthrxKtgVsdvidvSoz0S2YUSi
+4TSRPzrCGnnO6AeBexscmBDjaoryqrAZU2wxMoC2Sc5AqseaGoIGQLwD2FeKhbXG3oNi71eDmoRZ
+p8bqteh8L+wlbPMBz6dpk2ZtfqtZhaJt6xr5OJ3xLp2a1x22TakCvbWO2KmSW40Qs6eozlpYPquO
+gbScrv5eVirelbLco0hE6SbpqQDtsqnTbigXP5vd3zHTpBK8usEGL/fURU2MwcUDSQUj8rV+N1AW
+6VrcDyafo5wlQAoG2+YGD+p2DbMFudFXp6fIYYk9Dm3G6aDUZi9W+ZW+HynlWoebG8ngWn1S+iyj
+o/YFPicXztw1q32bgjxolgh1l59GmBj8eH+FIDJf1UUir1tqGawLA/CYfCkHTIONnTWRbOx2Byqr
+D49zR47qe8mPvyWeSizOb61vWEhwfDtYgPReuhrwa5VB0xjDEuXr5taukJf252/Bz45BQXy2RF4C
+mLJPpODoN33+OCzyvt62VSf8cJe1dHhQQslP6rIES8mbCxO987xqMpWw0DJvMJ5RnWyXbW3dyt3e
+5aZ4ondJYabrk41d4SdgSah8LF0MmlTlmXgV87cCZArmWjD0NP2tLjfTpDqSfg4Oobr4qU9GDUpQ
+wGVm0wR2xbVTB4tKHlD6KJXc0unK
+`
+	assert, err := snap.NewAssertion([]byte(encodedAssertion))
+	c.Assert(err, IsNil)
+
+	c.Assert(assert.Type(), Equals, "snap-declaration")
+	c.Assert(assert.AuthorityID(), Equals, "canonical")
+	c.Assert(assert.SnapID(), Equals, "Md1HBASHzP4i0bniScAjXGnOII9cEK6e")
+	c.Assert(assert.SnapName(), Equals, "go")
+	c.Assert(assert.PublisherID(), Equals, "canonical")
+	c.Assert(assert.Header, DeepEquals, map[string]string{
+		"type":              "snap-declaration",
+		"authority-id":      "canonical",
+		"series":            "16",
+		"revision":          "2",
+		"snap-id":           "Md1HBASHzP4i0bniScAjXGnOII9cEK6e",
+		"publisher-id":      "canonical",
+		"snap-name":         "go",
+		"timestamp":         "2023-03-21T15:47:07.267177Z",
+		"sign-key-sha3-384": "BWDEoaqyr25nF5SNCvEv2v7QnM9QsfCc0PBMYD_i2NGSQ32EF2d4D0hqUel3m8ul",
+		"aliases":           "", // multi-line entries not supported yet
+		"auto-aliases":      "", // multi-line entries not supported yet
+	})
+	c.Assert(assert.Body, IsNil)
+	c.Assert(assert.Signature, DeepEquals, []byte(""+
+		"AcLBUgQAAQoABgUCZBnRewAA0PwQAIvALUmv5/M8EMX7z8lZ5ZAsthrxKtgVsdvidvSoz0S2YUSi\n"+
+		"4TSRPzrCGnnO6AeBexscmBDjaoryqrAZU2wxMoC2Sc5AqseaGoIGQLwD2FeKhbXG3oNi71eDmoRZ\n"+
+		"p8bqteh8L+wlbPMBz6dpk2ZtfqtZhaJt6xr5OJ3xLp2a1x22TakCvbWO2KmSW40Qs6eozlpYPquO\n"+
+		"gbScrv5eVirelbLco0hE6SbpqQDtsqnTbigXP5vd3zHTpBK8usEGL/fURU2MwcUDSQUj8rV+N1AW\n"+
+		"6VrcDyafo5wlQAoG2+YGD+p2DbMFudFXp6fIYYk9Dm3G6aDUZi9W+ZW+HynlWoebG8ngWn1S+iyj\n"+
+		"o/YFPicXztw1q32bgjxolgh1l59GmBj8eH+FIDJf1UUir1tqGawLA/CYfCkHTIONnTWRbOx2Byqr\n"+
+		"D49zR47qe8mPvyWeSizOb61vWEhwfDtYgPReuhrwa5VB0xjDEuXr5taukJf252/Bz45BQXy2RF4C\n"+
+		"mLJPpODoN33+OCzyvt62VSf8cJe1dHhQQslP6rIES8mbCxO987xqMpWw0DJvMJ5RnWyXbW3dyt3e\n"+
+		"5aZ4ondJYabrk41d4SdgSah8LF0MmlTlmXgV87cCZArmWjD0NP2tLjfTpDqSfg4Oobr4qU9GDUpQ\n"+
+		"wGVm0wR2xbVTB4tKHlD6KJXc0unK\n"))
+
+	err = assert.VerifySignature()
+	c.Assert(err, IsNil)
+}
