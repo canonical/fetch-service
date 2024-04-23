@@ -62,6 +62,14 @@ type ServiceStatus struct {
 	Alloc       uint64 `json:"memstat-alloc"` // bytes allocated
 }
 
+// Errors
+var (
+	ErrSessionNotFound     = errors.New("session not found")
+	ErrSessionActive       = errors.New("session token is active")
+	ErrSessionNotFinished  = errors.New("session not finished")
+	ErrInvalidSessionToken = errors.New("invalid session token")
+)
+
 func NewGetServiceStatus() GetServiceStatus {
 	return GetServiceStatus{
 		Rch: make(chan ServiceStatus, 1),
@@ -123,14 +131,16 @@ func NewCreateSession(policy string, timeout uint64) CreateSession {
 // Revoke session token
 
 type RevokeToken struct {
-	Rch chan RevokeTokenResult // Handler response channel
-	Id  string
+	Rch   chan RevokeTokenResult // Handler response channel
+	Id    string                 // The session ID
+	Token string                 // The session token to revoke
 }
 
-func NewRevokeToken(sessionId string) RevokeToken {
+func NewRevokeToken(sessionId, token string) RevokeToken {
 	return RevokeToken{
-		Rch: make(chan RevokeTokenResult, 1),
-		Id:  sessionId,
+		Rch:   make(chan RevokeTokenResult, 1),
+		Id:    sessionId,
+		Token: token,
 	}
 }
 
@@ -176,10 +186,6 @@ func NewEndSession(sessionId string) EndSession {
 }
 
 // Delete resources
-
-var ErrSessionNotFound = errors.New("session not found")
-var ErrSessionActive = errors.New("session token is active")
-var ErrSessionNotFinished = errors.New("session not finished")
 
 type DeleteResources struct {
 	Rch chan error // Handler response channel
