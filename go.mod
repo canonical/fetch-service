@@ -7,6 +7,7 @@ require (
 	github.com/ProtonMail/go-crypto v1.0.0
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
 	github.com/elazarl/goproxy v0.0.0-20221015165544-a0805db90819
+	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gabriel-vasile/mimetype v1.4.2
 	github.com/go-mmap/mmap v0.7.0
 	github.com/google/uuid v1.3.0
@@ -17,7 +18,7 @@ require (
 	golang.org/x/net v0.21.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637
-	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

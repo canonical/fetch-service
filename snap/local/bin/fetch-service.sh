@@ -25,6 +25,7 @@ export FETCH_APT_RELEASE_PUBLIC_KEY=$(gpg --export --armor --no-default-keyring 
 exec "${SNAP}/bin/fetch"\
   "--proxy-port=${proxy_port}"\
   "--spool=${SNAP_COMMON}/spool"\
+  "--config=${SNAP_DATA}"\
   "--verbosity=${verbosity}"\
   "--control-port=${control_port}"\
   "--profile-port=${profile_port}"\
