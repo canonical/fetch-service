@@ -38,6 +38,7 @@ var (
 		regexp.MustCompile(`^http://[^./]\.archive\.ubuntu\.com$`),
 		regexp.MustCompile(`^http://security\.ubuntu\.com$`),
 		regexp.MustCompile(`^https://esm\.ubuntu\.com:443$`),
+		regexp.MustCompile(`^http://ftpmaster.internal$`),
 	}
 
 	reInRelease   = regexp.MustCompile(`^/ubuntu/dists/([\w-]+)/InRelease$`)
