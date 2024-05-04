@@ -76,7 +76,7 @@ func checkSignatureImpl(f io.ReadSeeker, notes metadata.Annotation) (io.ReadSeek
 	// https://salsa.debian.org/apt-team/apt/-/blob/4e344a4/methods/gpgv.cc#L553-557
 	sigs, body, err := utils.DecodeClearSigned(data)
 	if err != nil {
-		return nil, fmt.Errorf("cannote decode clearsigned file: %s", err)
+		return nil, fmt.Errorf("cannot decode clearsigned file: %s", err)
 	}
 
 	logger.Debugf("number of signatures: %d", len(sigs))
