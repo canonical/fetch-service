@@ -124,10 +124,14 @@ func (s *Session) Finish() error {
 }
 
 // Revoke revokes the session token.
-func (s *Session) Revoke() {
+func (s *Session) Revoke(token string) bool {
+	if token != s.Token {
+		return false
+	}
 	logger.Debugf("[%s] token revoked", s.Id)
 	s.revoked = true
 	s.End = time.Now().UTC()
+	return true
 }
 
 // IsRevoked returns whether the session token has been revoked.
