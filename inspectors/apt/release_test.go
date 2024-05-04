@@ -155,6 +155,11 @@ func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
 		{inReleaseArtefactData, "tests/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 792, false},
 		{inReleaseArtefactData, "tests/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 600, false},
 	} {
+		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes metadata.Annotation) (io.ReadSeeker, error) {
+			return f, nil
+		})
+		defer restorer()
+
 		translationArtefactFile, _ := os.Open(tc.translationLocalFileName)
 		translationArtefactData := make([]byte, tc.translationFileSize)
 		_, err := translationArtefactFile.Read(translationArtefactData)
