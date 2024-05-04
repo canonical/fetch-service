@@ -27,6 +27,7 @@ import (
 	"strings"
 
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/xi2/xz"
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/inspectors/apt"
@@ -273,5 +274,53 @@ func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
 			"release-file": "9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6",
 			"vendor":       "Canonical",
 		},
+	})
+}
+
+func (s *aptSuite) TestAptReleaseSignature(c *C) {
+	a := metadata.NewArtefact()
+	a.CurrentDownload.URL = "https://my.archive/test"
+	a.MimeType = mimetype.Lookup("text/plain")
+
+	f, err := os.Open("tests/InRelease.xz")
+	c.Assert(err, IsNil)
+	defer f.Close()
+
+	// Read compressed file
+	z, err := xz.NewReader(f, 0)
+	c.Assert(err, IsNil)
+
+	buf := bytes.NewBuffer([]byte{})
+	_, err = io.Copy(buf, z)
+	c.Assert(err, IsNil)
+	r := bytes.NewReader(buf.Bytes())
+
+	// Set public key environment variable
+	prev := os.Getenv("FETCH_APT_RELEASE_PUBLIC_KEY")
+	defer os.Setenv("FETCH_APT_RELEASE_PUBLIC_KEY", prev)
+	os.Setenv("FETCH_APT_RELEASE_PUBLIC_KEY", publicKey)
+
+	ins := apt.NewAptReleaseInspector()
+	err = ins.InspectArtefact(r, a)
+	c.Assert(err, IsNil)
+
+	c.Assert(a.Approved(), Equals, true)
+
+	c.Check(a.Metadata.Type, Equals, "application/x.apt.release")
+	c.Check(a.Metadata.Name, Equals, "InRelease")
+	c.Check(a.Metadata.Vendor, Equals, "Ubuntu")
+	c.Check(a.Metadata.Description, Equals, "Ubuntu Jammy Updates")
+	c.Check(a.Metadata.Author, Equals, "Ubuntu")
+	c.Check(a.ResponseInspection["apt.release"].Annotations, DeepEquals, metadata.Annotation{
+		"Architectures": "amd64 arm64 armhf i386 ppc64el riscv64 s390x",
+		"Codename":      "jammy",
+		"Components":    "main restricted universe multiverse",
+		"Date":          "Fri, 03 May 2024 21:17:09 UTC",
+		"Description":   "Ubuntu Jammy Updates",
+		"Label":         "Ubuntu",
+		"Origin":        "Ubuntu",
+		"Suite":         "jammy-updates",
+		"Version":       "22.04",
+		"public-keys":   []string{"871920D1991BC93C"},
 	})
 }

@@ -193,6 +193,9 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 	if !bytes.Equal(buf, []byte("-----BEGIN PGP SIGNED MESSAGE-----")) {
 		return nil
 	}
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
 
 	// InRelease files must be signed
 	signotes := metadata.Annotation{}
