@@ -35,6 +35,7 @@ var (
 		regexp.MustCompile(`^http://[^./]\.archive\.ubuntu\.com$`),
 		regexp.MustCompile(`^http://security\.ubuntu\.com$`),
 		regexp.MustCompile(`^https://esm\.ubuntu\.com:443$`),
+		regexp.MustCompile(`^http://ftpmaster.internal$`),
 	}
 
 	reDebPackage = regexp.MustCompile(`^/ubuntu/pool/([\w-]+)/.*/([^/_]+)_([^/_]+)_([^/_]+)\.deb$`)
