@@ -159,6 +159,11 @@ func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
 		})
 		defer restorer()
 
+		translationArtefactFile, _ := os.Open(tc.translationLocalFileName)
+		translationArtefactData := make([]byte, tc.translationSize)
+		_, err := translationArtefactFile.Read(translationArtefactData)
+		c.Assert(err, IsNil)
+
 		// Load the release file first
 		a_release := metadata.NewArtefact()
 		a_release.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/devel/InRelease"
@@ -167,7 +172,7 @@ func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
 		f_release := strings.NewReader(inReleaseArtefactData)
 
 		ins := apt.NewAptReleaseInspector()
-		err := ins.InspectArtefact(f_release, a_release)
+		err = ins.InspectArtefact(f_release, a_release)
 		c.Assert(err, IsNil)
 
 		// Now load the translation file

@@ -312,12 +312,6 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 	}
 
 	repo := strings.TrimSuffix(a.CurrentDownload.URL, "/InRelease")
-	{
-		ins.releaseLock.Lock()
-		defer ins.releaseLock.Unlock()
-
-		ins.release[repo] = release
-	}
 
 	a.Metadata.Name = "InRelease"
 	a.Metadata.Version = fields["Codename"]
@@ -334,24 +328,27 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 		notes.Add("integrity errors", integrity_errors)
 	}
 
-	var opinion opinions.OpinionKind
-	var reason string
-
 	if len(notes) > 0 {
-		opinion = opinions.Rejected
-		reason = "error parsing release file"
-	} else {
-		for k, v := range fields {
-			notes.Add(k, v)
-		}
-		for k, v := range signotes {
-			notes.Add(k, v)
-		}
-		opinion = opinions.Approved
-		reason = "release file parsed and signature validated"
+		a.SetResponseOpinion(ins.ID(), opinions.Rejected,
+			"error parsing release file").Annotate(notes)
+		return nil
 	}
 
-	a.SetResponseOpinion(ins.ID(), opinion, reason).Annotate(notes)
+	for k, v := range fields {
+		notes.Add(k, v)
+	}
+	for k, v := range signotes {
+		notes.Add(k, v)
+	}
+
+	a.SetResponseOpinion(ins.ID(), opinions.Approved,
+		"release file parsed and signature validated").Annotate(notes)
+
+	ins.releaseLock.Lock()
+	defer ins.releaseLock.Unlock()
+
+	ins.release[repo] = release
+
 	return nil
 }
 

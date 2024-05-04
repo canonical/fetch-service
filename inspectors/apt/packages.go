@@ -158,14 +158,6 @@ func newAptPackages(origin, distribution, component, architecture string) *aptPa
 	}
 }
 
-// addPackagesEntry adds package information the inspector state.
-func (pkg *aptPackages) addPackagesEntry(digest metadata.Sha256Digest, e aptPackagesEntry) {
-	pkg.entriesLock.Lock()
-	defer pkg.entriesLock.Unlock()
-
-	pkg.entries[digest] = e
-}
-
 // getPackagesEntry retrieves package information from the inspector state.
 func (pkg *aptPackages) getPackagesEntry(digest metadata.Sha256Digest) (aptPackagesEntry, bool) {
 	pkg.entriesLock.Lock()
@@ -260,6 +252,7 @@ func (ins *AptPackagesInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 	buf := make([]byte, 0, 64*1024)
 	sc.Buffer(buf, 1024*1024)
 
+	entries := map[metadata.Sha256Digest]aptPackagesEntry{}
 	var e aptPackagesEntry
 
 	num := 0
@@ -298,14 +291,13 @@ func (ins *AptPackagesInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 			if err != nil {
 				return fmt.Errorf("error parsing digest '%s': %s", v, err)
 			}
-			pkg.addPackagesEntry(h, e)
+			entries[h] = e
 		}
 	}
 
 	a.Metadata.Name = "Packages.xz"
 	a.Metadata.Version = pkg.distribution
-	a.Metadata.Description = fmt.Sprintf("%s %s Packages file",
-		pkg.distribution, pkg.component)
+	a.Metadata.Description = fmt.Sprintf("%s %s Packages file", pkg.distribution, pkg.component)
 	a.Metadata.Architecture = pkg.architecture
 
 	// the file should be also annotated by the release inspector
@@ -323,6 +315,11 @@ func (ins *AptPackagesInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 			"package-count": num,
 		},
 	)
+
+	pkg.entriesLock.Lock()
+	defer pkg.entriesLock.Unlock()
+
+	pkg.entries = entries
 
 	return nil
 }
