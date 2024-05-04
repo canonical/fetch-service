@@ -28,6 +28,10 @@ import (
 type ReleaseFile = releaseFile
 type ReleaseEntry = releaseEntry
 
+var (
+	DecodePublicKey = decodePublicKey
+)
+
 func MockCheckSignature(mock func(io.ReadSeeker, metadata.Annotation) (io.ReadSeeker, error)) (restorer func()) {
 	old := checkSignature
 	checkSignature = mock
