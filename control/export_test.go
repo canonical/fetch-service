@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -17,25 +17,14 @@
  *
  */
 
-package service
+package control
 
-import (
-	"github.com/canonical/fetch-service/control"
-	"github.com/canonical/fetch-service/proxy"
+var (
+	ServerCheckAuth          = (*Server).checkAuth
+	ServerGetServiceStatus   = (*Server).getServiceStatus
+	ServerCreateSession      = (*Server).createSession
+	ServerDeleteSessionToken = (*Server).deleteSessionToken
+	ServerDeleteSession      = (*Server).deleteSession
+	ServerGetSessionReport   = (*Server).getSessionReport
+	ServerDeleteResources    = (*Server).deleteResources
 )
-
-func MockNewHttpProxy(mock func(int, string, chan interface{}) *proxy.HttpProxy) (restorer func()) {
-	old := proxyNewHttpProxy
-	proxyNewHttpProxy = mock
-	return func() {
-		proxyNewHttpProxy = old
-	}
-}
-
-func MockNewServer(mock func(port int, ch chan interface{}, creds string) *control.Server) (restorer func()) {
-	old := controlNewServer
-	controlNewServer = mock
-	return func() {
-		controlNewServer = old
-	}
-}

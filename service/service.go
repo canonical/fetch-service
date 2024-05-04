@@ -60,12 +60,18 @@ type Service struct {
 
 }
 
-var proxyNewHttpProxy = proxy.NewHttpProxy
+var (
+	proxyNewHttpProxy = proxy.NewHttpProxy
+	controlNewServer  = control.NewServer
+)
 
 func New(opt *Options) *Service {
+	// obtain authentication credentials from the environment
+	creds := os.Getenv("FETCH_SERVICE_AUTH")
+
 	ch := make(chan interface{})
 	p := proxyNewHttpProxy(opt.ProxyPort, opt.Spool, ch)
-	ctl := control.NewServer(opt.ControlPort, ch)
+	ctl := controlNewServer(opt.ControlPort, ch, creds)
 	start := time.Now()
 
 	return &Service{p: p, ctl: ctl, opt: opt, ch: ch, start: start}
@@ -229,7 +235,12 @@ func (svc *Service) Start() error {
 						break
 					}
 
-					s.Revoke()
+					if !s.Revoke(v.Token) {
+						v.Rch <- messages.RevokeTokenResult{
+							Err: messages.ErrInvalidSessionToken,
+						}
+						break
+					}
 
 					// update stats
 					sm := s.Metadata()
