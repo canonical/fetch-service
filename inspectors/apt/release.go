@@ -429,13 +429,6 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ReadAtSeeker, a *metad
 		return nil
 	}
 
-	sha256FromFileName, err := metadata.NewSha256Digest(info.digest)
-	if err != nil {
-		a.Reject(ins, "invalid SHA256 digest: %s", err)
-		return nil
-	}
-	logger.Debugf("by-hash SHA256 digest: %s", sha256FromFileName.String())
-
 	repo := fmt.Sprintf("%s/dists/%s", info.repository, info.distribution)
 	rel, ok := ins.release[repo]
 	if !ok {
@@ -443,17 +436,17 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ReadAtSeeker, a *metad
 		return nil
 	}
 
-	entry, ok := rel.Files[sha256FromFileName]
+	entry, ok := rel.Files[a.Metadata.Sha256]
 	if !ok {
 		a.Reject(ins, "Translation file not listed in Release file")
 		return nil
 	}
 	logger.Debugf("release entry: %+v", entry)
 
-	if sha256FromFileName != a.Metadata.Sha256 {
-		a.Reject(ins, "SHA256 digest mismatch").Annotate(
+	if int64(entry.Size) != a.Metadata.Size {
+		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "Translation file size mismatch").Annotate(
 			metadata.Annotation{
-				"expected-sha256": sha256FromFileName.String(),
+				"expected-size": entry.Size,
 			},
 		)
 		return nil
