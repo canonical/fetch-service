@@ -200,7 +200,7 @@ func (s *Session) AddDownload(di metadata.Download) {
 	}
 }
 
-// SaveData writes the artefact data correponding to the given
+// SaveData writes the artefact data corresponding to the given
 // digest to the asset spool.
 func (s *Session) SaveData(digest metadata.Sha256Digest) error {
 	a, ok := s.A[digest]

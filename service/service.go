@@ -43,7 +43,7 @@ type Service struct {
 	ch    chan interface{} // channel to get feedback from handlers
 	start time.Time        // service start time (UTC)
 	opt   *Options         // configuration options
-	tomb  tomb.Tomb        // service dispacher loop reaper
+	tomb  tomb.Tomb        // service dispatcher loop reaper
 }
 
 var proxyNewHttpProxy = proxy.NewHttpProxy
