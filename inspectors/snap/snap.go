@@ -29,7 +29,7 @@ import (
 	"time"
 
 	"github.com/CalebQ42/squashfs"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"

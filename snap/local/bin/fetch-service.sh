@@ -6,14 +6,14 @@ control_port="$(snapctl get control.port)"
 verbosity="$(snapctl get verbosity)"
 permissive="$(snapctl get permissive)"
 if [[ "${permissive,,}" == "true" ]]; then
-  permissive="--permissive-mode"
+	permissive="--permissive-mode"
 else
-  permissive=""
+	permissive=""
 fi
 if [[ "$(snapctl get profile.enabled)" == "true" ]]; then
-  profile="--profile"
+	profile="--profile"
 else
-  profile=""
+	profile=""
 fi
 profile_port="$(snapctl get profile.port)"
 control_port="$(snapctl get control.port)"
@@ -27,19 +27,21 @@ export FETCH_APT_RELEASE_PUBLIC_KEY=$(gpg --export --armor --no-default-keyring 
 export FETCH_SERVICE_AUTH="$control_auth"
 
 if [[ -z "${log_file}" ]]; then
-  exec "${SNAP}/bin/fetch"\
-    "--proxy-port=${proxy_port}"\
-    "--control-port=${control_port}"\
-    "--profile-port=${profile_port}"\
-    "--spool=${SNAP_COMMON}/spool"\
-    "${profile} ${permissive}"\
-    "--verbosity=${verbosity}"
+	exec "${SNAP}/bin/fetch" \
+		"--proxy-port=${proxy_port}" \
+		"--control-port=${control_port}" \
+		"--profile-port=${profile_port}" \
+		"--spool=${SNAP_COMMON}/spool" \
+		"--config=${SNAP_DATA}" \
+		"--verbosity=${verbosity}" \
+		"${profile} ${permissive}"
 else
-  exec "${SNAP}/bin/fetch"\
-    "--proxy-port=${proxy_port}"\
-    "--control-port=${control_port}"\
-    "--profile-port=${profile_port}"\
-    "--spool=${SNAP_COMMON}/spool"\
-    "${profile} ${permissive}"\
-    "--verbosity=${verbosity}" >  >(tee -a "${SNAP_DATA}/${log_file}")
+	exec "${SNAP}/bin/fetch" \
+		"--proxy-port=${proxy_port}" \
+		"--control-port=${control_port}" \
+		"--profile-port=${profile_port}" \
+		"--spool=${SNAP_COMMON}/spool" \
+		"--config=${SNAP_DATA}" \
+		"--verbosity=${verbosity}" \
+		"${profile} ${permissive}" > >(tee -a "${SNAP_DATA}/${log_file}")
 fi

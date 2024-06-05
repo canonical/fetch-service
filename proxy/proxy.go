@@ -20,18 +20,23 @@
 package proxy
 
 import (
+	"bytes"
+	"crypto/tls"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/elazarl/goproxy"
+	"github.com/elazarl/goproxy/transport"
 	"gopkg.in/tomb.v2"
 
 	"github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/proxy/acl"
 	"github.com/canonical/fetch-service/proxy/auth"
 	"github.com/canonical/fetch-service/service/messages"
 )
@@ -73,6 +78,10 @@ func NewHttpProxy(port int, spool string, ch chan interface{}) *HttpProxy {
 	// Set up proxy authentication
 	auth.ProxyBasic(proxy, authRealm, basicAuth)
 
+	// For every incoming request, override the RoundTripper to extract connection
+	// information and check ACLs.
+	proxy.OnRequest().DoFunc(p.processRoundTrip)
+
 	proxy.OnRequest().DoFunc(p.processRequest)
 	proxy.OnResponse().DoFunc(p.processResponse)
 	proxy.OnRequest().HandleConnectFunc(goproxy.AlwaysMitm)
@@ -113,6 +122,37 @@ func (p *HttpProxy) Stop() error {
 	}
 
 	return nil
+}
+
+// processRoundTrip gets destination connection information to check ACLs.
+func (p *HttpProxy) processRoundTrip(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+	host, _, err := net.SplitHostPort(req.URL.Host)
+	if err != nil {
+		host = req.URL.Host
+	}
+	logger.Infof("request to %s", host)
+	tr := transport.Transport{
+		Proxy:           transport.ProxyFromEnvironment,
+		TLSClientConfig: &tls.Config{ServerName: host},
+	}
+	ctx.RoundTripper = goproxy.RoundTripperFunc(func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Response, error) {
+		details, resp, err := tr.DetailedRoundTrip(r)
+		if err != nil {
+			logger.Debugf("round trip error: %s", err)
+			return resp, err
+		}
+		ip := details.TCPAddr.IP
+		logger.Infof("request to %s: IP address %s", r.URL.Host, ip.String())
+		logger.Debugf("check request acls for %s", r.URL.String())
+		if acl.Allowed(ip) {
+			logger.Infof("Access to %s allowed", ip.String())
+		} else {
+			logger.Infof("Access to %s blocked", ip.String())
+			resp = httpResponse(r, http.StatusForbidden, []byte("Access denied"))
+		}
+		return resp, nil
+	})
+	return req, nil
 }
 
 // processRequest handles HTTP requests to the server.
@@ -188,6 +228,19 @@ func (p *HttpProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) 
 	}
 
 	return resp
+}
+
+func httpResponse(req *http.Request, code int, msg []byte) *http.Response {
+	return &http.Response{
+		StatusCode:    code,
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		Request:       req,
+		Header:        map[string][]string{"Content-Type": []string{"text/plain"}},
+		Body:          io.NopCloser(bytes.NewBuffer(msg)),
+		ContentLength: int64(len(msg)),
+	}
+
 }
 
 // tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
