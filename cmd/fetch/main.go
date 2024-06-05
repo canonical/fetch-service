@@ -52,6 +52,9 @@ var opts struct {
 	// The TCP port the proxy server will listen on.
 	ProxyPort int `short:"p" long:"proxy-port" description:"Port number" default:"9988"`
 
+	// Path to the configuration files.
+	Config string `long:"config" description:"Path to the directory containing configuration files" default:"/etc/fetch"`
+
 	// Path to the local spool containing downloaded files and extracted metadata.
 	Spool string `long:"spool" description:"Path to downloaded dependencies" default:"/var/lib/fetch"`
 
@@ -74,6 +77,7 @@ func main() {
 	opt := service.Options{
 		ControlPort:    opts.ControlPort,
 		ProxyPort:      opts.ProxyPort,
+		Config:         opts.Config,
 		Spool:          opts.Spool,
 		PermissiveMode: opts.PermissiveMode,
 	}

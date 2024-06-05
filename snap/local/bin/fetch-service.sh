@@ -27,6 +27,7 @@ export FETCH_SERVICE_AUTH="$control_auth"
 exec "${SNAP}/bin/fetch"\
   "--proxy-port=${proxy_port}"\
   "--spool=${SNAP_COMMON}/spool"\
+  "--config=${SNAP_DATA}"\
   "--verbosity=${verbosity}"\
   "--control-port=${control_port}"\
   "--profile-port=${profile_port}"\
