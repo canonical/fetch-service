@@ -145,13 +145,12 @@ func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
 	for _, tc := range []struct {
 		dataRelease              string
 		translationLocalFileName string
-		translationHashFileName  string
-		translationFileSize      int64
+		translationDigest        string
+		translationSize          int64
 		result                   bool
 	}{
 		{inReleaseArtefactData, "tests/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 792, true},
-
-		//{inReleaseArtefactData, "tests/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 600, false},
+		{inReleaseArtefactData, "tests/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 600, false},
 		{inReleaseArtefactData, "tests/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 792, false},
 		{inReleaseArtefactData, "tests/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 600, false},
 	} {
@@ -163,7 +162,6 @@ func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
 		translationArtefactFile, _ := os.Open(tc.translationLocalFileName)
 		translationArtefactData := make([]byte, tc.translationFileSize)
 		_, err := translationArtefactFile.Read(translationArtefactData)
-
 		c.Assert(err, IsNil)
 
 		// Load the release file first
@@ -174,23 +172,20 @@ func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
 		f_release := strings.NewReader(inReleaseArtefactData)
 
 		ins := apt.NewAptReleaseInspector()
-		err = ins.InspectArtefact(f_release, a_release)
-
+		err := ins.InspectArtefact(f_release, a_release)
 		c.Assert(err, IsNil)
 
 		// Now load the translation file
 		a := metadata.NewArtefact()
-		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/devel/main/i18n/by-hash/SHA256/" + tc.translationHashFileName
+		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/devel/main/i18n/by-hash/SHA256/" + tc.translationDigest
 		a.Metadata.Type = "application/x.apt.translation"
-		a.Metadata.Size = tc.translationFileSize
-		a.Metadata.Sha256, err = metadata.NewSha256Digest("4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed")
-
+		a.Metadata.Size = tc.translationSize
+		a.Metadata.Sha256, err = metadata.NewSha256Digest(tc.translationDigest)
 		c.Assert(err, IsNil)
 
-		tanslationFile, _ := os.Open(tc.translationLocalFileName)
+		translationFile, _ := os.Open(tc.translationLocalFileName)
 		data := make([]byte, 1024*128)
-		_, err = tanslationFile.Read(data)
-
+		_, err = translationFile.Read(data)
 		c.Assert(err, IsNil)
 
 		f := bytes.NewReader(data)
@@ -252,6 +247,7 @@ func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
 	a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/i18n/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6"
 	a.Metadata.Type = mimetypes.AptTranslation
 	a.Metadata.Sha256 = sha256_trn
+	a.Metadata.Size = 1337
 
 	f := strings.NewReader("fake content")
 
