@@ -46,3 +46,6 @@ parts:
     plugin: dump
     source: .
     source-subdir: snap/local
+    stage-packages:
+      - gpg
+      - ubuntu-keyring
