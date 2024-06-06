@@ -22,3 +22,6 @@ go.work
 
 # Snaps of the fetch service
 /*.snap
+
+# Version file from git tag
+cmd/fetch/version.txt

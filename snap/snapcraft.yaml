@@ -8,6 +8,7 @@ description: |
 
 grade: devel # must be 'stable' to release into candidate/stable channels
 confinement: strict
+adopt-info: fetch
 
 apps:
   # licensecheck app here for debugging.
@@ -42,6 +43,9 @@ parts:
       - go
     plugin: go
     source: .
+    override-build: |
+      craftctl default
+      craftctl set version=$(cat cmd/fetch/version.txt)
   service-runner:
     plugin: dump
     source: .
