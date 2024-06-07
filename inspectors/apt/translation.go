@@ -118,9 +118,9 @@ func (ins *AptTranslationInspector) InspectRequest(a *metadata.Artefact) error {
 	if info, err := newTranslationUrlInfo(u); err == nil {
 		a.SetRequestOpinion(ins.ID(), opinions.Pending, "valid URL for Translation file").Annotate(
 			metadata.Annotation{
-				"repository":   info.repository,
-				"distribution": info.distribution,
-				"component":    info.component,
+				"repository": info.repository,
+				"dist":       info.dist,
+				"component":  info.component,
 			},
 		)
 	}
