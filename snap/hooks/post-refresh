@@ -1,0 +1,15 @@
+#!/bin/bash -e
+
+ACL_YAML="${SNAP_DATA}/acl.yaml"
+
+[ -f "$ACL_YAML" ] && exit 0
+
+# Create an acl file if it doesn't exist
+cat <<EOF >"$ACL_YAML"
+http-proxy:
+  policy: allow
+  rules:
+    - dst: [
+      ]
+      access: deny
+EOF
