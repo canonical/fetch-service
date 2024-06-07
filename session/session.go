@@ -94,11 +94,13 @@ func New(spoolDir string, permissive bool) *Session {
 
 func (s *Session) Metadata() *metadata.SessionMetadata {
 	return &metadata.SessionMetadata{
+		Comment:    "Metadata format is unstable and may change without prior notice.",
 		SessionId:  s.Id,
 		StartTime:  s.Start,
 		EndTime:    s.End,
 		Inspectors: s.Insps.List(),
 		SpoolPath:  s.SessionDir,
+		Err:        nil,
 	}
 }
 
@@ -123,10 +125,14 @@ func (s *Session) Finish() error {
 }
 
 // Revoke revokes the session token.
-func (s *Session) Revoke() {
+func (s *Session) Revoke(token string) bool {
+	if token != s.Token {
+		return false
+	}
 	logger.Debugf("[%s] token revoked", s.Id)
 	s.revoked = true
 	s.End = time.Now().UTC()
+	return true
 }
 
 // IsRevoked returns whether the session token has been revoked.
@@ -199,7 +205,7 @@ func (s *Session) AddDownload(di metadata.Download) {
 	}
 }
 
-// SaveData writes the artefact data correponding to the given
+// SaveData writes the artefact data corresponding to the given
 // digest to the asset spool.
 func (s *Session) SaveData(digest metadata.Sha256Digest) error {
 	a, ok := s.A[digest]
@@ -283,6 +289,15 @@ func (sm *SessionMap) Get(id string) *Session {
 	return s.(*Session)
 }
 
+func (sm *SessionMap) ListIds() []string {
+	res := make([]string, 0, 100)
+	sm.Range(func(key, value interface{}) bool {
+		res = append(res, key.(string))
+		return true
+	})
+	return res
+}
+
 var sessions = &SessionMap{}
 
 // CheckAuth verifies if the given credentials are valid and match an active session.
@@ -318,7 +333,7 @@ func FinishAll() {
 	logger.Info("all sessions finished")
 }
 
-// ListAll lists all active session IDs.
+// ListAll lists all active session.
 func ListAll() []metadata.SessionInfo {
 	res := make([]metadata.SessionInfo, 0, 100)
 	sessions.Range(func(key, value any) bool {

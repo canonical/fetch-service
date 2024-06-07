@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -23,7 +23,10 @@ import (
 	"archive/tar"
 	"bufio"
 	"compress/gzip"
+	"fmt"
 	"io"
+	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"unicode"
@@ -35,6 +38,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
+	"github.com/canonical/fetch-service/utils"
 )
 
 type DebInspector struct {
@@ -48,21 +52,25 @@ func (DebInspector) ID() string {
 	return "deb"
 }
 
-func (ins DebInspector) InspectRequest(a *metadata.Artefact) error {
-	validReqs := []*regexp.Regexp{
-		regexp.MustCompile(`http://archive\.ubuntu\.com/`),
-		regexp.MustCompile(`http://security\.ubuntu\.com/`),
-		regexp.MustCompile(`https://esm\.ubuntu\.com:443/`),
-		regexp.MustCompile(`http://repo.ros2.org/`),
+func (ins *DebInspector) InspectRequest(a *metadata.Artefact) error {
+	u, err := url.Parse(a.CurrentDownload.URL)
+	if err != nil {
+		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	for _, re := range validReqs {
-		if re.MatchString(a.CurrentDownload.URL) {
-			a.SetRequestOpinion(ins.ID(), opinions.Pending, "URL matches expression '%s'", re)
-			return nil
-		}
+	if info, err := newDebPackageUrlInfo(u); err == nil {
+		a.SetRequestOpinion(ins.ID(), opinions.Pending, "valid URL for deb package").Annotate(
+			metadata.Annotation{
+				"repository":   info.repository,
+				"component":    info.component,
+				"name":         info.name,
+				"version":      info.version,
+				"architecture": info.architecture,
+			},
+		)
 	}
-	return nil // we don't recognize this request
+
+	return nil
 }
 
 func (ins *DebInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
@@ -74,7 +82,7 @@ func (ins *DebInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) e
 		return err
 	}
 
-	if a.Metadata.Name != "" && a.Metadata.Version != "" && a.Metadata.Architecture != "" {
+	if !a.Rejected() {
 		a.SetResponseOpinion(ins.ID(), opinions.Approved, "deb package parsed")
 	}
 
@@ -97,6 +105,7 @@ func (ins DebInspector) readDebMetadata(f io.Reader, a *metadata.Artefact) error
 		case "debian-binary":
 			if ver := ins.getDebianBinaryVersion(af, a); ver != "2.0" {
 				a.SetResponseOpinion(ins.ID(), opinions.Rejected, "unknown debian binary version %q", ver)
+				return nil
 			}
 		case "control.tar.gz":
 			zf, err := gzip.NewReader(af)
@@ -236,15 +245,27 @@ func (ins DebInspector) parseCopyright(tf io.Reader, a *metadata.Artefact) error
 	sc := bufio.NewScanner(tf)
 	sc.Split(bufio.ScanLines)
 
+	temp, err := os.CreateTemp("", "tmpfile-")
+	if err != nil {
+		return err
+	}
+	defer temp.Close()
+	defer os.Remove(temp.Name())
+
+	// create a temporary copy for license verification
+	t := bufio.NewWriter(temp)
+
 	for sc.Scan() {
 		line := sc.Text()
 
-		// Skip long description
+		if _, err := fmt.Fprintln(t, line); err != nil {
+			return err
+		}
+
+		// Skip multilines lines
 		if len(line) > 0 && line[0] == ' ' {
 			continue
 		}
-
-		// TODO: parse copyright
 
 		k, v, ok := strings.Cut(line, ": ")
 		if !ok {
@@ -252,11 +273,17 @@ func (ins DebInspector) parseCopyright(tf io.Reader, a *metadata.Artefact) error
 		}
 
 		switch k {
-		case "License":
-			a.Metadata.License = v
 		case "Upstream-Contact", "Upstream author":
 			a.Metadata.Author = v
 		}
+	}
+
+	t.Flush()
+	temp.Close()
+
+	a.Metadata.License, err = utils.GetLicense(temp.Name())
+	if err != nil {
+		return err
 	}
 
 	return nil

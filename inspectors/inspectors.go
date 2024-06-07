@@ -30,8 +30,11 @@ import (
 	"github.com/canonical/fetch-service/inspectors/apt"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/deb"
+	"github.com/canonical/fetch-service/inspectors/git"
+	"github.com/canonical/fetch-service/inspectors/gomod"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/inspectors/pip"
+	"github.com/canonical/fetch-service/inspectors/snap"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
@@ -40,8 +43,10 @@ import (
 func init() {
 	mimetype.SetLimit(1 << 30) // input data is mmapped
 	mimetype.Lookup("application/zip").Extend(pip.WheelDetector, mimetypes.PythonWheel, ".whl")
-	mimetype.Lookup("text/plain").Extend(apt.AptReleaseDetector, mimetypes.AptRelease, "")
 	mimetype.Lookup("application/x-xz").Extend(apt.AptPackagesDetector, mimetypes.AptPackages, "")
+	mimetype.Lookup("application/x-xz").Extend(apt.AptTranslationDetector, mimetypes.AptTranslation, "")
+	mimetype.Lookup("application/octet-stream").Extend(snap.SquashFsDetector, mimetypes.SquashFs, "")
+	mimetype.Lookup("text/plain").Extend(snap.AssertionDetector, mimetypes.Assertion, ".assert")
 }
 
 // Inspector is the interface implemented by artefact metadata
@@ -67,6 +72,11 @@ type Inspectors struct {
 func New(permissive bool) Inspectors {
 
 	insList := []Inspector{
+		// snap
+		snap.NewSnapInfoInspector(),
+		snap.NewSnapAssertionInspector(),
+		snap.NewSnapInspector(),
+
 		// python
 		pip.NewSimpleIndexInspector(),
 		pip.NewWheelInspector(),
@@ -75,6 +85,18 @@ func New(permissive bool) Inspectors {
 		deb.NewDebInspector(),
 		apt.NewAptReleaseInspector(),
 		apt.NewAptPackagesInspector(),
+		apt.NewAptTranslationInspector(),
+
+		// git
+		git.NewSmartQueryInspector(),
+		git.NewUploadPackInspector(),
+
+		// go
+		// must run after git
+		gomod.NewGoModuleGitInspector(),
+
+		// default inspector
+		// must be the last inspector to run
 		DefaultInspector{},
 	}
 

@@ -36,6 +36,7 @@ parts:
     plugin: nil
     stage-packages:
       - licensecheck
+      - git
   fetch:
     build-snaps:
       - go
@@ -45,3 +46,6 @@ parts:
     plugin: dump
     source: .
     source-subdir: snap/local
+    stage-packages:
+      - gpg
+      - ubuntu-keyring

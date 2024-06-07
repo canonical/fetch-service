@@ -78,18 +78,18 @@ const (
 )
 
 type Artefact struct {
-	MetadataVersion    string               `json:"metadata-version"`    // Metadata version in X.Y format
-	RequestInspection  InspectionMap        `json:"request-inspection"`  // Opinions from request inspection
-	ResponseInspection InspectionMap        `json:"response-inspection"` // Opinions from result and artefact inspection
-	Result             opinions.OpinionKind `json:"result"`              // Inspection result
-	Metadata           Metadata             `json:"metadata"`            // Artefact metadata
-	Downloads          []Download           `json:"downloads"`           // Information about artefact downloads
-	CurrentDownload    Download             `json:"-"`                   // Information about the current download
-	AssetDir           string               `json:"-"`                   // Location to store files and metadata
-	Tempfile           string               `json:"-"`                   // Path to temporary file containing downloaded data
-	SessionId          string               `json:"-"`                   // The current session ID
-	MimeType           *mimetype.MIME       `json:"-"`                   // The artefact MIME type
-	Request            *http.Request        `json:"-"`                   // request handle for body content inspection
+	MetadataVersion    string               `json:"artefact-metadata-version"` // Artefact metadata version in X.Y format
+	RequestInspection  InspectionMap        `json:"request-inspection"`        // Opinions from request inspection
+	ResponseInspection InspectionMap        `json:"response-inspection"`       // Opinions from result and artefact inspection
+	Result             opinions.OpinionKind `json:"result"`                    // Inspection result
+	Metadata           Metadata             `json:"metadata"`                  // Artefact metadata
+	Downloads          []Download           `json:"downloads"`                 // Information about artefact downloads
+	CurrentDownload    Download             `json:"-"`                         // Information about the current download
+	AssetDir           string               `json:"-"`                         // Location to store files and metadata
+	Tempfile           string               `json:"-"`                         // Path to temporary file containing downloaded data
+	SessionId          string               `json:"-"`                         // The current session ID
+	MimeType           *mimetype.MIME       `json:"-"`                         // The artefact MIME type
+	Request            *http.Request        `json:"-"`                         // request handle for body content inspection
 }
 
 func NewArtefact() *Artefact {
@@ -100,6 +100,7 @@ func NewArtefact() *Artefact {
 		Metadata:           Metadata{},
 		Downloads:          []Download{},
 		CurrentDownload:    Download{},
+		Request:            nil,
 	}
 }
 
@@ -166,6 +167,64 @@ func (a *Artefact) RequestPending() bool {
 		}
 	}
 	return res
+}
+
+// RequestAnnotation verifies whether the inspector has a request
+// opinion and returns its annotation.
+func (a *Artefact) RequestAnnotation(id string, key string) (any, bool) {
+	inspection, ok := a.RequestInspection[id]
+	if !ok {
+		return nil, false
+	}
+	ann, ok := inspection.Annotations[key]
+	if !ok {
+		return nil, false
+	}
+	return ann, true
+}
+
+func (a *Artefact) RequestStringAnnotation(id string, key string) (string, bool) {
+	inspection, ok := a.RequestInspection[id]
+	if !ok {
+		return "", false
+	}
+	ann, ok := inspection.Annotations[key]
+	if !ok {
+		return "", false
+	}
+	val, ok := ann.(string)
+	if !ok {
+		return "", false
+	}
+	return val, true
+}
+
+func (a *Artefact) RequestBoolAnnotation(id string, key string) (bool, bool) {
+	inspection, ok := a.RequestInspection[id]
+	if !ok {
+		return false, false
+	}
+	ann, ok := inspection.Annotations[key]
+	if !ok {
+		return false, false
+	}
+	val, ok := ann.(bool)
+	if !ok {
+		return false, false
+	}
+	return val, true
+}
+
+func (a *Artefact) ResponseAnnotation(id string, key string) (any, bool) {
+	inspection, ok := a.ResponseInspection[id]
+	if !ok {
+		return nil, false
+	}
+	ann, ok := inspection.Annotations[key]
+	if !ok {
+		return nil, false
+	}
+	return ann, true
 }
 
 // Approved returns true when there's at least one approval opinion

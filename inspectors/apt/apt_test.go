@@ -20,6 +20,8 @@
 package apt_test
 
 import (
+	"testing"
+
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/logger"
@@ -33,3 +35,5 @@ func (t *aptSuite) SetUpTest(c *C) {
 }
 
 var _ = Suite(&aptSuite{})
+
+func Test(t *testing.T) { TestingT(t) }
