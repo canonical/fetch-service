@@ -22,7 +22,7 @@ require (
 )
 
 require (
-	github.com/cloudflare/circl v1.3.3 // indirect
+	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/elazarl/goproxy/ext v0.0.0-20221015165544-a0805db90819 // indirect
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
