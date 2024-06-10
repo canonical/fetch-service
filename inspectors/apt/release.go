@@ -111,9 +111,9 @@ func (ins *AptReleaseInspector) InspectRequest(a *metadata.Artefact) error {
 	if info, err := newInReleaseUrlInfo(u); err == nil {
 		a.SetRequestOpinion(ins.ID(), opinions.Pending, "valid URL for Release file").Annotate(
 			metadata.Annotation{
-				"origin":       info.origin,
-				"repository":   info.repository,
-				"distribution": info.distribution,
+				"origin":     info.origin,
+				"repository": info.repository,
+				"dist":       info.dist,
 			},
 		)
 	} else if info, err := newPackagesUrlInfo(u); err == nil {
@@ -121,11 +121,11 @@ func (ins *AptReleaseInspector) InspectRequest(a *metadata.Artefact) error {
 		notes := metadata.Annotation{
 			"origin":       info.origin,
 			"repository":   info.repository,
-			"distribution": info.distribution,
+			"dist":         info.dist,
 			"component":    info.component,
 			"architecture": info.architecture,
 		}
-		repo := fmt.Sprintf("%s/dists/%s", info.repository, info.distribution)
+		repo := fmt.Sprintf("%s/dists/%s", info.repository, info.dist)
 		var opinion opinions.OpinionKind
 		var reason string
 
@@ -141,12 +141,12 @@ func (ins *AptReleaseInspector) InspectRequest(a *metadata.Artefact) error {
 	} else if info, err := newTranslationUrlInfo(u); err == nil {
 		// check if we already have downloaded InReleases from this repo
 		notes := metadata.Annotation{
-			"origin":       info.origin,
-			"repository":   info.repository,
-			"distribution": info.distribution,
-			"component":    info.component,
+			"origin":     info.origin,
+			"repository": info.repository,
+			"dist":       info.dist,
+			"component":  info.component,
 		}
-		repo := fmt.Sprintf("%s/dists/%s", info.repository, info.distribution)
+		repo := fmt.Sprintf("%s/dists/%s", info.repository, info.dist)
 		var opinion opinions.OpinionKind
 		var reason string
 
@@ -374,7 +374,7 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ReadAtSeeker, a *metadata
 	}
 	logger.Debugf("by-hash SHA256 digest: %s", sha256.String())
 
-	repo := fmt.Sprintf("%s/dists/%s", info.repository, info.distribution)
+	repo := fmt.Sprintf("%s/dists/%s", info.repository, info.dist)
 	rel, ok := ins.release[repo]
 	if !ok {
 		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "Release data not found for this repository")
@@ -426,7 +426,7 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ReadAtSeeker, a *metad
 		return nil
 	}
 
-	repo := fmt.Sprintf("%s/dists/%s", info.repository, info.distribution)
+	repo := fmt.Sprintf("%s/dists/%s", info.repository, info.dist)
 	rel, ok := ins.release[repo]
 	if !ok {
 		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "Release data not found for this repository")

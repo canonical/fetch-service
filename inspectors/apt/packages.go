@@ -139,7 +139,7 @@ type aptPackagesEntry struct {
 type aptPackages struct {
 	sha256       metadata.Sha256Digest
 	origin       string // URL origin of the archive
-	distribution string // name of the distribution
+	dist         string // name of the distribution
 	component    string // name of the component
 	architecture string
 
@@ -147,10 +147,10 @@ type aptPackages struct {
 	entriesLock sync.Mutex
 }
 
-func newAptPackages(origin, distribution, component, architecture string) *aptPackages {
+func newAptPackages(origin, dist, component, architecture string) *aptPackages {
 	return &aptPackages{
 		origin:       origin,
-		distribution: distribution,
+		dist:         dist,
 		component:    component,
 		architecture: architecture,
 
@@ -196,12 +196,12 @@ func (ins *AptPackagesInspector) InspectRequest(a *metadata.Artefact) error {
 		a.SetRequestOpinion(ins.ID(), opinions.Pending, "valid URL for Packages file").Annotate(
 			metadata.Annotation{
 				"repository":   info.repository,
-				"distribution": info.distribution,
+				"dist":         info.dist,
 				"component":    info.component,
 				"architecture": info.architecture,
 			},
 		)
-		packages := newAptPackages(info.origin, info.distribution, info.component, info.architecture)
+		packages := newAptPackages(info.origin, info.dist, info.component, info.architecture)
 		ins.addPackages(info.origin, u.Path, packages)
 	} else if info, err := newDebPackageUrlInfo(u); err == nil {
 		a.SetRequestOpinion(ins.ID(), opinions.Pending, "valid URL for deb package").Annotate(
@@ -296,8 +296,8 @@ func (ins *AptPackagesInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 	}
 
 	a.Metadata.Name = "Packages.xz"
-	a.Metadata.Version = pkg.distribution
-	a.Metadata.Description = fmt.Sprintf("%s %s Packages file", pkg.distribution, pkg.component)
+	a.Metadata.Version = pkg.dist
+	a.Metadata.Description = fmt.Sprintf("%s %s Packages file", pkg.dist, pkg.component)
 	a.Metadata.Architecture = pkg.architecture
 
 	// the file should be also annotated by the release inspector
@@ -379,7 +379,7 @@ func (ins *AptPackagesInspector) validateDebianPackage(f ReadAtSeeker, a *metada
 				"packages-architecture": entry.architecture,  // package architecture in the Packages file
 				"packages-size":         entry.size,          // package size in the Packages file
 				"packages-file":         pkg.sha256.String(), // digest of the validating Packages file
-				"distribution":          pkg.distribution,    // distribution from packages file
+				"dist":                  pkg.dist,            // dist from packages file
 				"component":             info.component,      // component from URL
 			}
 

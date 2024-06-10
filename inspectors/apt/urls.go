@@ -58,9 +58,9 @@ func checkValidOrigin(u *url.URL) error {
 }
 
 type inReleaseUrlInfo struct {
-	origin       string
-	repository   string
-	distribution string
+	origin     string
+	repository string
+	dist       string
 }
 
 func newInReleaseUrlInfo(u *url.URL) (*inReleaseUrlInfo, error) {
@@ -73,9 +73,9 @@ func newInReleaseUrlInfo(u *url.URL) (*inReleaseUrlInfo, error) {
 		return nil, fmt.Errorf("%s: not a valid InRelease URL path", u.Path)
 	}
 	info := &inReleaseUrlInfo{
-		origin:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
-		repository:   fmt.Sprintf("%s://%s/ubuntu", u.Scheme, u.Host),
-		distribution: m[1],
+		origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
+		repository: fmt.Sprintf("%s://%s/ubuntu", u.Scheme, u.Host),
+		dist:       m[1],
 	}
 	return info, nil
 }
@@ -83,7 +83,7 @@ func newInReleaseUrlInfo(u *url.URL) (*inReleaseUrlInfo, error) {
 type packagesUrlInfo struct {
 	origin       string
 	repository   string
-	distribution string
+	dist         string
 	component    string
 	architecture string
 	digest       string
@@ -101,7 +101,7 @@ func newPackagesUrlInfo(u *url.URL) (*packagesUrlInfo, error) {
 	info := &packagesUrlInfo{
 		origin:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 		repository:   fmt.Sprintf("%s://%s/ubuntu", u.Scheme, u.Host),
-		distribution: m[1],
+		dist:         m[1],
 		component:    m[2],
 		architecture: m[3],
 		digest:       m[4],
@@ -110,11 +110,11 @@ func newPackagesUrlInfo(u *url.URL) (*packagesUrlInfo, error) {
 }
 
 type translationUrlInfo struct {
-	origin       string
-	repository   string
-	distribution string
-	component    string
-	digest       string
+	origin     string
+	repository string
+	dist       string
+	component  string
+	digest     string
 }
 
 func newTranslationUrlInfo(u *url.URL) (*translationUrlInfo, error) {
@@ -127,11 +127,11 @@ func newTranslationUrlInfo(u *url.URL) (*translationUrlInfo, error) {
 		return nil, fmt.Errorf("%s: not a valid translation URL path", u.Path)
 	}
 	info := &translationUrlInfo{
-		origin:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
-		repository:   fmt.Sprintf("%s://%s/ubuntu", u.Scheme, u.Host),
-		distribution: m[1],
-		component:    m[2],
-		digest:       m[3],
+		origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
+		repository: fmt.Sprintf("%s://%s/ubuntu", u.Scheme, u.Host),
+		dist:       m[1],
+		component:  m[2],
+		digest:     m[3],
 	}
 	return info, nil
 }
