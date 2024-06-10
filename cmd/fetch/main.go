@@ -63,6 +63,9 @@ var opts struct {
 
 	// Enable permissive mode
 	PermissiveMode bool `long:"permissive-mode" description:"Allow sessions to accept rejected artefacts"`
+
+	// Show version
+	Version bool `long:"version" description:"Display the program version and exit"`
 }
 
 func main() {
@@ -90,6 +93,12 @@ func main() {
 	logger.Init(lv)
 	defer logger.Close()
 
+	if opts.Version {
+		fmt.Printf("fetch %s\n", Version)
+		os.Exit(0)
+	}
+
+	logger.Infof("Version %s", Version)
 	logger.Debug("Running in debug mode")
 
 	pp := profile.NewProfiler(opts.ProfilePort)
