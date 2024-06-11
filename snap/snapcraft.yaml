@@ -1,12 +1,12 @@
 name: fetch-service # you probably want to 'snapcraft register <name>'
-base: core22 # the base snap is the execution environment for this snap
 version: 'git'
+base: core22
 summary: Canonical Fetch Service
 description: |
   The fetch service is a tool to mediate network access when executing
   craft tools.
 
-grade: devel # must be 'stable' to release into candidate/stable channels
+grade: stable
 confinement: strict
 adopt-info: fetch
 
