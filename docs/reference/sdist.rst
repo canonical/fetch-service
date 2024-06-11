@@ -23,7 +23,7 @@ will be changed to match an internal repository of binary artefacts.
 File format
 -----------
 
-To be considered a sdist file, an artefact must meet the following criteria:
+To be considered an sdist file, an artefact must meet the following criteria:
 
 * It must be a gzipped tar archive.
 * It must contain a ``PKG-INFO`` file in the root directory.
@@ -31,7 +31,7 @@ To be considered a sdist file, an artefact must meet the following criteria:
 Acceptance criteria
 -------------------
 
-In order be approved, the downloaded sdist file must also comply to
+In order be approved, the downloaded sdist file must also meet
 the following requirements:
 
 * The ``PKG-INFO`` file must contain at least the package name, package
@@ -40,10 +40,10 @@ the following requirements:
 Rejection reasons
 -----------------
 
-A sdist file can be rejected for the following reasons, in addition to
+An sdist file can be rejected for the following reasons, in addition to
 internal or environment errors:
 
-* sdist file is corrupted or has missing elements
+* sdist file is corrupted or has missing elements.
 
 Extracted metadata
 ------------------
