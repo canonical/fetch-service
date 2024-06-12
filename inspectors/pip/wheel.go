@@ -26,6 +26,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"regexp"
 	"strconv"
@@ -36,12 +37,6 @@ import (
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
 	"github.com/canonical/fetch-service/utils"
-)
-
-var (
-	// FIXME: using PyPI URLs as placeholders
-	wheelRequestURL = regexp.MustCompile(
-		`^https://files\.pythonhosted\.org:443/packages/[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{60}/\w+-[a-zA-Z0-9\.-]+\.whl$`)
 )
 
 func WheelDetector(raw []byte, limit uint32) bool {
@@ -64,10 +59,13 @@ func (WheelInspector) ID() string {
 
 // InspectRequest verifies if the request complies with policy.
 func (ins WheelInspector) InspectRequest(a *metadata.Artefact) error {
-	if wheelRequestURL.MatchString(a.CurrentDownload.URL) {
-		a.SetRequestOpinion(ins.ID(), opinions.Pending, "request matches valid URL").Annotate(
-			metadata.Annotation{"match": wheelRequestURL},
-		)
+	u, err := url.Parse(a.CurrentDownload.URL)
+	if err != nil {
+		return fmt.Errorf("cannot parse URL: %s", err)
+	}
+
+	if checkWheelUrl(u) == nil {
+		a.SetRequestOpinion(ins.ID(), opinions.Pending, "request matches valid URL")
 	}
 
 	return nil // we don't recognize this request

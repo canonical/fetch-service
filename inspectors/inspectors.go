@@ -80,6 +80,7 @@ func New(permissive bool) Inspectors {
 		// python
 		pip.NewSimpleIndexInspector(),
 		pip.NewWheelInspector(),
+		pip.NewSdistInspector(),
 
 		// deb packages
 		deb.NewDebInspector(),
