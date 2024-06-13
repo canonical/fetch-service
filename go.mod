@@ -11,7 +11,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.3
 	github.com/go-mmap/mmap v0.7.0
 	github.com/google/uuid v1.6.0
-	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/mux v1.8.1
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/klauspost/compress v1.17.4
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
