@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 
@@ -30,18 +31,35 @@ import (
 	"github.com/canonical/fetch-service/service/messages"
 )
 
+// Parameters for session creation
 type createSessionParameters struct {
-	Timeout uint64 `json:"timeout"`
-	Policy  string `json:"policy"`
+	Timeout uint64 `json:"timeout"` // Session timeout in seconds
+	Policy  string `json:"policy"`  // Session policy ("strict" or "permissive")
+}
+
+// Parameters for token revocation
+type revokeTokenParameters struct {
+	Token string `json:"token"` // The token to revoke
 }
 
 type Server struct {
 	port int
 	ch   chan interface{}
+	user string
+	pw   string
 }
 
-func NewServer(port int, ch chan interface{}) *Server {
-	return &Server{port: port, ch: ch}
+func NewServer(port int, ch chan interface{}, creds string) *Server {
+	v := strings.SplitN(creds, ":", 2)
+	if len(v) != 2 {
+		v = []string{"", ""}
+	}
+	return &Server{
+		port: port,
+		ch:   ch,
+		user: v[0],
+		pw:   v[1],
+	}
 }
 
 func (c *Server) Start() {
@@ -62,6 +80,10 @@ func (c *Server) Start() {
 }
 
 func (c *Server) getServiceStatus(w http.ResponseWriter, r *http.Request) {
+	if !c.checkAuth(w, r) {
+		return
+	}
+
 	logger.Debugf("get service status")
 
 	msg := messages.NewGetServiceStatus()
@@ -77,7 +99,9 @@ func (c *Server) getServiceStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
-	logger.Debugf("create session")
+	if !c.checkAuth(w, r) {
+		return
+	}
 
 	var params createSessionParameters
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
@@ -105,8 +129,6 @@ func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Server) deleteSessionToken(w http.ResponseWriter, r *http.Request) {
-	logger.Debugf("modify session")
-
 	vars := mux.Vars(r)
 	id, ok := vars["id"]
 	if !ok {
@@ -114,14 +136,22 @@ func (c *Server) deleteSessionToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var params revokeTokenParameters
+	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+		internalServerError(w, r)
+		return
+	}
+
 	logger.Debug("revoke token")
-	msg := messages.NewRevokeToken(id)
+	msg := messages.NewRevokeToken(id, params.Token)
 	c.ch <- msg
 	res := <-msg.Rch
 
 	if res.Err != nil {
 		if res.Err == messages.ErrSessionNotFound {
 			notFound(w, r)
+		} else if res.Err == messages.ErrInvalidSessionToken {
+			badRequest(w, r, res.Err.Error())
 		} else {
 			internalServerError(w, r)
 		}
@@ -138,6 +168,10 @@ func (c *Server) deleteSessionToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Server) getSessionReport(w http.ResponseWriter, r *http.Request) {
+	if !c.checkAuth(w, r) {
+		return
+	}
+
 	vars := mux.Vars(r)
 	id, ok := vars["id"]
 	if !ok {
@@ -171,6 +205,10 @@ func (c *Server) getSessionReport(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Server) deleteSession(w http.ResponseWriter, r *http.Request) {
+	if !c.checkAuth(w, r) {
+		return
+	}
+
 	vars := mux.Vars(r)
 	id, ok := vars["id"]
 	if !ok {
@@ -195,6 +233,10 @@ func (c *Server) deleteSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Server) deleteResources(w http.ResponseWriter, r *http.Request) {
+	if !c.checkAuth(w, r) {
+		return
+	}
+
 	vars := mux.Vars(r)
 	id, ok := vars["id"]
 	if !ok {
@@ -219,25 +261,49 @@ func (c *Server) deleteResources(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// checkAuth verifies basic authentication for requests.
+func (c *Server) checkAuth(w http.ResponseWriter, r *http.Request) bool {
+	user, pw, ok := r.BasicAuth()
+	if !ok {
+		logger.Debugf("basic auth decoding failed")
+		unauthorized(w, r)
+		return false
+	}
+
+	if user != c.user || pw != c.pw {
+		unauthorized(w, r)
+		return false
+	}
+
+	return true
+}
+
 func badRequest(w http.ResponseWriter, r *http.Request, reason string) {
-	logger.Warningf("bad request response: %s", r.URL)
+	logger.Warningf("400 Bad Request HTTP error: %s", r.URL)
 	w.WriteHeader(http.StatusBadRequest)
 	write_response(w, []byte(reason))
 }
 
 func internalServerError(w http.ResponseWriter, r *http.Request) {
-	logger.Warningf("internal server error response: %s", r.URL)
+	logger.Warningf("500 Internal Server Error HTTP error: %s", r.URL)
 	w.WriteHeader(http.StatusInternalServerError)
 	write_response(w, []byte("500 Internal Server Error"))
 }
 
 func notFound(w http.ResponseWriter, r *http.Request) {
-	logger.Warningf("not found response: %s", r.URL)
+	logger.Warningf("404 Not Found HTTP error: %s", r.URL)
 	w.WriteHeader(http.StatusNotFound)
 	write_response(w, []byte("404 Not Found"))
 }
 
+func unauthorized(w http.ResponseWriter, r *http.Request) {
+	logger.Warningf("401 unauthorized HTTP error: %s", r.URL)
+	w.WriteHeader(http.StatusUnauthorized)
+	write_response(w, []byte("401 Unauthorized"))
+}
+
 func write_response(w http.ResponseWriter, b []byte) {
+	logger.Debugf("control API response: %s\n", b)
 	var err error
 	_, err = w.Write(b)
 	if err != nil {

@@ -42,7 +42,7 @@ func NewRequestHandler(req *http.Request, a *metadata.Artefact, ch chan interfac
 		ch:         ch,
 		a:          a,
 		body:       req.Body,
-		insTimeout: 60 * time.Second,
+		insTimeout: 180 * time.Second,
 	}
 
 	return h, nil
@@ -55,10 +55,5 @@ func (h *RequestHandler) Read(b []byte) (n int, err error) {
 
 // Close finalizes the request.
 func (h *RequestHandler) Close() error {
-	res := h.body.Close()
-
-	// update request information
-	// TODO?
-
-	return res
+	return h.body.Close()
 }

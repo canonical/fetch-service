@@ -1,0 +1,313 @@
+// -*- Mode: Go; indent-tabs-mode: t -*-
+
+/*
+ * Copyright 2024 Canonical Ltd.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+package git_test
+
+import (
+	"io"
+	"net/http"
+	"strings"
+
+	"github.com/gabriel-vasile/mimetype"
+	. "gopkg.in/check.v1"
+
+	"github.com/canonical/fetch-service/inspectors"
+	"github.com/canonical/fetch-service/inspectors/git"
+	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/logger/testlogger"
+	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/opinions"
+)
+
+type uploadPackSuite struct{}
+
+var _ = Suite(&uploadPackSuite{})
+
+func (t *uploadPackSuite) SetUpTest(c *C) {
+	testlogger.Init(logger.InfoLevel)
+}
+
+func (s *uploadPackSuite) TestUploadPackInspectorInterface(c *C) {
+	var iface inspectors.Inspector
+	ins := git.NewUploadPackInspector()
+	c.Assert(ins, Implements, &iface)
+
+}
+
+func (s *uploadPackSuite) TestUploadPackInspectorID(c *C) {
+	ins := git.NewUploadPackInspector()
+	c.Assert(ins.ID(), Equals, "git.upload-pack")
+
+}
+
+func (s *uploadPackSuite) TestInspectLsRefsRequest(c *C) {
+	for _, tc := range []struct {
+		url      string
+		approved bool
+	}{
+		// FIXME: using github as placeholder, final URLs will change
+		{"https://github.com:443/user/project.git/git-upload-pack", true},
+		{"https://invalid.com:443/user/project.git/git-upload-pack", false},
+		{"http://github.com/user/project.git/git-upload-pack", false},
+		{"https://gothub.com:443/user/project.git/git-upload-pack", false},
+		{"ahttps://github.com:443/user/project.git/git-upload-pack", false},
+		{"https://github.com:443/user/project.git/git-upload-packs", false},
+		{"https://github.com:443/user/project.git/something-else", false},
+	} {
+		ins := git.NewUploadPackInspector()
+		a := fakeGitArtefact()
+		a.CurrentDownload.URL = tc.url
+		a.Request, _ = http.NewRequest("GET", tc.url, nil)
+		a.Request.Body = io.NopCloser(strings.NewReader("0014command=ls-refs\n0000"))
+
+		err := ins.InspectRequest(a)
+		c.Assert(err, IsNil)
+
+		insp, ok := a.RequestInspection[ins.ID()]
+		c.Assert(ok, Equals, tc.approved)
+		if tc.approved {
+			c.Assert(insp.Opinion, Equals, opinions.Pending)
+		}
+	}
+}
+
+var uploadPackLsRefsArtefactData = `00526b99254b1c5c823d054bc0ae1ebccfa070380fce HEAD symref-target:refs/heads/master
+004497cea5a48e9144f83ff4d7211c6d1c38bc42d014 refs/heads/fix/release
+003f6b99254b1c5c823d054bc0ae1ebccfa070380fce refs/heads/master
+003e8cb123237fbe2b13a1108fa7b876c9ad0c12a3b1 refs/tags/v0.5.0
+003ea0dda31a428ae903914ac405ee3b81925b83985e refs/tags/v0.5.1
+006f0bfe79093aaafeb51c6bf16e884c8acc3629deeb refs/tags/v0.5.10 peeled:8c6a8b587d0818eca0fd6cd70fea1451b7f3515e
+006f1f7cf26e28c9544c31dc84924fe394a33bff7c0b refs/tags/v0.5.11 peeled:eef8eae16fc3c4a2ae1c82fc688a44b3fd023e1e
+003e2c53e48f96633cf8427c1dcaf020d8610ece0aa6 refs/tags/v0.5.2
+003e769b5c56b566d5300deb0ac05fb5564f31df1ee0 refs/tags/v0.5.3
+003edbb42f3374e0dea543ff633f0e02059e29db833e refs/tags/v0.5.4
+003e92fa4dda4000a131f5fb7b7c99dd9ccd47e5f4bc refs/tags/v0.5.5
+006e0164a46b6f73296c783b92184ab171919b29f789 refs/tags/v0.5.6 peeled:74b720957a7be9bae956fdedf34f1dd34364e9a7
+006e30689830e58e5e39a57c9095b35e4ac1d7623a25 refs/tags/v0.5.7 peeled:cc92f5b7e5851de2a68b10ba9982e8efe25824ac
+006e69941b9d152f7b42289f5f5741ec040b6f0a2c05 refs/tags/v0.5.8 peeled:3c0053a0e6a56ef6b7cc65a92d9acec353494bd3
+006e2eaa9fba5c97ca0810c49df39497f3f9be3ac7e6 refs/tags/v0.5.9 peeled:a702c1be7623a7510a0ec396b69923868c0dd027
+006e1b4b4012d4c1f03a5d9ce4463b2687512d9b6d31 refs/tags/v1.0.0 peeled:70547660da19d0f768bc3310292873da9d81b3c0
+006ee57a1f3a81f78545bfd7112472c38a2c7bf5485e refs/tags/v1.0.1 peeled:14fa60386d05b7971bcf2b76878da9e3c87760b5
+0000`
+
+func (s *uploadPackSuite) TestUploadPackInspectLsRefsArtefact(c *C) {
+	for _, tc := range []struct {
+		data   string
+		errmsg string
+	}{
+		{uploadPackLsRefsArtefactData, ""},
+		{uploadPackLsRefsArtefactData[1:], "decode error"},
+		{
+			uploadPackLsRefsArtefactData[:len(uploadPackLsRefsArtefactData)-1],
+			`strconv.ParseUint: parsing "000\x00": invalid syntax`,
+		},
+	} {
+		a := fakeGitArtefact()
+		a.Request, _ = http.NewRequest("GET", "https://github.com:443/user/project.git/git-upload-pack", nil)
+		a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
+		a.Request.Body = io.NopCloser(strings.NewReader("0014command=ls-refs\n0000"))
+		a.RequestInspection = metadata.InspectionMap{
+			"git.upload-pack": &metadata.Inspection{
+				Opinion: opinions.Pending,
+				Reason:  "valid URL for git upload-pack",
+				Annotations: metadata.Annotation{
+					"client-request": []string{
+						"command=ls-refs",
+						"agent=git/2.34.1",
+						"object-format=sha1",
+						"",
+						"peel",
+						"symrefs",
+						"unborn",
+						"ref-prefix HEAD",
+						"ref-prefix refs/heads/",
+						"ref-prefix master",
+						"ref-prefix refs/master",
+						"ref-prefix refs/tags/master",
+						"ref-prefix refs/heads/master",
+						"ref-prefix refs/remotes/master",
+						"ref-prefix refs/remotes/master/HEAD",
+						"ref-prefix refs/tags/",
+					},
+					"repository": "https://my.repo/foo",
+					"command":    "ls-refs",
+					"project":    "bump2version",
+					"protocol":   "version=2",
+				},
+			},
+		}
+
+		f := strings.NewReader(tc.data)
+
+		ins := git.NewUploadPackInspector()
+		err := ins.InspectArtefact(f, a)
+		if tc.errmsg == "" {
+			c.Assert(err, IsNil)
+		} else {
+			c.Assert(err.Error(), Equals, tc.errmsg)
+		}
+
+		c.Check(a.Metadata.Type, Equals, "application/x.git.upload-pack-result.ls-ref")
+		c.Assert(a.Approved(), Equals, tc.errmsg == "")
+	}
+}
+
+func (s *uploadPackSuite) TestInspectFetchRequest(c *C) {
+	// FIXME: using github as placeholder, final URLs will change
+	url := "https://github.com:443/user/project.git/git-upload-pack"
+
+	ins := git.NewUploadPackInspector()
+	a := fakeGitArtefact()
+	a.CurrentDownload.URL = url
+	a.Request, _ = http.NewRequest("GET", url, nil)
+	a.Request.Body = io.NopCloser(strings.NewReader(
+		"0012command=fetch\n" +
+			"000ddeepen 1\n" +
+			"0032want 6b99254b1c5c823d054bc0ae1ebccfa070380fce\n" +
+			"0000",
+	))
+
+	err := ins.InspectRequest(a)
+	c.Assert(err, IsNil)
+	c.Assert(a.RequestInspection["git.upload-pack"], DeepEquals, &metadata.Inspection{
+		Opinion: opinions.Pending,
+		Reason:  "valid URL for git upload-pack",
+		Annotations: metadata.Annotation{
+			"repository": "https://github.com:443/user/project.git",
+			"num-wants":  1,
+			"wants":      []string{"6b99254b1c5c823d054bc0ae1ebccfa070380fce"},
+			"is-shallow": true,
+			"project":    "project",
+			"protocol":   "version=2",
+			"command":    "fetch",
+			"client-request": []string{
+				"command=fetch",
+				"deepen 1",
+				"want 6b99254b1c5c823d054bc0ae1ebccfa070380fce",
+			},
+		},
+	})
+	c.Assert(a.RequestPending(), Equals, true)
+	c.Assert(a.RequestRejected(), Equals, false)
+}
+
+func (s *uploadPackSuite) TestInspectFetchRequestReject(c *C) {
+	// FIXME: using github as placeholder, final URLs will change
+	url := "https://github.com:443/user/project.git/git-upload-pack"
+
+	ins := git.NewUploadPackInspector()
+	a := fakeGitArtefact()
+	a.CurrentDownload.URL = url
+	a.Request, _ = http.NewRequest("GET", url, nil)
+	a.Request.Body = io.NopCloser(strings.NewReader(
+		"0012command=fetch\n" +
+			"0036want 6b99254b1c5c823d054bc0ae1ebccfa070380fce013f\n" +
+			"0036want 006e69941b9d152f7b42289f5f5741ec040b6f0a2c05\n" +
+			"0036want 006f0bfe79093aaafeb51c6bf16e884c8acc3629deeb\n" +
+			"0000",
+	))
+
+	err := ins.InspectRequest(a)
+	c.Assert(err, IsNil)
+	c.Assert(a.RequestInspection["git.upload-pack"], DeepEquals, &metadata.Inspection{
+		Opinion: opinions.Rejected,
+		Reason:  "fetch is only allowed with depth 1",
+		Annotations: metadata.Annotation{
+			"num-wants": 3,
+			"wants": []string{
+				"6b99254b1c5c823d054bc0ae1ebccfa070380fce013f",
+				"006e69941b9d152f7b42289f5f5741ec040b6f0a2c05",
+				"006f0bfe79093aaafeb51c6bf16e884c8acc3629deeb",
+			},
+			"repository": "https://github.com:443/user/project.git",
+			"is-shallow": false,
+			"project":    "project",
+			"protocol":   "version=2",
+			"command":    "fetch",
+			"client-request": []string{
+				"command=fetch",
+				"want 6b99254b1c5c823d054bc0ae1ebccfa070380fce013f",
+				"want 006e69941b9d152f7b42289f5f5741ec040b6f0a2c05",
+				"want 006f0bfe79093aaafeb51c6bf16e884c8acc3629deeb",
+			},
+		},
+	})
+	c.Assert(a.RequestRejected(), Equals, true)
+	c.Assert(a.RequestPending(), Equals, false)
+}
+
+var uploadPackFetchArtefactData = `0011shallow-info
+0034shallow 6b99254b1c5c823d054bc0ae1ebccfa070380fce0001000dpackfile
+...packed-object-data...`
+
+func (s *uploadPackSuite) TestUploadPackInspectFetchArtefact(c *C) {
+	for _, tc := range []struct {
+		data   string
+		errmsg string
+	}{
+		{uploadPackFetchArtefactData, ""},
+		{uploadPackFetchArtefactData[1:], `error decoding git protocol: strconv.ParseUint: parsing "011s": invalid syntax`},
+	} {
+		a := fakeGitArtefact()
+		a.Request, _ = http.NewRequest("GET", "https://github.com:443/user/project.git/git-upload-pack", nil)
+		a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
+		a.MimeType = mimetype.Lookup("application/octet-stream")
+		a.Request.Body = io.NopCloser(strings.NewReader("0014command=fetch\n0000"))
+		a.RequestInspection = metadata.InspectionMap{
+			"git.upload-pack": &metadata.Inspection{
+				Opinion: opinions.Pending,
+				Reason:  "valid URL for git upload-pack",
+				Annotations: metadata.Annotation{
+					"client-request": []string{
+						"command=fetch",
+						"agent=git/2.34.1",
+						"object-format=sha1",
+						"",
+						"thin-pack",
+						"no-progress",
+						"include-tag",
+						"ofs-delta",
+						"deepen 1",
+						"want 6b99254b1c5c823d054bc0ae1ebccfa070380fce",
+						"done",
+					},
+					"repository": "https://my.repo/foo",
+					"command":    "fetch",
+					"project":    "bump2version",
+					"protocol":   "version=2",
+					"num-wants":  1,
+				},
+			},
+		}
+
+		f := strings.NewReader(tc.data)
+
+		ins := git.NewUploadPackInspector()
+		err := ins.InspectArtefact(f, a)
+		if tc.errmsg == "" {
+			c.Assert(err, IsNil)
+			c.Assert(a.ResponseInspection[ins.ID()].Opinion, Equals, opinions.Unknown)
+		} else {
+			c.Assert(err.Error(), Equals, tc.errmsg)
+			c.Assert(a.Rejected(), Equals, true)
+		}
+
+		c.Check(a.Metadata.Type, Equals, "application/x.git.upload-pack-result.fetch")
+	}
+}

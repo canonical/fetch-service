@@ -85,7 +85,7 @@ func (s *debSuite) TestDebInspector(c *C) {
 	ins := deb.DebInspector{}
 	c.Assert(ins, Implements, &iface)
 
-	// TODO: inject Packages.xz data into inspection context to validade the deb file
+	// TODO: inject Packages.xz data into inspection context to validate the deb file
 
 	f, err := mmap.Open(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"))
 	c.Assert(err, IsNil)

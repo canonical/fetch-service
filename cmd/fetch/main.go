@@ -52,6 +52,9 @@ var opts struct {
 	// The TCP port the proxy server will listen on.
 	ProxyPort int `short:"p" long:"proxy-port" description:"Proxy port number" default:"9988"`
 
+	// Path to the configuration files.
+	Config string `long:"config" description:"Path to the directory containing configuration files" default:"/etc/fetch"`
+
 	// Path to the local spool containing downloaded files and extracted metadata.
 	Spool string `long:"spool" description:"Path to downloaded dependencies" default:"/var/lib/fetch"`
 
@@ -60,6 +63,9 @@ var opts struct {
 
 	// Enable permissive mode
 	PermissiveMode bool `long:"permissive-mode" description:"Allow sessions to accept rejected artefacts"`
+
+	// Show version
+	Version bool `long:"version" description:"Display the program version and exit"`
 }
 
 func main() {
@@ -74,6 +80,7 @@ func main() {
 	opt := service.Options{
 		ControlPort:    opts.ControlPort,
 		ProxyPort:      opts.ProxyPort,
+		Config:         opts.Config,
 		Spool:          opts.Spool,
 		PermissiveMode: opts.PermissiveMode,
 	}
@@ -86,6 +93,12 @@ func main() {
 	logger.Init(lv)
 	defer logger.Close()
 
+	if opts.Version {
+		fmt.Printf("fetch %s\n", Version)
+		os.Exit(0)
+	}
+
+	logger.Infof("Version %s", Version)
 	logger.Debug("Running in debug mode")
 
 	pp := profile.NewProfiler(opts.ProfilePort)

@@ -1,13 +1,14 @@
 name: fetch-service # you probably want to 'snapcraft register <name>'
-base: core22 # the base snap is the execution environment for this snap
 version: 'git'
+base: core22
 summary: Canonical Fetch Service
 description: |
   The fetch service is a tool to mediate network access when executing
   craft tools.
 
-grade: devel # must be 'stable' to release into candidate/stable channels
+grade: stable
 confinement: strict
+adopt-info: fetch
 
 apps:
   # licensecheck app here for debugging.
@@ -36,12 +37,19 @@ parts:
     plugin: nil
     stage-packages:
       - licensecheck
+      - git
   fetch:
     build-snaps:
       - go
     plugin: go
     source: .
+    override-build: |
+      craftctl default
+      craftctl set version=$(cat cmd/fetch/version.txt)
   service-runner:
     plugin: dump
     source: .
     source-subdir: snap/local
+    stage-packages:
+      - gpg
+      - ubuntu-keyring

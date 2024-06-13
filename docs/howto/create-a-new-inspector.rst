@@ -15,10 +15,11 @@ request should be allowed to reach the HTTP server, or be blocked.
 
 The inspector's ``InspectRequest`` method is used to verify whether the
 HTTP request is valid. If no opinion is emitted the fetch service assumes that
-the request was ignored by this inspector. The ``Hold`` artefact method is
-used when the request seems correct and the artefact must be inspected.
+the request was ignored by this inspector. The ``SetRequestOpinion`` artefact
+method is used to set the request inspection opinion to ``Pending`` when the
+request seems correct and the artefact must be inspected.
 
-An inspector can block a request using the ``Reject`` artefact method, but
+An inspector can block a request by setting the opinion to ``Rejected``, but
 this must be done carefully. If an inspector rejects a request, the artefact
 won't be downloaded even if another inspector sets it to pending state.
 
@@ -31,7 +32,7 @@ requests to a given host::
 	          return fmt.Errorf("cannot parse URL: %s", err)
  	  }
           if u.Host == validHost {
-                  a.Hold(ins, "URL has a valid origin")
+                  a.SetRequestOpinion(ins.ID(), opinions.Pending, "URL has a valid origin")
           }
           return nil
   }
@@ -43,7 +44,9 @@ How to inspect an artefact
 After the artefact is downloaded, it can be examined for metadata extraction.
 Although it was cleared by the request inspector, the inspector must make sure
 the file is what it expects it to be before approving _or_ rejecting it. Inspectors
-must emit only one opinion about a recognized artefact.
+must emit only one opinion about a recognized artefact. The ``SetResponseOpinion``
+artefact method must be used to set the inspector's opinion to ``Approved`` or
+``Rejected``.
 
 This example shows how to implement an artefact inspector that examines a JSON file,
 extracts author metadata, and only allows documents created by a specific author to reach
@@ -66,9 +69,9 @@ the requesting client::
           a.Metadata.Author = payload.Author
 
           if payload.Author == "Foo J. Bar" {
-                  a.Approve(ins, "this is a known author") 
+                  a.SetResponseOpinion(ins.ID(), opinions.Approved, "this is a known author")
           } else {          
-                  a.Reject(ins, "unrecognized author name") 
+                  a.SetResponseOpinion(ins.ID(), opinions.Rejected, "unrecognized author name")
           }
 
           return nil
@@ -82,7 +85,7 @@ Opinions can be annotated with inspector-specific information. Annotations
 can be used to add context to an opinion and are intended for human consumption::
 
   if payload.Author == "Foo J. Bar" {
-          a.Approve(ins, "this is a good author").Annotate(
+          a.SetResponseOpinion(ins.ID(), opinions.Approved, "this is a known author").Annotate(
                   metadata.Annotation{
                           "keywords": payload.Keywords,
                           "creation-date": payload.CreationDate,
@@ -120,9 +123,9 @@ and checks other artefacts against this internal state::
           }
 
           if slices.Contains(ins.validDigests, a.Metadata.Sha256.String()) {
-                  a.Approve(ins, "file digest is valid")
+                  a.SetResponseOpinion(ins.ID(), opinions.Approved, "file digest is valid")
           } else {
-                  a.Reject(ins, "file digest not listed in the index file")
+                  a.SetResponseOpinion(ins.ID(), opinions.Rejected, "file digest not listed in the index file")
           }
 
           return nil

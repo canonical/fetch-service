@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,8 +20,22 @@
 package mimetypes
 
 const (
-	DebianBinaryPackage = "application/vnd.debian.binary-package"
-	PythonWheel         = "application/x.python.wheel"
-	AptRelease          = "application/x.apt.release"
-	AptPackages         = "application/x.apt.packages"
+	DebianBinaryPackage        = "application/vnd.debian.binary-package"
+	PythonWheel                = "application/x.python.wheel"
+	PythonSdist                = "application/x.python.sdist"
+	AptRelease                 = "application/x.apt.release"
+	AptPackages                = "application/x.apt.packages"
+	AptTranslation             = "application/x.apt.translation"
+	GitUploadPackAdvertisement = "application/x.git.upload-pack-advertisement"
+	GitUploadPackLsRef         = "application/x.git.upload-pack-result.ls-ref"
+	GitUploadPackFetch         = "application/x.git.upload-pack-result.fetch"
+	GoModuleGit                = "application/x.go.module.git-repo"
+	SquashFs                   = "application/x.squashfs"
+	SnapPackage                = "application/x.canonical.snap-package"
+	SnapInfo                   = "application/x.canonical.snap-info"
+	Assertion                  = "application/x.ubuntu.assertion"
+	SnapRevisionAssertion      = "application/x.ubuntu.assertion.snap-revision"
+	SnapDeclarationAssertion   = "application/x.ubuntu.assertion.snap-declaration"
+	AccountAssertion           = "application/x.ubuntu.assertion.account"
+	AccountKeyAssertion        = "application/x.ubuntu.assertion.account-key"
 )

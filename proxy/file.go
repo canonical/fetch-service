@@ -53,7 +53,7 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artefact, spool str
 	insTimeout := 60 * time.Second // XXX: make this a configurable parameter
 	assetDir := filepath.Join(spool, sessionId, "assets")
 
-	tempfile, err := os.CreateTemp("", "fetch")
+	tempfile, err := os.CreateTemp("", "artefact-")
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artefact, spool str
 	a.Tempfile = tempfile.Name()
 	a.AssetDir = assetDir
 
-	if err := localDownload(resp, a, tempfile); err != nil {
+	if err = localDownload(resp, a, tempfile); err != nil {
 		return nil, err
 	}
 
@@ -95,21 +95,13 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artefact, spool str
 }
 
 // Read transfers data, computes digests and writes to a local copy of the file.
-func (h *FileDownloadHandler) Read(b []byte) (n int, err error) {
+func (h *FileDownloadHandler) Read(b []byte) (int, error) {
 	return h.body.Read(b)
 }
 
 // Close finalizes the transfer.
 func (h *FileDownloadHandler) Close() error {
-	res := h.body.Close()
-	if err := h.tempfile.Close(); err != nil {
-		logger.Warning(err)
-	}
-
-	// update download information
-	h.a.CurrentDownload.EndTime = time.Now().UTC()
-
-	return res
+	return h.body.Close()
 }
 
 // localDownload stores the response body locally.
@@ -169,9 +161,6 @@ func (h *LocalDownloadHandler) Read(b []byte) (n int, err error) {
 
 func (h *LocalDownloadHandler) Close() error {
 	res := h.body.Close()
-
-	mver := fmt.Sprintf("%d.%d", metadata.MetadataVersionMajor, metadata.MetadataVersionMinor)
-	h.a.Metadata.MetadataVersion = mver
 
 	h.a.Metadata.Size = h.size
 	h.a.Metadata.Sha1 = *(*metadata.Sha1Digest)(h.sha1.Sum(nil))

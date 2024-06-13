@@ -20,73 +20,309 @@
 package apt_test
 
 import (
-	"crypto/tls"
+	"bytes"
+	"errors"
 	"io"
-	"net/http"
 	"os"
-	"path/filepath"
-	"time"
+	"strings"
 
-	"github.com/go-mmap/mmap"
+	"github.com/gabriel-vasile/mimetype"
+	"github.com/xi2/xz"
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/inspectors/apt"
+	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
-const (
-	releaseURL = "http://archive.ubuntu.com/ubuntu/dists/jammy/InRelease"
-)
+var inReleaseArtefactData = `-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
 
-// XXX: This file contains minimal testing for apt file formats. Tests
-//      will be extended after the metadata format is approved.
+Origin: Ubuntu
+Label: Ubuntu
+Suite: jammy-backports
+Version: 22.04
+Codename: jammy
+Date: Fri, 07 Jul 2023 18:13:42 UTC
+Architectures: amd64 arm64 armhf i386 ppc64el riscv64 s390x
+Components: main restricted universe multiverse
+Description: Ubuntu Jammy Backports
+NotAutomatic: yes
+ButAutomaticUpgrades: yes
+MD5Sum:
+ 7b01f6f56157ccab98fa819e9b68ec6c           240952 main/binary-amd64/Packages
+ 9b5dcc779cf96d4238ffcb081973d1de            49419 main/binary-amd64/Packages.gz
+ 43289ba88c740edc6b69860b6c428eb9            40928 main/binary-amd64/Packages.xz
+SHA1:
+ b7c117896a538ceb37a99da6fb7981511b2524fa           240952 main/binary-amd64/Packages
+ 7eacb20b664866781cd506321cc0138d1f87570e            49419 main/binary-amd64/Packages.gz
+ 16234a62a83c8e2bf9c6a5f38acd22f06b3002c5            40928 main/binary-amd64/Packages.xz
+SHA256:
+ 65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6           240952 main/binary-amd64/Packages
+ 3b2b1ad6f76bec3c692d5932ceffed8c3c261c8b5fde78cd084432352c83d14d            49419 main/binary-amd64/Packages.gz
+ 9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6            40928 main/binary-amd64/Packages.xz
+ 4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed              792 main/i18n/Translation-zh_TW.xz
+Acquire-By-Hash: yes
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+ 
+-----END PGP SIGNATURE-----`
 
-func (s *aptSuite) TestAptReleaseInspector(c *C) {
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+func (s *aptSuite) TestAptReleaseArtefactInspector(c *C) {
+	for _, tc := range []struct {
+		data     string
+		validSig bool
+		result   bool
+	}{
+		{inReleaseArtefactData, true, true},
+		{inReleaseArtefactData, false, false},
+		{"some arbitrary data", true, false},
+	} {
+		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes metadata.Annotation) (io.ReadSeeker, error) {
+			if !tc.validSig {
+				return f, errors.New("invalid signature")
+			}
+
+			return f, nil
+		})
+		defer restorer()
+
+		a := metadata.NewArtefact()
+		a.CurrentDownload.URL = "https://my.archive/test"
+		a.MimeType = mimetype.Lookup("text/plain")
+
+		f := strings.NewReader(tc.data)
+
+		ins := apt.NewAptReleaseInspector()
+		err := ins.InspectArtefact(f, a)
+		c.Assert(err, IsNil)
+
+		c.Assert(a.Approved(), Equals, tc.result)
+
+		if tc.result {
+			c.Check(a.Metadata.Type, Equals, "application/x.apt.release")
+			c.Check(a.Metadata.Name, Equals, "InRelease")
+			c.Check(a.Metadata.Vendor, Equals, "Ubuntu")
+			c.Check(a.Metadata.Description, Equals, "Ubuntu Jammy Backports")
+			c.Check(a.Metadata.Author, Equals, "Ubuntu")
+			c.Check(a.ResponseInspection["apt.release"].Annotations, DeepEquals, metadata.Annotation{
+				"Architectures":        "amd64 arm64 armhf i386 ppc64el riscv64 s390x",
+				"ButAutomaticUpgrades": "yes",
+				"Codename":             "jammy",
+				"Components":           "main restricted universe multiverse",
+				"Date":                 "Fri, 07 Jul 2023 18:13:42 UTC",
+				"Description":          "Ubuntu Jammy Backports",
+				"Hash":                 "SHA512",
+				"Label":                "Ubuntu",
+				"NotAutomatic":         "yes",
+				"Origin":               "Ubuntu",
+				"Suite":                "jammy-backports",
+				"Version":              "22.04",
+			})
+
+			sha256_1, _ := metadata.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
+			sha256_2, _ := metadata.NewSha256Digest("3b2b1ad6f76bec3c692d5932ceffed8c3c261c8b5fde78cd084432352c83d14d")
+			sha256_3, _ := metadata.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
+			sha256_4, _ := metadata.NewSha256Digest("4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed")
+
+			// verify internal state
+			state := ins.Release()
+			c.Check(state["https://my.archive/test"], DeepEquals, apt.ReleaseFile{
+				Vendor: "Ubuntu",
+				Files: map[metadata.Sha256Digest]apt.ReleaseEntry{
+					sha256_1: apt.ReleaseEntry{Name: "main/binary-amd64/Packages", Size: 240952},
+					sha256_2: apt.ReleaseEntry{Name: "main/binary-amd64/Packages.gz", Size: 49419},
+					sha256_3: apt.ReleaseEntry{Name: "main/binary-amd64/Packages.xz", Size: 40928},
+					sha256_4: apt.ReleaseEntry{Name: "main/i18n/Translation-zh_TW.xz", Size: 792},
+				},
+			})
+		}
 	}
-	client := &http.Client{
-		Transport: transport,
-		Timeout:   30 * time.Second,
+
+}
+
+func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
+	for _, tc := range []struct {
+		dataRelease              string
+		translationLocalFileName string
+		translationDigest        string
+		translationSize          int64
+		result                   bool
+	}{
+		{inReleaseArtefactData, "tests/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 792, true},
+		{inReleaseArtefactData, "tests/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 600, false},
+		{inReleaseArtefactData, "tests/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 792, false},
+		{inReleaseArtefactData, "tests/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 600, false},
+	} {
+		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes metadata.Annotation) (io.ReadSeeker, error) {
+			return f, nil
+		})
+		defer restorer()
+
+		translationArtefactFile, _ := os.Open(tc.translationLocalFileName)
+		translationArtefactData := make([]byte, tc.translationSize)
+		_, err := translationArtefactFile.Read(translationArtefactData)
+		c.Assert(err, IsNil)
+
+		// Load the release file first
+		a_release := metadata.NewArtefact()
+		a_release.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/devel/InRelease"
+		a_release.MimeType = mimetype.Lookup("text/plain")
+
+		f_release := strings.NewReader(inReleaseArtefactData)
+
+		ins := apt.NewAptReleaseInspector()
+		err = ins.InspectArtefact(f_release, a_release)
+		c.Assert(err, IsNil)
+
+		// Now load the translation file
+		a := metadata.NewArtefact()
+		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/devel/main/i18n/by-hash/SHA256/" + tc.translationDigest
+		a.Metadata.Type = "application/x.apt.translation"
+		a.Metadata.Size = tc.translationSize
+		a.Metadata.Sha256, err = metadata.NewSha256Digest(tc.translationDigest)
+		c.Assert(err, IsNil)
+
+		translationFile, _ := os.Open(tc.translationLocalFileName)
+		data := make([]byte, 1024*128)
+		_, err = translationFile.Read(data)
+		c.Assert(err, IsNil)
+
+		f := bytes.NewReader(data)
+
+		err = ins.InspectArtefact(f, a)
+		c.Assert(err, IsNil)
+
+		c.Assert(a.Approved(), Equals, tc.result)
+
+		if tc.result {
+			c.Check(a.Metadata.Type, Equals, "application/x.apt.translation")
+		}
 	}
+}
 
-	req, err := http.NewRequest("GET", releaseURL, nil)
-	c.Assert(err, IsNil)
+func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
+	sha256_rel, _ := metadata.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
+	sha256_pkg, _ := metadata.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
 
-	resp, err := client.Do(req)
-	c.Assert(err, IsNil)
-	c.Assert(resp.StatusCode, Equals, 200)
-
-	defer resp.Body.Close()
-
-	tmp := c.MkDir()
-	dest, err := os.Create(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"))
-	c.Assert(err, IsNil)
-
-	_, err = io.Copy(dest, resp.Body)
-	c.Assert(err, IsNil)
-
-	dest.Close()
-
-	h, _ := metadata.NewSha1Digest("290d07339dde2735121ab03e525ca6593c395a42")
 	a := metadata.NewArtefact()
-	a.Metadata.Type = "application/x-apt-release"
-	a.Metadata.Sha1 = h
+	a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6"
+	a.Metadata.Type = mimetypes.AptPackages
+	a.Metadata.Sha256 = sha256_pkg
 
-	//var iface inspectors.Inspector
-	ins := apt.AptReleaseInspector{}
-	//c.Assert(ins, Implements, &iface)
+	f := strings.NewReader("fake content")
 
-	f, err := mmap.Open(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"))
+	rf := apt.ReleaseFile{
+		Sha256: sha256_rel,
+		Vendor: "Canonical",
+		Files: map[metadata.Sha256Digest]apt.ReleaseEntry{
+			sha256_pkg: apt.ReleaseEntry{
+				Size: 1337,
+				Name: "main/binary-amd64/Packages.xz",
+			},
+		},
+	}
+
+	ins := apt.NewAptReleaseInspector()
+	ins.SetRelease(map[string]apt.ReleaseFile{"http://archive.ubuntu.com/ubuntu/dists/jammy": rf})
+	err := ins.InspectArtefact(f, a)
+	c.Assert(err, IsNil)
+	c.Assert(a.Approved(), Equals, true)
+	c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &metadata.Inspection{
+		Opinion: opinions.Approved,
+		Reason:  "Packages file listed in Release",
+		Annotations: metadata.Annotation{
+			"file-path":    "main/binary-amd64/Packages.xz",
+			"release-file": "9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6",
+			"vendor":       "Canonical",
+		},
+	})
+}
+
+func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
+	sha256_rel, _ := metadata.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
+	sha256_trn, _ := metadata.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
+
+	a := metadata.NewArtefact()
+	a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/i18n/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6"
+	a.Metadata.Type = mimetypes.AptTranslation
+	a.Metadata.Sha256 = sha256_trn
+	a.Metadata.Size = 1337
+
+	f := strings.NewReader("fake content")
+
+	rf := apt.ReleaseFile{
+		Sha256: sha256_rel,
+		Vendor: "Canonical",
+		Files: map[metadata.Sha256Digest]apt.ReleaseEntry{
+			sha256_trn: apt.ReleaseEntry{
+				Size: 1337,
+				Name: "main/i18n/Translation-en.xz",
+			},
+		},
+	}
+
+	ins := apt.NewAptReleaseInspector()
+	ins.SetRelease(map[string]apt.ReleaseFile{"http://archive.ubuntu.com/ubuntu/dists/jammy": rf})
+	err := ins.InspectArtefact(f, a)
+	c.Assert(err, IsNil)
+	c.Assert(a.Approved(), Equals, true)
+	c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &metadata.Inspection{
+		Opinion: opinions.Approved,
+		Reason:  "Translation file listed in Release",
+		Annotations: metadata.Annotation{
+			"file-path":    "main/i18n/Translation-en.xz",
+			"release-file": "9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6",
+			"vendor":       "Canonical",
+		},
+	})
+}
+
+func (s *aptSuite) TestAptReleaseSignature(c *C) {
+	a := metadata.NewArtefact()
+	a.CurrentDownload.URL = "https://my.archive/test"
+	a.MimeType = mimetype.Lookup("text/plain")
+
+	f, err := os.Open("tests/InRelease.xz")
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	err = ins.InspectArtefact(f, a)
+	// Read compressed file
+	z, err := xz.NewReader(f, 0)
 	c.Assert(err, IsNil)
 
+	buf := bytes.NewBuffer([]byte{})
+	_, err = io.Copy(buf, z)
+	c.Assert(err, IsNil)
+	r := bytes.NewReader(buf.Bytes())
+
+	// Set public key environment variable
+	prev := os.Getenv("FETCH_APT_RELEASE_PUBLIC_KEY")
+	defer os.Setenv("FETCH_APT_RELEASE_PUBLIC_KEY", prev)
+	os.Setenv("FETCH_APT_RELEASE_PUBLIC_KEY", publicKey)
+
+	ins := apt.NewAptReleaseInspector()
+	err = ins.InspectArtefact(r, a)
+	c.Assert(err, IsNil)
+
+	c.Assert(a.Approved(), Equals, true)
+
+	c.Check(a.Metadata.Type, Equals, "application/x.apt.release")
 	c.Check(a.Metadata.Name, Equals, "InRelease")
 	c.Check(a.Metadata.Vendor, Equals, "Ubuntu")
-	c.Check(a.Metadata.Description, Equals, "Ubuntu Jammy 22.04")
+	c.Check(a.Metadata.Description, Equals, "Ubuntu Jammy Updates")
 	c.Check(a.Metadata.Author, Equals, "Ubuntu")
-	//c.Check(a.Metadata.Annotations, HasLen, 0)
+	c.Check(a.ResponseInspection["apt.release"].Annotations, DeepEquals, metadata.Annotation{
+		"Architectures": "amd64 arm64 armhf i386 ppc64el riscv64 s390x",
+		"Codename":      "jammy",
+		"Components":    "main restricted universe multiverse",
+		"Date":          "Fri, 03 May 2024 21:17:09 UTC",
+		"Description":   "Ubuntu Jammy Updates",
+		"Label":         "Ubuntu",
+		"Origin":        "Ubuntu",
+		"Suite":         "jammy-updates",
+		"Version":       "22.04",
+		"public-keys":   []string{"871920D1991BC93C"},
+	})
 }

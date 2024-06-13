@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,6 +22,7 @@ package service
 type Options struct {
 	ControlPort    int    // control api tcp port number
 	ProxyPort      int    // proxy tcp port number
+	Config         string // path to configuration file
 	Spool          string // path to the local file spool
 	PermissiveMode bool   // allow permissive sessions
 }

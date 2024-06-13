@@ -20,11 +20,13 @@
 package service_test
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/control"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
@@ -37,8 +39,10 @@ import (
 func Test(t *testing.T) { TestingT(t) }
 
 type serviceSuite struct {
-	ch   chan any
-	port int
+	ch          chan any
+	proxyPort   int
+	controlPort int
+	controlAuth string
 }
 
 func (t *serviceSuite) SetUpTest(c *C) {
@@ -47,24 +51,31 @@ func (t *serviceSuite) SetUpTest(c *C) {
 
 var _ = Suite(&serviceSuite{})
 
-// Check if the proxy is created with the correct port number.
+// Check if the proxy and control API are created with the correct port number.
 func (t *serviceSuite) TestProxyPort(c *C) {
 	restorer := service.MockNewHttpProxy(func(port int, spool string, ch chan interface{}) *proxy.HttpProxy {
-		t.port = port
+		t.proxyPort = port
 		return &proxy.HttpProxy{}
 	})
 	defer restorer()
 
-	opt := service.Options{ProxyPort: 1337}
+	restorer = service.MockNewServer(func(port int, ch chan interface{}, creds string) *control.Server {
+		t.controlPort = port
+		return &control.Server{}
+	})
+	defer restorer()
+
+	opt := service.Options{ProxyPort: 1337, ControlPort: 7331}
 
 	svc := service.New(&opt)
 	c.Assert(svc, FitsTypeOf, &service.Service{})
-	c.Assert(t.port, Equals, 1337)
+	c.Assert(t.proxyPort, Equals, 1337)
+	c.Assert(t.controlPort, Equals, 7331)
 }
 
 func (t *serviceSuite) TestServiceEntombment(c *C) {
 	restorer := service.MockNewHttpProxy(func(port int, spool string, ch chan interface{}) *proxy.HttpProxy {
-		t.port = port
+		t.proxyPort = port
 		return &proxy.HttpProxy{}
 	})
 	defer restorer()
@@ -82,7 +93,7 @@ func (t *serviceSuite) TestServiceEntombment(c *C) {
 func (t *serviceSuite) TestRevokeToken(c *C) {
 	restorer := service.MockNewHttpProxy(func(port int, spool string, ch chan interface{}) *proxy.HttpProxy {
 		t.ch = ch
-		t.port = port
+		t.proxyPort = port
 		return &proxy.HttpProxy{}
 	})
 	defer restorer()
@@ -95,7 +106,7 @@ func (t *serviceSuite) TestRevokeToken(c *C) {
 	s := session.New(opt.Spool, true)
 	defer s.Discard()
 
-	msg := messages.NewRevokeToken(s.Id)
+	msg := messages.NewRevokeToken(s.Id, s.Token)
 	t.ch <- msg
 	res := <-msg.Rch
 
@@ -110,7 +121,7 @@ func (t *serviceSuite) TestRevokeToken(c *C) {
 func (t *serviceSuite) TestRevokeTokenInvalidSession(c *C) {
 	restorer := service.MockNewHttpProxy(func(port int, spool string, ch chan interface{}) *proxy.HttpProxy {
 		t.ch = ch
-		t.port = port
+		t.proxyPort = port
 		return &proxy.HttpProxy{}
 	})
 	defer restorer()
@@ -120,12 +131,40 @@ func (t *serviceSuite) TestRevokeTokenInvalidSession(c *C) {
 
 	err := svc.Start()
 	c.Assert(err, IsNil)
+	s := session.New(opt.Spool, true)
+	defer s.Discard()
 
-	msg := messages.NewRevokeToken("invalid-session")
+	msg := messages.NewRevokeToken("invalid-session", s.Token)
 	t.ch <- msg
 	res := <-msg.Rch
 
-	c.Assert(res.Err.Error(), Equals, "session not found")
+	c.Assert(res.Err, Equals, messages.ErrSessionNotFound)
+
+	err = svc.Stop()
+	c.Assert(err, IsNil)
+}
+
+func (t *serviceSuite) TestRevokeTokenInvalidToken(c *C) {
+	restorer := service.MockNewHttpProxy(func(port int, spool string, ch chan interface{}) *proxy.HttpProxy {
+		t.ch = ch
+		t.proxyPort = port
+		return &proxy.HttpProxy{}
+	})
+	defer restorer()
+
+	opt := service.Options{ProxyPort: 1337, Spool: "/my/spool"}
+	svc := service.New(&opt)
+
+	err := svc.Start()
+	c.Assert(err, IsNil)
+	s := session.New(opt.Spool, true)
+	defer s.Discard()
+
+	msg := messages.NewRevokeToken(s.Id, "invalid-token")
+	t.ch <- msg
+	res := <-msg.Rch
+
+	c.Assert(res.Err, Equals, messages.ErrInvalidSessionToken)
 
 	err = svc.Stop()
 	c.Assert(err, IsNil)
@@ -134,7 +173,7 @@ func (t *serviceSuite) TestRevokeTokenInvalidSession(c *C) {
 func (t *serviceSuite) TestGetSessionReport(c *C) {
 	restorer := service.MockNewHttpProxy(func(port int, spool string, ch chan interface{}) *proxy.HttpProxy {
 		t.ch = ch
-		t.port = port
+		t.proxyPort = port
 		return &proxy.HttpProxy{}
 	})
 	defer restorer()
@@ -148,7 +187,7 @@ func (t *serviceSuite) TestGetSessionReport(c *C) {
 	s := session.New(opt.Spool, true)
 	defer s.Discard()
 
-	s.Revoke()
+	s.Revoke(s.Token)
 
 	msg := messages.NewSessionReport(s.Id)
 	t.ch <- msg
@@ -166,7 +205,7 @@ func (t *serviceSuite) TestGetSessionReport(c *C) {
 func (t *serviceSuite) TestGetSessionReportNotRevoked(c *C) {
 	restorer := service.MockNewHttpProxy(func(port int, spool string, ch chan interface{}) *proxy.HttpProxy {
 		t.ch = ch
-		t.port = port
+		t.proxyPort = port
 		return &proxy.HttpProxy{}
 	})
 	defer restorer()
@@ -195,7 +234,7 @@ func (t *serviceSuite) TestGetSessionReportNotRevoked(c *C) {
 func (t *serviceSuite) TestGetSessionReportInvalidSession(c *C) {
 	restorer := service.MockNewHttpProxy(func(port int, spool string, ch chan interface{}) *proxy.HttpProxy {
 		t.ch = ch
-		t.port = port
+		t.proxyPort = port
 		return &proxy.HttpProxy{}
 	})
 	defer restorer()
@@ -209,7 +248,7 @@ func (t *serviceSuite) TestGetSessionReportInvalidSession(c *C) {
 	s := session.New(opt.Spool, true)
 	defer s.Discard()
 
-	s.Revoke()
+	s.Revoke(s.Token)
 
 	msg := messages.NewSessionReport("invalid-session")
 	t.ch <- msg
@@ -224,7 +263,7 @@ func (t *serviceSuite) TestGetSessionReportInvalidSession(c *C) {
 func (t *serviceSuite) TestEndSession(c *C) {
 	restorer := service.MockNewHttpProxy(func(port int, spool string, ch chan interface{}) *proxy.HttpProxy {
 		t.ch = ch
-		t.port = port
+		t.proxyPort = port
 		return &proxy.HttpProxy{}
 	})
 	defer restorer()
@@ -251,7 +290,7 @@ func (t *serviceSuite) TestEndSession(c *C) {
 func (t *serviceSuite) TestEndSessionInvalidSession(c *C) {
 	restorer := service.MockNewHttpProxy(func(port int, spool string, ch chan interface{}) *proxy.HttpProxy {
 		t.ch = ch
-		t.port = port
+		t.proxyPort = port
 		return &proxy.HttpProxy{}
 	})
 	defer restorer()
@@ -273,4 +312,19 @@ func (t *serviceSuite) TestEndSessionInvalidSession(c *C) {
 
 	err = svc.Stop()
 	c.Assert(err, IsNil)
+}
+
+func (t *serviceSuite) TestControlAuthentication(c *C) {
+	restorer := service.MockNewServer(func(port int, ch chan interface{}, creds string) *control.Server {
+		t.controlPort = port
+		t.controlAuth = creds
+		return &control.Server{}
+	})
+	defer restorer()
+
+	os.Setenv("FETCH_SERVICE_AUTH", "suzy:shalamacookie")
+	opt := service.Options{}
+	_ = service.New(&opt)
+
+	c.Assert(t.controlAuth, Equals, "suzy:shalamacookie")
 }
