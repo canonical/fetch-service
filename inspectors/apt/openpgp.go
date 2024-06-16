@@ -23,7 +23,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 
 	openpgp "github.com/ProtonMail/go-crypto/openpgp"
@@ -37,16 +36,11 @@ import (
 
 var checkSignature = checkSignatureImpl
 
-func checkSignatureImpl(f io.ReadSeeker, notes metadata.Annotation) (io.ReadSeeker, error) {
-	public_key := os.Getenv("FETCH_APT_RELEASE_PUBLIC_KEY")
-	if public_key == "" {
-		return nil, fmt.Errorf("public key not found")
-	}
-
+func checkSignatureImpl(f io.ReadSeeker, notes metadata.Annotation, pubkey string) (io.ReadSeeker, error) {
 	var keys []*packet.PublicKey
 	var keyIds []string
 
-	keyBlocks := strings.SplitAfter(public_key, "-----END PGP PUBLIC KEY BLOCK-----")
+	keyBlocks := strings.SplitAfter(pubkey, "-----END PGP PUBLIC KEY BLOCK-----")
 	for _, k := range keyBlocks {
 		if strings.TrimSpace(k) == "" {
 			continue
@@ -58,6 +52,7 @@ func checkSignatureImpl(f io.ReadSeeker, notes metadata.Annotation) (io.ReadSeek
 		}
 		keys = append(keys, key)
 		keyIds = append(keyIds, key.KeyIdString())
+		logger.Debugf("key id: %v", key.KeyIdString())
 	}
 
 	notes.Add("public-keys", keyIds)

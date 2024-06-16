@@ -81,6 +81,11 @@ func (svc *Service) Start() error {
 		return fmt.Errorf("cannot load proxy rules: %s", err)
 	}
 
+	err = config.LoadInspectorsConfig(svc.opt.Config)
+	if err != nil {
+		return fmt.Errorf("cannot load inspectors configuration: %s", err)
+	}
+
 	// Set up file watcher
 	if err := svc.cfgw.Add(svc.opt.Config); err != nil {
 		return fmt.Errorf("cannot set up configuration watcher: %s", err)
@@ -271,6 +276,10 @@ func (svc *Service) Start() error {
 					case "acl.yaml":
 						if err := config.LoadHttpProxyRules(svc.opt.Config); err != nil {
 							logger.Errorf("cannot load proxy rules: %s", err)
+						}
+					case "inspectors.yaml":
+						if err := config.LoadInspectorsConfig(svc.opt.Config); err != nil {
+							logger.Errorf("cannot load inspectors configuration: %s", err)
 						}
 					}
 				}

@@ -29,6 +29,7 @@ import (
 	"strings"
 	"sync"
 
+	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/logger"
@@ -88,11 +89,14 @@ type AptReleaseInspector struct {
 	release map[string]releaseFile // map repository to release file
 
 	releaseLock sync.Mutex
+
+	config apt_cfg.AptInspectorConfig
 }
 
-func NewAptReleaseInspector() *AptReleaseInspector {
+func NewAptReleaseInspector(cfg apt_cfg.AptInspectorConfig) *AptReleaseInspector {
 	return &AptReleaseInspector{
 		release: make(map[string]releaseFile),
+		config:  cfg,
 	}
 }
 
@@ -108,12 +112,13 @@ func (ins *AptReleaseInspector) InspectRequest(a *metadata.Artefact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	if info, err := newInReleaseUrlInfo(u); err == nil {
+	if info, err := apt_cfg.NewInReleaseUrlInfo(u, &ins.config); err == nil {
 		a.SetRequestOpinion(ins.ID(), opinions.Pending, "valid URL for Release file").Annotate(
 			metadata.Annotation{
-				"origin":     info.origin,
-				"repository": info.repository,
-				"dist":       info.dist,
+				"cfg-name":   info.CfgName,
+				"origin":     info.Origin,
+				"repository": info.Repository,
+				"dist":       info.Dist,
 			},
 		)
 	} else if info, err := newPackagesUrlInfo(u); err == nil {
@@ -184,6 +189,13 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 	format_errors := []string{}
 	integrity_errors := []string{}
 
+	// Check if
+	name, ok := a.RequestStringAnnotation(ins.ID(), "cfg-name")
+	if !ok {
+		return nil
+	}
+	logger.Debugf("check repository config entry '%s'", name)
+
 	// Quick check for clearsigned file
 	buf := make([]byte, 34)
 	n, err := f.Read(buf)
@@ -199,7 +211,9 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 
 	// InRelease files must be signed
 	signotes := metadata.Annotation{}
-	body, err := checkSignature(f, signotes)
+	pubkey := ins.config.Repositories[name].PublicKey
+	logger.Debugf("apt repository public key: %s", pubkey)
+	body, err := checkSignature(f, signotes, pubkey)
 	if err != nil {
 		logger.Warningf("signature checking error: %s", err)
 		integrity_errors = append(integrity_errors, fmt.Sprintf("signature verification failed: %s", err))
