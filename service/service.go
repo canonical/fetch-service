@@ -55,20 +55,26 @@ var (
 	controlNewServer  = control.NewServer
 )
 
-func New(opt *Options) *Service {
+func New(opt *Options) (*Service, error) {
 	// obtain authentication credentials from the environment
 	creds := os.Getenv("FETCH_SERVICE_AUTH")
 
 	ch := make(chan interface{})
-	p := proxyNewHttpProxy(opt.ProxyPort, opt.Spool, ch)
+	p, err := proxyNewHttpProxy(opt.ProxyPort, opt.Spool, opt.Cert, opt.Key, ch)
+	if err != nil {
+		return nil, err
+	}
+
 	ctl := controlNewServer(opt.ControlPort, ch, creds)
 	start := time.Now().UTC()
 
-	return &Service{p: p, ctl: ctl, opt: opt, ch: ch, start: start}
+	return &Service{p: p, ctl: ctl, opt: opt, ch: ch, start: start}, nil
 }
 
 // Start runs the fetch service dispatcher.
 func (svc *Service) Start() error {
+	// Load MITM certificate
+
 	// Configuration file watcher
 	var err error
 	svc.cfgw, err = fsnotify.NewWatcher()

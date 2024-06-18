@@ -33,6 +33,8 @@ if [[ -z "${log_file}" ]]; then
 		"--profile-port=${profile_port}" \
 		"--spool=${SNAP_COMMON}/spool" \
 		"--config=${SNAP_DATA}" \
+		"--cert=${SNAP_DATA}/certs/ca.pem" \
+		"--key=${SNAP_DATA}/certs/ca.key.pem" \
 		"--verbosity=${verbosity}" \
 		"${profile} ${permissive}"
 else
@@ -42,6 +44,8 @@ else
 		"--profile-port=${profile_port}" \
 		"--spool=${SNAP_COMMON}/spool" \
 		"--config=${SNAP_DATA}" \
+		"--cert=${SNAP_DATA}/certs/ca.pem" \
+		"--key=${SNAP_DATA}/certs/ca.key.pem" \
 		"--verbosity=${verbosity}" \
 		"${profile} ${permissive}" > >(tee -a "${SNAP_DATA}/${log_file}")
 fi
