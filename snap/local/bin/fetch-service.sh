@@ -32,7 +32,7 @@ if [[ -z "${log_file}" ]]; then
 		"--control-port=${control_port}" \
 		"--profile-port=${profile_port}" \
 		"--spool=${SNAP_COMMON}/spool" \
-		"--config=${SNAP_DATA}" \
+		"--config=${SNAP_DATA}/conf" \
 		"--verbosity=${verbosity}" \
 		"${profile} ${permissive}"
 else
@@ -41,7 +41,7 @@ else
 		"--control-port=${control_port}" \
 		"--profile-port=${profile_port}" \
 		"--spool=${SNAP_COMMON}/spool" \
-		"--config=${SNAP_DATA}" \
+		"--config=${SNAP_DATA}/conf" \
 		"--verbosity=${verbosity}" \
 		"${profile} ${permissive}" > >(tee -a "${SNAP_DATA}/${log_file}")
 fi

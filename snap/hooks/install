@@ -6,7 +6,8 @@ rm -Rf "${SNAP_COMMON}/spool"
 mkdir -m 0700 "${SNAP_COMMON}/spool"
 
 # Initial ACL rules
-cat <<EOF > "${SNAP_DATA}/acl.yaml"
+mkdir -p "${SNAP_DATA}/conf"
+cat <<EOF >"${SNAP_DATA}/conf/acl.yaml"
 http-proxy:
   policy: allow
   rules:

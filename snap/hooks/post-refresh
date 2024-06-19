@@ -1,8 +1,16 @@
 #!/bin/bash -e
 
-ACL_YAML="${SNAP_DATA}/acl.yaml"
+ACL_YAML="${SNAP_DATA}/conf/acl.yaml"
 
 [ -f "$ACL_YAML" ] && exit 0
+
+mkdir -p "${SNAP_DATA}/conf"
+
+# If old acl configuration exists, move it to conf/
+if [ -f "${SNAP_DATA}/acl.yaml" ]; then
+	mv "${SNAP_DATA}/acl.yaml" "$ACL_YAML"
+	exit 0
+fi
 
 # Create an acl file if it doesn't exist
 cat <<EOF >"$ACL_YAML"
