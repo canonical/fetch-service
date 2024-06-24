@@ -263,6 +263,7 @@ func (c *Server) deleteResources(w http.ResponseWriter, r *http.Request) {
 
 // checkAuth verifies basic authentication for requests.
 func (c *Server) checkAuth(w http.ResponseWriter, r *http.Request) bool {
+	logger.Infof("checking control port authentication...")
 	user, pw, ok := r.BasicAuth()
 	if !ok {
 		logger.Debugf("basic auth decoding failed")
