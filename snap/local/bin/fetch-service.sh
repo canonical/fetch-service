@@ -34,8 +34,8 @@ if [[ -z "${log_file}" ]]; then
 		"--spool=${SNAP_COMMON}/spool" \
 		"--config=${SNAP_DATA}" \
 		"--verbosity=${verbosity}" \
-		"${profile}" \
-		"${permissive}"
+		${profile} \
+		${permissive}
 else
 	exec "${SNAP}/bin/fetch" \
 		"--proxy-port=${proxy_port}" \
@@ -44,6 +44,6 @@ else
 		"--spool=${SNAP_COMMON}/spool" \
 		"--config=${SNAP_DATA}" \
 		"--verbosity=${verbosity}" \
-		"${profile}" \
-		"${permissive}" > >(tee -a "${SNAP_DATA}/${log_file}")
+		${profile} \
+		${permissive} > >(tee -a "${SNAP_DATA}/${log_file}")
 fi
