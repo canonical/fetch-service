@@ -264,8 +264,8 @@ func (svc *Service) Start() error {
 
 			case event, ok := <-svc.cfgw.Events:
 				if ok && event.Op&(fsnotify.Write|fsnotify.Create) != 0 {
-					logger.Debugf("event: %v %s", event.Op, event.Name)
-					logger.Infof("Configuration file changed: %s", event.Name)
+					//logger.Debugf("event: %v %s", event.Op, event.Name)
+					//logger.Infof("Configuration file changed: %s", event.Name)
 
 					switch filepath.Base(event.Name) {
 					case "acl.yaml":
