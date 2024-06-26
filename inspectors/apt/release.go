@@ -391,7 +391,7 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ReadAtSeeker, a *metadata
 	repo := fmt.Sprintf("%s/dists/%s", info.repository, info.dist)
 	rel, ok := ins.release[repo]
 	if !ok {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "Release data not found for this repository")
+		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "Repository Release data not found")
 		return nil
 	}
 
@@ -443,7 +443,7 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ReadAtSeeker, a *metad
 	repo := fmt.Sprintf("%s/dists/%s", info.repository, info.dist)
 	rel, ok := ins.release[repo]
 	if !ok {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "Release data not found for this repository")
+		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "Repository Release data not found")
 		return nil
 	}
 

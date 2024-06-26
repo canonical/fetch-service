@@ -32,7 +32,7 @@ import (
 )
 
 type Glob struct {
-	g glob.Glob
+	G glob.Glob
 }
 
 func (t *Glob) UnmarshalYAML(unmarshal func(v interface{}) error) error {
@@ -89,7 +89,7 @@ func repositoryIsAllowed(cfg *AptInspectorConfig, repo string) (string, bool) {
 	for name, r := range cfg.Repositories {
 		logger.Debugf("apt inspector config: check repository entry '%s'", name)
 		for _, pattern := range r.Urls {
-			if pattern.g.Match(repo) {
+			if pattern.G.Match(repo) {
 				logger.Debugf("apt inspector config: found repository '%s'", repo)
 				return name, true
 			}
@@ -103,7 +103,7 @@ func distIsAllowed(cfg *AptInspectorConfig, name, dist string) bool {
 	r := cfg.Repositories[name]
 	logger.Debugf("apt inspector config: parsing repository '%s'", name)
 	for _, pattern := range r.Dists {
-		if pattern.g.Match(dist) {
+		if pattern.G.Match(dist) {
 			logger.Debugf("apt inspector config: found dist '%s'", dist)
 			return true
 		}
