@@ -34,6 +34,7 @@ import (
 	"github.com/blakesmith/ar"
 	"github.com/klauspost/compress/zstd"
 
+	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/metadata"
@@ -42,10 +43,11 @@ import (
 )
 
 type DebInspector struct {
+	config apt_cfg.AptInspectorConfig
 }
 
-func NewDebInspector() *DebInspector {
-	return &DebInspector{}
+func NewDebInspector(cfg apt_cfg.AptInspectorConfig) *DebInspector {
+	return &DebInspector{config: cfg}
 }
 
 func (DebInspector) ID() string {
@@ -58,14 +60,14 @@ func (ins *DebInspector) InspectRequest(a *metadata.Artefact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	if info, err := newDebPackageUrlInfo(u); err == nil {
+	if info, err := apt_cfg.NewDebPackageUrlInfo(u, &ins.config); err == nil {
 		a.SetRequestOpinion(ins.ID(), opinions.Pending, "valid URL for deb package").Annotate(
 			metadata.Annotation{
-				"repository":   info.repository,
-				"component":    info.component,
-				"name":         info.name,
-				"version":      info.version,
-				"architecture": info.architecture,
+				"repository":   info.Repository,
+				"component":    info.Component,
+				"name":         info.Name,
+				"version":      info.Version,
+				"architecture": info.Architecture,
 			},
 		)
 	}

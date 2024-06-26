@@ -75,9 +75,10 @@ func getTestAptConfig() apt_cfg.AptInspectorConfig {
 	return apt_cfg.AptInspectorConfig{
 		Repositories: map[string]apt_cfg.AptInspectorConfigRepository{
 			"default": {
-				Urls:      []apt_cfg.Glob{{G: glob.MustCompile("http://archive.ubuntu.com/ubuntu")}},
-				Dists:     []apt_cfg.Glob{{G: glob.MustCompile("jammy")}},
-				PublicKey: publicKey,
+				Urls:       []apt_cfg.Glob{{G: glob.MustCompile("http://archive.ubuntu.com/ubuntu")}},
+				Dists:      []apt_cfg.Glob{{G: glob.MustCompile("jammy")}},
+				Components: []apt_cfg.Glob{{G: glob.MustCompile("main")}},
+				PublicKey:  publicKey,
 			},
 		},
 	}
@@ -258,7 +259,7 @@ func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
 		Sha256: sha256_rel,
 		Vendor: "Canonical",
 		Files: map[metadata.Sha256Digest]apt.ReleaseEntry{
-			sha256_pkg: apt.ReleaseEntry{
+			sha256_pkg: {
 				Size: 1337,
 				Name: "main/binary-amd64/Packages.xz",
 			},
@@ -347,8 +348,7 @@ func (s *aptSuite) TestAptReleaseSignature(c *C) {
 	c.Assert(err, IsNil)
 	r := bytes.NewReader(buf.Bytes())
 
-	cfg := getTestAptConfig()
-	ins := apt.NewAptReleaseInspector(cfg)
+	ins := apt.NewAptReleaseInspector(getTestAptConfig())
 	err = ins.InspectArtefact(r, a)
 	c.Assert(err, IsNil)
 
