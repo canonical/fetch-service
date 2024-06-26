@@ -29,6 +29,7 @@ import (
 	"strings"
 	"sync"
 
+	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/logger"
@@ -87,11 +88,14 @@ type AptReleaseInspector struct {
 	release map[string]releaseFile // map repository to release file
 
 	releaseLock sync.Mutex
+
+	config apt_cfg.AptInspectorConfig
 }
 
-func NewAptReleaseInspector() *AptReleaseInspector {
+func NewAptReleaseInspector(cfg apt_cfg.AptInspectorConfig) *AptReleaseInspector {
 	return &AptReleaseInspector{
 		release: make(map[string]releaseFile),
+		config:  cfg,
 	}
 }
 
@@ -107,12 +111,13 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtefact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	if info, err := newInReleaseUrlInfo(u); err == nil {
+	if info, err := apt_cfg.NewInReleaseUrlInfo(u, &ins.config); err == nil {
 		a.SetRequestPending(ins, "valid URL for Release file").Annotate(
 			Annotation{
-				"origin":     info.origin,
-				"repository": info.repository,
-				"dist":       info.dist,
+				"cfg-name":   info.CfgName,
+				"origin":     info.Origin,
+				"repository": info.Repository,
+				"dist":       info.Dist,
 			},
 		)
 		return nil
@@ -179,6 +184,13 @@ func (ins *AptReleaseInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 	format_errors := []string{}
 	integrity_errors := []string{}
 
+	// Check if
+	name, ok := a.RequestStringAnnotation(ins.ID(), "cfg-name")
+	if !ok {
+		return nil
+	}
+	logger.Debugf("check repository config entry '%s'", name)
+
 	// Quick check for clearsigned file
 	buf := make([]byte, 34)
 	n, err := f.Read(buf)
@@ -194,7 +206,9 @@ func (ins *AptReleaseInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 
 	// InRelease files must be signed
 	signotes := Annotation{}
-	body, err := checkSignature(f, signotes)
+	pubkey := ins.config.Repositories[name].PublicKey
+	logger.Debugf("apt repository public key: %s", pubkey)
+	body, err := checkSignature(f, signotes, pubkey)
 	if err != nil {
 		logger.Warningf("signature checking error: %s", err)
 		integrity_errors = append(integrity_errors, fmt.Sprintf("signature verification failed: %s", err))
@@ -372,7 +386,7 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtefactReader, a Respons
 	repo := fmt.Sprintf("%s/dists/%s", info.repository, info.dist)
 	rel, ok := ins.release[repo]
 	if !ok {
-		a.SetResponseRejected(ins, "Release data not found for this repository")
+		a.SetResponseRejected(ins, "Repository Release data not found")
 		return nil
 	}
 
@@ -424,7 +438,7 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ArtefactReader, a Resp
 	repo := fmt.Sprintf("%s/dists/%s", info.repository, info.dist)
 	rel, ok := ins.release[repo]
 	if !ok {
-		a.SetResponseRejected(ins, "Release data not found for this repository")
+		a.SetResponseRejected(ins, "Repository Release data not found")
 		return nil
 	}
 

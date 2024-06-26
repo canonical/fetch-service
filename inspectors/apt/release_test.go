@@ -27,10 +27,12 @@ import (
 	"strings"
 
 	"github.com/gabriel-vasile/mimetype"
+	"github.com/gobwas/glob"
 	"github.com/xi2/xz"
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/inspectors/apt"
+	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/metadata"
@@ -71,6 +73,18 @@ Version: GnuPG v1
  
 -----END PGP SIGNATURE-----`
 
+func getTestAptConfig() apt_cfg.AptInspectorConfig {
+	return apt_cfg.AptInspectorConfig{
+		Repositories: map[string]apt_cfg.AptInspectorConfigRepository{
+			"default": {
+				Urls:      []apt_cfg.Glob{{G: glob.MustCompile("http://archive.ubuntu.com/ubuntu")}},
+				Dists:     []apt_cfg.Glob{{G: glob.MustCompile("jammy")}},
+				PublicKey: publicKey,
+			},
+		},
+	}
+}
+
 func (s *aptSuite) TestAptReleaseArtefactInspector(c *C) {
 	for _, tc := range []struct {
 		data     string
@@ -81,7 +95,7 @@ func (s *aptSuite) TestAptReleaseArtefactInspector(c *C) {
 		{inReleaseArtefactData, false, false},
 		{"some arbitrary data", true, false},
 	} {
-		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes Annotation) (io.ReadSeeker, error) {
+		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes Annotation, pubkey string) (io.ReadSeeker, error) {
 			if !tc.validSig {
 				return f, errors.New("invalid signature")
 			}
@@ -91,13 +105,23 @@ func (s *aptSuite) TestAptReleaseArtefactInspector(c *C) {
 		defer restorer()
 
 		a := metadata.NewArtefact()
+		a.RequestInspection = metadata.InspectionMap{
+			"apt.release": &Inspection{
+				Opinion: opinions.Pending,
+				Reason:  "",
+				Annotations: Annotation{
+					"cfg-name": "default",
+				},
+			},
+		}
 		a.CurrentDownload.URL = "https://my.archive/test"
 		a.MimeType = mimetype.Lookup("text/plain")
 
 		f := strings.NewReader(tc.data)
 
-		ins := apt.NewAptReleaseInspector()
+		ins := apt.NewAptReleaseInspector(getTestAptConfig())
 		a.SetRequestPending(ins, "test")
+
 		err := ins.InspectArtefact(f, a)
 		c.Assert(err, IsNil)
 
@@ -142,7 +166,6 @@ func (s *aptSuite) TestAptReleaseArtefactInspector(c *C) {
 			})
 		}
 	}
-
 }
 
 func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
@@ -158,7 +181,7 @@ func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
 		{inReleaseArtefactData, "tests/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 792, false},
 		{inReleaseArtefactData, "tests/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 600, false},
 	} {
-		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes Annotation) (io.ReadSeeker, error) {
+		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes Annotation, pubkey string) (io.ReadSeeker, error) {
 			return f, nil
 		})
 		defer restorer()
@@ -170,19 +193,38 @@ func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
 
 		// Load the release file first
 		a_release := metadata.NewArtefact()
-		a_release.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/devel/InRelease"
+		a_release.RequestInspection = metadata.InspectionMap{
+			"apt.release": &Inspection{
+				Opinion: opinions.Pending,
+				Reason:  "",
+				Annotations: Annotation{
+					"cfg-name": "default",
+				},
+			},
+		}
+		a_release.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/InRelease"
 		a_release.MimeType = mimetype.Lookup("text/plain")
 
 		f_release := strings.NewReader(inReleaseArtefactData)
 
-		ins := apt.NewAptReleaseInspector()
+		// Inspect the InRelease file with the release inspector
+		ins := apt.NewAptReleaseInspector(getTestAptConfig())
 		err = ins.InspectArtefact(f_release, a_release)
 		c.Assert(err, IsNil)
 
 		// Now load the translation file
 		a := metadata.NewArtefact()
 		a.SetRequestPending(ins, "test")
-		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/devel/main/i18n/by-hash/SHA256/" + tc.translationDigest
+		a.RequestInspection = metadata.InspectionMap{
+			"apt.release": &Inspection{
+				Opinion: opinions.Pending,
+				Reason:  "",
+				Annotations: Annotation{
+					"cfg-name": "default",
+				},
+			},
+		}
+		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/i18n/by-hash/SHA256/" + tc.translationDigest
 		a.Metadata.Type = "application/x.apt.translation"
 		a.Metadata.Size = tc.translationSize
 		a.Metadata.Sha256, err = digests.NewSha256Digest(tc.translationDigest)
@@ -228,7 +270,7 @@ func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
 		},
 	}
 
-	ins := apt.NewAptReleaseInspector()
+	ins := apt.NewAptReleaseInspector(getTestAptConfig())
 	a.SetRequestPending(ins, "test")
 	ins.SetRelease(map[string]apt.ReleaseFile{"http://archive.ubuntu.com/ubuntu/dists/jammy": rf})
 	err := ins.InspectArtefact(f, a)
@@ -268,7 +310,7 @@ func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
 		},
 	}
 
-	ins := apt.NewAptReleaseInspector()
+	ins := apt.NewAptReleaseInspector(getTestAptConfig())
 	a.SetRequestPending(ins, "test")
 	ins.SetRelease(map[string]apt.ReleaseFile{"http://archive.ubuntu.com/ubuntu/dists/jammy": rf})
 	err := ins.InspectArtefact(f, a)
@@ -287,7 +329,16 @@ func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
 
 func (s *aptSuite) TestAptReleaseSignature(c *C) {
 	a := metadata.NewArtefact()
-	a.CurrentDownload.URL = "https://my.archive/test"
+	a.RequestInspection = metadata.InspectionMap{
+		"apt.release": &Inspection{
+			Opinion: opinions.Pending,
+			Reason:  "",
+			Annotations: Annotation{
+				"cfg-name": "default",
+			},
+		},
+	}
+	a.CurrentDownload.URL = "https://archive.ubuntu.com/ubuntu/dists/jammy/InRelease"
 	a.MimeType = mimetype.Lookup("text/plain")
 
 	f, err := os.Open("tests/InRelease.xz")
@@ -303,12 +354,8 @@ func (s *aptSuite) TestAptReleaseSignature(c *C) {
 	c.Assert(err, IsNil)
 	r := bytes.NewReader(buf.Bytes())
 
-	// Set public key environment variable
-	prev := os.Getenv("FETCH_APT_RELEASE_PUBLIC_KEY")
-	defer os.Setenv("FETCH_APT_RELEASE_PUBLIC_KEY", prev)
-	os.Setenv("FETCH_APT_RELEASE_PUBLIC_KEY", publicKey)
-
-	ins := apt.NewAptReleaseInspector()
+	cfg := getTestAptConfig()
+	ins := apt.NewAptReleaseInspector(cfg)
 	a.SetRequestPending(ins, "test")
 	err = ins.InspectArtefact(r, a)
 	c.Assert(err, IsNil)

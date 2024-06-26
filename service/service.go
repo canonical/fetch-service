@@ -94,6 +94,11 @@ func (svc *Service) Start() error {
 		return fmt.Errorf("cannot load proxy rules: %s", err)
 	}
 
+	err = config.LoadInspectorsConfig(svc.opt.Config)
+	if err != nil {
+		return fmt.Errorf("cannot load inspectors configuration: %s", err)
+	}
+
 	logger.Info("Starting service...")
 
 	if err := svc.p.Start(); err != nil {

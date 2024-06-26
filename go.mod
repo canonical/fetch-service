@@ -7,8 +7,9 @@ require (
 	github.com/CalebQ42/squashfs v1.0.2
 	github.com/ProtonMail/go-crypto v1.0.0
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
-	github.com/elazarl/goproxy v0.0.0-20240726154733-8b0c20506380
-	github.com/gabriel-vasile/mimetype v1.4.5
+	github.com/elazarl/goproxy v0.0.0-20221015165544-a0805db90819
+	github.com/gabriel-vasile/mimetype v1.4.4
+	github.com/gobwas/glob v0.2.3
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/jessevdk/go-flags v1.6.1
@@ -31,5 +32,4 @@ require (
 	github.com/ulikunitz/xz v0.5.12 // indirect
 	golang.org/x/crypto v0.26.0 // indirect
 	golang.org/x/sys v0.23.0 // indirect
-	golang.org/x/text v0.17.0 // indirect
 )

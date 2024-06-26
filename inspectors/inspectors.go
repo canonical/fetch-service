@@ -41,6 +41,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
+	"github.com/canonical/fetch-service/service/config"
 )
 
 func init() {
@@ -57,7 +58,7 @@ type Inspectors struct {
 	permissive bool
 }
 
-func New(permissive bool) Inspectors {
+func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 
 	insList := []Inspector{
 		// snap
@@ -74,7 +75,7 @@ func New(permissive bool) Inspectors {
 
 		// deb packages
 		deb.NewDebInspector(),
-		apt.NewAptReleaseInspector(),
+		apt.NewAptReleaseInspector(cfg.Apt),
 		apt.NewAptPackagesInspector(),
 		apt.NewAptTranslationInspector(),
 

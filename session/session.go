@@ -37,6 +37,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/digests"
+	"github.com/canonical/fetch-service/service/config"
 	"github.com/canonical/fetch-service/utils"
 )
 
@@ -52,17 +53,18 @@ var (
 
 // Session has information about each authorized client.
 type Session struct {
-	Id         string    // the session ID
-	Token      string    // the session token
-	Start      time.Time // session start time
-	End        time.Time // session end time
-	Insps      inspectors.Inspectors
-	A          map[digests.Sha256Digest]*metadata.Artefact
-	Permissive bool          // whether this is a permissive session
-	SessionDir string        // the session path including spool
-	Timeout    time.Duration // maximum time allowed for a session
+	Id            string    // the session ID
+	Token         string    // the session token
+	Start         time.Time // session start time
+	End           time.Time // session end time
+	Insps         inspectors.Inspectors
+	A             map[digests.Sha256Digest]*metadata.Artefact
+	Permissive    bool          // whether this is a permissive session
+	SessionDir    string        // the session path including spool
+	Timeout       time.Duration // maximum time allowed for a session
+	InspectorsCfg config.InspectorsConfig
 
-	timer   *sessionTimer // auto-finish the session after a Timeout
+	timer   *sessionTimer // timeout to auto-finish an idle session
 	revoked bool          // session token has been revoked
 }
 
@@ -94,16 +96,18 @@ func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permiss
 	}
 
 	s := &Session{
-		Id:         sessionId,
-		Token:      token,
-		Start:      time.Now().UTC(),
-		A:          map[digests.Sha256Digest]*metadata.Artefact{},
-		Permissive: permissive,
-		SessionDir: filepath.Join(spoolDir, sessionId),
-		Timeout:    timeout,
+		Id:            sessionId,
+		Token:         token,
+		Start:         time.Now().UTC(),
+		A:             map[digests.Sha256Digest]*metadata.Artefact{},
+		Permissive:    permissive,
+		SessionDir:    filepath.Join(spoolDir, sessionId),
+		Timeout:       timeout,
+		InspectorsCfg: config.GetInspectorsConfig(),
 	}
 
-	s.Insps = inspectors.New(permissive)
+	cfg := config.GetInspectorsConfig()
+	s.Insps = inspectors.New(permissive, cfg)
 
 	var sType string
 	if permissive {
