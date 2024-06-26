@@ -29,8 +29,11 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
 	"github.com/canonical/fetch-service/logger"
 )
+
+// ACL configuration
 
 type ACLPolicy int
 
@@ -182,4 +185,73 @@ func LoadHttpProxyRules(cfgdir string) error {
 		len(cfg.HttpProxy.Rules), cfg.HttpProxy.Policy.String())
 
 	return nil
+}
+
+// Inspector configuration
+
+var (
+	globalInspectorsConfig     InspectorsConfig
+	globalInspectorsConfigLock sync.Mutex
+)
+
+type InspectorsConfig struct {
+	Apt apt_cfg.AptInspectorConfig `yaml:"apt"`
+}
+
+func LoadInspectorsConfig(cfgdir string) error {
+	cfgfile := filepath.Join(cfgdir, "inspectors.yaml")
+	if _, err := os.Stat(cfgfile); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			logger.Infof("Inspectors configuration file %s does not exist", cfgfile)
+			return nil
+		}
+	}
+
+	logger.Infof("Load inspectors configuration from %s", cfgfile)
+
+	f, err := os.Open(cfgfile)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	var cfg InspectorsConfig
+	dec := yaml.NewDecoder(f)
+	if err := dec.Decode(&cfg); err != nil {
+		return err
+	}
+
+	// The configuration is only updated if the configuration file
+	// is correctly parsed.
+	SetInspectorsConfig(cfg)
+
+	logger.Info("Inspectors configuration updated")
+
+	return nil
+}
+
+func GetInspectorsConfig() InspectorsConfig {
+	cfg := InspectorsConfig{
+		Apt: apt_cfg.AptInspectorConfig{
+			Repositories: map[string]apt_cfg.AptInspectorConfigRepository{},
+		},
+	}
+
+	globalInspectorsConfigLock.Lock()
+	defer globalInspectorsConfigLock.Unlock()
+
+	for k, v := range globalInspectorsConfig.Apt.Repositories {
+		cfg.Apt.Repositories[k] = apt_cfg.AptInspectorConfigRepository{
+			Urls:      v.Urls,
+			Dists:     v.Dists,
+			PublicKey: v.PublicKey,
+		}
+	}
+	return cfg
+}
+
+func SetInspectorsConfig(cfg InspectorsConfig) {
+	globalInspectorsConfigLock.Lock()
+	defer globalInspectorsConfigLock.Unlock()
+	globalInspectorsConfig = cfg
 }

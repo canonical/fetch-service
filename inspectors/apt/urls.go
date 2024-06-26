@@ -27,7 +27,6 @@ import (
 
 // Recognized URL formats:
 // -----------------------
-// http://archive.ubuntu.com/ubuntu/dists/jammy/InRelease
 // http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/05cd4debe8...
 // http://archive.ubuntu.com/ubuntu/dists/jammy/i18n/by-hash/SHA256/58839e438...
 // http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-12/libgcc-s1_12.3.0-1ubuntu1%7e22.04_amd64.deb
@@ -41,7 +40,6 @@ var (
 		regexp.MustCompile(`^http://ftpmaster.internal$`),
 	}
 
-	reInRelease   = regexp.MustCompile(`^/ubuntu/dists/([\w-]+)/InRelease$`)
 	rePackages    = regexp.MustCompile(`^/ubuntu/dists/([\w-]+)/([\w-]+)/binary-(\w+)/by-hash/SHA256/([0-9a-f]{64})$`)
 	reTranslation = regexp.MustCompile(`^/ubuntu/dists/([\w-]+)/([\w-]+)/i18n/by-hash/SHA256/([0-9a-f]{64})$`)
 	reDebPackage  = regexp.MustCompile(`^/ubuntu/pool/([\w-]+)/.*/([^/_]+)_([^/_]+)_([^/_]+)\.deb$`)
@@ -55,29 +53,6 @@ func checkValidOrigin(u *url.URL) error {
 		}
 	}
 	return fmt.Errorf("invalid origin %s", origin)
-}
-
-type inReleaseUrlInfo struct {
-	origin     string
-	repository string
-	dist       string
-}
-
-func newInReleaseUrlInfo(u *url.URL) (*inReleaseUrlInfo, error) {
-	if err := checkValidOrigin(u); err != nil {
-		return nil, err
-	}
-
-	m := reInRelease.FindStringSubmatch(u.Path)
-	if len(m) != 2 {
-		return nil, fmt.Errorf("%s: not a valid InRelease URL path", u.Path)
-	}
-	info := &inReleaseUrlInfo{
-		origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
-		repository: fmt.Sprintf("%s://%s/ubuntu", u.Scheme, u.Host),
-		dist:       m[1],
-	}
-	return info, nil
 }
 
 type packagesUrlInfo struct {

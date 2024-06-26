@@ -36,6 +36,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/service/config"
 	"github.com/canonical/fetch-service/utils"
 )
 
@@ -49,15 +50,16 @@ var (
 
 // Session has information about each authorized client.
 type Session struct {
-	Id         string    // the session ID
-	Token      string    // the session token
-	Start      time.Time // session start time
-	End        time.Time // session end time
-	Insps      inspectors.Inspectors
-	A          map[metadata.Sha256Digest]*metadata.Artefact
-	Permissive bool
-	SessionDir string
-	Timeout    time.Duration
+	Id            string    // the session ID
+	Token         string    // the session token
+	Start         time.Time // session start time
+	End           time.Time // session end time
+	Insps         inspectors.Inspectors
+	A             map[metadata.Sha256Digest]*metadata.Artefact
+	Permissive    bool
+	SessionDir    string
+	Timeout       time.Duration
+	InspectorsCfg config.InspectorsConfig
 
 	revoked bool // session token has been revoked
 }
@@ -70,16 +72,18 @@ var (
 func New(spoolDir string, permissive bool) *Session {
 	sessionId := makeSessionId()
 	s := &Session{
-		Id:         sessionId,
-		Token:      randomString(20),
-		Start:      time.Now().UTC(),
-		A:          map[metadata.Sha256Digest]*metadata.Artefact{},
-		Permissive: permissive,
-		SessionDir: filepath.Join(spoolDir, sessionId),
-		Timeout:    DefaultSessionTimeout,
+		Id:            sessionId,
+		Token:         randomString(20),
+		Start:         time.Now().UTC(),
+		A:             map[metadata.Sha256Digest]*metadata.Artefact{},
+		Permissive:    permissive,
+		SessionDir:    filepath.Join(spoolDir, sessionId),
+		Timeout:       DefaultSessionTimeout,
+		InspectorsCfg: config.GetInspectorsConfig(),
 	}
 
-	s.Insps = inspectors.New(permissive)
+	cfg := config.GetInspectorsConfig()
+	s.Insps = inspectors.New(permissive, cfg)
 
 	var sType string
 	if permissive {
