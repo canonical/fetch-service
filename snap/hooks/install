@@ -1,12 +1,16 @@
 #!/bin/bash -e
 # Initialise the snap upon install
 
+ACL_YAML="${SNAP_DATA}/conf/acl.yaml"
+CA_CERT_DIR="${SNAP_DATA}/certs"
+
 # Create file spool
 rm -Rf "${SNAP_COMMON}/spool"
 mkdir -m 0700 "${SNAP_COMMON}/spool"
 
 # Initial ACL rules
-cat <<EOF > "${SNAP_DATA}/acl.yaml"
+mkdir -p $(dirname "$ACL_YAML")
+cat <<EOF >"$ACL_YAML"
 http-proxy:
   policy: allow
   rules:
@@ -14,3 +18,16 @@ http-proxy:
       ]
       access: deny
 EOF
+
+# Generate certificates
+
+rm -Rf "$CA_CERT_DIR"
+mkdir -m 0700 "$CA_CERT_DIR"
+{
+	cd "$CA_CERT_DIR"
+	openssl genrsa -aes256 -passout pass:1 -out ca.key.pem 4096
+	openssl rsa -passin pass:1 -in ca.key.pem -out ca.key.pem.tmp
+	mv ca.key.pem.tmp ca.key.pem
+	openssl req -subj "/CN=root@localhost" -key ca.key.pem -new -x509 -days 7300 -sha256 -extensions v3_ca -out ca.pem
+}
+cp "$CA_CERT_DIR/ca.pem" "${SNAP_DATA}/local-ca.crt"
