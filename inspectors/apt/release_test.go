@@ -77,9 +77,10 @@ func getTestAptConfig() apt_cfg.AptInspectorConfig {
 	return apt_cfg.AptInspectorConfig{
 		Repositories: map[string]apt_cfg.AptInspectorConfigRepository{
 			"default": {
-				Urls:      []apt_cfg.Glob{{G: glob.MustCompile("http://archive.ubuntu.com/ubuntu")}},
-				Dists:     []apt_cfg.Glob{{G: glob.MustCompile("jammy")}},
-				PublicKey: publicKey,
+				Urls:       []apt_cfg.Glob{{G: glob.MustCompile("http://archive.ubuntu.com/ubuntu")}},
+				Dists:      []apt_cfg.Glob{{G: glob.MustCompile("jammy")}},
+				Components: []apt_cfg.Glob{{G: glob.MustCompile("main")}},
+				PublicKey:  publicKey,
 			},
 		},
 	}
@@ -120,11 +121,8 @@ func (s *aptSuite) TestAptReleaseArtefactInspector(c *C) {
 		f := strings.NewReader(tc.data)
 
 		ins := apt.NewAptReleaseInspector(getTestAptConfig())
-		a.SetRequestPending(ins, "test")
-
 		err := ins.InspectArtefact(f, a)
 		c.Assert(err, IsNil)
-
 		c.Assert(a.Approved(), Equals, tc.result)
 
 		if tc.result {
@@ -176,10 +174,10 @@ func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
 		translationSize          int64
 		result                   bool
 	}{
-		{inReleaseArtefactData, "tests/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 792, true},
-		{inReleaseArtefactData, "tests/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 600, false},
-		{inReleaseArtefactData, "tests/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 792, false},
-		{inReleaseArtefactData, "tests/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 600, false},
+		{inReleaseArtefactData, "testdata/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 792, true},
+		{inReleaseArtefactData, "testdata/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 600, false},
+		{inReleaseArtefactData, "testdata/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 792, false},
+		{inReleaseArtefactData, "testdata/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 600, false},
 	} {
 		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes Annotation, pubkey string) (io.ReadSeeker, error) {
 			return f, nil
@@ -263,7 +261,7 @@ func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
 		Sha256: sha256_rel,
 		Vendor: "Canonical",
 		Files: map[digests.Sha256Digest]apt.ReleaseEntry{
-			sha256_pkg: apt.ReleaseEntry{
+			sha256_pkg: {
 				Size: 1337,
 				Name: "main/binary-amd64/Packages.xz",
 			},
@@ -341,7 +339,7 @@ func (s *aptSuite) TestAptReleaseSignature(c *C) {
 	a.CurrentDownload.URL = "https://archive.ubuntu.com/ubuntu/dists/jammy/InRelease"
 	a.MimeType = mimetype.Lookup("text/plain")
 
-	f, err := os.Open("tests/InRelease.xz")
+	f, err := os.Open("testdata/InRelease.xz")
 	c.Assert(err, IsNil)
 	defer f.Close()
 
@@ -354,12 +352,9 @@ func (s *aptSuite) TestAptReleaseSignature(c *C) {
 	c.Assert(err, IsNil)
 	r := bytes.NewReader(buf.Bytes())
 
-	cfg := getTestAptConfig()
-	ins := apt.NewAptReleaseInspector(cfg)
-	a.SetRequestPending(ins, "test")
+	ins := apt.NewAptReleaseInspector(getTestAptConfig())
 	err = ins.InspectArtefact(r, a)
 	c.Assert(err, IsNil)
-
 	c.Assert(a.Approved(), Equals, true)
 
 	c.Check(a.Metadata.Type, Equals, "application/x.apt.release")

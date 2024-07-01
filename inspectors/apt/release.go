@@ -85,8 +85,7 @@ func NewReleaseFile() releaseFile {
 
 // The apt Release file inspector inspects signed InRelease files.
 type AptReleaseInspector struct {
-	release map[string]releaseFile // map repository to release file
-
+	release     map[string]releaseFile // map repository to release file
 	releaseLock sync.Mutex
 
 	config apt_cfg.AptInspectorConfig
@@ -120,41 +119,33 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtefact) error {
 				"dist":       info.Dist,
 			},
 		)
-		return nil
-	}
-
-	if info, err := newPackagesUrlInfo(u); err == nil {
+	} else if info, err := apt_cfg.NewPackagesUrlInfo(u, &ins.config); err == nil {
 		// check if we already have downloaded InReleases from this repo
 		notes := Annotation{
-			"origin":       info.origin,
-			"repository":   info.repository,
-			"dist":         info.dist,
-			"component":    info.component,
-			"architecture": info.architecture,
+			"origin":       info.Origin,
+			"repository":   info.Repository,
+			"dist":         info.Dist,
+			"component":    info.Component,
+			"architecture": info.Architecture,
 		}
-		repo := fmt.Sprintf("%s/dists/%s", info.repository, info.dist)
+		repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
 
-		_, ok := ins.release[repo]
-		if ok {
+		if _, ok := ins.release[repo]; ok {
 			a.SetRequestPending(ins, "valid URL for packages file").Annotate(notes)
 		} else {
 			a.SetRequestRejected(ins, "attempt to download packages file before Release").Annotate(notes)
 		}
-		return nil
-	}
-
-	if info, err := newTranslationUrlInfo(u); err == nil {
+	} else if info, err := apt_cfg.NewTranslationUrlInfo(u, &ins.config); err == nil {
 		// check if we already have downloaded InReleases from this repo
 		notes := Annotation{
-			"origin":     info.origin,
-			"repository": info.repository,
-			"dist":       info.dist,
-			"component":  info.component,
+			"origin":     info.Origin,
+			"repository": info.Repository,
+			"dist":       info.Dist,
+			"component":  info.Component,
 		}
-		repo := fmt.Sprintf("%s/dists/%s", info.repository, info.dist)
+		repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
 
-		_, ok := ins.release[repo]
-		if ok {
+		if _, ok := ins.release[repo]; ok {
 			a.SetRequestPending(ins, "valid URL for translation file").Annotate(notes)
 		} else {
 			a.SetRequestRejected(ins, "attempt to download translation file before Release").Annotate(notes)
@@ -370,20 +361,20 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtefactReader, a Respons
 	}
 
 	logger.Debugf("packages file path: %s", u.Path)
-	info, err := newPackagesUrlInfo(u)
+	info, err := apt_cfg.NewPackagesUrlInfo(u, &ins.config)
 	if err != nil {
 		a.SetResponseRejected(ins, "invalid path for packages file")
 		return nil
 	}
 
-	sha256, err := digests.NewSha256Digest(info.digest)
+	sha256, err := digests.NewSha256Digest(info.Digest)
 	if err != nil {
 		a.SetResponseRejected(ins, "invalid SHA256 digest: %s", err)
 		return nil
 	}
-	logger.Debugf("by-hash SHA256 digest: %s", info.digest)
+	logger.Debugf("by-hash SHA256 digest: %s", info.Digest)
 
-	repo := fmt.Sprintf("%s/dists/%s", info.repository, info.dist)
+	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
 	rel, ok := ins.release[repo]
 	if !ok {
 		a.SetResponseRejected(ins, "Repository Release data not found")
@@ -429,13 +420,13 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ArtefactReader, a Resp
 	}
 
 	logger.Debugf("translation file path: %s", u.Path)
-	info, err := newTranslationUrlInfo(u)
+	info, err := apt_cfg.NewTranslationUrlInfo(u, &ins.config)
 	if err != nil {
 		a.SetResponseRejected(ins, "invalid path for translation file")
 		return nil
 	}
 
-	repo := fmt.Sprintf("%s/dists/%s", info.repository, info.dist)
+	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
 	rel, ok := ins.release[repo]
 	if !ok {
 		a.SetResponseRejected(ins, "Repository Release data not found")
