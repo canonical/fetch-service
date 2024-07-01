@@ -20,6 +20,7 @@
 package config_test
 
 import (
+	"fmt"
 	"net/url"
 	"testing"
 
@@ -83,8 +84,8 @@ func (t *configSuite) TestInReleaseUrlInfo(c *C) {
 			c.Assert(err, IsNil)
 			c.Assert(info, DeepEquals, &config.InReleaseUrlInfo{
 				CfgName:    "default",
-				Origin:     "http://archive.ubuntu.com",
-				Repository: "http://archive.ubuntu.com/ubuntu",
+				Origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
+				Repository: fmt.Sprintf("%s://%s/ubuntu", u.Scheme, u.Host),
 				Dist:       "focal",
 			})
 		} else {
