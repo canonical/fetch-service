@@ -68,6 +68,7 @@ func (t *configSuite) TestInReleaseUrlInfo(c *C) {
 		msg string
 	}{
 		{"http://archive.ubuntu.com/ubuntu/dists/focal/InRelease", ""},
+		{"http://us.archive.ubuntu.com/ubuntu/dists/focal/InRelease", ""},
 		{"http://archive.ubuntu.com/ubuntu/dists/jammy/InRelease", "invalid dist: jammy"},
 		{"http://archive.ubuntu.com/ubuntu/dists/focal/NotInRelease", "invalid InRelease URL path: .*"},
 		{"http://archive.ubuntu.com/ubuntu/focal/InRelease", "invalid repository URL: http://.*"},
