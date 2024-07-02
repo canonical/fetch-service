@@ -38,6 +38,7 @@ type ProxyAuth struct {
 type ServiceStatus struct {
 	Uptime         uint64                 `json:"uptime"`          // time since session start in seconds
 	StartTime      time.Time              `json:"start-time"`      // service creation time
+	SessionCount   uint64                 `json:"session-count"`   // number of created sessions
 	ActiveSessions []metadata.SessionInfo `json:"active-sessions"` // list of active sessions
 }
 

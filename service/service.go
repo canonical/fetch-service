@@ -48,6 +48,8 @@ type Service struct {
 	opt   *Options          // configuration options
 	tomb  tomb.Tomb         // service dispatcher loop reaper
 	cfgw  *fsnotify.Watcher // configuration file watcher
+
+	totalSessions uint64 // number of created sessions
 }
 
 var (
@@ -104,6 +106,7 @@ func (svc *Service) Start() error {
 					v.Rch <- messages.ServiceStatus{
 						Uptime:         uint64(time.Since(svc.start).Seconds()),
 						StartTime:      svc.start,
+						SessionCount:   svc.totalSessions,
 						ActiveSessions: session.ListAll(),
 					}
 
@@ -176,6 +179,7 @@ func (svc *Service) Start() error {
 					if v.Timeout > 0 {
 						s.Timeout = time.Duration(v.Timeout * uint64(time.Second))
 					}
+					svc.totalSessions++
 					v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Token}
 
 				case messages.RevokeToken:

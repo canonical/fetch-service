@@ -80,10 +80,6 @@ func (c *Server) Start() {
 }
 
 func (c *Server) getServiceStatus(w http.ResponseWriter, r *http.Request) {
-	if !c.checkAuth(w, r) {
-		return
-	}
-
 	logger.Debugf("get service status")
 
 	msg := messages.NewGetServiceStatus()
