@@ -24,7 +24,8 @@ Endpoints
 ^^^^^^^^^^^^^^^
 
 :Description:
-  Obtain current service information and statistics.
+  Obtain current service information and statistics. Authentication is not
+  required to access this endpoint.
 
 :Parameters:
   None.
@@ -36,7 +37,6 @@ Endpoints
       "uptime": <int>,				// service uptime in seconds
       "start-time": <string>,			// start timestamp in RFC-3339 format
       "session-count": <int>,			// total number of created sessions
-      "session-errors": <int>,			// total number of session errors
       "active-sessions": [			// list of sessions currently active
           {
               "session-id": <string>,		// session ID
@@ -56,7 +56,8 @@ Endpoints
 :Description:
   Create a new fetch service session. It returns the session ID along with an authentication
   token to be used in client requests. Permissive sessions are only allowed if the fetch
-  service is started in permissive mode.
+  service is started in permissive mode. Basic authentication is required to access this
+  endpoint.
 
 :Parameters:
 ::
@@ -80,10 +81,15 @@ Endpoints
 
 :Description:
   Revoke the session token. A Not Found (404) error is returned if the session does
-  not exist.
+  not exist. No authentication is required to access this endpoint, but the token to
+  be revoked must be supplied as a parameter.
 
 :Parameters:
-  None.
+::
+
+  {
+      "token": <string>
+  }
 
 :Response:
 ::
@@ -102,7 +108,7 @@ Endpoints
 :Description:
   Retrieve the metadata containing a list of all downloaded artefacts. The information
   must be requested only after the session token has been revoked, and before the
-  session is finished.
+  session is finished. Basic authentication is required to access this endpoint.
 
 :Parameters:
   None.
@@ -112,12 +118,13 @@ Endpoints
 
   {
       "session-id": <string>,		// session ID
+      "comment": <string>,              // free-form comment string
       "start-time": <string>,		// session start timestamp in RFC-3339 format
       "end-time": <string>,		// session end timestamp in RFC-3339 format
       "inspectors": <list of string>,	// list of registered inspector IDs
       "artefacts": [
         {
-           "metadata-version": <string>,	// metadata compatibility (major.minor)
+           "artefact-metadata-version": <string>,  // metadata compatibility (major.minor)
            "request-inspection": {
                <inspector id>: {
                    "opinion": <string>,		// "Unknown", "Rejected" or "Pending"
@@ -169,14 +176,16 @@ Endpoints
         },
         (...)
       ],
-      "spool-path": <string>		// file spool pathname
+      "spool-path": <string>,		// file spool pathname
+      "policy": <string>                // policy used in this session
   }         
 
 ``DELETE /session/<id>``
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 :Description:
-  Finish a session.
+  Finish a session. It's not required to revoke the session token before finishing
+  the session. Basic authentication is required to access this endpoint.
 
 :Parameters:
   None.
@@ -189,8 +198,9 @@ Endpoints
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :Description:
-  Remove session files from the fetch service's file spool. The session must finish
-  before resources can be deleted, otherwise a 400 Bad Request status will be returned.
+  Remove session files from the fetch service's file spool. The session must be
+  finished before resources are deleted. Basic authentication is required to access
+  this endpoint.
 
 :Parameters:
   None.
