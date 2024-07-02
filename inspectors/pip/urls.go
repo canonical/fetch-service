@@ -35,8 +35,9 @@ var (
 	}
 
 	// FIXME: using PyPI URLs as placeholders
-	reWheel = regexp.MustCompile(`^/packages/[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{60}/\w+-[a-zA-Z0-9\.-]+\.whl$`)
-	reSdist = regexp.MustCompile(`^/packages/[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{60}/\w+-[a-zA-Z0-9\.-]+\.tar\.gz$`)
+	reWheel    = regexp.MustCompile(`^/packages/[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{60}/\w+-[a-zA-Z0-9\.-]+\.whl$`)
+	reSdist    = regexp.MustCompile(`^/packages/[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{60}/\w+-[a-zA-Z0-9\.-]+\.tar\.gz$`)
+	reMetadata = regexp.MustCompile(`^/packages/[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{60}/\w+-[a-zA-Z0-9\.-]+\.metadata$`)
 )
 
 func checkValidOrigin(u *url.URL) error {
@@ -64,6 +65,16 @@ func checkSdistUrl(u *url.URL) error {
 		return err
 	}
 	if !reSdist.MatchString(u.Path) {
+		return fmt.Errorf("invalid URL path %s", u.Path)
+	}
+	return nil
+}
+
+func checkMetadataUrl(u *url.URL) error {
+	if err := checkValidOrigin(u); err != nil {
+		return err
+	}
+	if !reMetadata.MatchString(u.Path) {
 		return fmt.Errorf("invalid URL path %s", u.Path)
 	}
 	return nil
