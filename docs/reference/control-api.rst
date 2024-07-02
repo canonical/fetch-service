@@ -24,8 +24,10 @@ Endpoints
 ^^^^^^^^^^^^^^^
 
 :Description:
-  Obtain current service information and statistics. Authentication is not
-  required to access this endpoint.
+  Obtain current service information and statistics.
+
+:Authentication:
+  Not required.
 
 :Parameters:
   None.
@@ -56,8 +58,10 @@ Endpoints
 :Description:
   Create a new fetch service session. It returns the session ID along with an authentication
   token to be used in client requests. Permissive sessions are only allowed if the fetch
-  service is started in permissive mode. Basic authentication is required to access this
-  endpoint.
+  service is started in permissive mode.
+
+:Authentication:
+  Basic authentication is required to access this endpoint.
 
 :Parameters:
 ::
@@ -81,8 +85,11 @@ Endpoints
 
 :Description:
   Revoke the session token. A Not Found (404) error is returned if the session does
-  not exist. No authentication is required to access this endpoint, but the token to
-  be revoked must be supplied as a parameter.
+  not exist.
+
+:Authentication:
+  No authentication is required to access this endpoint, but the token to be revoked
+  must be supplied as a parameter.
 
 :Parameters:
 ::
@@ -108,10 +115,13 @@ Endpoints
 :Description:
   Retrieve the metadata containing a list of all downloaded artefacts. The information
   must be requested only after the session token has been revoked, and before the
-  session is finished. Basic authentication is required to access this endpoint.
+  session is finished.
 
 :Parameters:
   None.
+
+:Authentication:
+  Basic authentication is required to access this endpoint.
 
 :Response:
 ::
@@ -185,7 +195,10 @@ Endpoints
 
 :Description:
   Finish a session. It's not required to revoke the session token before finishing
-  the session. Basic authentication is required to access this endpoint.
+  the session.
+
+:Authentication:
+  Basic authentication is required to access this endpoint.
 
 :Parameters:
   None.
@@ -199,8 +212,10 @@ Endpoints
 
 :Description:
   Remove session files from the fetch service's file spool. The session must be
-  finished before resources are deleted. Basic authentication is required to access
-  this endpoint.
+  finished before resources are deleted.
+
+:Authentication:
+  Basic authentication is required to access this endpoint.
 
 :Parameters:
   None.
