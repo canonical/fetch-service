@@ -29,6 +29,7 @@ import (
 	"github.com/canonical/fetch-service/control"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
+	"github.com/canonical/fetch-service/service/messages"
 )
 
 func Test(t *testing.T) { TestingT(t) }
@@ -39,6 +40,7 @@ type controlSuite struct {
 
 func (t *controlSuite) SetUpTest(c *C) {
 	testlogger.Init(logger.InfoLevel)
+	t.ch = make(chan any)
 }
 
 var _ = Suite(&controlSuite{})
@@ -67,19 +69,30 @@ func (t *controlSuite) TestCheckAuth(c *C) {
 }
 
 func (t *controlSuite) TestEndpointNoAuthentication(c *C) {
-	ctl := control.NewServer(1234, t.ch, "testuser:testpw")
+	go func() {
+		msg := <-t.ch
+		msg.(messages.GetServiceStatus).Rch <- messages.ServiceStatus{}
+	}()
 
-	w := httptest.NewRecorder()
-	r, _ := http.NewRequest("GET", "http://some.url", nil)
-	control.ServerDeleteSessionToken(ctl, w, r)
-	c.Assert(w.Code, Equals, 404)
+	for _, tc := range []struct {
+		callEndpoint func(*control.Server, http.ResponseWriter, *http.Request)
+	}{
+		{control.ServerGetServiceStatus},
+		{control.ServerDeleteSessionToken},
+	} {
+		ctl := control.NewServer(1234, t.ch, "testuser:testpw")
+
+		w := httptest.NewRecorder()
+		r, _ := http.NewRequest("GET", "http://some.url", nil)
+		tc.callEndpoint(ctl, w, r)
+		c.Assert(w.Code, Not(Equals), 401)
+	}
 }
 
 func (t *controlSuite) TestEndpointAuthenticationError(c *C) {
 	for _, tc := range []struct {
 		callEndpoint func(*control.Server, http.ResponseWriter, *http.Request)
 	}{
-		{control.ServerGetServiceStatus},
 		{control.ServerCreateSession},
 		{control.ServerDeleteSession},
 		{control.ServerGetSessionReport},
