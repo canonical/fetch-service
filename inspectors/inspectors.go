@@ -81,6 +81,7 @@ func New(permissive bool) Inspectors {
 		pip.NewSimpleIndexInspector(),
 		pip.NewWheelInspector(),
 		pip.NewSdistInspector(),
+		pip.NewMetadataInspector(),
 
 		// deb packages
 		deb.NewDebInspector(),
