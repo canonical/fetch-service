@@ -20,43 +20,37 @@
 package pip
 
 import (
-	"archive/tar"
 	"bufio"
-	"compress/gzip"
 	"fmt"
 	"io"
 	"net/url"
-	"os"
-	"regexp"
 	"strings"
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
-	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
-	"github.com/canonical/fetch-service/utils"
 )
 
-type SdistInspector struct {
+type MetadataInspector struct {
 }
 
-func NewSdistInspector() *SdistInspector {
-	return &SdistInspector{}
+func NewMetadataInspector() *MetadataInspector {
+	return &MetadataInspector{}
 }
 
-func (SdistInspector) ID() string {
-	return "pip.sdist"
+func (MetadataInspector) ID() string {
+	return "pip.metadata"
 }
 
 // InspectRequest verifies if the request complies with policy.
-func (ins SdistInspector) InspectRequest(a *metadata.Artefact) error {
+func (ins MetadataInspector) InspectRequest(a *metadata.Artefact) error {
 	u, err := url.Parse(a.CurrentDownload.URL)
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	if checkSdistUrl(u) == nil {
+	if checkMetadataUrl(u) == nil {
 		a.SetRequestOpinion(ins.ID(), opinions.Pending, "request matches valid URL")
 	}
 
@@ -64,54 +58,25 @@ func (ins SdistInspector) InspectRequest(a *metadata.Artefact) error {
 }
 
 // InspectArtefact extracts metadata from a known artefact file format.
-func (ins *SdistInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
-	if !a.MimeType.Is("application/gzip") {
+func (ins *MetadataInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
+	if !a.MimeType.Is("text/plain") {
 		return nil
 	}
 
-	zf, err := gzip.NewReader(f)
-	if err != nil {
-		return err
-	}
-
-	rePkgInfo := regexp.MustCompile(`^\w+-[0-9A-Za-z\.-]+/PKG-INFO$`)
-
-	// Parse tarball
-	tf := tar.NewReader(zf)
-	for {
-		h, err := tf.Next()
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			logger.Debugf("sdist tar parsing error: %s", err)
-			return nil // we don't recognize this artefact
-		}
-		if rePkgInfo.MatchString(h.Name) {
-			return ins.parsePkgInfo(tf, a)
-		}
+	if err := ins.parseMetadataFile(f, a); err != nil {
+		return nil // we don't recognize this artefact
 	}
 
 	return nil
 }
 
-// scanSdistMetadata parses metadata entries from the given file.
-func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a *metadata.Artefact) error {
-	sc := bufio.NewScanner(tf)
+// parseMetadataFile reads metadata entries from the downloaded artefact.
+func (ins *MetadataInspector) parseMetadataFile(f io.Reader, a *metadata.Artefact) error {
+	sc := bufio.NewScanner(f)
 	sc.Split(bufio.ScanLines)
 
-	temp, err := os.CreateTemp("", "tmpfile-")
-	if err != nil {
-		return err
-	}
-	defer temp.Close()
-	defer os.Remove(temp.Name())
-
-	// create a temporary copy of the PKG-INFO for license verification
-	t := bufio.NewWriter(temp)
-
 	var mver string
-	var name, version, description, author, email, maintainer string
+	var name, version, author, email, maintainer string
 
 	md := &a.Metadata
 
@@ -119,10 +84,6 @@ func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a *metadata.Artefact) erro
 		line := sc.Text()
 		if line == "" {
 			break
-		}
-
-		if _, err := fmt.Fprintln(t, line); err != nil {
-			return err
 		}
 
 		k, v, ok := strings.Cut(line, ":")
@@ -135,11 +96,9 @@ func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a *metadata.Artefact) erro
 		case "metadata-version":
 			mver = v
 		case "name":
-			name = v
+			name = fmt.Sprintf("metadata file for package '%s'", v)
 		case "version":
 			version = v
-		case "summary":
-			description = v
 		case "author":
 			author = v
 		case "author-email":
@@ -149,33 +108,24 @@ func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a *metadata.Artefact) erro
 		}
 	}
 
-	t.Flush()
-	temp.Close()
-
 	if mver == "" || name == "" || version == "" {
-		return nil
+		return nil // not a python metadata file
 	}
 
-	md.Type = mimetypes.PythonSdist
+	md.Type = mimetypes.PythonMetadata
 	md.Name = name
 	md.Version = version
-	md.Description = description
+	md.Description = "Python metadata file"
 	md.Author = author
 	md.AuthorEmail = email
 
-	md.License, err = utils.GetLicense(temp.Name())
-	if err != nil {
-		return err
-	}
-
-	// If vendor is not specified, fall back to maintainer
 	if author != "" {
 		md.Vendor = author
 	} else {
 		md.Vendor = maintainer
 	}
 
-	a.SetResponseOpinion(ins.ID(), opinions.Approved, "sdist file successfully parsed").Annotate(
+	a.SetResponseOpinion(ins.ID(), opinions.Approved, "metadata file successfully parsed").Annotate(
 		metadata.Annotation{
 			"metadata-version": mver,
 		},

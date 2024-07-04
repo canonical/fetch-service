@@ -20,8 +20,6 @@
 package pip_test
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"os"
 	"path/filepath"
 
@@ -37,41 +35,41 @@ import (
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
-type sdistSuite struct{}
+type metadataSuite struct{}
 
-func (t *sdistSuite) SetUpTest(c *C) {
+func (t *metadataSuite) SetUpTest(c *C) {
 	testlogger.Init(logger.InfoLevel)
 }
 
-var _ = Suite(&sdistSuite{})
+var _ = Suite(&metadataSuite{})
 
-func (s *sdistSuite) TestSdistInspectorInterface(c *C) {
+func (s *metadataSuite) TestMetadataInspectorInterface(c *C) {
 	var iface inspectors.Inspector
-	ins := pip.NewSdistInspector()
+	ins := pip.NewMetadataInspector()
 	c.Assert(ins, Implements, &iface)
 
 }
 
-func (s *sdistSuite) TestSdistInspectorID(c *C) {
-	ins := pip.NewSdistInspector()
-	c.Assert(ins.ID(), Equals, "pip.sdist")
+func (s *metadataSuite) TestMetadataInspectorID(c *C) {
+	ins := pip.NewMetadataInspector()
+	c.Assert(ins.ID(), Equals, "pip.metadata")
 
 }
 
-func (s *sdistSuite) TestInspectRequest(c *C) {
+func (s *metadataSuite) TestInspectRequest(c *C) {
 	for _, tc := range []struct {
 		url      string
 		approved bool
 	}{
-		{"https://files.pythonhosted.org:443/packages/0f/9a/0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab/foobar-1.0.0.tar.gz", true},
-		{"http://files.pythonhosted.org/packages/0f/9a/0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab/foobar-1.0.0.tar.gz", false},
-		{"https://files.pythonhosted.org:443/packages/0f/9a/0123456789abcdef0123456789abcdef0123456789abcdef0123456789a/foobar-1.0.0.tar.gz", false},
+		{"https://files.pythonhosted.org:443/packages/0f/9a/0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab/foobar-1.0.0.whl.metadata", true},
+		{"http://files.pythonhosted.org/packages/0f/9a/0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab/foobar-1.0.0.whl.metadata", false},
+		{"https://files.pythonhosted.org:443/packages/0f/9a/0123456789abcdef0123456789abcdef0123456789abcdef0123456789a/foobar-1.0.0.whl.metadata", false},
 		{"https://files.pythonhosted.org:443/packages/0f/9a/0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab/foobar-1.0.0.whl", false},
-		{"https://files.pythonhosted.org:443/packages/0f9a0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab/foobar-1.0.0.tar.gz", false},
-		{"https://pypi.org:443/packages/0f/9a/0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab/foobar-1.0.0.tar.gz", false},
-		{"ahttps://files.pythonhosted.org:443/packages/0f/9a/0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab/foobar-1.0.0.tar.gz", false},
+		{"https://files.pythonhosted.org:443/packages/0f9a0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab/foobar-1.0.0.whl.metadata", false},
+		{"https://pypi.org:443/packages/0f/9a/0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab/foobar-1.0.0.whl.metadata", false},
+		{"ahttps://files.pythonhosted.org:443/packages/0f/9a/0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab/foobar-1.0.0.whl.metadata", false},
 	} {
-		ins := pip.NewSdistInspector()
+		ins := pip.NewMetadataInspector()
 		a := metadata.NewArtefact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 
@@ -86,8 +84,8 @@ func (s *sdistSuite) TestInspectRequest(c *C) {
 	}
 }
 
-func (s *sdistSuite) TestInspectArtefactBadType(c *C) {
-	ins := pip.NewSdistInspector()
+func (s *metadataSuite) TestInspectArtefactBadType(c *C) {
+	ins := pip.NewMetadataInspector()
 	a := metadata.NewArtefact()
 	a.MimeType = mimetype.Lookup("application/zip")
 
@@ -97,11 +95,11 @@ func (s *sdistSuite) TestInspectArtefactBadType(c *C) {
 	c.Assert(a.Rejected(), Equals, true)
 }
 
-func (s *sdistSuite) TestSdistInspectArtefactReadMetadata(c *C) {
+func (s *metadataSuite) TestMetadataInspectArtefactReadMetadata(c *C) {
 	tmp := c.MkDir()
-	testfile := filepath.Join(tmp, "test.tar.gz")
+	testfile := filepath.Join(tmp, "test.metadata")
 
-	pkgInfoContent := "Metadata-Version: 2.1\n" +
+	content := "Metadata-Version: 2.1\n" +
 		"Name: craft-parts\n" +
 		"Version: 1.31.0\n" +
 		"Summary: Craft parts tooling\n" +
@@ -126,70 +124,40 @@ func (s *sdistSuite) TestSdistInspectArtefactReadMetadata(c *C) {
 		"process it in various ways, and prepare a filesystem subtree suitable for\n" +
 		"deployment.\n"
 
-	// Create test sdist
-	sf, err := os.Create(testfile)
-	c.Assert(err, IsNil)
-	defer sf.Close()
-
-	zf := gzip.NewWriter(sf)
-	tf := tar.NewWriter(zf)
-
-	hdr := &tar.Header{
-		Name: "foobar-1.0/",
-		Mode: 0755,
-	}
-	err = tf.WriteHeader(hdr)
+	// Create test metadata
+	err := os.WriteFile(testfile, []byte(content), 0644)
 	c.Assert(err, IsNil)
 
-	hdr = &tar.Header{
-		Name: "foobar-1.0/PKG-INFO",
-		Mode: 0644,
-		Size: int64(len(pkgInfoContent)),
-	}
-	err = tf.WriteHeader(hdr)
-	c.Assert(err, IsNil)
-
-	_, err = tf.Write([]byte(pkgInfoContent))
-	c.Assert(err, IsNil)
-
-	err = tf.Close()
-	c.Assert(err, IsNil)
-
-	err = zf.Close()
-	c.Assert(err, IsNil)
-
-	// Inspect test sdist
+	// Inspect test metadata
 	f, err := mmap.Open(testfile)
 	c.Assert(err, IsNil)
-	defer f.Close()
 
-	ins := pip.NewSdistInspector()
+	ins := pip.NewMetadataInspector()
 	a := metadata.NewArtefact()
-	a.MimeType = mimetype.Lookup("application/gzip")
+	a.MimeType = mimetype.Lookup("text/plain")
 	a.SetRequestOpinion(ins.ID(), opinions.Pending, "test")
 
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
-	c.Assert(a.Metadata.Name, Equals, "craft-parts")
+	c.Assert(a.Metadata.Name, Equals, "metadata file for package 'craft-parts'")
 	c.Assert(a.Metadata.Version, Equals, "1.31.0")
-	c.Assert(a.Metadata.Description, Equals, "Craft parts tooling")
+	c.Assert(a.Metadata.Description, Equals, "Python metadata file")
 	c.Assert(a.Metadata.Vendor, Equals, "Canonical Ltd.")
 	c.Assert(a.Metadata.Author, Equals, "Canonical Ltd.")
 	c.Assert(a.Metadata.AuthorEmail, Equals, "snapcraft@lists.snapcraft.io")
-	c.Assert(a.Metadata.License, Equals, "GPL-3 and/or LGPL-3")
-	c.Assert(a.ResponseInspection["pip.sdist"], DeepEquals, &metadata.Inspection{
+	c.Assert(a.ResponseInspection["pip.metadata"], DeepEquals, &metadata.Inspection{
 		Opinion: opinions.Approved,
-		Reason:  "sdist file successfully parsed",
+		Reason:  "metadata file successfully parsed",
 		Annotations: metadata.Annotation{
 			"metadata-version": "2.1",
 		},
 	})
 }
 
-func (s *sdistSuite) TestSdistInspectArtefactBadFormat(c *C) {
+func (s *metadataSuite) TestMetadataInspectArtefactBadFormat(c *C) {
 	tmp := c.MkDir()
-	testfile := filepath.Join(tmp, "test.tar.gz")
+	testfile := filepath.Join(tmp, "test.metadata")
 
 	for _, tc := range []struct {
 		content  string
@@ -201,47 +169,18 @@ func (s *sdistSuite) TestSdistInspectArtefactBadFormat(c *C) {
 		{"metadata-version: 2.1\nversion: 1.0\n", false},
 		{"metadata-version: 2.1\nname: test\nversion: 1.0\n", true},
 	} {
-
-		// Create test sdist
-		sf, err := os.Create(testfile)
-		c.Assert(err, IsNil)
-		defer sf.Close()
-
-		zf := gzip.NewWriter(sf)
-		tf := tar.NewWriter(zf)
-
-		hdr := &tar.Header{
-			Name: "foobar-1.0/",
-			Mode: 0755,
-		}
-		err = tf.WriteHeader(hdr)
+		// Create test metadata
+		err := os.WriteFile(testfile, []byte(tc.content), 0644)
 		c.Assert(err, IsNil)
 
-		hdr = &tar.Header{
-			Name: "foobar-1.0/PKG-INFO",
-			Mode: 0644,
-			Size: int64(len(tc.content)),
-		}
-		err = tf.WriteHeader(hdr)
-		c.Assert(err, IsNil)
-
-		_, err = tf.Write([]byte(tc.content))
-		c.Assert(err, IsNil)
-
-		err = tf.Close()
-		c.Assert(err, IsNil)
-
-		err = zf.Close()
-		c.Assert(err, IsNil)
-
-		// Inspect test sdist
+		// Inspect test metadata
 		f, err := mmap.Open(testfile)
 		c.Assert(err, IsNil)
 		defer f.Close()
 
-		ins := pip.NewSdistInspector()
+		ins := pip.NewMetadataInspector()
 		a := metadata.NewArtefact()
-		a.MimeType = mimetype.Lookup("application/gzip")
+		a.MimeType = mimetype.Lookup("text/plain")
 		a.SetRequestOpinion(ins.ID(), opinions.Pending, "test")
 
 		err = ins.InspectArtefact(f, a)

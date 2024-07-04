@@ -23,6 +23,7 @@ const (
 	DebianBinaryPackage        = "application/vnd.debian.binary-package"
 	PythonWheel                = "application/x.python.wheel"
 	PythonSdist                = "application/x.python.sdist"
+	PythonMetadata             = "application/x.python.metadata"
 	AptRelease                 = "application/x.apt.release"
 	AptPackages                = "application/x.apt.packages"
 	AptTranslation             = "application/x.apt.translation"
