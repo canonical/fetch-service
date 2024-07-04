@@ -1,12 +1,15 @@
 #!/bin/bash -e
 # Initialise the snap upon install
 
+ACL_YAML="${SNAP_DATA}/conf/acl.yaml"
+
 # Create file spool
 rm -Rf "${SNAP_COMMON}/spool"
 mkdir -m 0700 "${SNAP_COMMON}/spool"
 
 # Initial ACL rules
-cat <<EOF > "${SNAP_DATA}/acl.yaml"
+mkdir -p $(dirname "$ACL_YAML")
+cat <<EOF >"$ACL_YAML"
 http-proxy:
   policy: allow
   rules:
