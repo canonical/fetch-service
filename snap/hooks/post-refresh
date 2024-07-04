@@ -3,9 +3,15 @@
 ACL_YAML="${SNAP_DATA}/conf/acl.yaml"
 CA_CERT_DIR="${SNAP_DATA}/certs"
 
+mkdir -p $(dirname "$ACL_YAML")
+
+# If old acl configuration exists, move it to conf/
+if [ -f "${SNAP_DATA}/acl.yaml" ]; then
+	mv "${SNAP_DATA}/acl.yaml" "$ACL_YAML"
+fi
+
 # Create an acl file if it doesn't exist
 if [ ! -f "$ACL_YAML" ]; then
-	mkdir -p $(dirname "$ACL_YAML")
 	cat <<EOF >"$ACL_YAML"
 http-proxy:
   policy: allow
