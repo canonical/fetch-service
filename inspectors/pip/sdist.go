@@ -110,8 +110,8 @@ func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a *metadata.Artefact) erro
 	// create a temporary copy of the PKG-INFO for license verification
 	t := bufio.NewWriter(temp)
 
-	var maintainer string
-	var ver string
+	var mver string
+	var name, version, description, author, email, maintainer string
 
 	md := &a.Metadata
 
@@ -133,18 +133,17 @@ func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a *metadata.Artefact) erro
 
 		switch strings.ToLower(k) {
 		case "metadata-version":
-			ver = v
+			mver = v
 		case "name":
-			md.Name = v
+			name = v
 		case "version":
-			md.Version = v
+			version = v
 		case "summary":
-			md.Description = v
+			description = v
 		case "author":
-			md.Author = v
-			md.Vendor = v
+			author = v
 		case "author-email":
-			md.AuthorEmail = v
+			email = v
 		case "maintainer":
 			maintainer = v
 		}
@@ -153,9 +152,16 @@ func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a *metadata.Artefact) erro
 	t.Flush()
 	temp.Close()
 
-	if ver == "" || md.Name == "" || md.Version == "" {
+	if mver == "" || name == "" || version == "" {
 		return nil
 	}
+
+	md.Type = mimetypes.PythonSdist
+	md.Name = name
+	md.Version = version
+	md.Description = description
+	md.Author = author
+	md.AuthorEmail = email
 
 	md.License, err = utils.GetLicense(temp.Name())
 	if err != nil {
@@ -163,15 +169,15 @@ func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a *metadata.Artefact) erro
 	}
 
 	// If vendor is not specified, fall back to maintainer
-	if md.Vendor == "" && maintainer != "" {
+	if author != "" {
+		md.Vendor = author
+	} else {
 		md.Vendor = maintainer
 	}
 
-	a.Metadata.Type = mimetypes.PythonSdist
-
 	a.SetResponseOpinion(ins.ID(), opinions.Approved, "sdist file successfully parsed").Annotate(
 		metadata.Annotation{
-			"metadata-version": ver,
+			"metadata-version": mver,
 		},
 	)
 

@@ -75,8 +75,8 @@ func (ins *MetadataInspector) parseMetadataFile(f io.Reader, a *metadata.Artefac
 	sc := bufio.NewScanner(f)
 	sc.Split(bufio.ScanLines)
 
-	var maintainer string
-	var ver string
+	var mver string
+	var name, version, author, email, maintainer string
 
 	md := &a.Metadata
 
@@ -94,37 +94,40 @@ func (ins *MetadataInspector) parseMetadataFile(f io.Reader, a *metadata.Artefac
 
 		switch strings.ToLower(k) {
 		case "metadata-version":
-			ver = v
+			mver = v
 		case "name":
-			md.Name = fmt.Sprintf("metadata file for package '%s'", v)
+			name = fmt.Sprintf("metadata file for package '%s'", v)
 		case "version":
-			md.Version = v
-		case "summary":
-			md.Description = "Python metadata file"
+			version = v
 		case "author":
-			md.Author = v
-			md.Vendor = v
+			author = v
 		case "author-email":
-			md.AuthorEmail = v
+			email = v
 		case "maintainer":
 			maintainer = v
 		}
 	}
 
-	if ver == "" || md.Name == "" || md.Version == "" {
-		return nil
+	if mver == "" || name == "" || version == "" {
+		return nil // not a python metadata file
 	}
 
-	// If vendor is not specified, fall back to maintainer
-	if md.Vendor == "" && maintainer != "" {
+	md.Type = mimetypes.PythonMetadata
+	md.Name = name
+	md.Version = version
+	md.Description = "Python metadata file"
+	md.Author = author
+	md.AuthorEmail = email
+
+	if author != "" {
+		md.Vendor = author
+	} else {
 		md.Vendor = maintainer
 	}
 
-	a.Metadata.Type = mimetypes.PythonMetadata
-
 	a.SetResponseOpinion(ins.ID(), opinions.Approved, "metadata file successfully parsed").Annotate(
 		metadata.Annotation{
-			"metadata-version": ver,
+			"metadata-version": mver,
 		},
 	)
 

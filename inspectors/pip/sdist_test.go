@@ -191,51 +191,67 @@ func (s *sdistSuite) TestSdistInspectArtefactBadFormat(c *C) {
 	tmp := c.MkDir()
 	testfile := filepath.Join(tmp, "test.tar.gz")
 
-	pkgInfoContent := "something else"
+	for _, tc := range []struct {
+		content  string
+		approved bool
+	}{
+		{"something else", false},
+		{"metadata-version: 2.1\nname: test\n", false},
+		{"name: test\nversion: 1.0\n", false},
+		{"metadata-version: 2.1\nversion: 1.0\n", false},
+		{"metadata-version: 2.1\nname: test\nversion: 1.0\n", true},
+	} {
 
-	// Create test sdist
-	sf, err := os.Create(testfile)
-	c.Assert(err, IsNil)
-	defer sf.Close()
+		// Create test sdist
+		sf, err := os.Create(testfile)
+		c.Assert(err, IsNil)
+		defer sf.Close()
 
-	zf := gzip.NewWriter(sf)
-	tf := tar.NewWriter(zf)
+		zf := gzip.NewWriter(sf)
+		tf := tar.NewWriter(zf)
 
-	hdr := &tar.Header{
-		Name: "foobar-1.0/",
-		Mode: 0755,
+		hdr := &tar.Header{
+			Name: "foobar-1.0/",
+			Mode: 0755,
+		}
+		err = tf.WriteHeader(hdr)
+		c.Assert(err, IsNil)
+
+		hdr = &tar.Header{
+			Name: "foobar-1.0/PKG-INFO",
+			Mode: 0644,
+			Size: int64(len(tc.content)),
+		}
+		err = tf.WriteHeader(hdr)
+		c.Assert(err, IsNil)
+
+		_, err = tf.Write([]byte(tc.content))
+		c.Assert(err, IsNil)
+
+		err = tf.Close()
+		c.Assert(err, IsNil)
+
+		err = zf.Close()
+		c.Assert(err, IsNil)
+
+		// Inspect test sdist
+		f, err := mmap.Open(testfile)
+		c.Assert(err, IsNil)
+		defer f.Close()
+
+		ins := pip.NewSdistInspector()
+		a := metadata.NewArtefact()
+		a.MimeType = mimetype.Lookup("application/gzip")
+		a.SetRequestOpinion(ins.ID(), opinions.Pending, "test")
+
+		err = ins.InspectArtefact(f, a)
+		c.Assert(err, IsNil)
+
+		if tc.approved {
+			c.Assert(a.Approved(), Equals, true)
+		} else {
+			c.Assert(a.Rejected(), Equals, true)
+			c.Assert(a.Metadata, DeepEquals, metadata.Metadata{})
+		}
 	}
-	err = tf.WriteHeader(hdr)
-	c.Assert(err, IsNil)
-
-	hdr = &tar.Header{
-		Name: "foobar-1.0/PKG-INFO",
-		Mode: 0644,
-		Size: int64(len(pkgInfoContent)),
-	}
-	err = tf.WriteHeader(hdr)
-	c.Assert(err, IsNil)
-
-	_, err = tf.Write([]byte(pkgInfoContent))
-	c.Assert(err, IsNil)
-
-	err = tf.Close()
-	c.Assert(err, IsNil)
-
-	err = zf.Close()
-	c.Assert(err, IsNil)
-
-	// Inspect test sdist
-	f, err := mmap.Open(testfile)
-	c.Assert(err, IsNil)
-	defer f.Close()
-
-	ins := pip.NewSdistInspector()
-	a := metadata.NewArtefact()
-	a.MimeType = mimetype.Lookup("application/gzip")
-	a.SetRequestOpinion(ins.ID(), opinions.Pending, "test")
-
-	err = ins.InspectArtefact(f, a)
-	c.Assert(err, IsNil)
-	c.Assert(a.Rejected(), Equals, true)
 }

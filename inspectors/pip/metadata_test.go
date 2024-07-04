@@ -159,23 +159,38 @@ func (s *metadataSuite) TestMetadataInspectArtefactBadFormat(c *C) {
 	tmp := c.MkDir()
 	testfile := filepath.Join(tmp, "test.metadata")
 
-	content := "something else"
+	for _, tc := range []struct {
+		content  string
+		approved bool
+	}{
+		{"something else", false},
+		{"metadata-version: 2.1\nname: test\n", false},
+		{"name: test\nversion: 1.0\n", false},
+		{"metadata-version: 2.1\nversion: 1.0\n", false},
+		{"metadata-version: 2.1\nname: test\nversion: 1.0\n", true},
+	} {
+		// Create test metadata
+		err := os.WriteFile(testfile, []byte(tc.content), 0644)
+		c.Assert(err, IsNil)
 
-	// Create test metadata
-	err := os.WriteFile(testfile, []byte(content), 0644)
-	c.Assert(err, IsNil)
+		// Inspect test metadata
+		f, err := mmap.Open(testfile)
+		c.Assert(err, IsNil)
+		defer f.Close()
 
-	// Inspect test metadata
-	f, err := mmap.Open(testfile)
-	c.Assert(err, IsNil)
-	defer f.Close()
+		ins := pip.NewMetadataInspector()
+		a := metadata.NewArtefact()
+		a.MimeType = mimetype.Lookup("text/plain")
+		a.SetRequestOpinion(ins.ID(), opinions.Pending, "test")
 
-	ins := pip.NewMetadataInspector()
-	a := metadata.NewArtefact()
-	a.MimeType = mimetype.Lookup("text/plain")
-	a.SetRequestOpinion(ins.ID(), opinions.Pending, "test")
+		err = ins.InspectArtefact(f, a)
+		c.Assert(err, IsNil)
 
-	err = ins.InspectArtefact(f, a)
-	c.Assert(err, IsNil)
-	c.Assert(a.Rejected(), Equals, true)
+		if tc.approved {
+			c.Assert(a.Approved(), Equals, true)
+		} else {
+			c.Assert(a.Rejected(), Equals, true)
+			c.Assert(a.Metadata, DeepEquals, metadata.Metadata{})
+		}
+	}
 }
