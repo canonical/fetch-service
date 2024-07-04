@@ -48,6 +48,8 @@ type Service struct {
 	opt   *Options          // configuration options
 	tomb  tomb.Tomb         // service dispatcher loop reaper
 	cfgw  *fsnotify.Watcher // configuration file watcher
+
+	totalSessions uint64 // number of created sessions
 }
 
 var (
@@ -55,20 +57,26 @@ var (
 	controlNewServer  = control.NewServer
 )
 
-func New(opt *Options) *Service {
+func New(opt *Options) (*Service, error) {
 	// obtain authentication credentials from the environment
 	creds := os.Getenv("FETCH_SERVICE_AUTH")
 
 	ch := make(chan interface{})
-	p := proxyNewHttpProxy(opt.ProxyPort, opt.Spool, ch)
+	p, err := proxyNewHttpProxy(opt.ProxyPort, opt.Spool, opt.Cert, opt.Key, ch)
+	if err != nil {
+		return nil, err
+	}
+
 	ctl := controlNewServer(opt.ControlPort, ch, creds)
 	start := time.Now().UTC()
 
-	return &Service{p: p, ctl: ctl, opt: opt, ch: ch, start: start}
+	return &Service{p: p, ctl: ctl, opt: opt, ch: ch, start: start}, nil
 }
 
 // Start runs the fetch service dispatcher.
 func (svc *Service) Start() error {
+	// Load MITM certificate
+
 	// Configuration file watcher
 	var err error
 	svc.cfgw, err = fsnotify.NewWatcher()
@@ -104,6 +112,7 @@ func (svc *Service) Start() error {
 					v.Rch <- messages.ServiceStatus{
 						Uptime:         uint64(time.Since(svc.start).Seconds()),
 						StartTime:      svc.start,
+						SessionCount:   svc.totalSessions,
 						ActiveSessions: session.ListAll(),
 					}
 
@@ -176,6 +185,7 @@ func (svc *Service) Start() error {
 					if v.Timeout > 0 {
 						s.Timeout = time.Duration(v.Timeout * uint64(time.Second))
 					}
+					svc.totalSessions++
 					v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Token}
 
 				case messages.RevokeToken:

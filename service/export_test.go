@@ -24,7 +24,7 @@ import (
 	"github.com/canonical/fetch-service/proxy"
 )
 
-func MockNewHttpProxy(mock func(int, string, chan interface{}) *proxy.HttpProxy) (restorer func()) {
+func MockNewHttpProxy(mock func(int, string, []byte, []byte, chan interface{}) (*proxy.HttpProxy, error)) (restorer func()) {
 	old := proxyNewHttpProxy
 	proxyNewHttpProxy = mock
 	return func() {

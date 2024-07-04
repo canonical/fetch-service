@@ -25,4 +25,6 @@ type Options struct {
 	Config         string // path to configuration file
 	Spool          string // path to the local file spool
 	PermissiveMode bool   // allow permissive sessions
+	Key            []byte // proxy mitm ca key
+	Cert           []byte //  proxy mitm ca certificate
 }
