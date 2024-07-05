@@ -38,13 +38,6 @@ import (
 	"github.com/canonical/fetch-service/utils"
 )
 
-func WheelDetector(raw []byte, limit uint32) bool {
-	return utils.ZipMatches(raw,
-		`^\w+-[^/]+\.dist-info/WHEEL$`,
-		`^\w+-[^/]+\.dist-info/METADATA$`,
-		`^\w+-[^/]+\.dist-info/RECORD$`)
-}
-
 type WheelInspector struct {
 }
 
@@ -70,9 +63,20 @@ func (ins *WheelInspector) InspectRequest(a RequestArtefact) error {
 	return nil // we don't recognize this request
 }
 
+var wheelPatterns = []*regexp.Regexp{
+	regexp.MustCompile(`^\w+-[^/]+\.dist-info/WHEEL$`),
+	regexp.MustCompile(`^\w+-[^/]+\.dist-info/METADATA$`),
+	regexp.MustCompile(`^\w+-[^/]+\.dist-info/RECORD$`),
+}
+
 // InspectArtefact extracts metadata from a known artefact file format.
 func (ins *WheelInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
-	if !a.MimetypeIs(mimetypes.PythonWheel) {
+	if !a.MimetypeIs("application/zip") {
+		return nil
+	}
+
+	// Check if zip file contains wheel files
+	if !utils.ZipMatches(f, int64(f.Len()), wheelPatterns) {
 		return nil
 	}
 
@@ -142,7 +146,7 @@ func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a Respons
 			}
 			defer zf.Close()
 
-			md, ver, err := scanWheelMetadata(zf, a)
+			md, ver, err := scanWheelMetadata(zf)
 			if err != nil {
 				return err
 			}
@@ -169,7 +173,7 @@ func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a Respons
 }
 
 // scanWheelMetadata parses metadata entries from the given file.
-func scanWheelMetadata(zf io.ReadCloser, a ResponseArtefact) (ArtefactMetadata, string, error) {
+func scanWheelMetadata(zf io.ReadCloser) (ArtefactMetadata, string, error) {
 	sc := bufio.NewScanner(zf)
 	sc.Split(bufio.ScanLines)
 

@@ -33,12 +33,15 @@ var (
 	ErrRejectedArtefact = errors.New("artefact rejected by inspectors")
 )
 
+// ArtefactFile represents the downloaded artefact file.
 type ArtefactFile interface {
 	io.ReadSeeker
 	io.ReaderAt
 	Len() int
 }
 
+// RequestArtefact is an interface with methods to be used on the
+// artefact metadata during the request inspection.
 type RequestArtefact interface {
 	// Inspector opinions
 	SetRequestPending(Inspector, string, ...any) *Inspection
@@ -61,6 +64,8 @@ type RequestArtefact interface {
 	SetRequestBody(io.ReadCloser)
 }
 
+// ResponseArtefact is an interface with methods to be used on the
+// artefact metadata during the response inspection.
 type ResponseArtefact interface {
 	// Inspector opinions
 	SetResponseApproved(Inspector, string, ...any) *Inspection
@@ -101,28 +106,33 @@ type Inspector interface {
 	InspectArtefact(ArtefactFile, ResponseArtefact) error
 }
 
-// Annotation
-
+// Annotation is a registry of free-form entries defined by the
+// inspector.
 type Annotation map[string]any
 
+// Add adds a free-form value val to the specified Annotation key.
 func (ann Annotation) Add(key string, val any) {
 	ann[key] = val
 }
 
+// Append merges two Annotation maps.
 func (ann Annotation) Append(more Annotation) {
 	for key, val := range more {
 		ann[key] = val
 	}
 }
 
-// Inspection
-
+// Inspection contains an opinion about the artefact set by an
+// inspector. The inspector can also provide a free-form reason
+// explaining its decision and annotations containing additional
+// information.
 type Inspection struct {
 	Opinion     opinions.OpinionKind `json:"opinion"`
 	Reason      string               `json:"reason"`
 	Annotations Annotation           `json:"annotations,omitempty"`
 }
 
+// Annotate adds an annotation to the artefact's inspection.
 func (in *Inspection) Annotate(a Annotation) {
 	if in.Annotations == nil {
 		in.Annotations = make(map[string]any, len(a))
@@ -132,8 +142,8 @@ func (in *Inspection) Annotate(a Annotation) {
 	}
 }
 
-// Artefact metadata
-
+// ArtefactMetadata contains essential metadata information
+// about the artefact being inspected.
 type ArtefactMetadata struct {
 	Type         string // The type of the artefact file
 	Name         string // The artefact designation, given by its author

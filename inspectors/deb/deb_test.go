@@ -27,9 +27,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/go-mmap/mmap"
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/inspectors"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/deb"
 	"github.com/canonical/fetch-service/logger"
@@ -88,7 +88,7 @@ func (s *debSuite) TestDebInspector(c *C) {
 
 	// TODO: inject Packages.xz data into inspection context to validate the deb file
 
-	f, err := mmap.Open(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"))
+	f, err := inspectors.OpenArtefactFile(filepath.Join(tmp, "290d07339dde2735121ab03e525ca6593c395a42.bin"))
 	c.Assert(err, IsNil)
 	defer f.Close()
 

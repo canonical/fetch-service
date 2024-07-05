@@ -130,11 +130,6 @@ func (ins *AptTranslationInspector) InspectArtefact(f ArtefactFile, a ResponseAr
 	if !a.MimetypeIs(mimetypes.AptTranslation) {
 		return nil
 	}
-	fSize := f.Len()
-
-	if fSize == 0 {
-		return nil
-	}
 
 	_, err := url.Parse(a.DownloadURL())
 	if err != nil {
@@ -224,7 +219,7 @@ func (ins *AptTranslationInspector) InspectArtefact(f ArtefactFile, a ResponseAr
 				return nil
 			}
 		}
-	} else if fSize > 0 {
+	} else {
 		a.SetResponseRejected(ins, "not a valid Translation file")
 		return nil
 	}

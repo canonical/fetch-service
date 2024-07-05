@@ -26,6 +26,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"testing"
 
 	. "gopkg.in/check.v1"
@@ -61,15 +62,17 @@ func (t *fileutilsSuite) TestZipMatches(c *C) {
 	err = createZip(src, &buf)
 	c.Assert(err, IsNil)
 
-	dest := buf.Bytes()
-	c.Check(utils.ZipMatches(dest, `^.*\.txt$`), Equals, true)
-	c.Check(utils.ZipMatches(dest, `^`+tmp), Equals, true)
-	c.Check(utils.ZipMatches(dest, `stuff/foo.txt$`), Equals, true)
-	c.Check(utils.ZipMatches(dest, `stuff/bar.txt$`), Equals, true)
-	c.Check(utils.ZipMatches(dest, `/bar.txt$`), Equals, true)
-	c.Check(utils.ZipMatches(dest, `baz.txt`), Equals, false)
-	c.Check(utils.ZipMatches(dest, `/b.*\.txt`, `/f.*\.txt`), Equals, true)
-	c.Check(utils.ZipMatches(dest, `/b*.txt`, `/z*.txt`), Equals, false)
+	data := buf.Bytes()
+	dest := bytes.NewReader(data)
+	size := int64(len(data))
+	c.Check(utils.ZipMatches(dest, size, []*regexp.Regexp{regexp.MustCompile(`^.*\.txt$`)}), Equals, true)
+	c.Check(utils.ZipMatches(dest, size, []*regexp.Regexp{regexp.MustCompile(`^` + tmp)}), Equals, true)
+	c.Check(utils.ZipMatches(dest, size, []*regexp.Regexp{regexp.MustCompile(`stuff/foo.txt$`)}), Equals, true)
+	c.Check(utils.ZipMatches(dest, size, []*regexp.Regexp{regexp.MustCompile(`stuff/bar.txt$`)}), Equals, true)
+	c.Check(utils.ZipMatches(dest, size, []*regexp.Regexp{regexp.MustCompile(`/bar.txt$`)}), Equals, true)
+	c.Check(utils.ZipMatches(dest, size, []*regexp.Regexp{regexp.MustCompile(`baz.txt`)}), Equals, false)
+	c.Check(utils.ZipMatches(dest, size, []*regexp.Regexp{regexp.MustCompile(`/b.*\.txt`), regexp.MustCompile(`/f.*\.txt`)}), Equals, true)
+	c.Check(utils.ZipMatches(dest, size, []*regexp.Regexp{regexp.MustCompile(`/b*.txt`), regexp.MustCompile(`/z*.txt`)}), Equals, false)
 }
 
 func (t *fileutilsSuite) TestMoveFileRename(c *C) {

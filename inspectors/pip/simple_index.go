@@ -155,6 +155,7 @@ func parseJsonIndex(ins *SimpleIndexInspector, f ArtefactFile, a ResponseArtefac
 	}
 
 	a.SetArtefactMetadata(ArtefactMetadata{
+		Type:        "application/json",
 		Name:        fmt.Sprintf("JSON index for '%s'", pkgName),
 		Version:     "v1+json",
 		Description: fmt.Sprintf("PyPI repository index JSON file for package '%s'", pkgName),
