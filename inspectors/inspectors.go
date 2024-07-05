@@ -22,10 +22,10 @@ package inspectors
 import (
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 
 	"github.com/gabriel-vasile/mimetype"
-	"github.com/go-mmap/mmap"
 
 	"github.com/canonical/fetch-service/inspectors/apt"
 	. "github.com/canonical/fetch-service/inspectors/common"
@@ -41,8 +41,7 @@ import (
 )
 
 func init() {
-	mimetype.SetLimit(1 << 30) // input data is mmapped
-	mimetype.Lookup("application/zip").Extend(pip.WheelDetector, mimetypes.PythonWheel, ".whl")
+	mimetype.SetLimit(1 << 16) // set buffer size to 64Kb
 	mimetype.Lookup("application/x-xz").Extend(apt.AptPackagesDetector, mimetypes.AptPackages, "")
 	mimetype.Lookup("application/x-xz").Extend(apt.AptTranslationDetector, mimetypes.AptTranslation, "")
 	mimetype.Lookup("application/octet-stream").Extend(snap.SquashFsDetector, mimetypes.SquashFs, "")
@@ -136,13 +135,53 @@ func (insps Inspectors) RunRequestInspectors(a *metadata.Artefact) error {
 	return nil
 }
 
+type ArtefactFile struct {
+	f    *os.File
+	size int64
+}
+
+func OpenArtefactFile(filename string) (*ArtefactFile, error) {
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	st, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+	return &ArtefactFile{
+		f:    f,
+		size: st.Size(),
+	}, nil
+}
+
+func (f *ArtefactFile) Read(buf []byte) (int, error) {
+	return f.f.Read(buf)
+}
+
+func (f *ArtefactFile) ReadAt(buf []byte, off int64) (int, error) {
+	return f.f.ReadAt(buf, off)
+}
+
+func (f *ArtefactFile) Seek(off int64, whence int) (int64, error) {
+	return f.f.Seek(off, whence)
+}
+
+func (f *ArtefactFile) Len() int {
+	return int(f.size)
+}
+
+func (f *ArtefactFile) Close() error {
+	return f.f.Close()
+}
+
 // RunArtefactInspectors examines the artefact in the given assets directory.
 func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) error {
 	// detect file type
 	filename := filepath.Join(dir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
 	logger.Debugf("run artefact inspectors on %s", filename)
 
-	f, err := mmap.Open(filename)
+	f, err := OpenArtefactFile(filename)
 	if err != nil {
 		return err
 	}

@@ -39,13 +39,6 @@ import (
 	"github.com/canonical/fetch-service/utils"
 )
 
-func WheelDetector(raw []byte, limit uint32) bool {
-	return utils.ZipMatches(raw,
-		`^\w+-[^/]+\.dist-info/WHEEL$`,
-		`^\w+-[^/]+\.dist-info/METADATA$`,
-		`^\w+-[^/]+\.dist-info/RECORD$`)
-}
-
 type WheelInspector struct {
 }
 
@@ -71,12 +64,24 @@ func (ins WheelInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil // we don't recognize this request
 }
 
+var wheelPatterns = []*regexp.Regexp{
+	regexp.MustCompile(`^\w+-[^/]+\.dist-info/WHEEL$`),
+	regexp.MustCompile(`^\w+-[^/]+\.dist-info/METADATA$`),
+	regexp.MustCompile(`^\w+-[^/]+\.dist-info/RECORD$`),
+}
+
 // InspectArtefact extracts metadata from a known artefact file format.
 func (ins *WheelInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
-	md := a.Metadata
-	if md.Type != mimetypes.PythonWheel {
+	if !a.MimeType.Is("application/zip") {
 		return nil
 	}
+
+	// Check if zip file contains wheel files
+	if !utils.ZipMatches(f, int64(f.Len()), wheelPatterns) {
+		return nil
+	}
+
+	a.Metadata.Type = mimetypes.PythonWheel
 
 	size := int64(f.Len())
 	notes := newWheelNotes()

@@ -24,7 +24,6 @@ import (
 	"path/filepath"
 
 	"github.com/gabriel-vasile/mimetype"
-	"github.com/go-mmap/mmap"
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/inspectors"
@@ -129,7 +128,7 @@ func (s *metadataSuite) TestMetadataInspectArtefactReadMetadata(c *C) {
 	c.Assert(err, IsNil)
 
 	// Inspect test metadata
-	f, err := mmap.Open(testfile)
+	f, err := inspectors.OpenArtefactFile(testfile)
 	c.Assert(err, IsNil)
 
 	ins := pip.NewMetadataInspector()
@@ -174,7 +173,7 @@ func (s *metadataSuite) TestMetadataInspectArtefactBadFormat(c *C) {
 		c.Assert(err, IsNil)
 
 		// Inspect test metadata
-		f, err := mmap.Open(testfile)
+		f, err := inspectors.OpenArtefactFile(testfile)
 		c.Assert(err, IsNil)
 		defer f.Close()
 

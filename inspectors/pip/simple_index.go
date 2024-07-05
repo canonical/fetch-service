@@ -105,6 +105,7 @@ func parseHtmlIndex(ins *SimpleIndexInspector, f ReadAtSeeker, a *metadata.Artef
 						return err
 					}
 
+					md.Type = "text/html"
 					md.Name = fmt.Sprintf("Simple index for '%s'", pkgName)
 					md.Version = md.Sha1.String()[:7]
 					md.Description = fmt.Sprintf(
@@ -156,6 +157,7 @@ func parseJsonIndex(ins *SimpleIndexInspector, f ReadAtSeeker, a *metadata.Artef
 		return err
 	}
 
+	md.Type = "application/json"
 	md.Name = fmt.Sprintf("JSON index for '%s'", pkgName)
 	md.Version = "v1+json"
 	md.Description = fmt.Sprintf(

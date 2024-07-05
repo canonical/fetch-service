@@ -132,11 +132,6 @@ func (ins *AptTranslationInspector) InspectArtefact(f ReadAtSeeker, a *metadata.
 	if a.Metadata.Type != mimetypes.AptTranslation {
 		return nil
 	}
-	fSize := f.Len()
-
-	if fSize == 0 {
-		return nil
-	}
 
 	_, err := url.Parse(a.CurrentDownload.URL)
 	if err != nil {
@@ -226,7 +221,7 @@ func (ins *AptTranslationInspector) InspectArtefact(f ReadAtSeeker, a *metadata.
 				return nil
 			}
 		}
-	} else if fSize > 0 {
+	} else {
 		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "not a valid Translation file")
 		return nil
 	}
