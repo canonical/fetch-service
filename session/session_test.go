@@ -32,6 +32,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/session"
 )
 
@@ -109,7 +110,7 @@ func (t *sessionSuite) TestAddMetadata(c *C) {
 	s := session.New("", true)
 	defer s.Discard()
 
-	h, _ := metadata.NewSha256Digest(MySha256)
+	h, _ := digests.NewSha256Digest(MySha256)
 	c.Assert(s.A, HasLen, 0)
 	c.Assert(s.HasArtefact(h), Equals, false)
 
@@ -127,7 +128,7 @@ func (t *sessionSuite) TestAddDownload(c *C) {
 	s := session.New("", true)
 	defer s.Discard()
 
-	h, _ := metadata.NewSha256Digest(MySha256)
+	h, _ := digests.NewSha256Digest(MySha256)
 	a := metadata.NewArtefact()
 	a.Metadata.Name = "test-metadata"
 	a.Metadata.Sha256 = h
@@ -148,7 +149,7 @@ func (t *sessionSuite) TestAddInvalidDownload(c *C) {
 	s := session.New("", true)
 	defer s.Discard()
 
-	h, _ := metadata.NewSha256Digest(MySha256)
+	h, _ := digests.NewSha256Digest(MySha256)
 	a := metadata.NewArtefact()
 	a.Metadata.Name = "test-metadata"
 	a.Metadata.Sha256 = h
@@ -167,7 +168,7 @@ func (t *sessionSuite) TestSaveData(c *C) {
 	tmp := c.MkDir()
 	tempfile := filepath.Join(tmp, "tempfile")
 
-	h, _ := metadata.NewSha256Digest(MySha256)
+	h, _ := digests.NewSha256Digest(MySha256)
 	a := metadata.NewArtefact()
 	a.AssetDir = tmp
 	a.Tempfile = tempfile
@@ -199,7 +200,7 @@ func (t *sessionSuite) TestSaveMetadata(c *C) {
 
 	tmp := c.MkDir()
 
-	h, _ := metadata.NewSha256Digest(MySha256)
+	h, _ := digests.NewSha256Digest(MySha256)
 	a := metadata.NewArtefact()
 	a.AssetDir = tmp
 	a.Metadata.Name = "test-metadata"

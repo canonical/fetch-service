@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,52 +21,16 @@ package metadata
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/gabriel-vasile/mimetype"
 
+	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
-
-// Inspection
-
-type InspectionState string
-
-const (
-	InitialState  = "Waiting for inspection"
-	RequestState  = "Inspecting request"
-	ResponseState = "Inspecting Response"
-	ApprovedState = "Approved"
-	RejectedState = "Rejected"
-)
-
-type Annotation map[string]any
-
-func (ann Annotation) Add(key string, val any) {
-	ann[key] = val
-}
-
-func (ann Annotation) Append(more Annotation) {
-	for key, val := range more {
-		ann[key] = val
-	}
-}
-
-type Inspection struct {
-	Opinion     opinions.OpinionKind `json:"opinion"`
-	Reason      string               `json:"reason"`
-	Annotations Annotation           `json:"annotations,omitempty"`
-}
-
-func (in *Inspection) Annotate(a Annotation) {
-	if in.Annotations == nil {
-		in.Annotations = make(map[string]any, len(a))
-	}
-	for key := range a { // shallow copy the map
-		in.Annotations[key] = a[key]
-	}
-}
 
 type InspectionMap map[string]*Inspection
 
@@ -90,6 +54,7 @@ type Artefact struct {
 	SessionId          string               `json:"-"`                         // The current session ID
 	MimeType           *mimetype.MIME       `json:"-"`                         // The artefact MIME type
 	Request            *http.Request        `json:"-"`                         // request handle for body content inspection
+
 }
 
 func NewArtefact() *Artefact {
@@ -104,43 +69,90 @@ func NewArtefact() *Artefact {
 	}
 }
 
-// SetResponseOpinion adds the inspector's opinion to the artefact's
-// request inspection map.
-func (a *Artefact) SetRequestOpinion(id string, op opinions.OpinionKind, reason string, args ...any) *Inspection {
-	// Valid request opinions are Unknown, Rejected and Pending
-	if op != opinions.Unknown && op != opinions.Rejected && op != opinions.Pending {
-		logger.Errorf("%s: cannot set request opinion to %v, rejecting", id, op)
-		op = opinions.Rejected
-	}
+func (a *Artefact) RequestHeader(key string) ([]string, bool) {
+	val, ok := a.CurrentDownload.RequestHeader[key]
+	return val, ok
+}
 
-	logger.Infof("%s: request opinion set to %v", id, op)
+func (a *Artefact) ContentType() string {
+	return a.CurrentDownload.ContentType
+}
+
+func (a *Artefact) DownloadURL() string {
+	return a.CurrentDownload.URL
+}
+
+func (a *Artefact) HTTPRequest() *http.Request {
+	return a.Request
+}
+
+func (a *Artefact) SetRequestBody(r io.ReadCloser) {
+	a.Request.Body = r
+}
+
+func (a *Artefact) SetArtefactMetadata(m ArtefactMetadata) {
+	a.Metadata.Type = m.Type
+	a.Metadata.Name = m.Name
+	a.Metadata.Version = m.Version
+	a.Metadata.Vendor = m.Vendor
+	a.Metadata.Description = m.Description
+	a.Metadata.Author = m.Author
+	a.Metadata.AuthorEmail = m.AuthorEmail
+	a.Metadata.Architecture = m.Architecture
+	a.Metadata.License = m.License
+	a.Metadata.Copyright = m.Copyright
+}
+
+func (a *Artefact) MimetypeIs(t string) bool {
+	if a.Metadata.Type == t {
+		return true
+	}
+	return a.MimeType != nil && a.MimeType.Is(t)
+}
+
+func (a Artefact) Size() int64 {
+	return a.Metadata.Size
+}
+
+func (a Artefact) Sha256() digests.Sha256Digest {
+	return a.Metadata.Sha256
+}
+
+// addInspection adds the inspector's opinion to the artefact's
+// inspection map.
+func (a *Artefact) addInspection(insp InspectionMap, id string, op opinions.OpinionKind, reason string, args ...any) *Inspection {
+	logger.Infof("%s: opinion set to %v", id, op)
 	in := &Inspection{
 		Opinion: op,
 		Reason:  fmt.Sprintf(reason, args...),
 	}
-	a.RequestInspection[id] = in
+	insp[id] = in
 
 	return in
 }
 
-// SetResponseOpinion adds the inspector's opinion to the artefact's
-// response inspection map.
-func (a *Artefact) SetResponseOpinion(id string, op opinions.OpinionKind, reason string, args ...any) *Inspection {
-	// Valid response opinions are Unknown, Rejected and Approved
-	if op != opinions.Unknown && op != opinions.Rejected && op != opinions.Approved {
-		logger.Errorf("%s: cannot set response opinion to %v, rejecting", id, op)
-		op = opinions.Rejected
-	}
+func (a *Artefact) SetRequestPending(ins Inspector, reason string, args ...any) *Inspection {
+	return a.addInspection(a.RequestInspection, ins.ID(), opinions.Pending, reason, args...)
+}
 
-	logger.Infof("%s: response opinion set to %v", id, op)
-	in := &Inspection{
-		Opinion: op,
-		Reason:  fmt.Sprintf(reason, args...),
-	}
-	a.ResponseInspection[id] = in
+func (a *Artefact) SetRequestRejected(ins Inspector, reason string, args ...any) *Inspection {
+	return a.addInspection(a.RequestInspection, ins.ID(), opinions.Rejected, reason, args...)
+}
 
-	return in
+func (a *Artefact) SetRequestUnknown(ins Inspector, reason string, args ...any) *Inspection {
+	return a.addInspection(a.RequestInspection, ins.ID(), opinions.Unknown, reason, args...)
+}
 
+func (a *Artefact) SetResponseApproved(ins Inspector, reason string, args ...any) *Inspection {
+	return a.addInspection(a.ResponseInspection, ins.ID(), opinions.Approved, reason, args...)
+}
+
+func (a *Artefact) SetResponseRejected(ins Inspector, reason string, args ...any) *Inspection {
+	return a.addInspection(a.ResponseInspection, ins.ID(), opinions.Rejected, reason, args...)
+}
+
+func (a *Artefact) SetResponseUnknown(ins Inspector, reason string, args ...any) *Inspection {
+	return a.addInspection(a.ResponseInspection, ins.ID(), opinions.Unknown, reason, args...)
 }
 
 // RequestRejected returns true when the artefact was rejected
@@ -155,7 +167,7 @@ func (a *Artefact) RequestRejected() bool {
 }
 
 // RequestPending returns true when the artefact was not rejected
-// during request inspection and there's at least one opinion pending.
+// during request inspection and there's at least one pending opinion.
 func (a *Artefact) RequestPending() bool {
 	res := false
 	for _, in := range a.RequestInspection {
@@ -169,62 +181,80 @@ func (a *Artefact) RequestPending() bool {
 	return res
 }
 
+// ResponseRejected returns true when the artefact was rejected
+// during artefact inspection.
+func (a *Artefact) ResponseRejected() bool {
+	for _, in := range a.ResponseInspection {
+		if in.Opinion == opinions.Rejected {
+			return true
+		}
+	}
+	return false
+}
+
+// ResponseApproved returns true when the artefact was not rejected
+// during response inspection and there's at least one approval.
+func (a *Artefact) ResponseApproved() bool {
+	res := false
+	for _, in := range a.ResponseInspection {
+		if in.Opinion == opinions.Rejected {
+			return false
+		}
+		if in.Opinion == opinions.Approved {
+			res = true
+		}
+	}
+	return res
+}
+
+// inspectAnnotation verifies whether the inspector has an inspection
+// opinion and returns its annotation or a default value.
+func inspectionAnnotation[T any](insp InspectionMap, id, key string, def T) (T, bool) {
+	inspection, ok := insp[id]
+	if !ok {
+		return def, false
+	}
+	ann, ok := inspection.Annotations[key]
+	if !ok {
+		return def, false
+	}
+	val, ok := ann.(T)
+	if !ok {
+		return def, false
+	}
+	return val, true
+}
+
 // RequestAnnotation verifies whether the inspector has a request
 // opinion and returns its annotation.
-func (a *Artefact) RequestAnnotation(id string, key string) (any, bool) {
-	inspection, ok := a.RequestInspection[id]
-	if !ok {
-		return nil, false
-	}
-	ann, ok := inspection.Annotations[key]
-	if !ok {
-		return nil, false
-	}
-	return ann, true
+func (a *Artefact) RequestAnnotation(id, key string) (any, bool) {
+	var def any = nil
+	return inspectionAnnotation(a.RequestInspection, id, key, def)
 }
 
-func (a *Artefact) RequestStringAnnotation(id string, key string) (string, bool) {
-	inspection, ok := a.RequestInspection[id]
-	if !ok {
-		return "", false
-	}
-	ann, ok := inspection.Annotations[key]
-	if !ok {
-		return "", false
-	}
-	val, ok := ann.(string)
-	if !ok {
-		return "", false
-	}
-	return val, true
+func (a *Artefact) RequestStringAnnotation(id, key string) (string, bool) {
+	var def string = ""
+	return inspectionAnnotation(a.RequestInspection, id, key, def)
 }
 
-func (a *Artefact) RequestBoolAnnotation(id string, key string) (bool, bool) {
-	inspection, ok := a.RequestInspection[id]
-	if !ok {
-		return false, false
-	}
-	ann, ok := inspection.Annotations[key]
-	if !ok {
-		return false, false
-	}
-	val, ok := ann.(bool)
-	if !ok {
-		return false, false
-	}
-	return val, true
+func (a *Artefact) RequestBoolAnnotation(id, key string) (bool, bool) {
+	var def bool = false
+	return inspectionAnnotation(a.RequestInspection, id, key, def)
 }
 
-func (a *Artefact) ResponseAnnotation(id string, key string) (any, bool) {
-	inspection, ok := a.ResponseInspection[id]
-	if !ok {
-		return nil, false
-	}
-	ann, ok := inspection.Annotations[key]
-	if !ok {
-		return nil, false
-	}
-	return ann, true
+func (a *Artefact) ResponseAnnotation(id, key string) (any, bool) {
+	var def any = nil
+	return inspectionAnnotation(a.ResponseInspection, id, key, def)
+}
+
+func (a *Artefact) ResponseStringAnnotation(id, key string) (string, bool) {
+	var def string = ""
+	return inspectionAnnotation(a.ResponseInspection, id, key, def)
+}
+
+func (a *Artefact) ResponseBoolAnnotation(id, key string) (bool, bool) {
+	var def bool = false
+	return inspectionAnnotation(a.ResponseInspection, id, key, def)
 }
 
 // Approved returns true when there's at least one approval opinion
@@ -233,15 +263,7 @@ func (a *Artefact) Approved() bool {
 	if a.RequestRejected() {
 		return false
 	}
-	res := false
-	for _, in := range a.ResponseInspection {
-		if in.Opinion == opinions.Rejected {
-			return false
-		} else if in.Opinion == opinions.Approved {
-			res = true
-		}
-	}
-	return res
+	return a.ResponseApproved()
 }
 
 // Rejected returns the opposite of Approved.

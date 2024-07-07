@@ -26,8 +26,6 @@ import (
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
-	"github.com/canonical/fetch-service/metadata"
-	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
 type SmartQueryInspector struct {
@@ -41,20 +39,20 @@ func (SmartQueryInspector) ID() string {
 	return "git.smart-query"
 }
 
-func (ins *SmartQueryInspector) InspectRequest(a *metadata.Artefact) error {
+func (ins *SmartQueryInspector) InspectRequest(a RequestArtefact) error {
 	proto := getGitProtocol(a)
 	if proto != "version=2" {
 		return nil
 	}
 
-	u, err := url.Parse(a.CurrentDownload.URL)
+	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
 	if info, err := newSmartQueryUrlInfo(u); err == nil {
-		a.SetRequestOpinion(ins.ID(), opinions.Pending, "valid URL for git smart request").Annotate(
-			metadata.Annotation{
+		a.SetRequestPending(ins, "valid URL for git smart request").Annotate(
+			Annotation{
 				"protocol": proto,
 				"service":  info.service,
 			},
@@ -64,23 +62,25 @@ func (ins *SmartQueryInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil // we don't recognize this request
 }
 
-func (ins *SmartQueryInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
-	if !a.MimeType.Is("text/plain") {
+func (ins *SmartQueryInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+	if !a.MimetypeIs("text/plain") {
 		return nil
 	}
 
-	if a.CurrentDownload.ContentType != "application/x-git-upload-pack-advertisement" {
+	if a.ContentType() != "application/x-git-upload-pack-advertisement" {
 		return nil
 	}
 
 	// Content type says it's an upload pack advertisement
-	a.Metadata.Type = mimetypes.GitUploadPackAdvertisement
-	a.Metadata.Name = "git-upload-pack-advertisement"
+	a.SetArtefactMetadata(ArtefactMetadata{
+		Type: mimetypes.GitUploadPackAdvertisement,
+		Name: "git upload-pack advertisement",
+	})
 
 	msgs, err := decodeGitProtocol(f)
 	if err != nil {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "cannot decode git V2 protocol").Annotate(
-			metadata.Annotation{
+		a.SetResponseRejected(ins, "cannot decode git V2 protocol").Annotate(
+			Annotation{
 				"error-msg": err.Error(),
 			})
 		return nil
@@ -90,8 +90,8 @@ func (ins *SmartQueryInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 		var err error
 		msgs, err = decodeGitProtocol(f) // skip previous size+content
 		if err != nil {
-			a.SetResponseOpinion(ins.ID(), opinions.Rejected, "cannot decode pack advertisement").Annotate(
-				metadata.Annotation{
+			a.SetResponseRejected(ins, "cannot decode pack advertisement").Annotate(
+				Annotation{
 					"error-msg": err.Error(),
 				})
 			return nil
@@ -99,7 +99,7 @@ func (ins *SmartQueryInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 	}
 
 	if len(msgs) < 1 || msgs[0] != "version 2\n" {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "git protocol is not version 2")
+		a.SetResponseRejected(ins, "git protocol is not version 2")
 		return nil
 	}
 
@@ -112,8 +112,8 @@ func (ins *SmartQueryInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 	// using protocol version 2 notifies the client by sending a version string
 	// in its initial response followed by an advertisement of its capabilities.
 	// Each capability is a key with an optional value.
-	a.SetResponseOpinion(ins.ID(), opinions.Approved, "upload pack advertisement received").Annotate(
-		metadata.Annotation{"server-response": server_msgs},
+	a.SetResponseApproved(ins, "upload pack advertisement received").Annotate(
+		Annotation{"server-response": server_msgs},
 	)
 	return nil
 }

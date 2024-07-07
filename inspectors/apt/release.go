@@ -32,8 +32,7 @@ import (
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/logger"
-	"github.com/canonical/fetch-service/metadata"
-	"github.com/canonical/fetch-service/metadata/opinions"
+	"github.com/canonical/fetch-service/metadata/digests"
 )
 
 // Distribution Release/InRelease file
@@ -72,14 +71,14 @@ type releaseEntry struct {
 
 // releaseFile holds information about the Release file
 type releaseFile struct {
-	Sha256 metadata.Sha256Digest                  // SHA256 digest of the release file
-	Vendor string                                 // release file vendor
-	Files  map[metadata.Sha256Digest]releaseEntry // file entries listed in this release file
+	Sha256 digests.Sha256Digest                  // SHA256 digest of the release file
+	Vendor string                                // release file vendor
+	Files  map[digests.Sha256Digest]releaseEntry // file entries listed in this release file
 }
 
 func NewReleaseFile() releaseFile {
 	return releaseFile{
-		Files: make(map[metadata.Sha256Digest]releaseEntry, 100),
+		Files: make(map[digests.Sha256Digest]releaseEntry, 100),
 	}
 }
 
@@ -102,23 +101,26 @@ func (ins *AptReleaseInspector) ID() string {
 
 // AptReleaseInspector verifies if the request is valid for the types of
 // files handled by this inspector: InRelease, Packages.xz, and Translation.
-func (ins *AptReleaseInspector) InspectRequest(a *metadata.Artefact) error {
-	u, err := url.Parse(a.CurrentDownload.URL)
+func (ins *AptReleaseInspector) InspectRequest(a RequestArtefact) error {
+	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
 	if info, err := newInReleaseUrlInfo(u); err == nil {
-		a.SetRequestOpinion(ins.ID(), opinions.Pending, "valid URL for Release file").Annotate(
-			metadata.Annotation{
+		a.SetRequestPending(ins, "valid URL for Release file").Annotate(
+			Annotation{
 				"origin":     info.origin,
 				"repository": info.repository,
 				"dist":       info.dist,
 			},
 		)
-	} else if info, err := newPackagesUrlInfo(u); err == nil {
+		return nil
+	}
+
+	if info, err := newPackagesUrlInfo(u); err == nil {
 		// check if we already have downloaded InReleases from this repo
-		notes := metadata.Annotation{
+		notes := Annotation{
 			"origin":       info.origin,
 			"repository":   info.repository,
 			"dist":         info.dist,
@@ -126,39 +128,32 @@ func (ins *AptReleaseInspector) InspectRequest(a *metadata.Artefact) error {
 			"architecture": info.architecture,
 		}
 		repo := fmt.Sprintf("%s/dists/%s", info.repository, info.dist)
-		var opinion opinions.OpinionKind
-		var reason string
 
 		_, ok := ins.release[repo]
 		if ok {
-			opinion = opinions.Pending
-			reason = "valid URL for packages file"
+			a.SetRequestPending(ins, "valid URL for packages file").Annotate(notes)
 		} else {
-			opinion = opinions.Rejected
-			reason = "attempt to download packages file before Release"
+			a.SetRequestRejected(ins, "attempt to download packages file before Release").Annotate(notes)
 		}
-		a.SetRequestOpinion(ins.ID(), opinion, reason).Annotate(notes)
-	} else if info, err := newTranslationUrlInfo(u); err == nil {
+		return nil
+	}
+
+	if info, err := newTranslationUrlInfo(u); err == nil {
 		// check if we already have downloaded InReleases from this repo
-		notes := metadata.Annotation{
+		notes := Annotation{
 			"origin":     info.origin,
 			"repository": info.repository,
 			"dist":       info.dist,
 			"component":  info.component,
 		}
 		repo := fmt.Sprintf("%s/dists/%s", info.repository, info.dist)
-		var opinion opinions.OpinionKind
-		var reason string
 
 		_, ok := ins.release[repo]
 		if ok {
-			opinion = opinions.Pending
-			reason = "valid URL for translation file"
+			a.SetRequestPending(ins, "valid URL for translation file").Annotate(notes)
 		} else {
-			opinion = opinions.Rejected
-			reason = "attempt to download translation file before Release"
+			a.SetRequestRejected(ins, "attempt to download translation file before Release").Annotate(notes)
 		}
-		a.SetRequestOpinion(ins.ID(), opinion, reason).Annotate(notes)
 	}
 
 	return nil
@@ -166,17 +161,17 @@ func (ins *AptReleaseInspector) InspectRequest(a *metadata.Artefact) error {
 
 // InspectArtefact examines InRelease files and validates Packages.xz files
 // against InRelease entries.
-func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
-	if a.Metadata.Type == mimetypes.AptPackages {
+func (ins *AptReleaseInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+	if a.MimetypeIs(mimetypes.AptPackages) {
 		return ins.validatePackagesFile(f, a)
 	}
 
-	if a.Metadata.Type == mimetypes.AptTranslation {
+	if a.MimetypeIs(mimetypes.AptTranslation) {
 		return ins.validateTranslationFile(f, a)
 	}
 
-	if !a.MimeType.Is("text/plain") {
-		return nil // certainly not a Release file
+	if !a.MimetypeIs("text/plain") {
+		return nil // not a Release file
 	}
 
 	// Check if this is a valid InRelease file
@@ -198,7 +193,7 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 	}
 
 	// InRelease files must be signed
-	signotes := metadata.Annotation{}
+	signotes := Annotation{}
 	body, err := checkSignature(f, signotes)
 	if err != nil {
 		logger.Warningf("signature checking error: %s", err)
@@ -275,10 +270,9 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 
 	// We now assume this is an InRelease file
 	logger.Debug("validate release file")
-	a.Metadata.Type = mimetypes.AptRelease
 
 	release := NewReleaseFile()
-	release.Sha256 = a.Metadata.Sha256
+	release.Sha256 = a.Sha256()
 	release.Vendor = fields["Origin"]
 
 	for sc.Scan() {
@@ -295,7 +289,7 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 		}
 		filepath := f[2]
 
-		digest, err := metadata.NewSha256Digest(f[0])
+		digest, err := digests.NewSha256Digest(f[0])
 		if err != nil {
 			format_errors = append(format_errors, fmt.Sprintf("error parsing digest: %s", line))
 			continue
@@ -311,15 +305,18 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 		release.Files[digest] = entry
 	}
 
-	repo := strings.TrimSuffix(a.CurrentDownload.URL, "/InRelease")
+	repo := strings.TrimSuffix(a.DownloadURL(), "/InRelease")
 
-	a.Metadata.Name = "InRelease"
-	a.Metadata.Version = fields["Codename"]
-	a.Metadata.Vendor = fields["Origin"]
-	a.Metadata.Description = fields["Description"]
-	a.Metadata.Author = a.Metadata.Vendor
+	a.SetArtefactMetadata(ArtefactMetadata{
+		Type:        mimetypes.AptRelease,
+		Name:        "InRelease",
+		Version:     fields["Codename"],
+		Description: fields["Description"],
+		Vendor:      fields["Origin"],
+		Author:      fields["Origin"],
+	})
 
-	notes := metadata.Annotation{}
+	notes := Annotation{}
 
 	if len(format_errors) > 0 {
 		notes.Add("file format errors", format_errors)
@@ -329,8 +326,7 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 	}
 
 	if len(notes) > 0 {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected,
-			"error parsing release file").Annotate(notes)
+		a.SetResponseRejected(ins, "error parsing release file").Annotate(notes)
 		return nil
 	}
 
@@ -341,8 +337,7 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 		notes.Add(k, v)
 	}
 
-	a.SetResponseOpinion(ins.ID(), opinions.Approved,
-		"release file parsed and signature validated").Annotate(notes)
+	a.SetResponseApproved(ins, "release file parsed and signature validated").Annotate(notes)
 
 	ins.releaseLock.Lock()
 	defer ins.releaseLock.Unlock()
@@ -352,10 +347,10 @@ func (ins *AptReleaseInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 	return nil
 }
 
-func (ins *AptReleaseInspector) validatePackagesFile(f ReadAtSeeker, a *metadata.Artefact) error {
+func (ins *AptReleaseInspector) validatePackagesFile(f ArtefactFile, a ResponseArtefact) error {
 	logger.Debug("validate package file")
 
-	u, err := url.Parse(a.CurrentDownload.URL)
+	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
@@ -363,42 +358,42 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ReadAtSeeker, a *metadata
 	logger.Debugf("packages file path: %s", u.Path)
 	info, err := newPackagesUrlInfo(u)
 	if err != nil {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "invalid path for packages file")
+		a.SetResponseRejected(ins, "invalid path for packages file")
 		return nil
 	}
 
-	sha256, err := metadata.NewSha256Digest(info.digest)
+	sha256, err := digests.NewSha256Digest(info.digest)
 	if err != nil {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "invalid SHA256 digest: %s", err)
+		a.SetResponseRejected(ins, "invalid SHA256 digest: %s", err)
 		return nil
 	}
-	logger.Debugf("by-hash SHA256 digest: %s", sha256.String())
+	logger.Debugf("by-hash SHA256 digest: %s", info.digest)
 
 	repo := fmt.Sprintf("%s/dists/%s", info.repository, info.dist)
 	rel, ok := ins.release[repo]
 	if !ok {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "Release data not found for this repository")
+		a.SetResponseRejected(ins, "Release data not found for this repository")
 		return nil
 	}
 
 	entry, ok := rel.Files[sha256]
 	if !ok {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "Packages file not listed in Release file")
+		a.SetResponseRejected(ins, "Packages file not listed in Release file")
 		return nil
 	}
 	logger.Debugf("release entry: %+v", entry)
 
-	if sha256 != a.Metadata.Sha256 {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "SHA256 digest mismatch").Annotate(
-			metadata.Annotation{
+	if sha256 != a.Sha256() {
+		a.SetResponseRejected(ins, "SHA256 digest mismatch").Annotate(
+			Annotation{
 				"expected-sha256": sha256.String(),
 			},
 		)
 		return nil
 	}
 
-	a.SetResponseOpinion(ins.ID(), opinions.Approved, "Packages file listed in Release").Annotate(
-		metadata.Annotation{
+	a.SetResponseApproved(ins, "Packages file listed in Release").Annotate(
+		Annotation{
 			"file-path":    entry.Name,
 			"release-file": ins.release[repo].Sha256.String(),
 			"vendor":       rel.Vendor,
@@ -411,10 +406,10 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ReadAtSeeker, a *metadata
 // validateTranslationFile examines InRelease files and validates Translation-<lang>
 // files against InRelease entries.
 // https://wiki.debian.org/DebianRepository/Format#A.22Translation.22_indices
-func (ins *AptReleaseInspector) validateTranslationFile(f ReadAtSeeker, a *metadata.Artefact) error {
+func (ins *AptReleaseInspector) validateTranslationFile(f ArtefactFile, a ResponseArtefact) error {
 	logger.Debug("validate translation file")
 
-	u, err := url.Parse(a.CurrentDownload.URL)
+	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
@@ -422,35 +417,35 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ReadAtSeeker, a *metad
 	logger.Debugf("translation file path: %s", u.Path)
 	info, err := newTranslationUrlInfo(u)
 	if err != nil {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "invalid path for translation file")
+		a.SetResponseRejected(ins, "invalid path for translation file")
 		return nil
 	}
 
 	repo := fmt.Sprintf("%s/dists/%s", info.repository, info.dist)
 	rel, ok := ins.release[repo]
 	if !ok {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "Release data not found for this repository")
+		a.SetResponseRejected(ins, "Release data not found for this repository")
 		return nil
 	}
 
-	entry, ok := rel.Files[a.Metadata.Sha256]
+	entry, ok := rel.Files[a.Sha256()]
 	if !ok {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "Translation file not listed in Release file")
+		a.SetResponseRejected(ins, "Translation file not listed in Release file")
 		return nil
 	}
 	logger.Debugf("release entry: %+v", entry)
 
-	if int64(entry.Size) != a.Metadata.Size {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "Translation file size mismatch").Annotate(
-			metadata.Annotation{
+	if int64(entry.Size) != a.Size() {
+		a.SetResponseRejected(ins, "Translation file size mismatch").Annotate(
+			Annotation{
 				"expected-size": entry.Size,
 			},
 		)
 		return nil
 	}
 
-	a.SetResponseOpinion(ins.ID(), opinions.Approved, "Translation file listed in Release").Annotate(
-		metadata.Annotation{
+	a.SetResponseApproved(ins, "Translation file listed in Release").Annotate(
+		Annotation{
 			"file-path":    entry.Name,
 			"release-file": ins.release[repo].Sha256.String(),
 			"vendor":       rel.Vendor,

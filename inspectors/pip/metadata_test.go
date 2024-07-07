@@ -27,7 +27,7 @@ import (
 	"github.com/go-mmap/mmap"
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/inspectors"
+	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/pip"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
@@ -44,7 +44,7 @@ func (t *metadataSuite) SetUpTest(c *C) {
 var _ = Suite(&metadataSuite{})
 
 func (s *metadataSuite) TestMetadataInspectorInterface(c *C) {
-	var iface inspectors.Inspector
+	var iface Inspector
 	ins := pip.NewMetadataInspector()
 	c.Assert(ins, Implements, &iface)
 
@@ -135,7 +135,7 @@ func (s *metadataSuite) TestMetadataInspectArtefactReadMetadata(c *C) {
 	ins := pip.NewMetadataInspector()
 	a := metadata.NewArtefact()
 	a.MimeType = mimetype.Lookup("text/plain")
-	a.SetRequestOpinion(ins.ID(), opinions.Pending, "test")
+	a.SetRequestPending(ins, "test")
 
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
@@ -146,10 +146,10 @@ func (s *metadataSuite) TestMetadataInspectArtefactReadMetadata(c *C) {
 	c.Assert(a.Metadata.Vendor, Equals, "Canonical Ltd.")
 	c.Assert(a.Metadata.Author, Equals, "Canonical Ltd.")
 	c.Assert(a.Metadata.AuthorEmail, Equals, "snapcraft@lists.snapcraft.io")
-	c.Assert(a.ResponseInspection["pip.metadata"], DeepEquals, &metadata.Inspection{
+	c.Assert(a.ResponseInspection["pip.metadata"], DeepEquals, &Inspection{
 		Opinion: opinions.Approved,
 		Reason:  "metadata file successfully parsed",
-		Annotations: metadata.Annotation{
+		Annotations: Annotation{
 			"metadata-version": "2.1",
 		},
 	})
@@ -181,7 +181,7 @@ func (s *metadataSuite) TestMetadataInspectArtefactBadFormat(c *C) {
 		ins := pip.NewMetadataInspector()
 		a := metadata.NewArtefact()
 		a.MimeType = mimetype.Lookup("text/plain")
-		a.SetRequestOpinion(ins.ID(), opinions.Pending, "test")
+		a.SetRequestPending(ins, "test")
 
 		err = ins.InspectArtefact(f, a)
 		c.Assert(err, IsNil)

@@ -22,7 +22,7 @@ package apt
 import (
 	"io"
 
-	"github.com/canonical/fetch-service/metadata"
+	. "github.com/canonical/fetch-service/inspectors/common"
 )
 
 type ReleaseFile = releaseFile
@@ -32,7 +32,7 @@ var (
 	DecodePublicKey = decodePublicKey
 )
 
-func MockCheckSignature(mock func(io.ReadSeeker, metadata.Annotation) (io.ReadSeeker, error)) (restorer func()) {
+func MockCheckSignature(mock func(io.ReadSeeker, Annotation) (io.ReadSeeker, error)) (restorer func()) {
 	old := checkSignature
 	checkSignature = mock
 	return func() {

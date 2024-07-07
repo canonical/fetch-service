@@ -32,6 +32,7 @@ import (
 
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/service/messages"
 )
 
@@ -163,8 +164,8 @@ func (h *LocalDownloadHandler) Close() error {
 	res := h.body.Close()
 
 	h.a.Metadata.Size = h.size
-	h.a.Metadata.Sha1 = *(*metadata.Sha1Digest)(h.sha1.Sum(nil))
-	h.a.Metadata.Sha256 = *(*metadata.Sha256Digest)(h.sha256.Sum(nil))
+	h.a.Metadata.Sha1 = *(*digests.Sha1Digest)(h.sha1.Sum(nil))
+	h.a.Metadata.Sha256 = *(*digests.Sha256Digest)(h.sha256.Sum(nil))
 
 	return res
 }

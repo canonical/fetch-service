@@ -30,14 +30,14 @@ import (
 	armor "github.com/ProtonMail/go-crypto/openpgp/armor"
 	packet "github.com/ProtonMail/go-crypto/openpgp/packet"
 
+	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/logger"
-	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/utils"
 )
 
 var checkSignature = checkSignatureImpl
 
-func checkSignatureImpl(f io.ReadSeeker, notes metadata.Annotation) (io.ReadSeeker, error) {
+func checkSignatureImpl(f io.ReadSeeker, notes Annotation) (io.ReadSeeker, error) {
 	public_key := os.Getenv("FETCH_APT_RELEASE_PUBLIC_KEY")
 	if public_key == "" {
 		return nil, fmt.Errorf("public key not found")

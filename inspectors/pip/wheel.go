@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -34,8 +34,7 @@ import (
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
-	"github.com/canonical/fetch-service/metadata"
-	"github.com/canonical/fetch-service/metadata/opinions"
+	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/utils"
 )
 
@@ -58,23 +57,22 @@ func (WheelInspector) ID() string {
 }
 
 // InspectRequest verifies if the request complies with policy.
-func (ins WheelInspector) InspectRequest(a *metadata.Artefact) error {
-	u, err := url.Parse(a.CurrentDownload.URL)
+func (ins *WheelInspector) InspectRequest(a RequestArtefact) error {
+	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
 	if checkWheelUrl(u) == nil {
-		a.SetRequestOpinion(ins.ID(), opinions.Pending, "request matches valid URL")
+		a.SetRequestPending(ins, "request matches valid URL")
 	}
 
 	return nil // we don't recognize this request
 }
 
 // InspectArtefact extracts metadata from a known artefact file format.
-func (ins *WheelInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
-	md := a.Metadata
-	if md.Type != mimetypes.PythonWheel {
+func (ins *WheelInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+	if !a.MimetypeIs(mimetypes.PythonWheel) {
 		return nil
 	}
 
@@ -99,11 +97,11 @@ func (ins *WheelInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact)
 	return nil
 }
 
-func processOpinion(ins *WheelInspector, a *metadata.Artefact, notes *wheelNotes) {
+func processOpinion(ins *WheelInspector, a ResponseArtefact, notes *wheelNotes) {
 	// Reject if required files not found
 	if len(notes.requirementFaults) > 0 {
 		notes.Add("faults", notes.requirementFaults)
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected,
+		a.SetResponseRejected(ins,
 			"wheel file requirements not met").Annotate(notes.Annotation)
 		return
 	}
@@ -119,16 +117,16 @@ func processOpinion(ins *WheelInspector, a *metadata.Artefact, notes *wheelNotes
 		if len(notes.extraFiles) > 0 {
 			notes.Add("extra-files", notes.extraFiles)
 		}
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected,
+		a.SetResponseRejected(ins,
 			"wheel file parsed but failed integrity verification").Annotate(notes.Annotation)
 		return
 	}
 
-	a.SetResponseOpinion(ins.ID(), opinions.Approved, "wheel file successfully parsed").Annotate(notes.Annotation)
+	a.SetResponseApproved(ins, "wheel file successfully parsed").Annotate(notes.Annotation)
 }
 
 // readWheelMetadata reads the wheel's METADATA file.
-func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a *metadata.Artefact, notes *wheelNotes) error {
+func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a ResponseArtefact, notes *wheelNotes) error {
 	z, err := zip.NewReader(f, size)
 	if err != nil {
 		return err
@@ -144,14 +142,14 @@ func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a *metada
 			}
 			defer zf.Close()
 
-			ver, err := scanWheelMetadata(zf, a)
+			md, ver, err := scanWheelMetadata(zf, a)
 			if err != nil {
 				return err
 			}
-			if a.Metadata.Name == "" {
+			if md.Name == "" {
 				notes.requirementFault("wheel name not found")
 			}
-			if a.Metadata.Version == "" {
+			if md.Version == "" {
 				notes.requirementFault("wheel version not found")
 			}
 			if ver == "" {
@@ -159,6 +157,7 @@ func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a *metada
 				return nil
 			}
 
+			a.SetArtefactMetadata(md)
 			notes.Add("metadata-version", ver)
 			return nil
 		}
@@ -170,13 +169,13 @@ func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a *metada
 }
 
 // scanWheelMetadata parses metadata entries from the given file.
-func scanWheelMetadata(zf io.ReadCloser, a *metadata.Artefact) (string, error) {
+func scanWheelMetadata(zf io.ReadCloser, a ResponseArtefact) (ArtefactMetadata, string, error) {
 	sc := bufio.NewScanner(zf)
 	sc.Split(bufio.ScanLines)
 
 	temp, err := os.CreateTemp("", "tmpfile-")
 	if err != nil {
-		return "", err
+		return ArtefactMetadata{}, "", err
 	}
 	defer temp.Close()
 	defer os.Remove(temp.Name())
@@ -184,10 +183,8 @@ func scanWheelMetadata(zf io.ReadCloser, a *metadata.Artefact) (string, error) {
 	// create a temporary copy of the manifest for license verification
 	t := bufio.NewWriter(temp)
 
-	var ver string
-	var maintainer string
-
-	md := &a.Metadata
+	var mver, license string
+	var name, version, description, vendor, author, email, maintainer string
 
 	for sc.Scan() {
 		line := sc.Text()
@@ -196,7 +193,7 @@ func scanWheelMetadata(zf io.ReadCloser, a *metadata.Artefact) (string, error) {
 		}
 
 		if _, err := fmt.Fprintln(t, line); err != nil {
-			return "", err
+			return ArtefactMetadata{}, "", err
 		}
 
 		k, v, ok := strings.Cut(line, ":")
@@ -207,18 +204,18 @@ func scanWheelMetadata(zf io.ReadCloser, a *metadata.Artefact) (string, error) {
 
 		switch strings.ToLower(k) {
 		case "metadata-version":
-			ver = v
+			mver = v
 		case "name":
-			md.Name = v
+			name = v
 		case "version":
-			md.Version = v
+			version = v
 		case "summary":
-			md.Description = v
+			description = v
 		case "author":
-			md.Author = v
-			md.Vendor = v
+			author = v
+			vendor = v
 		case "author-email":
-			md.AuthorEmail = v
+			email = v
 		case "maintainer":
 			maintainer = v
 		}
@@ -227,28 +224,39 @@ func scanWheelMetadata(zf io.ReadCloser, a *metadata.Artefact) (string, error) {
 	t.Flush()
 	temp.Close()
 
-	md.License, err = utils.GetLicense(temp.Name())
+	license, err = utils.GetLicense(temp.Name())
 	if err != nil {
-		return ver, err
+		return ArtefactMetadata{}, mver, err
 	}
 
 	// If vendor is not specified, fall back to maintainer
-	if md.Vendor == "" && maintainer != "" {
-		md.Vendor = maintainer
+	if vendor == "" && maintainer != "" {
+		vendor = maintainer
 	}
 
-	return ver, nil
+	md := ArtefactMetadata{
+		Type:        mimetypes.PythonWheel,
+		Name:        name,
+		Version:     version,
+		Description: description,
+		Author:      author,
+		AuthorEmail: email,
+		Vendor:      vendor,
+		License:     license,
+	}
+
+	return md, mver, nil
 }
 
 // memberFile is used to check integrity of the payload files.
 type memberFile struct {
-	Name   string                `json:"name"`   // The file name with path
-	Sha256 metadata.Sha256Digest `json:"sha256"` // The SHA256 digest of content
-	Size   int64                 `json:"size"`   // The file size
+	Name   string               `json:"name"`   // The file name with path
+	Sha256 digests.Sha256Digest `json:"sha256"` // The SHA256 digest of content
+	Size   int64                `json:"size"`   // The file size
 }
 
 // listWheelFiles gets a list of wheel files and their sha1 digests.
-func listWheelFiles(ins *WheelInspector, f io.ReaderAt, size int64, a *metadata.Artefact, notes *wheelNotes) ([]memberFile, error) {
+func listWheelFiles(ins *WheelInspector, f io.ReaderAt, size int64, a ResponseArtefact, notes *wheelNotes) ([]memberFile, error) {
 	res := []memberFile{}
 
 	z, err := zip.NewReader(f, size)
@@ -275,7 +283,7 @@ func listWheelFiles(ins *WheelInspector, f io.ReaderAt, size int64, a *metadata.
 
 		res = append(res, memberFile{
 			Name:   f.Name,
-			Sha256: *(*metadata.Sha256Digest)(sum.Sum(nil)),
+			Sha256: *(*digests.Sha256Digest)(sum.Sum(nil)),
 			Size:   f.FileInfo().Size(),
 		})
 	}
@@ -287,7 +295,7 @@ func listWheelFiles(ins *WheelInspector, f io.ReaderAt, size int64, a *metadata.
 
 // readWheelRecord reads the wheel's RECORD file and verifies the
 // checksum of the listed files.
-func readWheelRecord(ins *WheelInspector, f io.ReaderAt, size int64, a *metadata.Artefact, files []memberFile, notes *wheelNotes) error {
+func readWheelRecord(ins *WheelInspector, f io.ReaderAt, size int64, a ResponseArtefact, files []memberFile, notes *wheelNotes) error {
 	z, err := zip.NewReader(f, size)
 	if err != nil {
 		return err
@@ -320,7 +328,7 @@ func readWheelRecord(ins *WheelInspector, f io.ReaderAt, size int64, a *metadata
 }
 
 // checkRecord verifies files against the RECORD file checksum.
-func checkRecord(ins *WheelInspector, zf io.ReadCloser, rname string, a *metadata.Artefact, files []memberFile, notes *wheelNotes) error {
+func checkRecord(ins *WheelInspector, zf io.ReadCloser, rname string, a ResponseArtefact, files []memberFile, notes *wheelNotes) error {
 	sc := bufio.NewScanner(zf)
 	sc.Split(bufio.ScanLines)
 
@@ -373,7 +381,7 @@ func checkRecord(ins *WheelInspector, zf io.ReadCloser, rname string, a *metadat
 			notes.missingFile(name)
 			return nil
 		}
-		recordDigest := metadata.Sha256Digest{}
+		recordDigest := digests.Sha256Digest{}
 		copy(recordDigest[:], dst)
 		if member.Sha256 != recordDigest {
 			notes.integrityFault("%s: digest mismatch", name)
@@ -396,16 +404,16 @@ func checkRecord(ins *WheelInspector, zf io.ReadCloser, rname string, a *metadat
 // Annotation helper for wheel inspection
 
 type wheelNotes struct {
-	metadata.Annotation          // inspection annotations
-	requirementFaults   []string // missing requirements to be a valid wheel file
-	integrityFaults     []string // integrity errors in wheel file
-	missingFiles        []string // files missing from the wheel file
-	extraFiles          []string // extra files found in the wheel file
+	Annotation                 // inspection annotations
+	requirementFaults []string // missing requirements to be a valid wheel file
+	integrityFaults   []string // integrity errors in wheel file
+	missingFiles      []string // files missing from the wheel file
+	extraFiles        []string // extra files found in the wheel file
 }
 
 func newWheelNotes() *wheelNotes {
 	return &wheelNotes{
-		Annotation:        metadata.Annotation{},
+		Annotation:        Annotation{},
 		requirementFaults: []string{},
 		integrityFaults:   []string{},
 		missingFiles:      []string{},

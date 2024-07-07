@@ -15,24 +15,29 @@ request should be allowed to reach the HTTP server, or be blocked.
 
 The inspector's ``InspectRequest`` method is used to verify whether the
 HTTP request is valid. If no opinion is emitted the fetch service assumes that
-the request was ignored by this inspector. The ``SetRequestOpinion`` artefact
+the request was ignored by this inspector. The ``SetRequestPending`` artefact
 method is used to set the request inspection opinion to ``Pending`` when the
 request seems correct and the artefact must be inspected.
 
-An inspector can block a request by setting the opinion to ``Rejected``, but
-this must be done carefully. If an inspector rejects a request, the artefact
-won't be downloaded even if another inspector sets it to pending state.
+An inspector can block a request by using ``SetRequestRejected`` to set the
+opinion to ``Rejected``, but this must be done carefully. If an inspector
+rejects a request, the artefact won't be downloaded even if another inspector
+sets it to pending state.
 
 Here is an example on how to implement a request inspector that only allows
 requests to a given host::
 
-  func (ins *ExampleInspector) InspectRequest(a *metadata.Artefact) error {
+  import (
+      . "github.com/canonical/fetch-service/inspectors/common"
+  )
+
+  func (ins *ExampleInspector) InspectRequest(a RequestArtefact) error {
           u, err := url.Parse(a.CurrentDownload.URL)
           if err != nil {
 	          return fmt.Errorf("cannot parse URL: %s", err)
  	  }
           if u.Host == validHost {
-                  a.SetRequestOpinion(ins.ID(), opinions.Pending, "URL has a valid origin")
+                  a.SetRequestPending(ins, "URL has a valid origin")
           }
           return nil
   }
@@ -44,16 +49,20 @@ How to inspect an artefact
 After the artefact is downloaded, it can be examined for metadata extraction.
 Although it was cleared by the request inspector, the inspector must make sure
 the file is what it expects it to be before approving _or_ rejecting it. Inspectors
-must emit only one opinion about a recognized artefact. The ``SetResponseOpinion``
-artefact method must be used to set the inspector's opinion to ``Approved`` or
-``Rejected``.
+must emit only one opinion about a recognized artefact. The ``SetResponseApproved``
+and ``SetResponseRejected`` artefact methods must be used to set the inspector's
+opinion to ``Approved`` or ``Rejected``.
 
 This example shows how to implement an artefact inspector that examines a JSON file,
 extracts author metadata, and only allows documents created by a specific author to reach
 the requesting client::
 
-  func (ins *JsonInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
-          if !a.MimeType.Is("application/json") {
+  import (
+      . "github.com/canonical/fetch-service/inspectors/common"
+  )
+
+  func (ins *JsonInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+          if !a.MimetypeIs("application/json") {
                   return nil  // we don't recognize this artefact
           }
 
@@ -66,12 +75,15 @@ the requesting client::
                   return err
           }
 
-          a.Metadata.Author = payload.Author
+          a.SetArtefactMetadata(ArtefactMetadata{
+                Type:   "application/json",
+                Author: payload.Author,
+          }
 
           if payload.Author == "Foo J. Bar" {
-                  a.SetResponseOpinion(ins.ID(), opinions.Approved, "this is a known author")
+                  a.SetResponseApproved(ins, "this is a known author")
           } else {          
-                  a.SetResponseOpinion(ins.ID(), opinions.Rejected, "unrecognized author name")
+                  a.SetResponseRejected(ins, "unrecognized author name")
           }
 
           return nil
@@ -85,8 +97,8 @@ Opinions can be annotated with inspector-specific information. Annotations
 can be used to add context to an opinion and are intended for human consumption::
 
   if payload.Author == "Foo J. Bar" {
-          a.SetResponseOpinion(ins.ID(), opinions.Approved, "this is a known author").Annotate(
-                  metadata.Annotation{
+          a.SetResponseApproved(ins, "this is a known author").Annotate(
+                  Annotation{
                           "keywords": payload.Keywords,
                           "creation-date": payload.CreationDate,
                   }
@@ -95,7 +107,7 @@ can be used to add context to an opinion and are intended for human consumption:
 
 Annotations can also be added individually::
 
-  notes := metadata.Annotation{}
+  notes := Annotation{}
   notes.Add("expiration-date", payload.ExpirationDate)
 
 
@@ -110,22 +122,25 @@ and checks other artefacts against this internal state::
 
   type FileInspector struct {
           validDigests []string
+          lock sync.Mutex
   }
 
-  func (ins *FileInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
+  func (ins *FileInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
           if !knownFileFormat(a) {
                   return nil  // we don't recognize this file format
           }
 
-          if data, err := CheckIfIndexFile(a); err == nil {
+          if data, err := checkIfIndexFile(a); err == nil {
+                  lock.Lock()
                   ins.validDigests = data.ValidDigests
+                  lock.Unlock()
                   return nil
           }
 
-          if slices.Contains(ins.validDigests, a.Metadata.Sha256.String()) {
-                  a.SetResponseOpinion(ins.ID(), opinions.Approved, "file digest is valid")
+          if slices.Contains(ins.validDigests, a.Sha256().String()) {
+                  a.SetResponseApproved(ins, "file digest is valid")
           } else {
-                  a.SetResponseOpinion(ins.ID(), opinions.Rejected, "file digest not listed in the index file")
+                  a.SetResponseRejected(ins, "file digest not listed in the index file")
           }
 
           return nil

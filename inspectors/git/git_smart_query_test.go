@@ -25,7 +25,7 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/inspectors"
+	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/git"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
@@ -43,7 +43,7 @@ func (t *smartQuerySuite) SetUpTest(c *C) {
 func Test(t *testing.T) { TestingT(t) }
 
 func (s *smartQuerySuite) TestSmartQueryInspectorInterface(c *C) {
-	var iface inspectors.Inspector
+	var iface Inspector
 	ins := git.NewSmartQueryInspector()
 	c.Assert(ins, Implements, &iface)
 
@@ -111,7 +111,7 @@ func (s *smartQuerySuite) TestSmartQueryInspectArtefact(c *C) {
 		c.Assert(err, IsNil)
 
 		c.Check(a.Metadata.Type, Equals, "application/x.git.upload-pack-advertisement")
-		c.Check(a.Metadata.Name, Equals, "git-upload-pack-advertisement")
+		c.Check(a.Metadata.Name, Equals, "git upload-pack advertisement")
 		c.Assert(a.Approved(), Equals, tc.result)
 	}
 }
