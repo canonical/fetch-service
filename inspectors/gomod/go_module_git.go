@@ -32,8 +32,6 @@ import (
 	"github.com/canonical/fetch-service/inspectors/git"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/logger"
-	"github.com/canonical/fetch-service/metadata"
-	"github.com/canonical/fetch-service/metadata/opinions"
 	"github.com/canonical/fetch-service/utils"
 )
 
@@ -63,18 +61,18 @@ func (GoModuleGitInspector) ID() string {
 //   - The request URL must match a valid upload-pack pattern.
 //   - The upload-pack command must be "ls-refs" or "fetch".
 //   - If command is "fetch", it must want a single shallow ref.
-func (ins *GoModuleGitInspector) InspectRequest(a *metadata.Artefact) error {
-	u, err := url.Parse(a.CurrentDownload.URL)
+func (ins *GoModuleGitInspector) InspectRequest(a RequestArtefact) error {
+	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	content_type, ok := a.CurrentDownload.RequestHeader["Content-Type"]
+	content_type, ok := a.RequestHeader("Content-Type")
 	if !ok || len(content_type) < 1 || content_type[0] != "application/x-git-upload-pack-request" {
 		return nil // we don't recognize this request
 	}
 
-	accept, ok := a.CurrentDownload.RequestHeader["Accept"]
+	accept, ok := a.RequestHeader("Accept")
 	if !ok || len(accept) < 1 || accept[0] != "application/x-git-upload-pack-result" {
 		return nil // we don't recognize this request
 	}
@@ -89,17 +87,15 @@ func (ins *GoModuleGitInspector) InspectRequest(a *metadata.Artefact) error {
 		return nil // we don't recognize this request
 	}
 
-	logger.Debugf("request %s command %s", a.Request.URL.String(), command)
-
-	a.SetRequestOpinion(ins.ID(), opinions.Pending, "valid URL for go module download")
+	a.SetRequestPending(ins, "valid URL for go module download")
 	return nil
 }
 
 // InspectArtefact verifies if the fetched repository data
 // contains a go module.
-func (ins *GoModuleGitInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
+func (ins *GoModuleGitInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
 
-	if a.CurrentDownload.ContentType != "application/x-git-upload-pack-result" {
+	if a.ContentType() != "application/x-git-upload-pack-result" {
 		return nil
 	}
 
@@ -108,7 +104,7 @@ func (ins *GoModuleGitInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 		// this must have been set by the git upload-pack inspector
 		return errors.New("cannot read request command annotation")
 	}
-	notes := metadata.Annotation{}
+	notes := Annotation{}
 
 	logger.Debugf("inspect git upload-pack artefact: command %q", command)
 
@@ -117,8 +113,8 @@ func (ins *GoModuleGitInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 		return nil
 	}
 
-	if !a.MimeType.Is("application/octet-stream") {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "bad data type for go module")
+	if !a.MimetypeIs("application/octet-stream") {
+		a.SetResponseRejected(ins, "bad data type for go module")
 		return nil
 	}
 
@@ -176,39 +172,39 @@ func (ins *GoModuleGitInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 		}
 	} else {
 		// check out wanted-ref
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected,
+		a.SetResponseRejected(ins,
 			"want-refs handling not implemented yet").Annotate(notes)
 		return nil
 	}
 
 	goModPath := filepath.Join(dir, "go.mod")
 	if _, err := os.Stat(goModPath); err != nil {
-		a.SetResponseOpinion(ins.ID(), opinions.Unknown,
+		a.SetResponseUnknown(ins,
 			"git repository does not contain a go.mod file")
 		return nil
 	}
 
 	mod := goMod{}
 	if err := mod.parse(goModPath); err != nil {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "cannot parse go.mod file").Annotate(
-			metadata.Annotation{"error-msg": err.Error()},
+		a.SetResponseRejected(ins, "cannot parse go.mod file").Annotate(
+			Annotation{"error-msg": err.Error()},
 		)
 	}
 
-	a.Metadata.Type = mimetypes.GoModuleGit
+	md := ArtefactMetadata{Type: mimetypes.GoModuleGit}
 
 	parts := strings.Split(mod.Name, "/")
 	n := len(parts)
 	if n > 1 {
-		a.Metadata.Name = parts[n-1]
-		a.Metadata.Vendor = parts[n-2]
+		md.Name = parts[n-1]
+		md.Vendor = parts[n-2]
 	} else {
-		a.Metadata.Name = mod.Name
+		md.Name = mod.Name
 	}
 
 	tags, ok := a.ResponseAnnotation(GitUploadPackID, "tags")
 	if ok {
-		a.Metadata.Version = getVersionTag(tags.(map[string]string), wants[0])
+		md.Version = getVersionTag(tags.(map[string]string), wants[0])
 	}
 
 	license, _ := utils.CheckLicenseFiles(
@@ -219,35 +215,34 @@ func (ins *GoModuleGitInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 			filepath.Join(dir, "Copying"),
 		},
 	)
-	a.Metadata.License = license
+	md.License = license
 
 	notes.Add("module", mod.Name)
 	if mod.GoVersion != "" {
 		notes.Add("go", mod.GoVersion)
 	}
 
+	a.SetArtefactMetadata(md)
+
 	// Reject if depth > 1
 	if !isShallow {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected,
-			"go module found but repository is not shallow").Annotate(notes)
+		a.SetResponseRejected(ins, "go module found but repository is not shallow").Annotate(notes)
 		return nil
 	}
 
 	// Reject if multiple wants
 	if len(wants)+len(want_refs) > 1 {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected,
-			"go module found with multiple refs").Annotate(notes)
+		a.SetResponseRejected(ins, "go module found with multiple refs").Annotate(notes)
 		return nil
 	}
 
 	// Reject if version not found
-	if a.Metadata.Version == "" {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected,
-			"cannot find go module version tag").Annotate(notes)
+	if md.Version == "" {
+		a.SetResponseRejected(ins, "cannot find go module version tag").Annotate(notes)
 		return nil
 	}
 
-	a.SetResponseOpinion(ins.ID(), opinions.Approved, "go module found").Annotate(notes)
+	a.SetResponseApproved(ins, "go module found").Annotate(notes)
 
 	return nil
 }

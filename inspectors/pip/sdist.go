@@ -33,8 +33,6 @@ import (
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/logger"
-	"github.com/canonical/fetch-service/metadata"
-	"github.com/canonical/fetch-service/metadata/opinions"
 	"github.com/canonical/fetch-service/utils"
 )
 
@@ -50,22 +48,22 @@ func (SdistInspector) ID() string {
 }
 
 // InspectRequest verifies if the request complies with policy.
-func (ins SdistInspector) InspectRequest(a *metadata.Artefact) error {
-	u, err := url.Parse(a.CurrentDownload.URL)
+func (ins *SdistInspector) InspectRequest(a RequestArtefact) error {
+	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
 	if checkSdistUrl(u) == nil {
-		a.SetRequestOpinion(ins.ID(), opinions.Pending, "request matches valid URL")
+		a.SetRequestPending(ins, "request matches valid URL")
 	}
 
 	return nil // we don't recognize this request
 }
 
 // InspectArtefact extracts metadata from a known artefact file format.
-func (ins *SdistInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
-	if !a.MimeType.Is("application/gzip") {
+func (ins *SdistInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+	if !a.MimetypeIs("application/gzip") {
 		return nil
 	}
 
@@ -96,7 +94,7 @@ func (ins *SdistInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact)
 }
 
 // scanSdistMetadata parses metadata entries from the given file.
-func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a *metadata.Artefact) error {
+func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a ResponseArtefact) error {
 	sc := bufio.NewScanner(tf)
 	sc.Split(bufio.ScanLines)
 
@@ -110,10 +108,8 @@ func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a *metadata.Artefact) erro
 	// create a temporary copy of the PKG-INFO for license verification
 	t := bufio.NewWriter(temp)
 
-	var mver string
-	var name, version, description, author, email, maintainer string
-
-	md := &a.Metadata
+	var mver, license string
+	var name, version, description, author, email, vendor, maintainer string
 
 	for sc.Scan() {
 		line := sc.Text()
@@ -156,27 +152,31 @@ func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a *metadata.Artefact) erro
 		return nil
 	}
 
-	md.Type = mimetypes.PythonSdist
-	md.Name = name
-	md.Version = version
-	md.Description = description
-	md.Author = author
-	md.AuthorEmail = email
-
-	md.License, err = utils.GetLicense(temp.Name())
+	license, err = utils.GetLicense(temp.Name())
 	if err != nil {
 		return err
 	}
 
 	// If vendor is not specified, fall back to maintainer
 	if author != "" {
-		md.Vendor = author
+		vendor = author
 	} else {
-		md.Vendor = maintainer
+		vendor = maintainer
 	}
 
-	a.SetResponseOpinion(ins.ID(), opinions.Approved, "sdist file successfully parsed").Annotate(
-		metadata.Annotation{
+	a.SetArtefactMetadata(ArtefactMetadata{
+		Type:        mimetypes.PythonSdist,
+		Name:        name,
+		Version:     version,
+		Description: description,
+		Author:      author,
+		AuthorEmail: email,
+		License:     license,
+		Vendor:      vendor,
+	})
+
+	a.SetResponseApproved(ins, "sdist file successfully parsed").Annotate(
+		Annotation{
 			"metadata-version": mver,
 		},
 	)

@@ -23,6 +23,7 @@ import (
 	"archive/tar"
 	"bufio"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -36,8 +37,6 @@ import (
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
-	"github.com/canonical/fetch-service/metadata"
-	"github.com/canonical/fetch-service/metadata/opinions"
 	"github.com/canonical/fetch-service/utils"
 )
 
@@ -52,15 +51,15 @@ func (DebInspector) ID() string {
 	return "deb"
 }
 
-func (ins *DebInspector) InspectRequest(a *metadata.Artefact) error {
-	u, err := url.Parse(a.CurrentDownload.URL)
+func (ins *DebInspector) InspectRequest(a RequestArtefact) error {
+	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
 	if info, err := newDebPackageUrlInfo(u); err == nil {
-		a.SetRequestOpinion(ins.ID(), opinions.Pending, "valid URL for deb package").Annotate(
-			metadata.Annotation{
+		a.SetRequestPending(ins, "valid URL for deb package").Annotate(
+			Annotation{
 				"repository":   info.repository,
 				"component":    info.component,
 				"name":         info.name,
@@ -73,24 +72,26 @@ func (ins *DebInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil
 }
 
-func (ins *DebInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
-	if a.Metadata.Type != mimetypes.DebianBinaryPackage {
+func (ins *DebInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+	if !a.MimetypeIs(mimetypes.DebianBinaryPackage) {
 		return nil
 	}
 
-	if err := ins.readDebMetadata(f, a); err != nil {
-		return err
-	}
+	var md ArtefactMetadata
 
-	if !a.Rejected() {
-		a.SetResponseOpinion(ins.ID(), opinions.Approved, "deb package parsed")
+	if err := ins.readDebMetadata(f, &md); err != nil {
+		a.SetArtefactMetadata(md)
+		a.SetResponseRejected(ins, err.Error())
+	} else {
+		a.SetArtefactMetadata(md)
+		a.SetResponseApproved(ins, "deb package successfully parsed")
 	}
 
 	return nil
 }
 
 // readDebMetadata reads metadata from the deb control file.
-func (ins DebInspector) readDebMetadata(f io.Reader, a *metadata.Artefact) error {
+func (ins *DebInspector) readDebMetadata(f io.Reader, md *ArtefactMetadata) error {
 	af := ar.NewReader(f)
 
 	for {
@@ -103,17 +104,15 @@ func (ins DebInspector) readDebMetadata(f io.Reader, a *metadata.Artefact) error
 		}
 		switch h.Name {
 		case "debian-binary":
-			if ver := ins.getDebianBinaryVersion(af, a); ver != "2.0" {
-				a.SetResponseOpinion(ins.ID(), opinions.Rejected, "unknown debian binary version %q", ver)
-				return nil
+			if ver := ins.getDebianBinaryVersion(af); ver != "2.0" {
+				return fmt.Errorf("unknown debian binary version '%s'", ver)
 			}
 		case "control.tar.gz":
 			zf, err := gzip.NewReader(af)
 			if err != nil {
 				return err
 			}
-			err = ins.parseControlTar(zf, a)
-			if err != nil {
+			if err = ins.parseControlTar(zf, md); err != nil {
 				return err
 			}
 		case "control.tar.zst", "control.tar.zstd":
@@ -121,8 +120,7 @@ func (ins DebInspector) readDebMetadata(f io.Reader, a *metadata.Artefact) error
 			if err != nil {
 				return err
 			}
-			err = ins.parseControlTar(zf, a)
-			if err != nil {
+			if err = ins.parseControlTar(zf, md); err != nil {
 				return err
 			}
 		case "data.tar.zst", "data.tar.zstd":
@@ -130,8 +128,7 @@ func (ins DebInspector) readDebMetadata(f io.Reader, a *metadata.Artefact) error
 			if err != nil {
 				return err
 			}
-			err = ins.parseDataTar(zf, a)
-			if err != nil {
+			if err = ins.parseDataTar(zf, md); err != nil {
 				return err
 			}
 			// TODO: add gzip reader
@@ -141,7 +138,7 @@ func (ins DebInspector) readDebMetadata(f io.Reader, a *metadata.Artefact) error
 	return nil
 }
 
-func (ins DebInspector) getDebianBinaryVersion(af io.Reader, a *metadata.Artefact) string {
+func (ins DebInspector) getDebianBinaryVersion(af io.Reader) string {
 	sc := bufio.NewScanner(af)
 	sc.Split(bufio.ScanLines)
 
@@ -150,7 +147,7 @@ func (ins DebInspector) getDebianBinaryVersion(af io.Reader, a *metadata.Artefac
 	return strings.TrimSpace(sc.Text())
 }
 
-func (ins DebInspector) parseControlTar(zf io.Reader, a *metadata.Artefact) error {
+func (ins DebInspector) parseControlTar(zf io.Reader, md *ArtefactMetadata) error {
 	tf := tar.NewReader(zf)
 	for {
 		h, err := tf.Next()
@@ -162,7 +159,7 @@ func (ins DebInspector) parseControlTar(zf io.Reader, a *metadata.Artefact) erro
 		}
 		switch h.Name {
 		case "./control":
-			err = ins.parseControl(tf, a)
+			err = ins.parseControl(tf, md)
 			if err != nil {
 				return err
 			}
@@ -172,7 +169,7 @@ func (ins DebInspector) parseControlTar(zf io.Reader, a *metadata.Artefact) erro
 	return nil
 }
 
-func (ins DebInspector) parseControl(tf io.Reader, a *metadata.Artefact) error {
+func (ins DebInspector) parseControl(tf io.Reader, md *ArtefactMetadata) error {
 	sc := bufio.NewScanner(tf)
 	sc.Split(bufio.ScanLines)
 
@@ -195,29 +192,29 @@ func (ins DebInspector) parseControl(tf io.Reader, a *metadata.Artefact) error {
 
 		switch k {
 		case "Package":
-			a.Metadata.Name = v
+			md.Name = v
 		case "Version":
-			a.Metadata.Version = v
+			md.Version = v
 		case "Architecture":
-			a.Metadata.Architecture = v
+			md.Architecture = v
 		case "Description":
 			runes := []rune(v)
 			runes[0] = unicode.ToUpper(runes[0])
-			a.Metadata.Description = string(runes)
+			md.Description = string(runes)
 		case "Maintainer":
-			a.Metadata.Vendor = v
-			a.Metadata.AuthorEmail = v
+			md.Vendor = v
+			md.AuthorEmail = v
 		}
 	}
 
-	if a.Metadata.Name == "" || a.Metadata.Version == "" {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "package name and version not listed in control file")
+	if md.Name == "" || md.Version == "" {
+		return errors.New("package name and version not listed in control file")
 	}
 
 	return nil
 }
 
-func (ins DebInspector) parseDataTar(zf io.Reader, a *metadata.Artefact) error {
+func (ins DebInspector) parseDataTar(zf io.Reader, md *ArtefactMetadata) error {
 	copyright := regexp.MustCompile(`^\./usr/share/doc/[^/]+/copyright$`)
 
 	tf := tar.NewReader(zf)
@@ -231,7 +228,7 @@ func (ins DebInspector) parseDataTar(zf io.Reader, a *metadata.Artefact) error {
 		}
 		switch {
 		case copyright.MatchString(h.Name):
-			err = ins.parseCopyright(tf, a)
+			err = ins.parseCopyright(tf, md)
 			if err != nil {
 				return err
 			}
@@ -241,7 +238,7 @@ func (ins DebInspector) parseDataTar(zf io.Reader, a *metadata.Artefact) error {
 	return nil
 }
 
-func (ins DebInspector) parseCopyright(tf io.Reader, a *metadata.Artefact) error {
+func (ins DebInspector) parseCopyright(tf io.Reader, md *ArtefactMetadata) error {
 	sc := bufio.NewScanner(tf)
 	sc.Split(bufio.ScanLines)
 
@@ -274,14 +271,14 @@ func (ins DebInspector) parseCopyright(tf io.Reader, a *metadata.Artefact) error
 
 		switch k {
 		case "Upstream-Contact", "Upstream author":
-			a.Metadata.Author = v
+			md.Author = v
 		}
 	}
 
 	t.Flush()
 	temp.Close()
 
-	a.Metadata.License, err = utils.GetLicense(temp.Name())
+	md.License, err = utils.GetLicense(temp.Name())
 	if err != nil {
 		return err
 	}

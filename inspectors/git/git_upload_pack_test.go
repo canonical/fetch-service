@@ -27,7 +27,7 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/inspectors"
+	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/git"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
@@ -44,7 +44,7 @@ func (t *uploadPackSuite) SetUpTest(c *C) {
 }
 
 func (s *uploadPackSuite) TestUploadPackInspectorInterface(c *C) {
-	var iface inspectors.Inspector
+	var iface Inspector
 	ins := git.NewUploadPackInspector()
 	c.Assert(ins, Implements, &iface)
 
@@ -123,10 +123,10 @@ func (s *uploadPackSuite) TestUploadPackInspectLsRefsArtefact(c *C) {
 		a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
 		a.Request.Body = io.NopCloser(strings.NewReader("0014command=ls-refs\n0000"))
 		a.RequestInspection = metadata.InspectionMap{
-			"git.upload-pack": &metadata.Inspection{
+			"git.upload-pack": &Inspection{
 				Opinion: opinions.Pending,
 				Reason:  "valid URL for git upload-pack",
-				Annotations: metadata.Annotation{
+				Annotations: Annotation{
 					"client-request": []string{
 						"command=ls-refs",
 						"agent=git/2.34.1",
@@ -185,10 +185,10 @@ func (s *uploadPackSuite) TestInspectFetchRequest(c *C) {
 
 	err := ins.InspectRequest(a)
 	c.Assert(err, IsNil)
-	c.Assert(a.RequestInspection["git.upload-pack"], DeepEquals, &metadata.Inspection{
+	c.Assert(a.RequestInspection["git.upload-pack"], DeepEquals, &Inspection{
 		Opinion: opinions.Pending,
 		Reason:  "valid URL for git upload-pack",
-		Annotations: metadata.Annotation{
+		Annotations: Annotation{
 			"repository": "https://github.com:443/user/project.git",
 			"num-wants":  1,
 			"wants":      []string{"6b99254b1c5c823d054bc0ae1ebccfa070380fce"},
@@ -225,10 +225,10 @@ func (s *uploadPackSuite) TestInspectFetchRequestReject(c *C) {
 
 	err := ins.InspectRequest(a)
 	c.Assert(err, IsNil)
-	c.Assert(a.RequestInspection["git.upload-pack"], DeepEquals, &metadata.Inspection{
+	c.Assert(a.RequestInspection["git.upload-pack"], DeepEquals, &Inspection{
 		Opinion: opinions.Rejected,
 		Reason:  "fetch is only allowed with depth 1",
-		Annotations: metadata.Annotation{
+		Annotations: Annotation{
 			"num-wants": 3,
 			"wants": []string{
 				"6b99254b1c5c823d054bc0ae1ebccfa070380fce013f",
@@ -270,10 +270,10 @@ func (s *uploadPackSuite) TestUploadPackInspectFetchArtefact(c *C) {
 		a.MimeType = mimetype.Lookup("application/octet-stream")
 		a.Request.Body = io.NopCloser(strings.NewReader("0014command=fetch\n0000"))
 		a.RequestInspection = metadata.InspectionMap{
-			"git.upload-pack": &metadata.Inspection{
+			"git.upload-pack": &Inspection{
 				Opinion: opinions.Pending,
 				Reason:  "valid URL for git upload-pack",
-				Annotations: metadata.Annotation{
+				Annotations: Annotation{
 					"client-request": []string{
 						"command=fetch",
 						"agent=git/2.34.1",

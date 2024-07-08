@@ -24,6 +24,7 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
@@ -47,7 +48,7 @@ func (t *metadataSuite) TestRequestOpinions(c *C) {
 
 		for i, o := range tc.opinions {
 			id := fmt.Sprintf("insp%d", i)
-			a.RequestInspection[id] = &metadata.Inspection{Opinion: o}
+			a.RequestInspection[id] = &Inspection{Opinion: o}
 		}
 
 		c.Assert(a.Approved(), Equals, false)
@@ -75,7 +76,7 @@ func (t *metadataSuite) TestResponseOpinions(c *C) {
 
 		for i, o := range tc.opinions {
 			id := fmt.Sprintf("insp%d", i)
-			a.ResponseInspection[id] = &metadata.Inspection{Opinion: o}
+			a.ResponseInspection[id] = &Inspection{Opinion: o}
 		}
 
 		c.Assert(a.Rejected(), Equals, tc.rejected)
@@ -83,46 +84,94 @@ func (t *metadataSuite) TestResponseOpinions(c *C) {
 	}
 }
 
-func (t *metadataSuite) TestSetRequestOpinion(c *C) {
-	for _, tc := range []struct {
-		op          opinions.OpinionKind
-		effectiveOp opinions.OpinionKind
-	}{
-		{opinions.Unknown, opinions.Unknown},
-		{opinions.Rejected, opinions.Rejected},
-		{opinions.Approved, opinions.Rejected}, // can't approve during request inspection
-		{opinions.Pending, opinions.Pending},
-	} {
-		a := metadata.NewArtefact()
-		a.SetRequestOpinion("test-inspector", tc.op, "testing %d", 1).Annotate(
-			metadata.Annotation{"foo": "bar"},
-		)
-		c.Assert(*a.RequestInspection["test-inspector"], DeepEquals, metadata.Inspection{
-			Opinion:     tc.effectiveOp,
-			Reason:      "testing 1",
-			Annotations: metadata.Annotation{"foo": "bar"},
-		})
-	}
+type testInspector struct{}
+
+func (ins testInspector) ID() string {
+	return "test-inspector"
 }
 
-func (t *metadataSuite) TestSetResponseOpinion(c *C) {
-	for _, tc := range []struct {
-		op          opinions.OpinionKind
-		effectiveOp opinions.OpinionKind
-	}{
-		{opinions.Unknown, opinions.Unknown},
-		{opinions.Rejected, opinions.Rejected},
-		{opinions.Approved, opinions.Approved},
-		{opinions.Pending, opinions.Rejected}, // can't set opinion to pending in response inspection
-	} {
-		a := metadata.NewArtefact()
-		a.SetResponseOpinion("test-inspector", tc.op, "testing %d", 1).Annotate(
-			metadata.Annotation{"foo": "bar"},
-		)
-		c.Assert(*a.ResponseInspection["test-inspector"], DeepEquals, metadata.Inspection{
-			Opinion:     tc.effectiveOp,
-			Reason:      "testing 1",
-			Annotations: metadata.Annotation{"foo": "bar"},
-		})
-	}
+func (ins *testInspector) InspectRequest(a RequestArtefact) error {
+	return nil
+}
+
+func (ins *testInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+	return nil
+}
+
+func (t *metadataSuite) TestSetRequestPending(c *C) {
+	ins := &testInspector{}
+	a := metadata.NewArtefact()
+	a.SetRequestPending(ins, "testing %d", 1).Annotate(
+		Annotation{"foo": "bar"},
+	)
+	c.Assert(*a.RequestInspection["test-inspector"], DeepEquals, Inspection{
+		Opinion:     opinions.Pending,
+		Reason:      "testing 1",
+		Annotations: Annotation{"foo": "bar"},
+	})
+}
+
+func (t *metadataSuite) TestSetRequestRejected(c *C) {
+	ins := &testInspector{}
+	a := metadata.NewArtefact()
+	a.SetRequestRejected(ins, "testing %d", 1).Annotate(
+		Annotation{"foo": "bar"},
+	)
+	c.Assert(*a.RequestInspection["test-inspector"], DeepEquals, Inspection{
+		Opinion:     opinions.Rejected,
+		Reason:      "testing 1",
+		Annotations: Annotation{"foo": "bar"},
+	})
+}
+
+func (t *metadataSuite) TestSetRequestUnknown(c *C) {
+	ins := &testInspector{}
+	a := metadata.NewArtefact()
+	a.SetRequestUnknown(ins, "testing %d", 1).Annotate(
+		Annotation{"foo": "bar"},
+	)
+	c.Assert(*a.RequestInspection["test-inspector"], DeepEquals, Inspection{
+		Opinion:     opinions.Unknown,
+		Reason:      "testing 1",
+		Annotations: Annotation{"foo": "bar"},
+	})
+}
+
+func (t *metadataSuite) TestSetResponseApproved(c *C) {
+	ins := &testInspector{}
+	a := metadata.NewArtefact()
+	a.SetResponseApproved(ins, "testing %d", 1).Annotate(
+		Annotation{"foo": "bar"},
+	)
+	c.Assert(*a.ResponseInspection["test-inspector"], DeepEquals, Inspection{
+		Opinion:     opinions.Approved,
+		Reason:      "testing 1",
+		Annotations: Annotation{"foo": "bar"},
+	})
+}
+
+func (t *metadataSuite) TestSetResponseRejected(c *C) {
+	ins := &testInspector{}
+	a := metadata.NewArtefact()
+	a.SetResponseRejected(ins, "testing %d", 1).Annotate(
+		Annotation{"foo": "bar"},
+	)
+	c.Assert(*a.ResponseInspection["test-inspector"], DeepEquals, Inspection{
+		Opinion:     opinions.Rejected,
+		Reason:      "testing 1",
+		Annotations: Annotation{"foo": "bar"},
+	})
+}
+
+func (t *metadataSuite) TestSetResponseUnknown(c *C) {
+	ins := &testInspector{}
+	a := metadata.NewArtefact()
+	a.SetResponseUnknown(ins, "testing %d", 1).Annotate(
+		Annotation{"foo": "bar"},
+	)
+	c.Assert(*a.ResponseInspection["test-inspector"], DeepEquals, Inspection{
+		Opinion:     opinions.Unknown,
+		Reason:      "testing 1",
+		Annotations: Annotation{"foo": "bar"},
+	})
 }

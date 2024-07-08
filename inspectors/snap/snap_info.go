@@ -26,8 +26,6 @@ import (
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
-	"github.com/canonical/fetch-service/metadata"
-	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
 type SnapInfoInspector struct {
@@ -42,15 +40,15 @@ func (SnapInfoInspector) ID() string {
 }
 
 // InspectRequest verifies if the request complies with policy.
-func (ins SnapInfoInspector) InspectRequest(a *metadata.Artefact) error {
-	u, err := url.Parse(a.CurrentDownload.URL)
+func (ins *SnapInfoInspector) InspectRequest(a RequestArtefact) error {
+	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
 	if info, err := newSnapInfoUrlInfo(u); err == nil {
-		a.SetRequestOpinion(ins.ID(), opinions.Pending, "valid URL for snap info endpoint").Annotate(
-			metadata.Annotation{
+		a.SetRequestPending(ins, "valid URL for snap info endpoint").Annotate(
+			Annotation{
 				"name": info.name,
 			},
 		)
@@ -66,8 +64,8 @@ type snapInfoBody struct {
 }
 
 // InspectArtefact extracts metadata from a known artefact file format.
-func (ins *SnapInfoInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
-	if !a.MimeType.Is("application/json") {
+func (ins *SnapInfoInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+	if !a.MimetypeIs("application/json") {
 		return nil
 	}
 
@@ -78,9 +76,14 @@ func (ins *SnapInfoInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefa
 	}
 
 	if len(b.ChannelMap) > 0 && b.ChannelMap[0]["version"] != "" && b.Name != "" && b.SnapID != "" {
-		a.Metadata.Type = mimetypes.SnapInfo
-		a.SetResponseOpinion(ins.ID(), opinions.Approved, "valid snap API info endpoint response").Annotate(
-			metadata.Annotation{
+
+		a.SetArtefactMetadata(ArtefactMetadata{
+			Type:        mimetypes.SnapInfo,
+			Name:        "Store protocol response",
+			Description: "Snap store response for info request",
+		})
+		a.SetResponseApproved(ins, "valid snap API info endpoint response").Annotate(
+			Annotation{
 				"name":    b.Name,
 				"snap-id": b.SnapID,
 			})

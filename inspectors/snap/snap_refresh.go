@@ -26,8 +26,6 @@ import (
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
-	"github.com/canonical/fetch-service/metadata"
-	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
 type SnapRefreshInspector struct {
@@ -42,14 +40,14 @@ func (SnapRefreshInspector) ID() string {
 }
 
 // InspectRequest verifies if the request complies with policy.
-func (ins SnapRefreshInspector) InspectRequest(a *metadata.Artefact) error {
-	u, err := url.Parse(a.CurrentDownload.URL)
+func (ins *SnapRefreshInspector) InspectRequest(a RequestArtefact) error {
+	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
 	if _, err := newSnapRefreshUrlInfo(u); err == nil {
-		a.SetRequestOpinion(ins.ID(), opinions.Pending, "valid URL for snap refresh endpoint")
+		a.SetRequestPending(ins, "valid URL for snap refresh endpoint")
 	}
 
 	return nil // we don't recognize this request
@@ -60,8 +58,8 @@ type snapRefreshBody struct {
 }
 
 // InspectArtefact extracts metadata from a known artefact file format.
-func (ins *SnapRefreshInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
-	if !a.MimeType.Is("application/json") {
+func (ins *SnapRefreshInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+	if !a.MimetypeIs("application/json") {
 		return nil
 	}
 
@@ -72,9 +70,13 @@ func (ins *SnapRefreshInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Art
 	}
 
 	if len(b.Results) > 0 && b.Results[0]["effective-channel"] != "" && b.Results[0]["name"] != "" && b.Results[0]["snap-id"] != "" {
-		a.Metadata.Type = mimetypes.SnapInfo
-		a.SetResponseOpinion(ins.ID(), opinions.Approved, "valid snap API refresh endpoint response").Annotate(
-			metadata.Annotation{
+		a.SetArtefactMetadata(ArtefactMetadata{
+			Type:        mimetypes.SnapInfo,
+			Name:        "Store protocol response",
+			Description: "Snap store response for refresh request",
+		})
+		a.SetResponseApproved(ins, "valid snap API refresh endpoint response").Annotate(
+			Annotation{
 				"name":    b.Results[0]["name"],
 				"snap-id": b.Results[0]["snap-id"],
 			})

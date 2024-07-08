@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -30,10 +30,12 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/inspectors"
+	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/deb"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/digests"
 )
 
 type debSuite struct{}
@@ -75,12 +77,12 @@ func (s *debSuite) TestDebInspector(c *C) {
 
 	dest.Close()
 
-	h, _ := metadata.NewSha1Digest("290d07339dde2735121ab03e525ca6593c395a42")
+	h, _ := digests.NewSha1Digest("290d07339dde2735121ab03e525ca6593c395a42")
 	a := metadata.NewArtefact()
 	a.Metadata.Type = "application/vnd.debian.binary-package"
 	a.Metadata.Sha1 = h
 
-	var iface inspectors.Inspector
+	var iface Inspector
 	ins := deb.DebInspector{}
 	c.Assert(ins, Implements, &iface)
 

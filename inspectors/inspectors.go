@@ -30,6 +30,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/apt"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/deb"
+	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/git"
 	"github.com/canonical/fetch-service/inspectors/gomod"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
@@ -46,20 +47,6 @@ func init() {
 	mimetype.Lookup("application/x-xz").Extend(apt.AptTranslationDetector, mimetypes.AptTranslation, "")
 	mimetype.Lookup("application/octet-stream").Extend(snap.SquashFsDetector, mimetypes.SquashFs, "")
 	mimetype.Lookup("text/plain").Extend(snap.AssertionDetector, mimetypes.Assertion, ".assert")
-}
-
-// Inspector is the interface implemented by artefact metadata
-// extractors.
-type Inspector interface {
-	ID() string
-
-	InspectRequest(*metadata.Artefact) error
-
-	// Inspect extracts metadata from the given artefact and
-	// populates the metadata structure, returning whether
-	// the artefact was identified and no further examination
-	// by other inspectors is required.
-	InspectArtefact(ReadAtSeeker, *metadata.Artefact) error
 }
 
 type Inspectors struct {
@@ -126,53 +113,13 @@ func (insps Inspectors) RunRequestInspectors(a *metadata.Artefact) error {
 		ins := insps.insmap[id]
 		logger.Debugf("run request inspector: %s", ins.ID())
 		if err := ins.InspectRequest(a); err != nil {
-			a.SetRequestOpinion(ins.ID(), opinions.Rejected, "error inspecting request").Annotate(
-				metadata.Annotation{"error-message": err.Error()})
+			a.SetRequestRejected(ins, "error inspecting request").Annotate(
+				Annotation{"error-message": err.Error()})
 			return err
 		}
 	}
 
 	return nil
-}
-
-type ArtefactFile struct {
-	f    *os.File
-	size int64
-}
-
-func OpenArtefactFile(filename string) (*ArtefactFile, error) {
-	f, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	st, err := f.Stat()
-	if err != nil {
-		return nil, err
-	}
-	return &ArtefactFile{
-		f:    f,
-		size: st.Size(),
-	}, nil
-}
-
-func (f *ArtefactFile) Read(buf []byte) (int, error) {
-	return f.f.Read(buf)
-}
-
-func (f *ArtefactFile) ReadAt(buf []byte, off int64) (int, error) {
-	return f.f.ReadAt(buf, off)
-}
-
-func (f *ArtefactFile) Seek(off int64, whence int) (int64, error) {
-	return f.f.Seek(off, whence)
-}
-
-func (f *ArtefactFile) Len() int {
-	return int(f.size)
-}
-
-func (f *ArtefactFile) Close() error {
-	return f.f.Close()
 }
 
 // RunArtefactInspectors examines the artefact in the given assets directory.
@@ -218,8 +165,8 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 			return err
 		}
 		if err := ins.InspectArtefact(f, a); err != nil {
-			a.SetResponseOpinion(ins.ID(), opinions.Rejected, "error inspecting artefact").Annotate(
-				metadata.Annotation{"error-message": err.Error()})
+			a.SetResponseRejected(ins, "error inspecting artefact").Annotate(
+				Annotation{"error-message": err.Error()})
 			return err
 		}
 	}
@@ -241,6 +188,15 @@ func (insps Inspectors) List() []string {
 	return insps.ids
 }
 
+// OpenArtefactFile opens a downloaded artefact file for reading.
+func OpenArtefactFile(filename string) (*files.ArtefactFile, error) {
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	return files.NewArtefactFile(f)
+}
+
 // DefaultInspector is a fallback inspector for unknown requests or artefacts.
 type DefaultInspector struct {
 }
@@ -249,16 +205,16 @@ func (ins DefaultInspector) ID() string {
 	return "default"
 }
 
-func (ins DefaultInspector) InspectRequest(a *metadata.Artefact) error {
-	if len(a.RequestInspection) == 0 {
-		a.SetRequestOpinion(ins.ID(), opinions.Unknown, "the request was not recognized by any format inspector")
+func (ins DefaultInspector) InspectRequest(a RequestArtefact) error {
+	if !a.RequestRejected() && !a.RequestPending() {
+		a.SetRequestUnknown(ins, "the request was not recognized by any format inspector")
 	}
 	return nil
 }
 
-func (ins DefaultInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
-	if len(a.ResponseInspection) == 0 {
-		a.SetResponseOpinion(ins.ID(), opinions.Unknown, "the artefact format is unknown")
+func (ins DefaultInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+	if !a.ResponseRejected() && !a.ResponseApproved() {
+		a.SetResponseUnknown(ins, "the artefact format is unknown")
 	}
 	return nil
 }

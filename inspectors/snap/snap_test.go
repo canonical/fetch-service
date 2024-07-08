@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -25,6 +25,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/inspectors"
+	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/snap"
 	"github.com/canonical/fetch-service/metadata"
 )
@@ -55,7 +56,7 @@ func (s *snapSuite) TestSnapArtefactInspector(c *C) {
 	c.Check(a.Metadata.Version, Equals, "7")
 	c.Check(a.Metadata.Architecture, Equals, "amd64")
 	c.Check(a.Metadata.Description, Equals, "Word Salad - Password Generator")
-	c.Check(a.ResponseInspection["snap"].Annotations, DeepEquals, metadata.Annotation{
+	c.Check(a.ResponseInspection["snap"].Annotations, DeepEquals, Annotation{
 		"snap-revision-assertion-header": map[string]string{
 			"type":              "snap-revision",
 			"authority-id":      "canonical",

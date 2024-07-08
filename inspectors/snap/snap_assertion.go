@@ -28,8 +28,6 @@ import (
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
-	"github.com/canonical/fetch-service/metadata"
-	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
 func AssertionDetector(raw []byte, limit uint32) bool {
@@ -62,13 +60,13 @@ func (SnapAssertionInspector) ID() string {
 }
 
 // InspectRequest verifies if the request complies with policy.
-func (ins SnapAssertionInspector) InspectRequest(a *metadata.Artefact) error {
-	accept := a.CurrentDownload.RequestHeader["Accept"]
-	if accept == nil || !slices.Contains(accept, "application/x.ubuntu.assertion") {
+func (ins *SnapAssertionInspector) InspectRequest(a RequestArtefact) error {
+	accept, ok := a.RequestHeader("Accept")
+	if !ok || accept == nil || !slices.Contains(accept, "application/x.ubuntu.assertion") {
 		return nil
 	}
 
-	u, err := url.Parse(a.CurrentDownload.URL)
+	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
@@ -97,17 +95,17 @@ func (ins SnapAssertionInspector) InspectRequest(a *metadata.Artefact) error {
 		return nil // we don't recognize this request
 	}
 
-	a.SetRequestOpinion(ins.ID(), opinions.Pending, reason)
+	a.SetRequestPending(ins, reason)
 	return nil
 }
 
 // InspectArtefact extracts metadata from a known artefact file format.
-func (ins *SnapAssertionInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
-	if a.CurrentDownload.ContentType != "application/x.ubuntu.assertion" {
+func (ins *SnapAssertionInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+	if a.ContentType() != "application/x.ubuntu.assertion" {
 		return nil
 	}
 
-	if !a.MimeType.Is(mimetypes.Assertion) {
+	if !a.MimetypeIs(mimetypes.Assertion) {
 		return nil
 	}
 
@@ -118,15 +116,15 @@ func (ins *SnapAssertionInspector) InspectArtefact(f ReadAtSeeker, a *metadata.A
 
 	assert, err := newAssertion(buf)
 	if err != nil {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "error parsing assertion").Annotate(
-			metadata.Annotation{"error-msg": err.Error()},
+		a.SetResponseRejected(ins, "error parsing assertion").Annotate(
+			Annotation{"error-msg": err.Error()},
 		)
 		return nil
 	}
 
 	if err := assert.VerifySignature(); err != nil {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "assertion signature verification failed").Annotate(
-			metadata.Annotation{
+		a.SetResponseRejected(ins, "assertion signature verification failed").Annotate(
+			Annotation{
 				"assertion-type": assert.Type(),
 				"error-msg":      err.Error(),
 			},
@@ -134,29 +132,33 @@ func (ins *SnapAssertionInspector) InspectArtefact(f ReadAtSeeker, a *metadata.A
 		return nil
 	}
 
-	a.Metadata.Name = "assertion"
-	a.Metadata.Description = fmt.Sprintf("%s assertion file", assert.Header["type"])
-	a.Metadata.Version = assert.Header["revision"]
-	a.Metadata.Vendor = assert.Header["authority-id"]
-	a.Metadata.Author = assert.Header["authority-id"]
-
-	switch assert.Header["type"] {
+	var mtype string
+	switch assert.Type() {
 	case "snap-revision":
-		a.Metadata.Type = mimetypes.SnapRevisionAssertion
+		mtype = mimetypes.SnapRevisionAssertion
 	case "snap-declaration":
-		a.Metadata.Type = mimetypes.SnapDeclarationAssertion
+		mtype = mimetypes.SnapDeclarationAssertion
 	case "account":
-		a.Metadata.Type = mimetypes.AccountAssertion
+		mtype = mimetypes.AccountAssertion
 	case "account-key":
-		a.Metadata.Type = mimetypes.AccountKeyAssertion
+		mtype = mimetypes.AccountKeyAssertion
 	}
 
-	notes := metadata.Annotation{}
+	a.SetArtefactMetadata(ArtefactMetadata{
+		Type:        mtype,
+		Name:        "assertion",
+		Description: fmt.Sprintf("%s assertion file", assert.Header["type"]),
+		Version:     assert.Header["revision"],
+		Vendor:      assert.Header["authority-id"],
+		Author:      assert.Header["authority-id"],
+	})
+
+	notes := Annotation{}
 	for k, v := range assert.Header {
 		notes.Add(k, v)
 	}
 
-	a.SetResponseOpinion(ins.ID(), opinions.Approved, "valid snap assertion").Annotate(notes)
+	a.SetResponseApproved(ins, "valid snap assertion").Annotate(notes)
 
 	return nil
 }
