@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -36,6 +36,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/utils"
 )
 
@@ -54,7 +55,7 @@ type Session struct {
 	Start      time.Time // session start time
 	End        time.Time // session end time
 	Insps      inspectors.Inspectors
-	A          map[metadata.Sha256Digest]*metadata.Artefact
+	A          map[digests.Sha256Digest]*metadata.Artefact
 	Permissive bool
 	SessionDir string
 	Timeout    time.Duration
@@ -73,7 +74,7 @@ func New(spoolDir string, permissive bool) *Session {
 		Id:         sessionId,
 		Token:      randomString(20),
 		Start:      time.Now().UTC(),
-		A:          map[metadata.Sha256Digest]*metadata.Artefact{},
+		A:          map[digests.Sha256Digest]*metadata.Artefact{},
 		Permissive: permissive,
 		SessionDir: filepath.Join(spoolDir, sessionId),
 		Timeout:    DefaultSessionTimeout,
@@ -192,7 +193,7 @@ func (s *Session) AddArtefact(a *metadata.Artefact) {
 
 // HasArtefact verifies whether the given digest corresponds
 // to an artefact downloaded in this session.
-func (s *Session) HasArtefact(sha1 metadata.Sha256Digest) bool {
+func (s *Session) HasArtefact(sha1 digests.Sha256Digest) bool {
 	_, ok := s.A[sha1]
 	return ok
 }
@@ -207,7 +208,7 @@ func (s *Session) AddDownload(di metadata.Download) {
 
 // SaveData writes the artefact data corresponding to the given
 // digest to the asset spool.
-func (s *Session) SaveData(digest metadata.Sha256Digest) error {
+func (s *Session) SaveData(digest digests.Sha256Digest) error {
 	a, ok := s.A[digest]
 	if !ok {
 		return fmt.Errorf("metadata for artefact %s not available", digest)
@@ -241,7 +242,7 @@ func (s *Session) SaveData(digest metadata.Sha256Digest) error {
 
 // SaveMetadata writes the artefact metadata corresponding to the
 // given digest to the asset spool.
-func (s *Session) SaveMetadata(digest metadata.Sha256Digest) error {
+func (s *Session) SaveMetadata(digest digests.Sha256Digest) error {
 	a, ok := s.A[digest]
 	if !ok {
 		return fmt.Errorf("metadata for artefact %s not available", digest)

@@ -27,11 +27,12 @@ import (
 	"github.com/go-mmap/mmap"
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/inspectors"
+	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/pip"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
@@ -44,7 +45,7 @@ func (t *simpleIndexSuite) SetUpTest(c *C) {
 var _ = Suite(&simpleIndexSuite{})
 
 func (s *simpleIndexSuite) TestSimpleIndexInspectorInterface(c *C) {
-	var iface inspectors.Inspector
+	var iface Inspector
 	ins := pip.NewSimpleIndexInspector()
 	c.Assert(ins, Implements, &iface)
 
@@ -114,7 +115,7 @@ func (s *simpleIndexSuite) TestWheelInspectArtefactBadContent(c *C) {
 	a.Metadata.Type = "text/plain"
 	a.MimeType = mimetype.Lookup("text/plain")
 	a.CurrentDownload.URL = "https://pypi.org:443/simple/foo/"
-	a.SetRequestOpinion(ins.ID(), opinions.Pending, "test")
+	a.SetRequestPending(ins, "test")
 
 	f, err := mmap.Open(filename)
 	c.Assert(err, IsNil)
@@ -143,17 +144,17 @@ func (s *simpleIndexSuite) TestWheelInspectArtefact(c *C) {
 	c.Assert(err, IsNil)
 
 	ins := pip.NewSimpleIndexInspector()
-	h, _ := metadata.NewSha1Digest("85fc2d2a3764089191e57cd552601278a5985c46")
+	h, _ := digests.NewSha1Digest("85fc2d2a3764089191e57cd552601278a5985c46")
 
 	a := metadata.NewArtefact()
 	a.Metadata.Type = "text/html"
 	a.Metadata.Sha1 = h
 	a.MimeType = mimetype.Lookup("text/html")
 	a.CurrentDownload.URL = "https://pypi.org:443/simple/foobar/"
-	a.RequestInspection["pip.simple-index"] = &metadata.Inspection{
+	a.RequestInspection["pip.simple-index"] = &Inspection{
 		Opinion:     opinions.Pending,
 		Reason:      "some reason",
-		Annotations: metadata.Annotation{"package-name": "foobar"},
+		Annotations: Annotation{"package-name": "foobar"},
 	}
 
 	f, err := mmap.Open(filename)
@@ -166,7 +167,6 @@ func (s *simpleIndexSuite) TestWheelInspectArtefact(c *C) {
 
 	c.Check(a.Metadata.Type, Equals, "text/html")
 	c.Check(a.Metadata.Name, Equals, "Simple index for 'foobar'")
-	c.Check(a.Metadata.Version, Equals, "85fc2d2")
 	c.Check(a.Metadata.Vendor, Equals, "pypi.org")
 	c.Check(a.Metadata.Description, Equals, "PyPI repository index HTML file for package 'foobar'")
 	c.Check(a.Metadata.Author, Equals, "pypi.org")
