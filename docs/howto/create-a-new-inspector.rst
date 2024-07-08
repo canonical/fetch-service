@@ -131,9 +131,9 @@ and checks other artefacts against this internal state::
           }
 
           if data, err := checkIfIndexFile(a); err == nil {
-                  lock.Lock()
+                  ins.lock.Lock()
+                  defer ins.lock.Unlock()
                   ins.validDigests = data.ValidDigests
-                  lock.Unlock()
                   return nil
           }
 
