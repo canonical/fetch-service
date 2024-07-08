@@ -207,6 +207,47 @@ func (s *uploadPackSuite) TestInspectFetchRequest(c *C) {
 	c.Assert(a.RequestRejected(), Equals, false)
 }
 
+func (s *uploadPackSuite) TestInspectFetchRequestDuplicateRef(c *C) {
+	// FIXME: using github as placeholder, final URLs will change
+	url := "https://github.com:443/user/project.git/git-upload-pack"
+
+	ins := git.NewUploadPackInspector()
+	a := fakeGitArtefact()
+	a.CurrentDownload.URL = url
+	a.Request, _ = http.NewRequest("GET", url, nil)
+	a.Request.Body = io.NopCloser(strings.NewReader(
+		"0012command=fetch\n" +
+			"000ddeepen 1\n" +
+			"0036want 6b99254b1c5c823d054bc0ae1ebccfa070380fce013f\n" +
+			"0036want 6b99254b1c5c823d054bc0ae1ebccfa070380fce013f\n" +
+			"0000",
+	))
+
+	err := ins.InspectRequest(a)
+	c.Assert(err, IsNil)
+	c.Assert(a.RequestInspection["git.upload-pack"], DeepEquals, &Inspection{
+		Opinion: opinions.Pending,
+		Reason:  "valid URL for git upload-pack",
+		Annotations: Annotation{
+			"repository": "https://github.com:443/user/project.git",
+			"num-wants":  1,
+			"wants":      []string{"6b99254b1c5c823d054bc0ae1ebccfa070380fce013f"},
+			"is-shallow": true,
+			"project":    "project",
+			"protocol":   "version=2",
+			"command":    "fetch",
+			"client-request": []string{
+				"command=fetch",
+				"deepen 1",
+				"want 6b99254b1c5c823d054bc0ae1ebccfa070380fce013f",
+				"want 6b99254b1c5c823d054bc0ae1ebccfa070380fce013f",
+			},
+		},
+	})
+	c.Assert(a.RequestPending(), Equals, true)
+	c.Assert(a.RequestRejected(), Equals, false)
+}
+
 func (s *uploadPackSuite) TestInspectFetchRequestReject(c *C) {
 	// FIXME: using github as placeholder, final URLs will change
 	url := "https://github.com:443/user/project.git/git-upload-pack"

@@ -141,6 +141,7 @@ func (ins *UploadPackInspector) InspectRequest(a RequestArtefact) error {
 	case "fetch":
 		// allow fetch only if shallow and single ref
 		isShallow := false
+		wantmap := map[string]struct{}{}
 		wants := []string{}
 		want_refs := []string{}
 
@@ -148,7 +149,11 @@ func (ins *UploadPackInspector) InspectRequest(a RequestArtefact) error {
 			if strings.HasPrefix(msg, "deepen ") {
 				isShallow = (msg == "deepen 1")
 			} else if strings.HasPrefix(msg, "want ") {
-				wants = append(wants, msg[5:])
+				ref := msg[5:]
+				if _, ok := wantmap[ref]; !ok {
+					wantmap[ref] = struct{}{}
+					wants = append(wants, ref)
+				}
 			} else if strings.HasPrefix(msg, "want-ref ") {
 				want_refs = append(want_refs, msg[9:])
 			}
