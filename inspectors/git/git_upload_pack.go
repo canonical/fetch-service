@@ -33,8 +33,6 @@ import (
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/logger"
-	"github.com/canonical/fetch-service/metadata"
-	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
 // The UploadPackInspector handles upload-pack requests. It recognizes
@@ -66,13 +64,13 @@ func (ins *UploadPackInspector) ID() string {
 //   - The request URL must match a valid upload-pack pattern.
 //   - The upload-pack command must be "ls-refs" or "fetch".
 //   - If command is "fetch", it must want a single shallow ref.
-func (ins *UploadPackInspector) InspectRequest(a *metadata.Artefact) error {
+func (ins *UploadPackInspector) InspectRequest(a RequestArtefact) error {
 	proto := getGitProtocol(a)
 	if proto != "version=2" {
 		return nil
 	}
 
-	u, err := url.Parse(a.CurrentDownload.URL)
+	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
@@ -88,12 +86,12 @@ func (ins *UploadPackInspector) InspectRequest(a *metadata.Artefact) error {
 	}
 	ins.Unlock()
 
-	content_type, ok := a.CurrentDownload.RequestHeader["Content-Type"]
+	content_type, ok := a.RequestHeader("Content-Type")
 	if !ok || len(content_type) < 1 || content_type[0] != "application/x-git-upload-pack-request" {
 		return nil // we don't recognize this request
 	}
 
-	accept, ok := a.CurrentDownload.RequestHeader["Accept"]
+	accept, ok := a.RequestHeader("Accept")
 	if !ok || len(accept) < 1 || accept[0] != "application/x-git-upload-pack-result" {
 		return nil // we don't recognize this request
 	}
@@ -108,7 +106,7 @@ func (ins *UploadPackInspector) InspectRequest(a *metadata.Artefact) error {
 
 	// Set body to a new reader that inspects the git protocol so we can
 	// examine the request body.
-	notes := metadata.Annotation{
+	notes := Annotation{
 		"repository": repo,
 		"protocol":   proto,
 		"project":    info.project,
@@ -116,10 +114,11 @@ func (ins *UploadPackInspector) InspectRequest(a *metadata.Artefact) error {
 
 	// Read request body and get protocol messages
 	var client_msgs []string
-	a.Request.Body, err = newUploadPackRequestHandler(ins.ID(), a.Request, &client_msgs)
+	body, err := newUploadPackRequestHandler(ins.ID(), a.HTTPRequest(), &client_msgs)
 	if err != nil {
 		return fmt.Errorf("cannot handle upload-pack request: %w", err)
 	}
+	a.SetRequestBody(body)
 
 	// Obtain the upload-pack command from the protocol messages
 	command := ""
@@ -130,7 +129,7 @@ func (ins *UploadPackInspector) InspectRequest(a *metadata.Artefact) error {
 		}
 	}
 	notes.Add("command", command)
-	logger.Debugf("request %s command %s", a.Request.URL.String(), command)
+	logger.Debugf("git-upload-pack request command %s", command)
 
 	// Special actions for commands
 	switch command {
@@ -165,21 +164,18 @@ func (ins *UploadPackInspector) InspectRequest(a *metadata.Artefact) error {
 		}
 
 		if !isShallow {
-			a.SetRequestOpinion(ins.ID(), opinions.Rejected,
-				"fetch is only allowed with depth 1").Annotate(notes)
+			a.SetRequestRejected(ins, "fetch is only allowed with depth 1").Annotate(notes)
 			return nil
 		} else if len(wants) > 1 {
-			a.SetRequestOpinion(ins.ID(), opinions.Rejected,
-				"fetch is only allowed on a single ref").Annotate(notes)
+			a.SetRequestRejected(ins, "fetch is only allowed on a single ref").Annotate(notes)
 			return nil
 		}
 	default:
-		a.SetRequestOpinion(ins.ID(), opinions.Rejected,
-			"only ls-refs and fetch commands are allowed").Annotate(notes)
+		a.SetRequestRejected(ins, "only ls-refs and fetch commands are allowed").Annotate(notes)
 		return nil
 	}
 
-	a.SetRequestOpinion(ins.ID(), opinions.Pending, "valid URL for git upload-pack").Annotate(notes)
+	a.SetRequestPending(ins, "valid URL for git upload-pack").Annotate(notes)
 	return nil
 }
 
@@ -194,9 +190,9 @@ func (ins *UploadPackInspector) InspectRequest(a *metadata.Artefact) error {
 // This inspector doesn't approve fetch artefacts and won't introspect into packfile
 // contents, but it will leave annotations in case of a successful fetch operation.
 // Approval is deferred to inspectors that examine specific types of git payloads.
-func (ins *UploadPackInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
+func (ins *UploadPackInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
 
-	if a.CurrentDownload.ContentType != "application/x-git-upload-pack-result" {
+	if a.ContentType() != "application/x-git-upload-pack-result" {
 		return nil
 	}
 
@@ -205,7 +201,7 @@ func (ins *UploadPackInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 		// this must have been set by the request inspector
 		return errors.New("cannot read request command annotation")
 	}
-	notes := metadata.Annotation{}
+	notes := Annotation{}
 
 	logger.Debugf("inspect git upload-pack artefact: command %q", command)
 
@@ -226,12 +222,12 @@ func (ins *UploadPackInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 	// Supported upload-pack commands are 'ls-refs' and 'fetch'
 	switch command {
 	case "ls-refs":
-		if !a.MimeType.Is("text/plain") {
-			a.SetResponseOpinion(ins.ID(), opinions.Rejected, "bad data type for ls-refs response")
+		if !a.MimetypeIs("text/plain") {
+			a.SetResponseRejected(ins, "bad data type for ls-refs response")
 			return nil
 		}
 
-		a.Metadata.Type = mimetypes.GitUploadPackLsRef
+		a.SetArtefactMetadata(ArtefactMetadata{Type: mimetypes.GitUploadPackLsRef})
 
 		msgs, err := decodeGitProtocol(f)
 		if err != nil {
@@ -262,20 +258,20 @@ func (ins *UploadPackInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 			}
 		}
 
-		a.SetResponseOpinion(ins.ID(), opinions.Approved,
+		a.SetResponseApproved(ins,
 			"git ls-refs response decoded").Annotate(notes)
 
 	case "fetch":
-		if !a.MimeType.Is("application/octet-stream") {
-			a.SetResponseOpinion(ins.ID(), opinions.Rejected, "bad data type for fetch response")
+		if !a.MimetypeIs("application/octet-stream") {
+			a.SetResponseRejected(ins, "bad data type for fetch response")
 			return nil
 		}
 
-		a.Metadata.Type = mimetypes.GitUploadPackFetch
+		a.SetArtefactMetadata(ArtefactMetadata{Type: mimetypes.GitUploadPackFetch})
 
 		if numWants, ok := a.RequestAnnotation(ins.ID(), "num-wants"); !ok || numWants != 1 {
 			notes.Add("num-wants", numWants)
-			a.SetResponseOpinion(ins.ID(), opinions.Rejected,
+			a.SetResponseRejected(ins,
 				"fetch is allowed only on a single ref").Annotate(notes)
 			return nil
 		}
@@ -304,25 +300,23 @@ func (ins *UploadPackInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Arte
 		notes.Add("server-response", server_msgs)
 
 		if !isShallow {
-			a.SetResponseOpinion(ins.ID(), opinions.Rejected,
+			a.SetResponseRejected(ins,
 				"fetch is only allowed with depth 1").Annotate(notes)
 			return nil
 		}
 
 		if numWants, ok := a.RequestAnnotation(ins.ID(), "num-wants"); !ok || numWants != 1 {
 			notes.Add("num-wants", numWants)
-			a.SetResponseOpinion(ins.ID(), opinions.Rejected,
+			a.SetResponseRejected(ins,
 				"fetch is allowed only on a single ref").Annotate(notes)
 			return nil
 		}
 
 		notes.Add("server-response", server_msgs)
-		a.SetResponseOpinion(ins.ID(), opinions.Unknown,
-			"git fetch response is valid but content is unknown").Annotate(notes)
+		a.SetResponseUnknown(ins, "git fetch response is valid but content is unknown").Annotate(notes)
 
 	default:
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected,
-			"only ls-refs and fetch commands are supported").Annotate(notes)
+		a.SetResponseRejected(ins, "only ls-refs and fetch commands are supported").Annotate(notes)
 	}
 
 	return nil

@@ -29,7 +29,7 @@ import (
 	"github.com/go-mmap/mmap"
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/inspectors"
+	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/pip"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
@@ -46,7 +46,7 @@ func (t *sdistSuite) SetUpTest(c *C) {
 var _ = Suite(&sdistSuite{})
 
 func (s *sdistSuite) TestSdistInspectorInterface(c *C) {
-	var iface inspectors.Inspector
+	var iface Inspector
 	ins := pip.NewSdistInspector()
 	c.Assert(ins, Implements, &iface)
 
@@ -166,7 +166,7 @@ func (s *sdistSuite) TestSdistInspectArtefactReadMetadata(c *C) {
 	ins := pip.NewSdistInspector()
 	a := metadata.NewArtefact()
 	a.MimeType = mimetype.Lookup("application/gzip")
-	a.SetRequestOpinion(ins.ID(), opinions.Pending, "test")
+	a.SetRequestPending(ins, "test")
 
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
@@ -178,10 +178,10 @@ func (s *sdistSuite) TestSdistInspectArtefactReadMetadata(c *C) {
 	c.Assert(a.Metadata.Author, Equals, "Canonical Ltd.")
 	c.Assert(a.Metadata.AuthorEmail, Equals, "snapcraft@lists.snapcraft.io")
 	c.Assert(a.Metadata.License, Equals, "GPL-3 and/or LGPL-3")
-	c.Assert(a.ResponseInspection["pip.sdist"], DeepEquals, &metadata.Inspection{
+	c.Assert(a.ResponseInspection["pip.sdist"], DeepEquals, &Inspection{
 		Opinion: opinions.Approved,
 		Reason:  "sdist file successfully parsed",
-		Annotations: metadata.Annotation{
+		Annotations: Annotation{
 			"metadata-version": "2.1",
 		},
 	})
@@ -242,7 +242,7 @@ func (s *sdistSuite) TestSdistInspectArtefactBadFormat(c *C) {
 		ins := pip.NewSdistInspector()
 		a := metadata.NewArtefact()
 		a.MimeType = mimetype.Lookup("application/gzip")
-		a.SetRequestOpinion(ins.ID(), opinions.Pending, "test")
+		a.SetRequestPending(ins, "test")
 
 		err = ins.InspectArtefact(f, a)
 		c.Assert(err, IsNil)

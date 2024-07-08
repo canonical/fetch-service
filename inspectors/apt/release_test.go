@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -31,8 +31,10 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/inspectors/apt"
+	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
@@ -79,7 +81,7 @@ func (s *aptSuite) TestAptReleaseArtefactInspector(c *C) {
 		{inReleaseArtefactData, false, false},
 		{"some arbitrary data", true, false},
 	} {
-		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes metadata.Annotation) (io.ReadSeeker, error) {
+		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes Annotation) (io.ReadSeeker, error) {
 			if !tc.validSig {
 				return f, errors.New("invalid signature")
 			}
@@ -106,7 +108,7 @@ func (s *aptSuite) TestAptReleaseArtefactInspector(c *C) {
 			c.Check(a.Metadata.Vendor, Equals, "Ubuntu")
 			c.Check(a.Metadata.Description, Equals, "Ubuntu Jammy Backports")
 			c.Check(a.Metadata.Author, Equals, "Ubuntu")
-			c.Check(a.ResponseInspection["apt.release"].Annotations, DeepEquals, metadata.Annotation{
+			c.Check(a.ResponseInspection["apt.release"].Annotations, DeepEquals, Annotation{
 				"Architectures":        "amd64 arm64 armhf i386 ppc64el riscv64 s390x",
 				"ButAutomaticUpgrades": "yes",
 				"Codename":             "jammy",
@@ -121,16 +123,16 @@ func (s *aptSuite) TestAptReleaseArtefactInspector(c *C) {
 				"Version":              "22.04",
 			})
 
-			sha256_1, _ := metadata.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
-			sha256_2, _ := metadata.NewSha256Digest("3b2b1ad6f76bec3c692d5932ceffed8c3c261c8b5fde78cd084432352c83d14d")
-			sha256_3, _ := metadata.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
-			sha256_4, _ := metadata.NewSha256Digest("4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed")
+			sha256_1, _ := digests.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
+			sha256_2, _ := digests.NewSha256Digest("3b2b1ad6f76bec3c692d5932ceffed8c3c261c8b5fde78cd084432352c83d14d")
+			sha256_3, _ := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
+			sha256_4, _ := digests.NewSha256Digest("4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed")
 
 			// verify internal state
 			state := ins.Release()
 			c.Check(state["https://my.archive/test"], DeepEquals, apt.ReleaseFile{
 				Vendor: "Ubuntu",
-				Files: map[metadata.Sha256Digest]apt.ReleaseEntry{
+				Files: map[digests.Sha256Digest]apt.ReleaseEntry{
 					sha256_1: apt.ReleaseEntry{Name: "main/binary-amd64/Packages", Size: 240952},
 					sha256_2: apt.ReleaseEntry{Name: "main/binary-amd64/Packages.gz", Size: 49419},
 					sha256_3: apt.ReleaseEntry{Name: "main/binary-amd64/Packages.xz", Size: 40928},
@@ -155,7 +157,7 @@ func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
 		{inReleaseArtefactData, "tests/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 792, false},
 		{inReleaseArtefactData, "tests/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 600, false},
 	} {
-		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes metadata.Annotation) (io.ReadSeeker, error) {
+		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes Annotation) (io.ReadSeeker, error) {
 			return f, nil
 		})
 		defer restorer()
@@ -181,7 +183,7 @@ func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
 		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/devel/main/i18n/by-hash/SHA256/" + tc.translationDigest
 		a.Metadata.Type = "application/x.apt.translation"
 		a.Metadata.Size = tc.translationSize
-		a.Metadata.Sha256, err = metadata.NewSha256Digest(tc.translationDigest)
+		a.Metadata.Sha256, err = digests.NewSha256Digest(tc.translationDigest)
 		c.Assert(err, IsNil)
 
 		translationFile, _ := os.Open(tc.translationLocalFileName)
@@ -203,8 +205,8 @@ func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
 }
 
 func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
-	sha256_rel, _ := metadata.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
-	sha256_pkg, _ := metadata.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
+	sha256_rel, _ := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
+	sha256_pkg, _ := digests.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
 
 	a := metadata.NewArtefact()
 	a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6"
@@ -216,7 +218,7 @@ func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
 	rf := apt.ReleaseFile{
 		Sha256: sha256_rel,
 		Vendor: "Canonical",
-		Files: map[metadata.Sha256Digest]apt.ReleaseEntry{
+		Files: map[digests.Sha256Digest]apt.ReleaseEntry{
 			sha256_pkg: apt.ReleaseEntry{
 				Size: 1337,
 				Name: "main/binary-amd64/Packages.xz",
@@ -229,10 +231,10 @@ func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
 	err := ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
-	c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &metadata.Inspection{
+	c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
 		Opinion: opinions.Approved,
 		Reason:  "Packages file listed in Release",
-		Annotations: metadata.Annotation{
+		Annotations: Annotation{
 			"file-path":    "main/binary-amd64/Packages.xz",
 			"release-file": "9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6",
 			"vendor":       "Canonical",
@@ -241,8 +243,8 @@ func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
 }
 
 func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
-	sha256_rel, _ := metadata.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
-	sha256_trn, _ := metadata.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
+	sha256_rel, _ := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
+	sha256_trn, _ := digests.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
 
 	a := metadata.NewArtefact()
 	a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/i18n/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6"
@@ -255,7 +257,7 @@ func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
 	rf := apt.ReleaseFile{
 		Sha256: sha256_rel,
 		Vendor: "Canonical",
-		Files: map[metadata.Sha256Digest]apt.ReleaseEntry{
+		Files: map[digests.Sha256Digest]apt.ReleaseEntry{
 			sha256_trn: apt.ReleaseEntry{
 				Size: 1337,
 				Name: "main/i18n/Translation-en.xz",
@@ -268,10 +270,10 @@ func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
 	err := ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
-	c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &metadata.Inspection{
+	c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
 		Opinion: opinions.Approved,
 		Reason:  "Translation file listed in Release",
-		Annotations: metadata.Annotation{
+		Annotations: Annotation{
 			"file-path":    "main/i18n/Translation-en.xz",
 			"release-file": "9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6",
 			"vendor":       "Canonical",
@@ -313,7 +315,7 @@ func (s *aptSuite) TestAptReleaseSignature(c *C) {
 	c.Check(a.Metadata.Vendor, Equals, "Ubuntu")
 	c.Check(a.Metadata.Description, Equals, "Ubuntu Jammy Updates")
 	c.Check(a.Metadata.Author, Equals, "Ubuntu")
-	c.Check(a.ResponseInspection["apt.release"].Annotations, DeepEquals, metadata.Annotation{
+	c.Check(a.ResponseInspection["apt.release"].Annotations, DeepEquals, Annotation{
 		"Architectures": "amd64 arm64 armhf i386 ppc64el riscv64 s390x",
 		"Codename":      "jammy",
 		"Components":    "main restricted universe multiverse",

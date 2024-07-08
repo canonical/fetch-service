@@ -25,12 +25,12 @@ import (
 	"io"
 	"strconv"
 
+	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/logger"
-	"github.com/canonical/fetch-service/metadata"
 )
 
-func getGitProtocol(a *metadata.Artefact) string {
-	proto, ok := a.CurrentDownload.RequestHeader["Git-Protocol"]
+func getGitProtocol(a RequestArtefact) string {
+	proto, ok := a.RequestHeader("Git-Protocol")
 	if !ok || len(proto) != 1 {
 		return ""
 	}

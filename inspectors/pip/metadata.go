@@ -28,8 +28,6 @@ import (
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
-	"github.com/canonical/fetch-service/metadata"
-	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
 type MetadataInspector struct {
@@ -44,22 +42,22 @@ func (MetadataInspector) ID() string {
 }
 
 // InspectRequest verifies if the request complies with policy.
-func (ins MetadataInspector) InspectRequest(a *metadata.Artefact) error {
-	u, err := url.Parse(a.CurrentDownload.URL)
+func (ins *MetadataInspector) InspectRequest(a RequestArtefact) error {
+	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
 	if checkMetadataUrl(u) == nil {
-		a.SetRequestOpinion(ins.ID(), opinions.Pending, "request matches valid URL")
+		a.SetRequestPending(ins, "request matches valid URL")
 	}
 
 	return nil // we don't recognize this request
 }
 
 // InspectArtefact extracts metadata from a known artefact file format.
-func (ins *MetadataInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
-	if !a.MimeType.Is("text/plain") {
+func (ins *MetadataInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+	if !a.MimetypeIs("text/plain") {
 		return nil
 	}
 
@@ -71,14 +69,12 @@ func (ins *MetadataInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefa
 }
 
 // parseMetadataFile reads metadata entries from the downloaded artefact.
-func (ins *MetadataInspector) parseMetadataFile(f io.Reader, a *metadata.Artefact) error {
+func (ins *MetadataInspector) parseMetadataFile(f io.Reader, a ResponseArtefact) error {
 	sc := bufio.NewScanner(f)
 	sc.Split(bufio.ScanLines)
 
 	var mver string
-	var name, version, author, email, maintainer string
-
-	md := &a.Metadata
+	var name, version, author, email, maintainer, vendor string
 
 	for sc.Scan() {
 		line := sc.Text()
@@ -112,21 +108,24 @@ func (ins *MetadataInspector) parseMetadataFile(f io.Reader, a *metadata.Artefac
 		return nil // not a python metadata file
 	}
 
-	md.Type = mimetypes.PythonMetadata
-	md.Name = name
-	md.Version = version
-	md.Description = "Python metadata file"
-	md.Author = author
-	md.AuthorEmail = email
-
 	if author != "" {
-		md.Vendor = author
+		vendor = author
 	} else {
-		md.Vendor = maintainer
+		vendor = maintainer
 	}
 
-	a.SetResponseOpinion(ins.ID(), opinions.Approved, "metadata file successfully parsed").Annotate(
-		metadata.Annotation{
+	a.SetArtefactMetadata(ArtefactMetadata{
+		Type:        mimetypes.PythonMetadata,
+		Name:        name,
+		Version:     version,
+		Description: "Python metadata file",
+		Author:      author,
+		AuthorEmail: email,
+		Vendor:      vendor,
+	})
+
+	a.SetResponseApproved(ins, "metadata file successfully parsed").Annotate(
+		Annotation{
 			"metadata-version": mver,
 		},
 	)

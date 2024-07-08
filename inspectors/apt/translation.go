@@ -31,8 +31,6 @@ import (
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/logger"
-	"github.com/canonical/fetch-service/metadata"
-	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
 // Check if the given data could be a valid Translation file.
@@ -109,15 +107,15 @@ func (ins *AptTranslationInspector) ID() string {
 	return "apt.translations"
 }
 
-func (ins *AptTranslationInspector) InspectRequest(a *metadata.Artefact) error {
-	u, err := url.Parse(a.CurrentDownload.URL)
+func (ins *AptTranslationInspector) InspectRequest(a RequestArtefact) error {
+	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
 	if info, err := newTranslationUrlInfo(u); err == nil {
-		a.SetRequestOpinion(ins.ID(), opinions.Pending, "valid URL for Translation file").Annotate(
-			metadata.Annotation{
+		a.SetRequestPending(ins, "valid URL for Translation file").Annotate(
+			Annotation{
 				"repository": info.repository,
 				"dist":       info.dist,
 				"component":  info.component,
@@ -128,8 +126,8 @@ func (ins *AptTranslationInspector) InspectRequest(a *metadata.Artefact) error {
 	return nil
 }
 
-func (ins *AptTranslationInspector) InspectArtefact(f ReadAtSeeker, a *metadata.Artefact) error {
-	if a.Metadata.Type != mimetypes.AptTranslation {
+func (ins *AptTranslationInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+	if !a.MimetypeIs(mimetypes.AptTranslation) {
 		return nil
 	}
 	fSize := f.Len()
@@ -138,7 +136,7 @@ func (ins *AptTranslationInspector) InspectArtefact(f ReadAtSeeker, a *metadata.
 		return nil
 	}
 
-	_, err := url.Parse(a.CurrentDownload.URL)
+	_, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
@@ -167,7 +165,7 @@ func (ins *AptTranslationInspector) InspectArtefact(f ReadAtSeeker, a *metadata.
 
 		if strings.HasPrefix(line, "Package: ") {
 			if state_package {
-				a.SetResponseOpinion(ins.ID(), opinions.Rejected,
+				a.SetResponseRejected(ins,
 					"misplaced Package fields in Translation file")
 				return nil
 			}
@@ -175,7 +173,7 @@ func (ins *AptTranslationInspector) InspectArtefact(f ReadAtSeeker, a *metadata.
 			continue
 		} else if strings.HasPrefix(line, "Description-md5: ") {
 			if !state_package {
-				a.SetResponseOpinion(ins.ID(), opinions.Rejected,
+				a.SetResponseRejected(ins,
 					"description-md5 field without Package field")
 				return nil
 			}
@@ -183,7 +181,7 @@ func (ins *AptTranslationInspector) InspectArtefact(f ReadAtSeeker, a *metadata.
 			continue
 		} else if strings.HasPrefix(line, "Description-") {
 			if !state_md5sum || !state_package {
-				a.SetResponseOpinion(ins.ID(), opinions.Rejected,
+				a.SetResponseRejected(ins,
 					"description field without Package or Description-md5 field")
 				return nil
 			}
@@ -197,7 +195,7 @@ func (ins *AptTranslationInspector) InspectArtefact(f ReadAtSeeker, a *metadata.
 			continue
 		} else if strings.HasPrefix(line, " ") { // Description field continuation with leading space
 			if !state_description {
-				a.SetResponseOpinion(ins.ID(), opinions.Rejected,
+				a.SetResponseRejected(ins,
 					"description field without Package or Description-md5 field")
 				return nil
 			}
@@ -216,35 +214,36 @@ func (ins *AptTranslationInspector) InspectArtefact(f ReadAtSeeker, a *metadata.
 	if item_count > 0 {
 		if state_package {
 			if !state_md5sum {
-				a.SetResponseOpinion(ins.ID(), opinions.Rejected,
+				a.SetResponseRejected(ins,
 					"description-md5 field missing for the last Package")
 				return nil
 			}
 			if !state_description {
-				a.SetResponseOpinion(ins.ID(), opinions.Rejected,
+				a.SetResponseRejected(ins,
 					"description field missing for the last Package")
 				return nil
 			}
 		}
 	} else if fSize > 0 {
-		a.SetResponseOpinion(ins.ID(), opinions.Rejected, "not a valid Translation file")
+		a.SetResponseRejected(ins, "not a valid Translation file")
 		return nil
 	}
 
-	a.Metadata.Name = "Translation"
-
-	// the file should be also annotated by the release inspector
-	rins, ok := a.ResponseInspection["apt.release"]
-	if ok {
-		v, ok := rins.Annotations["vendor"]
-		if ok {
-			a.Metadata.Author = fmt.Sprintf("%s", v)
-			a.Metadata.Vendor = fmt.Sprintf("%s", v)
-		}
+	md := ArtefactMetadata{
+		Type: mimetypes.AptTranslation,
+		Name: "Translation",
 	}
 
-	a.SetResponseOpinion(ins.ID(), opinions.Approved, "translation file successfully parsed").Annotate(
-		metadata.Annotation{
+	// the file should be also annotated by the release inspector
+	vendor, ok := a.ResponseStringAnnotation("apt.release", "vendor")
+	if ok {
+		md.Vendor = vendor
+		md.Author = vendor
+	}
+
+	a.SetArtefactMetadata(md)
+	a.SetResponseApproved(ins, "translation file successfully parsed").Annotate(
+		Annotation{
 			"translation-language": lang,
 			"translation-count":    item_count,
 		},

@@ -26,9 +26,11 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/metadata/opinions"
 	"github.com/canonical/fetch-service/session"
 )
@@ -56,7 +58,7 @@ func (t *inspectorsSuite) TestRunRequestInspectors(c *C) {
 	err := s.Insps.RunRequestInspectors(a)
 	c.Assert(err, IsNil)
 	c.Assert(len(a.RequestInspection), Equals, 1)
-	c.Assert(a.RequestInspection["default"], DeepEquals, &metadata.Inspection{
+	c.Assert(a.RequestInspection["default"], DeepEquals, &Inspection{
 		Opinion: opinions.Unknown,
 		Reason:  "the request was not recognized by any format inspector",
 	})
@@ -71,7 +73,7 @@ func (t *inspectorsSuite) TestRunRequestInspectorsPermissive(c *C) {
 	err := s.Insps.RunRequestInspectors(a)
 	c.Assert(err, IsNil)
 	c.Assert(len(a.RequestInspection), Equals, 1)
-	c.Assert(a.RequestInspection["default"], DeepEquals, &metadata.Inspection{
+	c.Assert(a.RequestInspection["default"], DeepEquals, &Inspection{
 		Opinion: opinions.Unknown,
 		Reason:  "the request was not recognized by any format inspector",
 	})
@@ -83,7 +85,7 @@ func (t *inspectorsSuite) TestRunArtefactInspectors(c *C) {
 	err := os.WriteFile(filepath.Join(dir, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.data"), data, 0644)
 	c.Assert(err, IsNil)
 
-	h, _ := metadata.NewSha256Digest(MySha256)
+	h, _ := digests.NewSha256Digest(MySha256)
 	a := metadata.NewArtefact()
 	a.CurrentDownload.ContentType = "text/plain"
 	a.CurrentDownload.Sha256 = h
@@ -96,7 +98,7 @@ func (t *inspectorsSuite) TestRunArtefactInspectors(c *C) {
 	c.Assert(err, Equals, nil)
 	c.Assert(a.Metadata.Type, Equals, "text/plain; charset=utf-8")
 	c.Assert(len(a.ResponseInspection), Equals, 1)
-	c.Assert(a.ResponseInspection["default"], DeepEquals, &metadata.Inspection{
+	c.Assert(a.ResponseInspection["default"], DeepEquals, &Inspection{
 		Opinion: opinions.Unknown,
 		Reason:  "the artefact format is unknown",
 	})
@@ -109,7 +111,7 @@ func (t *inspectorsSuite) TestRunArtefactInspectorsPermissive(c *C) {
 	err := os.WriteFile(filepath.Join(dir, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.data"), data, 0644)
 	c.Assert(err, IsNil)
 
-	h, _ := metadata.NewSha256Digest(MySha256)
+	h, _ := digests.NewSha256Digest(MySha256)
 	a := metadata.NewArtefact()
 	a.CurrentDownload.ContentType = "text/plain"
 	a.CurrentDownload.Sha256 = h
@@ -123,7 +125,7 @@ func (t *inspectorsSuite) TestRunArtefactInspectorsPermissive(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(a.Metadata.Type, Equals, "text/plain; charset=utf-8")
 	c.Assert(len(a.ResponseInspection), Equals, 1)
-	c.Assert(a.ResponseInspection["default"], DeepEquals, &metadata.Inspection{
+	c.Assert(a.ResponseInspection["default"], DeepEquals, &Inspection{
 		Opinion: opinions.Unknown,
 		Reason:  "the artefact format is unknown",
 	})

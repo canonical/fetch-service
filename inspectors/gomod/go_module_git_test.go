@@ -29,7 +29,7 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/inspectors"
+	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/gomod"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
@@ -48,7 +48,7 @@ func (t *goModuleGitSuite) SetUpTest(c *C) {
 }
 
 func (s *goModuleGitSuite) TestGoModuleGitInspectorInterface(c *C) {
-	var iface inspectors.Inspector
+	var iface Inspector
 	ins := gomod.NewGoModuleGitInspector()
 	c.Assert(ins, Implements, &iface)
 
@@ -83,8 +83,8 @@ func (s *goModuleGitSuite) TestInspectGoModuleGitRequest(c *C) {
 			"Content-Type": []string{"application/x-git-upload-pack-request"},
 			"Accept":       []string{"application/x-git-upload-pack-result"},
 		}
-		a.RequestInspection["git.upload-pack"] = &metadata.Inspection{
-			Annotations: metadata.Annotation{"command": "fetch"},
+		a.RequestInspection["git.upload-pack"] = &Inspection{
+			Annotations: Annotation{"command": "fetch"},
 		}
 		a.Request, _ = http.NewRequest("GET", tc.url, nil)
 		a.Request.Body = io.NopCloser(strings.NewReader("0014command=ls-refs\n0000"))
@@ -164,10 +164,10 @@ func (s *goModuleGitSuite) TestGoModuleGitInspectArtefact(c *C) {
 		a.Request.Body = io.NopCloser(strings.NewReader("0014command=fetch\n0000"))
 		a.MimeType = mimetype.Lookup("application/octet-stream")
 		a.RequestInspection = metadata.InspectionMap{
-			"git.upload-pack": &metadata.Inspection{
+			"git.upload-pack": &Inspection{
 				Opinion: opinions.Pending,
 				Reason:  "valid URL for git upload-pack",
-				Annotations: metadata.Annotation{
+				Annotations: Annotation{
 					"client-request": []string{
 						"command=fetch",
 						"agent=git/2.34.1",
@@ -194,10 +194,10 @@ func (s *goModuleGitSuite) TestGoModuleGitInspectArtefact(c *C) {
 		}
 		if tc.has_version {
 			a.ResponseInspection = metadata.InspectionMap{
-				"git.upload-pack": &metadata.Inspection{
+				"git.upload-pack": &Inspection{
 					Opinion: opinions.Unknown,
 					Reason:  "",
-					Annotations: metadata.Annotation{
+					Annotations: Annotation{
 						"tags": map[string]string{
 							"v1.0": "467ef24fabbcce4a3bda7af3918fb970ee970c8b",
 						},
