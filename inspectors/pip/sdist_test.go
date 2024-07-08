@@ -26,9 +26,9 @@ import (
 	"path/filepath"
 
 	"github.com/gabriel-vasile/mimetype"
-	"github.com/go-mmap/mmap"
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/inspectors"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/pip"
 	"github.com/canonical/fetch-service/logger"
@@ -159,7 +159,7 @@ func (s *sdistSuite) TestSdistInspectArtefactReadMetadata(c *C) {
 	c.Assert(err, IsNil)
 
 	// Inspect test sdist
-	f, err := mmap.Open(testfile)
+	f, err := inspectors.OpenArtefactFile(testfile)
 	c.Assert(err, IsNil)
 	defer f.Close()
 
@@ -235,7 +235,7 @@ func (s *sdistSuite) TestSdistInspectArtefactBadFormat(c *C) {
 		c.Assert(err, IsNil)
 
 		// Inspect test sdist
-		f, err := mmap.Open(testfile)
+		f, err := inspectors.OpenArtefactFile(testfile)
 		c.Assert(err, IsNil)
 		defer f.Close()
 

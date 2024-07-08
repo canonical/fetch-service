@@ -22,14 +22,15 @@ package inspectors
 import (
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 
 	"github.com/gabriel-vasile/mimetype"
-	"github.com/go-mmap/mmap"
 
 	"github.com/canonical/fetch-service/inspectors/apt"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/deb"
+	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/git"
 	"github.com/canonical/fetch-service/inspectors/gomod"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
@@ -41,8 +42,7 @@ import (
 )
 
 func init() {
-	mimetype.SetLimit(1 << 30) // input data is mmapped
-	mimetype.Lookup("application/zip").Extend(pip.WheelDetector, mimetypes.PythonWheel, ".whl")
+	mimetype.SetLimit(1 << 16) // set buffer size to 64Kb
 	mimetype.Lookup("application/x-xz").Extend(apt.AptPackagesDetector, mimetypes.AptPackages, "")
 	mimetype.Lookup("application/x-xz").Extend(apt.AptTranslationDetector, mimetypes.AptTranslation, "")
 	mimetype.Lookup("application/octet-stream").Extend(snap.SquashFsDetector, mimetypes.SquashFs, "")
@@ -128,7 +128,7 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 	filename := filepath.Join(dir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
 	logger.Debugf("run artefact inspectors on %s", filename)
 
-	f, err := mmap.Open(filename)
+	f, err := OpenArtefactFile(filename)
 	if err != nil {
 		return err
 	}
@@ -186,6 +186,15 @@ func (insps Inspectors) GetInspector(id string) (Inspector, error) {
 // List returns the list of all registered inspector IDs.
 func (insps Inspectors) List() []string {
 	return insps.ids
+}
+
+// OpenArtefactFile opens a downloaded artefact file for reading.
+func OpenArtefactFile(filename string) (*files.ArtefactFile, error) {
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	return files.NewArtefactFile(f)
 }
 
 // DefaultInspector is a fallback inspector for unknown requests or artefacts.
