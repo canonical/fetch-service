@@ -21,7 +21,6 @@ package utils
 
 import (
 	"archive/zip"
-	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -39,20 +38,19 @@ var (
 // ZipMatches returns true if the zip file headers from in matches
 // any of the path patterns. This is typically used in mime type
 // detection of zipped files, such as Python wheels.
-func ZipMatches(in []byte, patterns ...string) bool {
-	z, err := zip.NewReader(bytes.NewReader(in), int64(len(in)))
+func ZipMatches(in io.ReaderAt, size int64, patterns []*regexp.Regexp) bool {
+	z, err := zip.NewReader(in, size)
 	if err != nil {
 		return false
 	}
 
 	num := len(patterns)
-	m := make(map[string]struct{}, num)
 
 	for _, f := range z.File {
 		for _, p := range patterns {
-			if matched, _ := regexp.MatchString(p, f.Name); matched {
-				m[p] = struct{}{}
-				if len(m) == num {
+			if matched := p.MatchString(f.Name); matched {
+				num--
+				if num == 0 {
 					// all patterns found
 					return true
 				}

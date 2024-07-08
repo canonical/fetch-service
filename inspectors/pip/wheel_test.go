@@ -24,9 +24,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/go-mmap/mmap"
+	"github.com/gabriel-vasile/mimetype"
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/inspectors"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/pip"
 	"github.com/canonical/fetch-service/logger"
@@ -95,7 +96,7 @@ func (s *wheelSuite) TestInspectRequest(c *C) {
 func (s *wheelSuite) TestInspectArtefactBadType(c *C) {
 	ins := pip.NewWheelInspector()
 	a := metadata.NewArtefact()
-	a.Metadata.Type = "application/zip"
+	a.MimeType = mimetype.Lookup("application/octet-stream")
 
 	err := ins.InspectArtefact(nil, a)
 	c.Assert(err, IsNil)
@@ -120,13 +121,13 @@ func (s *wheelSuite) TestWheelInspectArtefactBadContent(c *C) {
 	err = testutils.CreateZip(zipfile, zdir)
 	c.Assert(err, IsNil)
 
-	f, err := mmap.Open(zipfile)
+	f, err := inspectors.OpenArtefactFile(zipfile)
 	c.Assert(err, IsNil)
 	defer f.Close()
 
 	ins := pip.NewWheelInspector()
 	a := metadata.NewArtefact()
-	a.Metadata.Type = "application/x.python.wheel"
+	a.MimeType = mimetype.Lookup("application/zip")
 	a.SetRequestPending(ins, "test")
 
 	err = ins.InspectArtefact(f, a)
@@ -169,7 +170,7 @@ func (s *wheelSuite) TestWheelReadMetadata(c *C) {
 	err = testutils.CreateZip(zipfile, zdir)
 	c.Assert(err, IsNil)
 
-	f, err := mmap.Open(zipfile)
+	f, err := inspectors.OpenArtefactFile(zipfile)
 	c.Assert(err, IsNil)
 	defer f.Close()
 
@@ -319,7 +320,7 @@ func (s *wheelSuite) TestReadWheelRecord(c *C) {
 		err = testutils.CreateZip(zipfile, zdir)
 		c.Assert(err, IsNil)
 
-		f, err := mmap.Open(zipfile)
+		f, err := inspectors.OpenArtefactFile(zipfile)
 		c.Assert(err, IsNil)
 		defer f.Close()
 
@@ -351,9 +352,9 @@ func (s *wheelSuite) TestWheelInspectArtefact(c *C) {
 	c.Assert(err, IsNil)
 
 	a := metadata.NewArtefact()
-	a.Metadata.Type = "application/x.python.wheel"
+	a.MimeType = mimetype.Lookup("application/zip")
 
-	f, err := mmap.Open(filename)
+	f, err := inspectors.OpenArtefactFile(filename)
 	c.Assert(err, IsNil)
 	defer f.Close()
 
@@ -361,6 +362,7 @@ func (s *wheelSuite) TestWheelInspectArtefact(c *C) {
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 
+	c.Assert(a.Approved(), Equals, true)
 	c.Check(a.Metadata.Type, Equals, "application/x.python.wheel")
 	c.Check(a.Metadata.Name, Equals, "craft-grammar")
 	c.Check(a.Metadata.Version, Equals, "1.1.1")
@@ -369,7 +371,6 @@ func (s *wheelSuite) TestWheelInspectArtefact(c *C) {
 	c.Check(a.Metadata.Author, Equals, "Canonical Ltd.")
 	c.Check(a.Metadata.AuthorEmail, Equals, "snapcraft@lists.snapcraft.io")
 	c.Check(a.Metadata.License, Equals, "LGPL-3")
-	c.Assert(a.Approved(), Equals, true)
 }
 
 func writeFile(dir, name, data string) error {
