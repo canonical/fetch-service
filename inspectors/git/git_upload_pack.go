@@ -150,7 +150,7 @@ func (ins *UploadPackInspector) InspectRequest(a RequestArtefact) error {
 				isShallow = (msg == "deepen 1")
 			} else if strings.HasPrefix(msg, "want ") {
 				ref := msg[5:]
-				if _, ok := wantmap[ref]; !ok {
+				if _, ok := wantmap[ref]; !ok { // don't store duplicate entries
 					wantmap[ref] = struct{}{}
 					wants = append(wants, ref)
 				}
