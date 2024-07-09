@@ -24,8 +24,8 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/inspectors"
 	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/snap"
 	"github.com/canonical/fetch-service/metadata"
 )
@@ -41,7 +41,7 @@ func (s *snapSuite) TestSnapArtefactInspector(c *C) {
 	a.Metadata.Type = "application/x.squashfs"
 	a.Metadata.Size = 8192
 
-	f, err := inspectors.OpenArtefactFile("tests/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
+	f, err := files.OpenArtefactFile("tests/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
 	c.Assert(err, IsNil)
 	defer f.Close()
 

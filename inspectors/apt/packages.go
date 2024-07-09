@@ -217,7 +217,7 @@ func (ins *AptPackagesInspector) InspectRequest(a RequestArtefact) error {
 	return nil
 }
 
-func (ins *AptPackagesInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+func (ins *AptPackagesInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
 	if a.MimetypeIs(mimetypes.DebianBinaryPackage) {
 		return ins.validateDebianPackage(f, a)
 	}
@@ -358,7 +358,7 @@ func (ins *AptPackagesInspector) getPackages(origin, packagesPath string) (*aptP
 
 // validateDebianPackage verifies if the deb package is listed in the
 // Packages.xz file. The package downloaded from the package pool.
-func (ins *AptPackagesInspector) validateDebianPackage(f ArtefactFile, a ResponseArtefact) error {
+func (ins *AptPackagesInspector) validateDebianPackage(f ArtefactReader, a ResponseArtefact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)

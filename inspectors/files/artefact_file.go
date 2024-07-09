@@ -23,6 +23,7 @@ import (
 	"os"
 )
 
+// ArtefactFile is an implementation of ArtefactReader.
 type ArtefactFile struct {
 	f    *os.File
 	size int64
@@ -38,6 +39,15 @@ func NewArtefactFile(f *os.File) (*ArtefactFile, error) {
 		f:    f,
 		size: st.Size(),
 	}, nil
+}
+
+// OpenArtefactFile opens a downloaded artefact file for reading.
+func OpenArtefactFile(filename string) (*ArtefactFile, error) {
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	return NewArtefactFile(f)
 }
 
 // Read reads up to len(b) bytes from the ArtefactFile and stores them

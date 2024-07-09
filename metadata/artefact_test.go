@@ -94,7 +94,7 @@ func (ins *testInspector) InspectRequest(a RequestArtefact) error {
 	return nil
 }
 
-func (ins *testInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+func (ins *testInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
 	return nil
 }
 

@@ -190,7 +190,7 @@ func (ins *UploadPackInspector) InspectRequest(a RequestArtefact) error {
 // This inspector doesn't approve fetch artefacts and won't introspect into packfile
 // contents, but it will leave annotations in case of a successful fetch operation.
 // Approval is deferred to inspectors that examine specific types of git payloads.
-func (ins *UploadPackInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+func (ins *UploadPackInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
 
 	if a.ContentType() != "application/x-git-upload-pack-result" {
 		return nil

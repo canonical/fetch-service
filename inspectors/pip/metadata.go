@@ -56,7 +56,7 @@ func (ins *MetadataInspector) InspectRequest(a RequestArtefact) error {
 }
 
 // InspectArtefact extracts metadata from a known artefact file format.
-func (ins *MetadataInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+func (ins *MetadataInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
 	if !a.MimetypeIs("text/plain") {
 		return nil
 	}

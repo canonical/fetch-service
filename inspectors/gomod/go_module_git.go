@@ -93,7 +93,7 @@ func (ins *GoModuleGitInspector) InspectRequest(a RequestArtefact) error {
 
 // InspectArtefact verifies if the fetched repository data
 // contains a go module.
-func (ins *GoModuleGitInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+func (ins *GoModuleGitInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
 
 	if a.ContentType() != "application/x-git-upload-pack-result" {
 		return nil
