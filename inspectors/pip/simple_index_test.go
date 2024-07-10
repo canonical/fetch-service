@@ -26,8 +26,8 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/inspectors"
 	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/pip"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
@@ -117,7 +117,7 @@ func (s *simpleIndexSuite) TestWheelInspectArtefactBadContent(c *C) {
 	a.CurrentDownload.URL = "https://pypi.org:443/simple/foo/"
 	a.SetRequestPending(ins, "test")
 
-	f, err := inspectors.OpenArtefactFile(filename)
+	f, err := files.OpenArtefactFile(filename)
 	c.Assert(err, IsNil)
 	defer f.Close()
 
@@ -157,7 +157,7 @@ func (s *simpleIndexSuite) TestWheelInspectArtefact(c *C) {
 		Annotations: Annotation{"package-name": "foobar"},
 	}
 
-	f, err := inspectors.OpenArtefactFile(filename)
+	f, err := files.OpenArtefactFile(filename)
 	c.Assert(err, IsNil)
 	defer f.Close()
 

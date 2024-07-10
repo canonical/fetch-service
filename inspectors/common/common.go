@@ -33,8 +33,8 @@ var (
 	ErrRejectedArtefact = errors.New("artefact rejected by inspectors")
 )
 
-// ArtefactFile represents the downloaded artefact file.
-type ArtefactFile interface {
+// ArtefactReader represents the downloaded artefact file.
+type ArtefactReader interface {
 	io.ReadSeeker
 	io.ReaderAt
 	Len() int
@@ -103,7 +103,7 @@ type Inspector interface {
 	// populates the metadata structure, returning whether
 	// the artefact was identified and no further examination
 	// by other inspectors is required.
-	InspectArtefact(ArtefactFile, ResponseArtefact) error
+	InspectArtefact(ArtefactReader, ResponseArtefact) error
 }
 
 // Annotation is a registry of free-form entries defined by the

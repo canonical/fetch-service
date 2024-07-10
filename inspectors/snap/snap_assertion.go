@@ -100,7 +100,7 @@ func (ins *SnapAssertionInspector) InspectRequest(a RequestArtefact) error {
 }
 
 // InspectArtefact extracts metadata from a known artefact file format.
-func (ins *SnapAssertionInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+func (ins *SnapAssertionInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
 	if a.ContentType() != "application/x.ubuntu.assertion" {
 		return nil
 	}

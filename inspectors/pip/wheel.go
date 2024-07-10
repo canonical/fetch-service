@@ -70,7 +70,7 @@ var wheelPatterns = []*regexp.Regexp{
 }
 
 // InspectArtefact extracts metadata from a known artefact file format.
-func (ins *WheelInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+func (ins *WheelInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
 	if !a.MimetypeIs("application/zip") {
 		return nil
 	}

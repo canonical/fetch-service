@@ -126,7 +126,7 @@ func (ins *AptTranslationInspector) InspectRequest(a RequestArtefact) error {
 	return nil
 }
 
-func (ins *AptTranslationInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+func (ins *AptTranslationInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
 	if !a.MimetypeIs(mimetypes.AptTranslation) {
 		return nil
 	}

@@ -26,8 +26,8 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/inspectors"
 	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/pip"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
@@ -129,8 +129,9 @@ func (s *metadataSuite) TestMetadataInspectArtefactReadMetadata(c *C) {
 	c.Assert(err, IsNil)
 
 	// Inspect test metadata
-	f, err := inspectors.OpenArtefactFile(testfile)
+	f, err := files.OpenArtefactFile(testfile)
 	c.Assert(err, IsNil)
+	defer f.Close()
 
 	ins := pip.NewMetadataInspector()
 	a := metadata.NewArtefact()
@@ -174,7 +175,7 @@ func (s *metadataSuite) TestMetadataInspectArtefactBadFormat(c *C) {
 		c.Assert(err, IsNil)
 
 		// Inspect test metadata
-		f, err := inspectors.OpenArtefactFile(testfile)
+		f, err := files.OpenArtefactFile(testfile)
 		c.Assert(err, IsNil)
 		defer f.Close()
 

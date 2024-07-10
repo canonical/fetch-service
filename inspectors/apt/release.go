@@ -161,7 +161,7 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtefact) error {
 
 // InspectArtefact examines InRelease files and validates Packages.xz files
 // against InRelease entries.
-func (ins *AptReleaseInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+func (ins *AptReleaseInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
 	if a.MimetypeIs(mimetypes.AptPackages) {
 		return ins.validatePackagesFile(f, a)
 	}
@@ -347,7 +347,7 @@ func (ins *AptReleaseInspector) InspectArtefact(f ArtefactFile, a ResponseArtefa
 	return nil
 }
 
-func (ins *AptReleaseInspector) validatePackagesFile(f ArtefactFile, a ResponseArtefact) error {
+func (ins *AptReleaseInspector) validatePackagesFile(f ArtefactReader, a ResponseArtefact) error {
 	logger.Debug("validate package file")
 
 	u, err := url.Parse(a.DownloadURL())
@@ -406,7 +406,7 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtefactFile, a ResponseA
 // validateTranslationFile examines InRelease files and validates Translation-<lang>
 // files against InRelease entries.
 // https://wiki.debian.org/DebianRepository/Format#A.22Translation.22_indices
-func (ins *AptReleaseInspector) validateTranslationFile(f ArtefactFile, a ResponseArtefact) error {
+func (ins *AptReleaseInspector) validateTranslationFile(f ArtefactReader, a ResponseArtefact) error {
 	logger.Debug("validate translation file")
 
 	u, err := url.Parse(a.DownloadURL())

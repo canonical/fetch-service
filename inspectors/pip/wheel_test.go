@@ -27,8 +27,8 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/inspectors"
 	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/pip"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
@@ -121,7 +121,7 @@ func (s *wheelSuite) TestWheelInspectArtefactBadContent(c *C) {
 	err = testutils.CreateZip(zipfile, zdir)
 	c.Assert(err, IsNil)
 
-	f, err := inspectors.OpenArtefactFile(zipfile)
+	f, err := files.OpenArtefactFile(zipfile)
 	c.Assert(err, IsNil)
 	defer f.Close()
 
@@ -170,7 +170,7 @@ func (s *wheelSuite) TestWheelReadMetadata(c *C) {
 	err = testutils.CreateZip(zipfile, zdir)
 	c.Assert(err, IsNil)
 
-	f, err := inspectors.OpenArtefactFile(zipfile)
+	f, err := files.OpenArtefactFile(zipfile)
 	c.Assert(err, IsNil)
 	defer f.Close()
 
@@ -320,7 +320,7 @@ func (s *wheelSuite) TestReadWheelRecord(c *C) {
 		err = testutils.CreateZip(zipfile, zdir)
 		c.Assert(err, IsNil)
 
-		f, err := inspectors.OpenArtefactFile(zipfile)
+		f, err := files.OpenArtefactFile(zipfile)
 		c.Assert(err, IsNil)
 		defer f.Close()
 
@@ -354,7 +354,7 @@ func (s *wheelSuite) TestWheelInspectArtefact(c *C) {
 	a := metadata.NewArtefact()
 	a.MimeType = mimetype.Lookup("application/zip")
 
-	f, err := inspectors.OpenArtefactFile(filename)
+	f, err := files.OpenArtefactFile(filename)
 	c.Assert(err, IsNil)
 	defer f.Close()
 
