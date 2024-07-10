@@ -81,7 +81,7 @@ type snapYaml struct {
 }
 
 // InspectArtefact extracts metadata from a known artefact file format.
-func (ins *SnapInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+func (ins *SnapInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
 	if !a.MimetypeIs(mimetypes.SquashFs) { // Snaps are SquashFS filesystem images
 		return nil
 	}

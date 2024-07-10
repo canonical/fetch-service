@@ -61,7 +61,7 @@ the requesting client::
       . "github.com/canonical/fetch-service/inspectors/common"
   )
 
-  func (ins *JsonInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+  func (ins *JsonInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
           if !a.MimetypeIs("application/json") {
                   return nil  // we don't recognize this artefact
           }
@@ -125,7 +125,7 @@ and checks other artefacts against this internal state::
           lock sync.Mutex
   }
 
-  func (ins *FileInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+  func (ins *FileInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
           if !knownFileFormat(a) {
                   return nil  // we don't recognize this file format
           }

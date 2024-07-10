@@ -22,7 +22,6 @@ package inspectors
 import (
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 
 	"github.com/gabriel-vasile/mimetype"
@@ -128,7 +127,7 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 	filename := filepath.Join(dir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
 	logger.Debugf("run artefact inspectors on %s", filename)
 
-	f, err := OpenArtefactFile(filename)
+	f, err := files.OpenArtefactFile(filename)
 	if err != nil {
 		return err
 	}
@@ -188,15 +187,6 @@ func (insps Inspectors) List() []string {
 	return insps.ids
 }
 
-// OpenArtefactFile opens a downloaded artefact file for reading.
-func OpenArtefactFile(filename string) (*files.ArtefactFile, error) {
-	f, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	return files.NewArtefactFile(f)
-}
-
 // DefaultInspector is a fallback inspector for unknown requests or artefacts.
 type DefaultInspector struct {
 }
@@ -212,7 +202,7 @@ func (ins DefaultInspector) InspectRequest(a RequestArtefact) error {
 	return nil
 }
 
-func (ins DefaultInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+func (ins DefaultInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
 	if !a.ResponseRejected() && !a.ResponseApproved() {
 		a.SetResponseUnknown(ins, "the artefact format is unknown")
 	}

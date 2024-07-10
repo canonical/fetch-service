@@ -62,7 +62,7 @@ func (ins *SmartQueryInspector) InspectRequest(a RequestArtefact) error {
 	return nil // we don't recognize this request
 }
 
-func (ins *SmartQueryInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+func (ins *SmartQueryInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
 	if !a.MimetypeIs("text/plain") {
 		return nil
 	}

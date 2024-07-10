@@ -58,7 +58,7 @@ type snapRefreshBody struct {
 }
 
 // InspectArtefact extracts metadata from a known artefact file format.
-func (ins *SnapRefreshInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+func (ins *SnapRefreshInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
 	if !a.MimetypeIs("application/json") {
 		return nil
 	}

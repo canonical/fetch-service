@@ -62,7 +62,7 @@ func (ins *SdistInspector) InspectRequest(a RequestArtefact) error {
 }
 
 // InspectArtefact extracts metadata from a known artefact file format.
-func (ins *SdistInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+func (ins *SdistInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
 	if !a.MimetypeIs("application/gzip") {
 		return nil
 	}

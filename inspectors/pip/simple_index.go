@@ -61,7 +61,7 @@ func (ins *SimpleIndexInspector) InspectRequest(a RequestArtefact) error {
 	return nil // we don't recognize this request
 }
 
-func (ins *SimpleIndexInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+func (ins *SimpleIndexInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
 	pkgName, ok := a.RequestStringAnnotation(ins.ID(), "package-name")
 	if !ok {
 		return nil
@@ -79,7 +79,7 @@ func (ins *SimpleIndexInspector) InspectArtefact(f ArtefactFile, a ResponseArtef
 	}
 }
 
-func parseHtmlIndex(ins *SimpleIndexInspector, f ArtefactFile, a ResponseArtefact, pkgName string) error {
+func parseHtmlIndex(ins *SimpleIndexInspector, f ArtefactReader, a ResponseArtefact, pkgName string) error {
 	z := html.NewTokenizer(f)
 
 	for {
@@ -141,7 +141,7 @@ func extractMetaProperty(t html.Token, name string) (content string, ok bool) {
 	return
 }
 
-func parseJsonIndex(ins *SimpleIndexInspector, f ArtefactFile, a ResponseArtefact, pkgName string) error {
+func parseJsonIndex(ins *SimpleIndexInspector, f ArtefactReader, a ResponseArtefact, pkgName string) error {
 	// FIXME: add better format verification, e.g. check schema
 
 	u, err := url.Parse(a.DownloadURL())

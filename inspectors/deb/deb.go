@@ -72,7 +72,7 @@ func (ins *DebInspector) InspectRequest(a RequestArtefact) error {
 	return nil
 }
 
-func (ins *DebInspector) InspectArtefact(f ArtefactFile, a ResponseArtefact) error {
+func (ins *DebInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
 	if !a.MimetypeIs(mimetypes.DebianBinaryPackage) {
 		return nil
 	}
