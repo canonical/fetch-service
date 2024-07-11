@@ -36,7 +36,7 @@ func NewSnapRefreshInspector() *SnapRefreshInspector {
 }
 
 func (SnapRefreshInspector) ID() string {
-	return "snap.info"
+	return "snap.refresh"
 }
 
 // InspectRequest verifies if the request complies with policy.
@@ -53,8 +53,19 @@ func (ins *SnapRefreshInspector) InspectRequest(a RequestArtefact) error {
 	return nil // we don't recognize this request
 }
 
+type snapRefreshItem struct {
+	EffectiveChannel string         `json:"effective-channel"`
+	InstanceKey      string         `json:"instance-key"`
+	Name             string         `json:"name"`
+	ReleasedAt       string         `json:"released-at"`
+	Result           string         `json:"result"`
+	Snap             map[string]any `json:"snap"`
+	SnapId           string         `json:"snap-id"`
+}
+
 type snapRefreshBody struct {
-	Results []map[string]any `json:"results"`
+	ErrorList []any             `json:"error-list"`
+	Results   []snapRefreshItem `json:"results"`
 }
 
 // InspectArtefact extracts metadata from a known artefact file format.
@@ -69,18 +80,19 @@ func (ins *SnapRefreshInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 		return nil // we don't recognize this artefact
 	}
 
-	if len(b.Results) > 0 && b.Results[0]["effective-channel"] != "" && b.Results[0]["name"] != "" && b.Results[0]["snap-id"] != "" {
+	if len(b.Results) > 0 && b.Results[0].EffectiveChannel != "" && b.Results[0].Name != "" && b.Results[0].SnapId != "" {
 		a.SetArtefactMetadata(ArtefactMetadata{
-			Type:        mimetypes.SnapInfo,
+			Type:        mimetypes.SnapRefresh,
 			Name:        "Store protocol response",
 			Description: "Snap store response for refresh request",
 		})
 		a.SetResponseApproved(ins, "valid snap API refresh endpoint response").Annotate(
 			Annotation{
-				"name":    b.Results[0]["name"],
-				"snap-id": b.Results[0]["snap-id"],
+				"name":    b.Results[0].Name,
+				"channel": b.Results[0].EffectiveChannel,
+				"result":  b.Results[0].Result,
+				"snap-id": b.Results[0].SnapId,
 			})
-		return nil
 	}
 
 	return nil // we don't recognize this artefact
