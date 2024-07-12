@@ -41,7 +41,7 @@ func (s *snapSuite) TestSnapArtefactInspector(c *C) {
 	a.Metadata.Type = "application/x.squashfs"
 	a.Metadata.Size = 8192
 
-	f, err := files.OpenArtefactFile("tests/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
+	f, err := files.OpenArtefactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
 	c.Assert(err, IsNil)
 	defer f.Close()
 

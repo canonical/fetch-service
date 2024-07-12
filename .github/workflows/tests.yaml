@@ -69,4 +69,4 @@ jobs:
       - name: Install snap
         run: sudo snap install --dangerous *.snap
       - name: Run snap tests
-        run: sudo tests/snap-test.sh
+        run: sudo testdata/snap-test.sh

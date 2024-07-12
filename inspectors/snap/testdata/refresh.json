@@ -1,0 +1,78 @@
+{
+    "error-list": [],
+    "results": [
+        {
+            "effective-channel": "stable",
+            "instance-key": "install-1",
+            "name": "go",
+            "released-at": "2024-07-04T13:56:12.190670+00:00",
+            "result": "install",
+            "snap": {
+                "architectures": [
+                    "amd64"
+                ],
+                "base": "core22",
+                "common-ids": [],
+                "confinement": "classic",
+                "contact": "https://bugs.launchpad.net/go-snap/+filebug",
+                "created-at": "2024-07-03T08:31:17.968740+00:00",
+                "description": "Go is an open source programming language that enables the production of simple, efficient and reliable software at scale.",
+                "download": {
+                    "deltas": [],
+                    "sha3-384": "a607ae5fca544363956b0ae5d38ab701f4737a6986b3e132d96d837b9b442802f0edd90c4e2b375988bff5f8aad1ce02",
+                    "size": 64892928,
+                    "url": "https://api.snapcraft.io/api/v1/snaps/download/Md1HBASHzP4i0bniScAjXGnOII9cEK6e_10660.snap"
+                },
+                "epoch": {
+                    "read": [
+                        0
+                    ],
+                    "write": [
+                        0
+                    ]
+                },
+                "license": "BSD-3-Clause",
+                "links": {
+                    "contact": [
+                        "https://bugs.launchpad.net/go-snap/+filebug"
+                    ],
+                    "website": [
+                        "https://launchpad.net/go-snap"
+                    ]
+                },
+                "media": [
+                    {
+                        "height": 256,
+                        "type": "icon",
+                        "url": "https://dashboard.snapcraft.io/site_media/appmedia/2017/11/gophercolor.png",
+                        "width": 256
+                    },
+                    {
+                        "height": null,
+                        "type": "video",
+                        "url": "https://asciinema.org/a/569398",
+                        "width": null
+                    }
+                ],
+                "name": "go",
+                "prices": {},
+                "private": false,
+                "publisher": {
+                    "display-name": "Canonical",
+                    "id": "canonical",
+                    "username": "canonical",
+                    "validation": "verified"
+                },
+                "revision": 10660,
+                "snap-id": "Md1HBASHzP4i0bniScAjXGnOII9cEK6e",
+                "snap-yaml": "name: go\nversion: 1.22.5\nsummary: The Go programming language\ndescription: |\n  Go is an open source programming language that enables the production of\n  simple, efficient and reliable software at scale.\narchitectures:\n- amd64\nbase: core22\napps:\n  go:\n    command: bin/go\n  gofmt:\n    command: bin/gofmt\nconfinement: classic\ngrade: stable\n",
+                "summary": "The Go programming language",
+                "title": "Go",
+                "type": "app",
+                "version": "1.22.5",
+                "website": "https://launchpad.net/go-snap"
+            },
+            "snap-id": "Md1HBASHzP4i0bniScAjXGnOII9cEK6e"
+        }
+    ]
+}

@@ -58,9 +58,10 @@ func New(permissive bool) Inspectors {
 
 	insList := []Inspector{
 		// snap
-		snap.NewSnapInfoInspector(),
-		snap.NewSnapAssertionInspector(),
 		snap.NewSnapInspector(),
+		snap.NewSnapAssertionInspector(),
+		snap.NewSnapInfoInspector(),
+		snap.NewSnapRefreshInspector(),
 
 		// python
 		pip.NewSimpleIndexInspector(),
