@@ -40,4 +40,5 @@ const (
 	SnapDeclarationAssertion   = "application/x.ubuntu.assertion.snap-declaration"
 	AccountAssertion           = "application/x.ubuntu.assertion.account"
 	AccountKeyAssertion        = "application/x.ubuntu.assertion.account-key"
+	RustCrate                  = "application/x.rust.crate"
 )

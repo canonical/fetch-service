@@ -27,6 +27,7 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 
 	"github.com/canonical/fetch-service/inspectors/apt"
+	"github.com/canonical/fetch-service/inspectors/cargo"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/deb"
 	"github.com/canonical/fetch-service/inspectors/files"
@@ -82,6 +83,10 @@ func New(permissive bool) Inspectors {
 		// go
 		// must run after git
 		gomod.NewGoModuleGitInspector(),
+
+		// rust
+		cargo.NewIndexInspector(),
+		cargo.NewCrateInspector(),
 
 		// default inspector
 		// must be the last inspector to run
