@@ -143,7 +143,7 @@ type cargoToml struct {
 func parseCargoToml(tf io.Reader) (*ArtefactMetadata, error) {
 	crate_md := cargoToml{}
 
-	_, err := toml.DecodeReader(tf, &crate_md)
+	_, err := toml.NewDecoder(tf).Decode(&crate_md)
 	if err != nil {
 		return nil, err
 	}
