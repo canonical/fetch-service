@@ -34,6 +34,7 @@ const (
 	SquashFs                   = "application/x.squashfs"
 	SnapPackage                = "application/x.canonical.snap-package"
 	SnapInfo                   = "application/x.canonical.snap-info"
+	SnapRefresh                = "application/x.canonical.snap-refresh"
 	Assertion                  = "application/x.ubuntu.assertion"
 	SnapRevisionAssertion      = "application/x.ubuntu.assertion.snap-revision"
 	SnapDeclarationAssertion   = "application/x.ubuntu.assertion.snap-declaration"
