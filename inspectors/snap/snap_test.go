@@ -28,6 +28,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/snap"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
 type snapSuite struct{}
@@ -35,6 +36,40 @@ type snapSuite struct{}
 var _ = Suite(&snapSuite{})
 
 func Test(t *testing.T) { TestingT(t) }
+
+func (s *snapSuite) TestSnapInspectorID(c *C) {
+	ins := snap.NewSnapInspector()
+	c.Assert(ins.ID(), Equals, "snap")
+}
+
+func (s *snapSuite) TestInspectRequest(c *C) {
+	for _, tc := range []struct {
+		url      string
+		approved bool
+	}{
+		{"https://api.snapcraft.io:443/v2/snaps/download/foo_42.snap?", true},
+		{"https://x.snapcraftcontent.com:443/subdir/foo_42.snap?", true},
+		{"https://api.snapcraft.io:443/v2/snaps/download/foo_42.snap", false},
+		{"https://x.snapcraftcontent.com:443/subdir/foo_42.snap", false},
+		{"https://api.snapcraft.io:443/v3/snaps/download/foo_42.snap", false},
+		{"http://api.snapcraft.io/v2/snaps/download/foo_42.snap", false},
+		{"https://x.snapcraftcontent.com:443/subdir/foo_42.snap", false},
+		{"https://api.snapcraft.io/v2/snaps/info", false},
+	} {
+		ins := snap.NewSnapInspector()
+		a := metadata.NewArtefact()
+		a.CurrentDownload = metadata.Download{URL: tc.url}
+
+		err := ins.InspectRequest(a)
+		c.Assert(err, IsNil)
+
+		insp, ok := a.RequestInspection[ins.ID()]
+		c.Assert(ok, Equals, tc.approved)
+		if tc.approved {
+			c.Assert(insp.Opinion, Equals, opinions.Pending)
+		}
+	}
+}
 
 func (s *snapSuite) TestSnapArtefactInspector(c *C) {
 	a := metadata.NewArtefact()
