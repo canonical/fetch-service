@@ -94,7 +94,15 @@ func New(spoolDir string, permissive bool) *Session {
 }
 
 func (s *Session) Metadata() *metadata.SessionMetadata {
+	var policy string
+	if s.Permissive {
+		policy = "permissive"
+	} else {
+		policy = "strict"
+	}
+
 	return &metadata.SessionMetadata{
+		Policy:     policy,
 		Comment:    "Metadata format is unstable and may change without prior notice.",
 		SessionId:  s.Id,
 		StartTime:  s.Start,
