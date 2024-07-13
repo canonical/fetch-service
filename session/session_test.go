@@ -24,6 +24,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -229,4 +230,17 @@ func (t *sessionSuite) TestGetSession(c *C) {
 
 	m = session.GetSession(s.Id)
 	c.Assert(m, Equals, s)
+}
+
+func (t *sessionSuite) TestSessionMetadata(c *C) {
+	s := session.New("", true)
+	defer s.Discard()
+
+	m := s.Metadata()
+	c.Check(m.Comment, Equals, "Metadata format is unstable and may change without prior notice.")
+	c.Check(m.Policy, Equals, "permissive")
+	c.Check(m.SessionId, Equals, s.Id)
+	c.Check(m.StartTime, Not(DeepEquals), time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC))
+	c.Check(slices.Contains(m.Inspectors, "default"), Equals, true)
+	c.Check(m.SpoolPath, Not(Equals), "")
 }
