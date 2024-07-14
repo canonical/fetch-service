@@ -20,6 +20,7 @@
 package service_test
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -30,6 +31,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/proxy"
 	"github.com/canonical/fetch-service/service"
 	"github.com/canonical/fetch-service/service/messages"
@@ -74,6 +76,24 @@ func (t *serviceSuite) TestProxyPort(c *C) {
 	c.Assert(t.controlPort, Equals, 7331)
 }
 
+func (t *serviceSuite) TestProxyStartError(c *C) {
+	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+		return nil, errors.New("proxy start error")
+	})
+	defer restorer()
+
+	restorer = service.MockNewServer(func(port int, ch chan interface{}, creds string) *control.Server {
+		t.controlPort = port
+		return &control.Server{}
+	})
+	defer restorer()
+
+	opt := service.Options{ProxyPort: 1337, ControlPort: 7331}
+
+	_, err := service.New(&opt)
+	c.Assert(err, ErrorMatches, "proxy start error")
+}
+
 func (t *serviceSuite) TestServiceEntombment(c *C) {
 	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
 		t.proxyPort = port
@@ -90,6 +110,237 @@ func (t *serviceSuite) TestServiceEntombment(c *C) {
 
 	err = svc.Stop()
 	c.Assert(err, IsNil)
+}
+
+func (t *serviceSuite) TestGetServiceStatus(c *C) {
+	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+		t.ch = ch
+		t.proxyPort = port
+		return &proxy.HttpProxy{}, nil
+	})
+	defer restorer()
+
+	opt := service.Options{ProxyPort: 1337, Spool: "/my/spool"}
+	svc, err := service.New(&opt)
+	c.Assert(err, IsNil)
+
+	err = svc.Start()
+	c.Assert(err, IsNil)
+	s := session.New(opt.Spool, true)
+	defer s.Discard()
+
+	msg := messages.NewGetServiceStatus()
+	t.ch <- msg
+	res := <-msg.Rch
+
+	c.Assert(len(res.ActiveSessions), Equals, 1)
+	c.Check(res.ActiveSessions[0].SessionId, Not(Equals), "")
+	c.Check(res.ActiveSessions[0].Policy, Equals, "permissive")
+	c.Check(res.ActiveSessions[0].Timeout, Equals, uint64(6)*3600)
+
+	err = svc.Stop()
+	c.Assert(err, IsNil)
+}
+
+func (t *serviceSuite) TestRequestInspection(c *C) {
+	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+		t.ch = ch
+		t.proxyPort = port
+		return &proxy.HttpProxy{}, nil
+	})
+	defer restorer()
+
+	opt := service.Options{ProxyPort: 1337, Spool: "/my/spool"}
+
+	for _, tc := range []struct {
+		sessionExists bool
+		errMsg        string
+	}{
+		{true, ""},
+		{false, "cannot inspect request: session foo is not active"},
+	} {
+		svc, err := service.New(&opt)
+		c.Assert(err, IsNil)
+
+		err = svc.Start()
+		c.Assert(err, IsNil)
+		s := session.New(opt.Spool, true)
+		defer s.Discard()
+
+		a := metadata.NewArtefact()
+		if tc.sessionExists {
+			a.SessionId = s.Id
+		} else {
+			a.SessionId = "foo"
+		}
+		msg := messages.NewRequestInspection(a)
+		t.ch <- msg
+		res := <-msg.Rch
+
+		if tc.errMsg == "" {
+			c.Assert(res, Equals, nil)
+		} else {
+			c.Assert(res, ErrorMatches, tc.errMsg)
+		}
+
+		err = svc.Stop()
+		c.Assert(err, IsNil)
+	}
+}
+
+func (t *serviceSuite) TestResponseInspection(c *C) {
+	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+		t.ch = ch
+		t.proxyPort = port
+		return &proxy.HttpProxy{}, nil
+	})
+	defer restorer()
+
+	for _, tc := range []struct {
+		sessionExists bool
+		hasArtefact   bool
+		errMsg        string
+	}{
+		{true, false, ""},
+		{true, true, ""},
+		{false, false, "cannot inspect response: session foo is not active"},
+	} {
+		spoolDir := c.MkDir()
+		opt := service.Options{ProxyPort: 1337, Spool: spoolDir}
+
+		svc, err := service.New(&opt)
+		c.Assert(err, IsNil)
+
+		err = svc.Start()
+		c.Assert(err, IsNil)
+		s := session.New(opt.Spool, true)
+		defer s.Discard()
+
+		sha, _ := digests.NewSha256Digest("5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03")
+		a := metadata.NewArtefact()
+		a.Metadata.Sha256 = sha
+
+		tmpfile := filepath.Join(spoolDir, "tempfile")
+		err = os.WriteFile(tmpfile, []byte("content"), 0644)
+		c.Assert(err, IsNil)
+
+		a.Tempfile = tmpfile
+		if tc.hasArtefact { // this sha has already been downloaded
+			s.A[sha] = a
+		}
+		if tc.sessionExists {
+			a.SessionId = s.Id
+		} else {
+			a.SessionId = "foo"
+		}
+		msg := messages.NewResponseInspection(a)
+		t.ch <- msg
+		res := <-msg.Rch
+
+		if tc.errMsg == "" {
+			c.Assert(res, Equals, nil)
+		} else {
+			c.Assert(res, ErrorMatches, tc.errMsg)
+		}
+
+		err = svc.Stop()
+		c.Assert(err, IsNil)
+	}
+}
+
+func (t *serviceSuite) TestCreateSession(c *C) {
+	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+		t.ch = ch
+		t.proxyPort = port
+		return &proxy.HttpProxy{}, nil
+	})
+	defer restorer()
+
+	for _, tc := range []struct {
+		permissiveMode bool
+		policy         string
+		errMsg         string
+	}{
+		{true, "permissive", ""},
+		{false, "permissive", "Invalid session policy"},
+		{false, "strict", ""},
+	} {
+		opt := service.Options{
+			ProxyPort:      1337,
+			Spool:          "/my/spool",
+			PermissiveMode: tc.permissiveMode,
+		}
+		svc, err := service.New(&opt)
+		c.Assert(err, IsNil)
+
+		err = svc.Start()
+		c.Assert(err, IsNil)
+
+		msg := messages.NewCreateSession(tc.policy, 666)
+		t.ch <- msg
+		res := <-msg.Rch
+
+		if tc.errMsg == "" {
+			c.Assert(res.Err, Equals, nil)
+			s := session.GetSession(res.Id)
+			c.Assert(s.Permissive, Equals, tc.policy == "permissive")
+			s.Discard()
+		} else {
+			c.Assert(res.Err, ErrorMatches, tc.errMsg)
+		}
+
+		err = svc.Stop()
+		c.Assert(err, IsNil)
+	}
+}
+
+func (t *serviceSuite) TestDeleteResources(c *C) {
+	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+		t.ch = ch
+		t.proxyPort = port
+		return &proxy.HttpProxy{}, nil
+	})
+	defer restorer()
+
+	for _, tc := range []struct {
+		sessionExists bool
+		errMsg        string
+	}{
+		{false, ""},
+		{true, "session not finished"},
+	} {
+		spoolDir := c.MkDir()
+		opt := service.Options{ProxyPort: 1337, Spool: spoolDir}
+
+		svc, err := service.New(&opt)
+		c.Assert(err, IsNil)
+
+		err = svc.Start()
+		c.Assert(err, IsNil)
+
+		s := session.New(opt.Spool, true)
+		defer s.Discard()
+
+		var sid string
+		if tc.sessionExists {
+			sid = s.Id
+		} else {
+			sid = "other value"
+		}
+
+		msg := messages.NewDeleteResources(sid)
+		t.ch <- msg
+		res := <-msg.Rch
+
+		if tc.errMsg == "" {
+			c.Assert(res, Equals, nil)
+		} else {
+			c.Assert(res, ErrorMatches, tc.errMsg)
+		}
+
+		err = svc.Stop()
+		c.Assert(err, IsNil)
+	}
 }
 
 func (t *serviceSuite) TestRevokeToken(c *C) {
