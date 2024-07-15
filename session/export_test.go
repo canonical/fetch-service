@@ -39,3 +39,11 @@ func MockRandomString(mock func(int) string) (restorer func()) {
 		randomString = old
 	}
 }
+
+func MockGetSession(mock func(string) *Session) (restorer func()) {
+	old := GetSession
+	GetSession = mock
+	return func() {
+		GetSession = old
+	}
+}
