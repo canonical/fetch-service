@@ -101,7 +101,7 @@ func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
 
 	var params createSessionParameters
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-		internalServerError(w, r)
+		badRequest(w, r, err.Error())
 		return
 	}
 
@@ -134,7 +134,7 @@ func (c *Server) deleteSessionToken(w http.ResponseWriter, r *http.Request) {
 
 	var params revokeTokenParameters
 	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-		internalServerError(w, r)
+		badRequest(w, r, err.Error())
 		return
 	}
 
@@ -189,6 +189,7 @@ func (c *Server) getSessionReport(w http.ResponseWriter, r *http.Request) {
 		} else {
 			internalServerError(w, r)
 		}
+		return
 	}
 
 	j, err := json.Marshal(res)
