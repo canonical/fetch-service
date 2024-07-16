@@ -7,7 +7,7 @@ require (
 	github.com/CalebQ42/squashfs v1.0.0
 	github.com/ProtonMail/go-crypto v1.0.0
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
-	github.com/elazarl/goproxy v0.0.0-20221015165544-a0805db90819
+	github.com/elazarl/goproxy v0.0.0-20240618083138-03be62527ccb
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gabriel-vasile/mimetype v1.4.4
 	github.com/google/uuid v1.6.0
