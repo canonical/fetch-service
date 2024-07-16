@@ -57,10 +57,20 @@ func (ins *SnapInfoInspector) InspectRequest(a RequestArtefact) error {
 	return nil // we don't recognize this request
 }
 
+type snapInfo struct {
+	Name      string            `json:"name"`
+	Title     string            `json:"title"`
+	Summary   string            `json:"summary"`
+	Publisher map[string]string `json:"publisher"`
+	SnapId    string            `json:"snap-id"`
+}
+
 type snapInfoBody struct {
-	ChannelMap []map[string]any `json:"channel-map"`
-	Name       string           `json:"name"`
-	SnapID     string           `json:"snap-id"`
+	ChannelMap   []map[string]any `json:"channel-map"`
+	Name         string           `json:"name"`
+	DefaultTrack string           `json:"default-track"`
+	Snap         snapInfo         `json:"snap"`
+	SnapID       string           `json:"snap-id"`
 }
 
 // InspectArtefact extracts metadata from a known artefact file format.
@@ -84,8 +94,9 @@ func (ins *SnapInfoInspector) InspectArtefact(f ArtefactReader, a ResponseArtefa
 		})
 		a.SetResponseApproved(ins, "valid snap API info endpoint response").Annotate(
 			Annotation{
-				"name":    b.Name,
-				"snap-id": b.SnapID,
+				"name":      b.Name,
+				"snap-id":   b.SnapID,
+				"publisher": b.Snap.Publisher["display-name"],
 			})
 		return nil
 	}

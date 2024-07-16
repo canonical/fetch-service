@@ -31,22 +31,23 @@ import (
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
-func (s *snapSuite) TestSnapRefreshInspectorID(c *C) {
-	ins := snap.NewSnapRefreshInspector()
-	c.Assert(ins.ID(), Equals, "snap.refresh")
+func (s *snapSuite) TestSnapInfoInspectorID(c *C) {
+	ins := snap.NewSnapInfoInspector()
+	c.Assert(ins.ID(), Equals, "snap.info")
 }
 
-func (s *snapSuite) TestInspectRefreshRequest(c *C) {
+func (s *snapSuite) TestInspectInfoRequest(c *C) {
 	for _, tc := range []struct {
 		url      string
 		approved bool
 	}{
-		{"https://api.snapcraft.io:443/v2/snaps/refresh", true},
-		{"https://api.snapcraft.io:443/v1/snaps/refresh", false},
+		{"https://api.snapcraft.io:443/v2/snaps/info/something", true},
 		{"https://api.snapcraft.io:443/v2/snaps/info", false},
-		{"http://api.snapcraft.io/v2/snaps/refresh", false},
+		{"https://api.snapcraft.io:443/v1/snaps/info", false},
+		{"https://api.snapcraft.io:443/v2/snaps/refresh", false},
+		{"http://api.snapcraft.io/v2/snaps/info", false},
 	} {
-		ins := snap.NewSnapRefreshInspector()
+		ins := snap.NewSnapInfoInspector()
 		a := metadata.NewArtefact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 
@@ -61,32 +62,31 @@ func (s *snapSuite) TestInspectRefreshRequest(c *C) {
 	}
 }
 
-func (s *snapSuite) TestSnapRefreshArtefactInspector(c *C) {
+func (s *snapSuite) TestSnapInfoArtefactInspector(c *C) {
 	a := metadata.NewArtefact()
 	a.Metadata.Type = "application/json"
 	a.Metadata.Size = 3330
 
-	f, err := files.OpenArtefactFile("testdata/refresh.json")
+	f, err := files.OpenArtefactFile("testdata/info.json")
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	ins := snap.NewSnapRefreshInspector()
+	ins := snap.NewSnapInfoInspector()
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
-	c.Check(a.Metadata.Type, Equals, "application/x.canonical.snap-refresh")
+	c.Check(a.Metadata.Type, Equals, "application/x.canonical.snap-info")
 	c.Check(a.Metadata.Name, Equals, "Store protocol response")
 	c.Check(a.Metadata.Size, Equals, int64(3330))
-	c.Check(a.Metadata.Description, Equals, "Snap store response for refresh request")
-	c.Check(a.ResponseInspection["snap.refresh"].Annotations, DeepEquals, Annotation{
-		"name":    "go",
-		"channel": "stable",
-		"result":  "install",
-		"snap-id": "Md1HBASHzP4i0bniScAjXGnOII9cEK6e",
+	c.Check(a.Metadata.Description, Equals, "Snap store response for info request")
+	c.Check(a.ResponseInspection["snap.info"].Annotations, DeepEquals, Annotation{
+		"name":      "go",
+		"publisher": "Canonical",
+		"snap-id":   "Md1HBASHzP4i0bniScAjXGnOII9cEK6e",
 	})
 }
 
-func (s *snapSuite) TestSnapRefreshArtefactBadType(c *C) {
+func (s *snapSuite) TestSnapInfoArtefactBadType(c *C) {
 	a := metadata.NewArtefact()
 	a.Metadata.Type = "text/plain"
 	a.Metadata.Size = 3330
@@ -95,20 +95,20 @@ func (s *snapSuite) TestSnapRefreshArtefactBadType(c *C) {
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	ins := snap.NewSnapRefreshInspector()
+	ins := snap.NewSnapInfoInspector()
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, false)
 }
 
-func (s *snapSuite) TestSnapRefreshArtefactBadContent(c *C) {
+func (s *snapSuite) TestSnapInfoArtefactBadContent(c *C) {
 	a := metadata.NewArtefact()
 	a.Metadata.Type = "text/plain"
 	a.Metadata.Size = 3330
 
 	f := strings.NewReader(`{"content": "bad"}`)
 
-	ins := snap.NewSnapRefreshInspector()
+	ins := snap.NewSnapInfoInspector()
 	err := ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, false)
