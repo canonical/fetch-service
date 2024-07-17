@@ -233,14 +233,165 @@ func (t *sessionSuite) TestGetSession(c *C) {
 }
 
 func (t *sessionSuite) TestSessionMetadata(c *C) {
-	s := session.New("", true)
+	for _, tc := range []struct {
+		permissive bool
+		policy     string
+	}{
+		{true, "permissive"},
+		{false, "strict"},
+	} {
+		s := session.New("", tc.permissive)
+		defer s.Discard()
+
+		m := s.Metadata()
+		c.Check(m.Comment, Equals, "Metadata format is unstable and may change without prior notice.")
+		c.Check(m.Policy, Equals, tc.policy)
+		c.Check(m.SessionId, Equals, s.Id)
+		c.Check(m.StartTime, Not(DeepEquals), time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC))
+		c.Check(slices.Contains(m.Inspectors, "default"), Equals, true)
+		c.Check(m.SpoolPath, Not(Equals), "")
+	}
+}
+
+func (t *sessionSuite) TestFinish(c *C) {
+	spool := c.MkDir()
+	s := session.New(spool, true)
 	defer s.Discard()
 
-	m := s.Metadata()
-	c.Check(m.Comment, Equals, "Metadata format is unstable and may change without prior notice.")
-	c.Check(m.Policy, Equals, "permissive")
-	c.Check(m.SessionId, Equals, s.Id)
-	c.Check(m.StartTime, Not(DeepEquals), time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC))
-	c.Check(slices.Contains(m.Inspectors, "default"), Equals, true)
-	c.Check(m.SpoolPath, Not(Equals), "")
+	sessionDir := filepath.Join(spool, s.Id)
+	assetDir := filepath.Join(sessionDir, "assets")
+
+	s.SessionDir = sessionDir
+
+	d0, _ := digests.NewSha256Digest("1234567890123456789012345678901234567890123456789012345678901234")
+	d1, _ := digests.NewSha256Digest("1111111111222222222233333333334444444444555555555566666666667777")
+
+	m0 := metadata.Artefact{AssetDir: assetDir}
+	m1 := metadata.Artefact{AssetDir: assetDir}
+
+	m0.Metadata.Sha256 = d0
+	m1.Metadata.Sha256 = d1
+
+	s.A[d0] = &m0
+	s.A[d1] = &m1
+
+	err := os.MkdirAll(assetDir, 0755)
+	c.Assert(err, IsNil)
+
+	err = s.Finish()
+	c.Assert(err, IsNil)
+
+	// Check if metadata files were created
+	_, err = os.Stat(filepath.Join(assetDir, "1234567890123456789012345678901234567890123456789012345678901234.json"))
+	c.Check(err, IsNil)
+	_, err = os.Stat(filepath.Join(assetDir, "1111111111222222222233333333334444444444555555555566666666667777.json"))
+	c.Check(err, IsNil)
+	_, err = os.Stat(filepath.Join(spool, s.Id, "session.json"))
+	c.Check(err, IsNil)
+
+	// Finishing again shouldn't result in error
+	err = s.Finish()
+	c.Assert(err, IsNil)
+}
+
+func (t *sessionSuite) TestRevokeToken(c *C) {
+	for _, tc := range []struct {
+		token  string
+		result bool
+	}{
+		{"right-token", true},
+		{"wrong-token", false},
+	} {
+		spool := c.MkDir()
+		s := session.New(spool, true)
+		defer s.Discard()
+
+		s.Token = "right-token"
+
+		res := s.Revoke(tc.token)
+		c.Check(res, Equals, tc.result)
+	}
+}
+
+func (t *sessionSuite) TestIsRevoked(c *C) {
+	for _, tc := range []struct {
+		revoked bool
+		result  bool
+	}{
+		{true, true},
+		{false, false},
+	} {
+		spool := c.MkDir()
+		s := session.New(spool, true)
+		defer s.Discard()
+
+		s.Token = "token"
+		if tc.revoked {
+			s.Revoke("token")
+		}
+
+		res := s.IsRevoked()
+		c.Check(res, Equals, tc.result)
+	}
+}
+
+func (t *sessionSuite) TestArtefacts(c *C) {
+	spool := c.MkDir()
+	s := session.New(spool, true)
+	defer s.Discard()
+
+	d0, _ := digests.NewSha256Digest("1234567890123456789012345678901234567890123456789012345678901234")
+	d1, _ := digests.NewSha256Digest("1111111111222222222233333333334444444444555555555566666666667777")
+
+	m0 := metadata.Artefact{}
+	m1 := metadata.Artefact{}
+
+	s.A[d0] = &m0
+	s.A[d1] = &m1
+
+	a := s.Artefacts()
+	c.Check(len(a), Equals, 2)
+	c.Check((a[0] == &m0 && a[1] == &m1) || (a[0] == &m1 && a[1] == &m0), Equals, true)
+}
+
+func (t *sessionSuite) TestListIds(c *C) {
+	spool := c.MkDir()
+	s1 := session.New(spool, true)
+	defer s1.Discard()
+
+	s2 := session.New(spool, true)
+	defer s2.Discard()
+
+	ids := session.Sessions.ListIds()
+	c.Assert((ids[0] == s1.Id && ids[1] == s2.Id) || (ids[0] == s2.Id && ids[1] == s1.Id), Equals, true)
+}
+
+func (t *sessionSuite) TestFinishAll(c *C) {
+	spool := c.MkDir()
+	s1 := session.New(spool, true)
+	defer s1.Discard()
+
+	s2 := session.New(spool, true)
+	defer s2.Discard()
+
+	ids := session.Sessions.ListIds()
+	c.Assert(len(ids), Equals, 2)
+
+	session.FinishAll()
+
+	ids = session.Sessions.ListIds()
+	c.Assert(len(ids), Equals, 0)
+}
+
+func (t *sessionSuite) TestListAll(c *C) {
+	spool := c.MkDir()
+	s1 := session.New(spool, true)
+	defer s1.Discard()
+
+	s2 := session.New(spool, false)
+	defer s2.Discard()
+
+	all := session.ListAll()
+	c.Assert((all[0].SessionId == s1.Id && all[1].SessionId == s2.Id) ||
+		(all[0].SessionId == s2.Id && all[1].SessionId == s1.Id), Equals, true)
 }
