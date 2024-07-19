@@ -41,6 +41,8 @@ const (
 	MetadataVersionMinor = 1 // Existing fields not changed, may contain additional fields
 )
 
+// Artefact holds information about each downloaded file during
+// a build session.
 type Artefact struct {
 	MetadataVersion    string               `json:"artefact-metadata-version"` // Artefact metadata version in X.Y format
 	RequestInspection  InspectionMap        `json:"request-inspection"`        // Opinions from request inspection
@@ -68,6 +70,8 @@ func NewArtefact() *Artefact {
 		Request:            nil,
 	}
 }
+
+// Implement RequestArtefact and ResponseArtefact
 
 func (a *Artefact) RequestHeader(key string) ([]string, bool) {
 	val, ok := a.CurrentDownload.RequestHeader[key]
@@ -131,26 +135,38 @@ func (a *Artefact) addInspection(insp InspectionMap, id string, op opinions.Opin
 	return in
 }
 
+// SetRequestPending adds a request inspection and sets the inspector
+// ins opinion to Pending.
 func (a *Artefact) SetRequestPending(ins Inspector, reason string, args ...any) *Inspection {
 	return a.addInspection(a.RequestInspection, ins.ID(), opinions.Pending, reason, args...)
 }
 
+// SetRequestRejected adds a request inspection and sets the inspector
+// ins opinion to Rejected.
 func (a *Artefact) SetRequestRejected(ins Inspector, reason string, args ...any) *Inspection {
 	return a.addInspection(a.RequestInspection, ins.ID(), opinions.Rejected, reason, args...)
 }
 
+// SetRequestUnknown adds a request inspection and sets the inspector
+// ins opinion to Unknown.
 func (a *Artefact) SetRequestUnknown(ins Inspector, reason string, args ...any) *Inspection {
 	return a.addInspection(a.RequestInspection, ins.ID(), opinions.Unknown, reason, args...)
 }
 
+// SetResponseApproved adds a response inspection and sets the inspector
+// ins opinion to Approved.
 func (a *Artefact) SetResponseApproved(ins Inspector, reason string, args ...any) *Inspection {
 	return a.addInspection(a.ResponseInspection, ins.ID(), opinions.Approved, reason, args...)
 }
 
+// SetResponseRejected adds a response inspection and sets the inspector
+// ins opinion to Rejected.
 func (a *Artefact) SetResponseRejected(ins Inspector, reason string, args ...any) *Inspection {
 	return a.addInspection(a.ResponseInspection, ins.ID(), opinions.Rejected, reason, args...)
 }
 
+// SetResponseUnknown adds a response inspection and sets the inspector
+// ins opinion to Unknown.
 func (a *Artefact) SetResponseUnknown(ins Inspector, reason string, args ...any) *Inspection {
 	return a.addInspection(a.ResponseInspection, ins.ID(), opinions.Unknown, reason, args...)
 }
@@ -226,41 +242,61 @@ func inspectionAnnotation[T any](insp InspectionMap, id, key string, def T) (T, 
 }
 
 // RequestAnnotation verifies whether the inspector has a request
-// opinion and returns its annotation.
+// opinion and returns its annotation value. If the inspector and
+// annotation key are valid ok returns true, otherwise it returns false.
 func (a *Artefact) RequestAnnotation(id, key string) (any, bool) {
 	var def any = nil
 	return inspectionAnnotation(a.RequestInspection, id, key, def)
 }
 
+// RequestStringAnnotation verifies whether the inspector has a request
+// opinion and returns its annotation value if it's a string. If the
+// inspector and annotation key are valid and the annotation type is
+// correct ok returns true, otherwise it returns false.
 func (a *Artefact) RequestStringAnnotation(id, key string) (string, bool) {
 	var def string = ""
 	return inspectionAnnotation(a.RequestInspection, id, key, def)
 }
 
+// RequestBoolAnnotation verifies whether the inspector has a request
+// opinion and returns its annotation value if it's bool. If the inspector
+// and annotation key are valid and the annotation type is correct ok
+// returns true, otherwise it returns false.
 func (a *Artefact) RequestBoolAnnotation(id, key string) (bool, bool) {
 	var def bool = false
 	return inspectionAnnotation(a.RequestInspection, id, key, def)
 }
 
+// ResponseAnnotation verifies whether the inspector has a response
+// opinion and returns its annotation value. If the inspector and
+// annotation key are valid ok returns true, otherwise it returns false.
 func (a *Artefact) ResponseAnnotation(id, key string) (any, bool) {
 	var def any = nil
 	return inspectionAnnotation(a.ResponseInspection, id, key, def)
 }
 
+// ResponseStringAnnotation verifies whether the inspector has a response
+// opinion and returns its annotation value if it's a string. If the inspector
+// and annotation key are valid and the annotation type is correct ok returns
+// true, otherwise it returns false.
 func (a *Artefact) ResponseStringAnnotation(id, key string) (string, bool) {
 	var def string = ""
 	return inspectionAnnotation(a.ResponseInspection, id, key, def)
 }
 
+// ResponseBoolAnnotation verifies whether the inspector has a response
+// opinion and returns its annotation value if it's bool. If the inspector
+// and annotation key are valid and the annotation type is correct ok
+// returns true, otherwise it returns false.
 func (a *Artefact) ResponseBoolAnnotation(id, key string) (bool, bool) {
 	var def bool = false
 	return inspectionAnnotation(a.ResponseInspection, id, key, def)
 }
 
-// Approved returns true when there's at least one approval opinion
-// and no rejections in the response inspection.
+// Approved returns true when the request was set to pending and there's at
+// ueast one approval opinion and no rejections in the response inspection.
 func (a *Artefact) Approved() bool {
-	if a.RequestRejected() {
+	if !a.RequestPending() {
 		return false
 	}
 	return a.ResponseApproved()

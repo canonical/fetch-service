@@ -97,6 +97,7 @@ func (s *aptSuite) TestAptReleaseArtefactInspector(c *C) {
 		f := strings.NewReader(tc.data)
 
 		ins := apt.NewAptReleaseInspector()
+		a.SetRequestPending(ins, "test")
 		err := ins.InspectArtefact(f, a)
 		c.Assert(err, IsNil)
 
@@ -180,6 +181,7 @@ func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
 
 		// Now load the translation file
 		a := metadata.NewArtefact()
+		a.SetRequestPending(ins, "test")
 		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/devel/main/i18n/by-hash/SHA256/" + tc.translationDigest
 		a.Metadata.Type = "application/x.apt.translation"
 		a.Metadata.Size = tc.translationSize
@@ -227,6 +229,7 @@ func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
 	}
 
 	ins := apt.NewAptReleaseInspector()
+	a.SetRequestPending(ins, "test")
 	ins.SetRelease(map[string]apt.ReleaseFile{"http://archive.ubuntu.com/ubuntu/dists/jammy": rf})
 	err := ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
@@ -266,6 +269,7 @@ func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
 	}
 
 	ins := apt.NewAptReleaseInspector()
+	a.SetRequestPending(ins, "test")
 	ins.SetRelease(map[string]apt.ReleaseFile{"http://archive.ubuntu.com/ubuntu/dists/jammy": rf})
 	err := ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
@@ -305,6 +309,7 @@ func (s *aptSuite) TestAptReleaseSignature(c *C) {
 	os.Setenv("FETCH_APT_RELEASE_PUBLIC_KEY", publicKey)
 
 	ins := apt.NewAptReleaseInspector()
+	a.SetRequestPending(ins, "test")
 	err = ins.InspectArtefact(r, a)
 	c.Assert(err, IsNil)
 

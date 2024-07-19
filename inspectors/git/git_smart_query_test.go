@@ -107,6 +107,7 @@ func (s *smartQuerySuite) TestSmartQueryInspectArtefact(c *C) {
 		f := strings.NewReader(tc.data)
 
 		ins := git.NewSmartQueryInspector()
+		a.SetRequestPending(ins, "test")
 		err := ins.InspectArtefact(f, a)
 		c.Assert(err, IsNil)
 
