@@ -21,6 +21,7 @@ package digests
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strconv"
 )
@@ -55,6 +56,10 @@ func (h *Sha1Digest) UnmarshalJSON(data []byte) (err error) {
 	d, err := strconv.Unquote(string(data))
 	if err != nil {
 		return
+	}
+
+	if len(d) != 40 {
+		return errors.New("invalid SHA1 digest")
 	}
 
 	v, err := hex.DecodeString(d)
@@ -96,6 +101,10 @@ func (h *Sha256Digest) UnmarshalJSON(data []byte) (err error) {
 	d, err := strconv.Unquote(string(data))
 	if err != nil {
 		return
+	}
+
+	if len(d) != 64 {
+		return errors.New("invalid SHA256 digest")
 	}
 
 	v, err := hex.DecodeString(d)

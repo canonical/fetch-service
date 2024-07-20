@@ -21,6 +21,7 @@ package digests_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	. "gopkg.in/check.v1"
@@ -72,16 +73,34 @@ func (s *digestsSuite) TestSha1DigestMarshal(c *C) {
 }
 
 func (s *digestsSuite) TestSha1DigestUnmarshal(c *C) {
-	j := []byte(`{"bar":"290d07339dde2735121ab03e525ca6593c395a42"}`)
 
 	type Foo struct {
 		Bar digests.Sha1Digest `json:"bar"`
 	}
 
-	var foo Foo
-	err := json.Unmarshal(j, &foo)
-	c.Assert(err, IsNil)
-	c.Check(foo.Bar.String(), Equals, "290d07339dde2735121ab03e525ca6593c395a42")
+	for _, tc := range []struct {
+		ydata  string
+		errMsg string
+		res    string
+	}{
+		{`"290d07339dde2735121ab03e525ca6593c395a42"`, "", "290d07339dde2735121ab03e525ca6593c395a42"},
+		{`""`, "invalid SHA1 digest", ""},
+		{`"abcd"`, "invalid SHA1 digest", ""},
+		{`"an invalid digest string 01234567890abcd"`, "encoding/hex: invalid byte.*", ""},
+		{"unquoted string", "invalid character .*", ""},
+		{"{}", "invalid syntax", ""},
+		{"false", "invalid syntax", ""},
+	} {
+		j := []byte(fmt.Sprintf(`{"bar": %s}`, tc.ydata))
+		var foo Foo
+		err := json.Unmarshal(j, &foo)
+		if tc.errMsg == "" {
+			c.Assert(err, IsNil)
+			c.Check(foo.Bar.String(), Equals, tc.res)
+		} else {
+			c.Check(err, ErrorMatches, tc.errMsg)
+		}
+	}
 }
 
 func (s *digestsSuite) TestSha256Digest(c *C) {
@@ -118,14 +137,30 @@ func (s *digestsSuite) TestSha256DigestMarshal(c *C) {
 }
 
 func (s *digestsSuite) TestSha256DigestUnmarshal(c *C) {
-	j := []byte(`{"bar":"0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e"}`)
-
 	type Foo struct {
 		Bar digests.Sha256Digest `json:"bar"`
 	}
-
-	var foo Foo
-	err := json.Unmarshal(j, &foo)
-	c.Assert(err, IsNil)
-	c.Check(foo.Bar.String(), Equals, "0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e")
+	for _, tc := range []struct {
+		ydata  string
+		errMsg string
+		res    string
+	}{
+		{`"0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e"`, "", "0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e"},
+		{`""`, "invalid SHA256 digest", ""},
+		{`"abcd"`, "invalid SHA256 digest", ""},
+		{`"an invalid digest string 01234567890abcdef01234567890abcdef01234"`, "encoding/hex: invalid byte.*", ""},
+		{"unquoted string", "invalid character .*", ""},
+		{"{}", "invalid syntax", ""},
+		{"false", "invalid syntax", ""},
+	} {
+		j := []byte(fmt.Sprintf(`{"bar": %s}`, tc.ydata))
+		var foo Foo
+		err := json.Unmarshal(j, &foo)
+		if tc.errMsg == "" {
+			c.Assert(err, IsNil)
+			c.Check(foo.Bar.String(), Equals, tc.res)
+		} else {
+			c.Check(err, ErrorMatches, tc.errMsg)
+		}
+	}
 }
