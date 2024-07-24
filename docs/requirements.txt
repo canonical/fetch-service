@@ -1,0 +1,1 @@
+canonical-sphinx==0.1.0

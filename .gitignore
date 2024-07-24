@@ -25,3 +25,7 @@ go.work
 
 # Version file from git tag
 cmd/fetch/version.txt
+
+# Generated docs
+docs/_build
+

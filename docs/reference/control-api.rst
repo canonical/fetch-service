@@ -33,23 +33,24 @@ Endpoints
   None.
 
 :Response:
-::
 
-  {
-      "uptime": <int>,				// service uptime in seconds
-      "start-time": <string>,			// start timestamp in RFC-3339 format
-      "session-count": <int>,			// total number of created sessions
-      "active-sessions": [			// list of sessions currently active
-          {
-              "session-id": <string>,		// session ID
-              "start-time": <string>,		// start timestamp in RFC-3339 format
-              "policy": <string>,		// "strict" or "permissive"
-              "age": <int>,			// seconds since session start
-              "timeout": <int>			// session TTL in seconds	
-          },
-          (...)
-      ],
-  }
+  .. code-block::
+
+    {
+        "uptime": <int>,				// service uptime in seconds
+        "start-time": <string>,			// start timestamp in RFC-3339 format
+        "session-count": <int>,			// total number of created sessions
+        "active-sessions": [			// list of sessions currently active
+            {
+                "session-id": <string>,		// session ID
+                "start-time": <string>,		// start timestamp in RFC-3339 format
+                "policy": <string>,		// "strict" or "permissive"
+                "age": <int>,			// seconds since session start
+                "timeout": <int>			// session TTL in seconds	
+            },
+            (...)
+        ],
+    }
 
 
 ``POST /session``
@@ -64,20 +65,22 @@ Endpoints
   Basic authentication is required to access this endpoint.
 
 :Parameters:
-::
 
-  {
-      "timeout": <int>,			// session timeout in seconds
-      "policy": <string>		// "strict" or "permissive"
-  }
+  .. code-block::
+
+    {
+        "timeout": <int>,			// session timeout in seconds
+        "policy": <string>		// "strict" or "permissive"
+    }
 
 :Response:
-::
 
-  {
-      "id": <string>,			// session ID
-      "token": <string>			// session token
-  }
+  .. code-block::
+
+    {
+        "id": <string>,			// session ID
+        "token": <string>			// session token
+    }
 
 
 ``DELETE /session/<id>/token``
@@ -92,21 +95,23 @@ Endpoints
   must be supplied as a parameter.
 
 :Parameters:
-::
 
-  {
-      "token": <string>
-  }
+  .. code-block::
+
+    {
+        "token": <string>
+    }
 
 :Response:
-::
 
-  {
-      "session-id": <string>,		// session ID
-      "start-time": <string>,		// session start timestamp in RFC-3339 format
-      "end-time": <string>,		// session start timestamp in RFC-3339 format
-      "spool-path": <string>		// file spool pathname
-  }
+  .. code-block::
+
+    {
+        "session-id": <string>,		// session ID
+        "start-time": <string>,		// session start timestamp in RFC-3339 format
+        "end-time": <string>,		// session start timestamp in RFC-3339 format
+        "spool-path": <string>		// file spool pathname
+    }
 
 
 ``GET /session/<id>``
@@ -124,71 +129,72 @@ Endpoints
   Basic authentication is required to access this endpoint.
 
 :Response:
-::
 
-  {
-      "session-id": <string>,		// session ID
-      "comment": <string>,              // free-form comment string
-      "start-time": <string>,		// session start timestamp in RFC-3339 format
-      "end-time": <string>,		// session end timestamp in RFC-3339 format
-      "inspectors": <list of string>,	// list of registered inspector IDs
-      "artefacts": [
-        {
-           "artefact-metadata-version": <string>,  // metadata compatibility (major.minor)
-           "request-inspection": {
-               <inspector id>: {
-                   "opinion": <string>,		// "Unknown", "Rejected" or "Pending"
-                   "reason": <string>,		// Explanation for opinion
-                   "annotations": <inspector-specific optional map of string to any>
-               },
-               (...)
-           }.
-           "response-inspection": {
-               <inspector id>: {
-                   "opinion": <string>,		// "Unknown", "Rejected" or "Approved"
-                   "reason": <string>,		// Explanation for opinion
-                   "annotations": <inspector-specific optional map of string to any>
-               },
-               (...)
-           },
-           "result": <string>,			// "Approved" or "Rejected"
-           "metadata": {
-               "type": <string>,		// artefact mimetype
-               "sha1": <string>,		// artefact SHA1 digest
-               "sha256": <string>,		// artefact SHA256 digest
-               "size": <int>,			// artefact size in bytes
-               "name": <string>,		// artefact name
-               "version": <string>,		// artefact version
-               "vendor": <string>,		// artefact vendor
-               "description": <string>,		// brief description of the artefact
-               "author": <string>,		// author name
-               "author-email": <string>,	// author email address
-               "architecture": <string>,	// binary architecture in debian format
-               "license": <string>,		// license in SPDX format
-               "copyright": <string>,		// copyright information
-           },
-           "downloads": [
-               {
-                   "start-time": <string>,	// start timestamp in RFC-3339 format
-                   "end-time": <string>,	// end timestamp in RFC-3339 format
-                   "method": <string>,		// URL request method
-                   "url": <string>,		// URL
-                   "address": <string>,		// client IP address and port
-                   "user-agent": <string>,	// client user agent string
-                   "status-code": <int>,	// HTTP request status code
-                   "status": <string>,		// textual status message
-                   "content-type": <string>,	// content type informed by the server
-                   "request-header": <map of string to string list>,
-                   "response-header": <map of string to string list>
-               },
-               (...)
-           ]
-        },
-        (...)
-      ],
-      "spool-path": <string>,		// file spool pathname
-      "policy": <string>                // policy used in this session
-  }         
+  .. code-block::
+
+    {
+        "session-id": <string>,		// session ID
+        "comment": <string>,              // free-form comment string
+        "start-time": <string>,		// session start timestamp in RFC-3339 format
+        "end-time": <string>,		// session end timestamp in RFC-3339 format
+        "inspectors": <list of string>,	// list of registered inspector IDs
+        "artefacts": [
+          {
+            "artefact-metadata-version": <string>,  // metadata compatibility (major.minor)
+            "request-inspection": {
+                <inspector id>: {
+                    "opinion": <string>,		// "Unknown", "Rejected" or "Pending"
+                    "reason": <string>,		// Explanation for opinion
+                    "annotations": <inspector-specific optional map of string to any>
+                },
+                (...)
+            }.
+            "response-inspection": {
+                <inspector id>: {
+                    "opinion": <string>,		// "Unknown", "Rejected" or "Approved"
+                    "reason": <string>,		// Explanation for opinion
+                    "annotations": <inspector-specific optional map of string to any>
+                },
+                (...)
+            },
+            "result": <string>,			// "Approved" or "Rejected"
+            "metadata": {
+                "type": <string>,		// artefact mimetype
+                "sha1": <string>,		// artefact SHA1 digest
+                "sha256": <string>,		// artefact SHA256 digest
+                "size": <int>,			// artefact size in bytes
+                "name": <string>,		// artefact name
+                "version": <string>,		// artefact version
+                "vendor": <string>,		// artefact vendor
+                "description": <string>,		// brief description of the artefact
+                "author": <string>,		// author name
+                "author-email": <string>,	// author email address
+                "architecture": <string>,	// binary architecture in debian format
+                "license": <string>,		// license in SPDX format
+                "copyright": <string>,		// copyright information
+            },
+            "downloads": [
+                {
+                    "start-time": <string>,	// start timestamp in RFC-3339 format
+                    "end-time": <string>,	// end timestamp in RFC-3339 format
+                    "method": <string>,		// URL request method
+                    "url": <string>,		// URL
+                    "address": <string>,		// client IP address and port
+                    "user-agent": <string>,	// client user agent string
+                    "status-code": <int>,	// HTTP request status code
+                    "status": <string>,		// textual status message
+                    "content-type": <string>,	// content type informed by the server
+                    "request-header": <map of string to string list>,
+                    "response-header": <map of string to string list>
+                },
+                (...)
+            ]
+          },
+          (...)
+        ],
+        "spool-path": <string>,		// file spool pathname
+        "policy": <string>                // policy used in this session
+    }         
 
 ``DELETE /session/<id>``
 ^^^^^^^^^^^^^^^^^^^^^^^^
