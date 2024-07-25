@@ -11,8 +11,9 @@ build:
     python: "3.10"
   jobs:
     post_checkout:
-      - git fetch --tags --depth 1 # Also fetch tags
-      - git describe               # Useful for debugging
+      - git fetch --unshallow || true # See https://docs.readthedocs.io/en/latest/build-customization.html#unshallow-git-clone
+      - git fetch --tags              # Also fetch tags
+      - git describe                  # Useful for debugging
 
 sphinx:
   configuration: docs/conf.py
