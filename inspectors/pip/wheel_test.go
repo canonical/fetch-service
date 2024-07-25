@@ -359,6 +359,7 @@ func (s *wheelSuite) TestWheelInspectArtefact(c *C) {
 	defer f.Close()
 
 	ins := pip.NewWheelInspector()
+	a.SetRequestPending(ins, "test")
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 

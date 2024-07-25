@@ -100,7 +100,7 @@ func (t *inspectorsSuite) TestRunArtefactInspectors(c *C) {
 	c.Assert(len(a.ResponseInspection), Equals, 1)
 	c.Assert(a.ResponseInspection["default"], DeepEquals, &Inspection{
 		Opinion: opinions.Unknown,
-		Reason:  "the artefact format is unknown",
+		Reason:  "the artefact file content was not recognized by any format inspector",
 	})
 	c.Assert(a.Rejected(), Equals, true)
 }
@@ -127,7 +127,7 @@ func (t *inspectorsSuite) TestRunArtefactInspectorsPermissive(c *C) {
 	c.Assert(len(a.ResponseInspection), Equals, 1)
 	c.Assert(a.ResponseInspection["default"], DeepEquals, &Inspection{
 		Opinion: opinions.Unknown,
-		Reason:  "the artefact format is unknown",
+		Reason:  "the artefact file content was not recognized by any format inspector",
 	})
 	c.Assert(a.Rejected(), Equals, true)
 }
