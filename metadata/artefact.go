@@ -95,7 +95,9 @@ func (a *Artefact) SetRequestBody(r io.ReadCloser) {
 }
 
 func (a *Artefact) SetArtefactMetadata(m ArtefactMetadata) {
-	a.Metadata.Type = m.Type
+	if m.Type != "" {
+		a.Metadata.Type = m.Type
+	}
 	a.Metadata.Name = m.Name
 	a.Metadata.Version = m.Version
 	a.Metadata.Vendor = m.Vendor
