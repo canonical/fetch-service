@@ -173,32 +173,41 @@ func (t *metadataSuite) TestSetRequestBody(c *C) {
 }
 
 func (t *metadataSuite) TestSetArtefactMetadata(c *C) {
-	m := ArtefactMetadata{
-		Type:         "application/test",
-		Name:         "froblator",
-		Version:      "3.14.15",
-		Vendor:       "Acme",
-		Description:  "Too lazy to add one",
-		Author:       "J. Random Hacker",
-		AuthorEmail:  "root@localhost",
-		Architecture: "z80",
-		License:      "CC0",
-		Copyright:    "Copyright 1976 Acme Corp.",
+	for _, tc := range []struct {
+		assignedType string
+		expectedType string
+	}{
+		{"application/test", "application/test"},
+		{"", "text/plain"},
+	} {
+		m := ArtefactMetadata{
+			Type:         tc.assignedType,
+			Name:         "froblator",
+			Version:      "3.14.15",
+			Vendor:       "Acme",
+			Description:  "Too lazy to add one",
+			Author:       "J. Random Hacker",
+			AuthorEmail:  "root@localhost",
+			Architecture: "z80",
+			License:      "CC0",
+			Copyright:    "Copyright 1976 Acme Corp.",
+		}
+
+		a := metadata.NewArtefact()
+		a.Metadata.Type = "text/plain"
+		a.SetArtefactMetadata(m)
+
+		c.Check(a.Metadata.Type, Equals, tc.expectedType)
+		c.Check(a.Metadata.Name, Equals, m.Name)
+		c.Check(a.Metadata.Version, Equals, m.Version)
+		c.Check(a.Metadata.Vendor, Equals, m.Vendor)
+		c.Check(a.Metadata.Description, Equals, m.Description)
+		c.Check(a.Metadata.Author, Equals, m.Author)
+		c.Check(a.Metadata.AuthorEmail, Equals, m.AuthorEmail)
+		c.Check(a.Metadata.Architecture, Equals, m.Architecture)
+		c.Check(a.Metadata.License, Equals, m.License)
+		c.Check(a.Metadata.Copyright, Equals, m.Copyright)
 	}
-
-	a := metadata.NewArtefact()
-	a.SetArtefactMetadata(m)
-
-	c.Check(a.Metadata.Type, Equals, m.Type)
-	c.Check(a.Metadata.Name, Equals, m.Name)
-	c.Check(a.Metadata.Version, Equals, m.Version)
-	c.Check(a.Metadata.Vendor, Equals, m.Vendor)
-	c.Check(a.Metadata.Description, Equals, m.Description)
-	c.Check(a.Metadata.Author, Equals, m.Author)
-	c.Check(a.Metadata.AuthorEmail, Equals, m.AuthorEmail)
-	c.Check(a.Metadata.Architecture, Equals, m.Architecture)
-	c.Check(a.Metadata.License, Equals, m.License)
-	c.Check(a.Metadata.Copyright, Equals, m.Copyright)
 }
 
 func (t *metadataSuite) TestSize(c *C) {
