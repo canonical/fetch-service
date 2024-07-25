@@ -72,6 +72,7 @@ func (s *snapSuite) TestSnapInfoArtefactInspector(c *C) {
 	defer f.Close()
 
 	ins := snap.NewSnapInfoInspector()
+	a.SetRequestPending(ins, "test")
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)

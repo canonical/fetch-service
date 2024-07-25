@@ -210,7 +210,7 @@ func (ins DefaultInspector) InspectRequest(a RequestArtefact) error {
 
 func (ins DefaultInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
 	if !a.ResponseRejected() && !a.ResponseApproved() {
-		a.SetResponseUnknown(ins, "the artefact format is unknown")
+		a.SetResponseUnknown(ins, "the artefact file content was not recognized by any format inspector")
 	}
 	return nil
 }
