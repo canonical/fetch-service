@@ -65,16 +65,28 @@ func decodeGitProtocol(f io.Reader) ([]string, error) {
 			return msgs, fmt.Errorf("cannot read %d bytes from input: %w", size, err)
 		}
 
-		// stop decoding if packfile found
-		if string(line) == "packfile\n" || string(line) == "\x01packfile\n" {
-			return msgs, nil
-		}
-
-		msgs = append(msgs, string(line))
 		if len(line) < 256 {
 			logger.Debugf(":: %04x  %q", size, line)
 		} else {
 			logger.Debugf(":: %04x  <line too long>", size)
+		}
+
+		// remove trailing line break, if any
+		l := len(line)
+		if l > 0 && line[l-1] == '\n' {
+			line = line[:l-1]
+		}
+
+		msgs = append(msgs, string(line))
+
+		// stop decoding if packfile found
+		if string(line) == "packfile" || string(line) == "\x01packfile" {
+			return msgs, nil
+		}
+
+		// stop decoding if NAK found
+		if string(line) == "NAK" {
+			return msgs, nil
 		}
 	}
 }

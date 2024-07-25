@@ -85,8 +85,8 @@ The following pieces of metadata are extracted by the APT packages file
                        ``application/x.git.upload-pack-result.fetch``
    name          Yes   ``git-upload-pack-result``
    version
-   description
-   vendor
+   description   Yes   ``Response to the git <cmd> command``
+   vendor        Yes   The git server hostname
    author
    author-email
    architecture

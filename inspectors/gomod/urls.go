@@ -29,12 +29,14 @@ import (
 // -----------------------
 // https://github.com:443/user/project/git-upload-pack
 // https://gopkg.in:443/project/git-upload-pack
+// https://go.googlesource.com:443/project/git-upload-pack
 
 var (
 	// FIXME: using github URL for now
 	validOrigins = []*regexp.Regexp{
 		regexp.MustCompile(`^https://github\.com:443$`),
 		regexp.MustCompile(`^https://gopkg\.in:443$`),
+		regexp.MustCompile(`^https://go\.googlesource\.com:443$`),
 	}
 
 	reGoModuleGit = regexp.MustCompile(`^/([^/]+/)?([^/]+)/git-upload-pack$`)

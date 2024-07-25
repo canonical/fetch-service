@@ -113,6 +113,10 @@ func (ins *GoModuleGitInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 		return nil
 	}
 
+	if a.MimetypeIs("text/plain") {
+		return nil
+	}
+
 	if !a.MimetypeIs("application/octet-stream") {
 		a.SetResponseRejected(ins, "bad data type for go module")
 		return nil

@@ -21,6 +21,7 @@ package opinions
 
 import (
 	"errors"
+	"fmt"
 )
 
 type OpinionKind int
@@ -31,6 +32,20 @@ const (
 	Approved
 	Pending
 )
+
+func (t OpinionKind) String() string {
+	switch t {
+	case Unknown:
+		return "Unknown"
+	case Rejected:
+		return "Rejected"
+	case Approved:
+		return "Approved"
+	case Pending:
+		return "Pending"
+	}
+	return fmt.Sprintf("invalid opinion %d", t)
+}
 
 func (t OpinionKind) MarshalJSON() ([]byte, error) {
 	switch t {

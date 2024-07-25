@@ -70,10 +70,10 @@ inspector:
    Field         Used  Data source
    ============  ====  ============================================
    type          Yes   ``application/x.git.upload-pack-advertisement``
-   name          Yes   ``git-upload-pack-advertisement``
+   name          Yes   ``git upload-pack advertisement``
    version
-   description
-   vendor
+   description   Yes   ``Response to the git smart server query``
+   vendor        Yes   The git server hostname
    author
    author-email
    architecture
