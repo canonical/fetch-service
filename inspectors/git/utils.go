@@ -72,6 +72,7 @@ func Checkout(dir, ref string) error {
 }
 
 func readPack(f io.Reader, w io.Writer) error {
+	logger.Debug("read git pack")
 	buf := make([]byte, 4)
 	var err error
 
@@ -86,8 +87,9 @@ func readPack(f io.Reader, w io.Writer) error {
 		if err != nil {
 			return err
 		}
+		logger.Debugf("git pack size %#x", size)
 
-		if size == 0 {
+		if size <= 5 {
 			break
 		}
 

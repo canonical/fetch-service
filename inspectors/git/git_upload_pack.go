@@ -107,6 +107,7 @@ func (ins *UploadPackInspector) InspectRequest(a RequestArtefact) error {
 	// Set body to a new reader that inspects the git protocol so we can
 	// examine the request body.
 	notes := Annotation{
+		"server":     strings.SplitN(u.Host, ":", 2)[0],
 		"repository": repo,
 		"protocol":   proto,
 		"project":    info.project,
@@ -196,7 +197,6 @@ func (ins *UploadPackInspector) InspectRequest(a RequestArtefact) error {
 // contents, but it will leave annotations in case of a successful fetch operation.
 // Approval is deferred to inspectors that examine specific types of git payloads.
 func (ins *UploadPackInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
-
 	if a.ContentType() != "application/x-git-upload-pack-result" {
 		return nil
 	}
@@ -224,6 +224,8 @@ func (ins *UploadPackInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 	}
 	ins.Unlock()
 
+	vendor, _ := a.RequestStringAnnotation(ins.ID(), "server")
+
 	// Supported upload-pack commands are 'ls-refs' and 'fetch'
 	switch command {
 	case "ls-refs":
@@ -232,7 +234,12 @@ func (ins *UploadPackInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 			return nil
 		}
 
-		a.SetArtefactMetadata(ArtefactMetadata{Type: mimetypes.GitUploadPackLsRef})
+		a.SetArtefactMetadata(ArtefactMetadata{
+			Type:        mimetypes.GitUploadPackLsRef,
+			Name:        "git ls-refs response",
+			Description: "Response to the git 'ls-refs' command",
+			Vendor:      vendor,
+		})
 
 		msgs, err := decodeGitProtocol(f)
 		if err != nil {
@@ -263,21 +270,24 @@ func (ins *UploadPackInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 			}
 		}
 
-		a.SetResponseApproved(ins,
-			"git ls-refs response decoded").Annotate(notes)
+		a.SetResponseApproved(ins, "git ls-refs response decoded").Annotate(notes)
 
 	case "fetch":
-		if !a.MimetypeIs("application/octet-stream") {
+		if !a.MimetypeIs("application/octet-stream") && !a.MimetypeIs("text/plain") {
 			a.SetResponseRejected(ins, "bad data type for fetch response")
 			return nil
 		}
 
-		a.SetArtefactMetadata(ArtefactMetadata{Type: mimetypes.GitUploadPackFetch})
+		a.SetArtefactMetadata(ArtefactMetadata{
+			Type:        mimetypes.GitUploadPackFetch,
+			Name:        "git fetch response",
+			Description: "Response to the git 'fetch' command",
+			Vendor:      vendor,
+		})
 
 		if numWants, ok := a.RequestAnnotation(ins.ID(), "num-wants"); !ok || numWants != 1 {
 			notes.Add("num-wants", numWants)
-			a.SetResponseRejected(ins,
-				"fetch is allowed only on a single ref").Annotate(notes)
+			a.SetResponseRejected(ins, "fetch is allowed only on a single ref").Annotate(notes)
 			return nil
 		}
 		ins.Lock()
@@ -312,8 +322,7 @@ func (ins *UploadPackInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 
 		if numWants, ok := a.RequestAnnotation(ins.ID(), "num-wants"); !ok || numWants != 1 {
 			notes.Add("num-wants", numWants)
-			a.SetResponseRejected(ins,
-				"fetch is allowed only on a single ref").Annotate(notes)
+			a.SetResponseRejected(ins, "fetch is allowed only on a single ref").Annotate(notes)
 			return nil
 		}
 

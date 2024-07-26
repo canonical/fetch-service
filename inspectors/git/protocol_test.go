@@ -64,20 +64,20 @@ func (s *protocolSuite) TestDecodeGitProtocolFail(c *C) {
 		msgs   []string
 		errmsg string
 	}{
-		{nil, []string{}, protocolDecodeError},                      // nil input
-		{[]byte(""), []string{}, protocolDecodeError},               // empty input
-		{[]byte("0"), []string{}, parseIntError},                    // invalid short input
-		{[]byte("0000"), []string{}, ""},                            // valid flush
-		{[]byte("0001"), []string{}, shortReadError},                // valid delimiter, missing rest of message
-		{[]byte("0002"), []string{}, ""},                            // valid finalizer
-		{[]byte("0003"), []string{}, protocolDecodeError},           // invalid error
-		{[]byte("0004"), []string{}, protocolDecodeError},           // invalid error
-		{[]byte("0005"), []string{}, protocolShortMessage},          // missing message
-		{[]byte("xxxx"), []string{}, parseUintError},                // invalid size
-		{[]byte("0003foo"), []string{}, protocolDecodeError},        // missing finalizer
-		{[]byte("0007foo0000"), []string{"foo"}, ""},                // valid message with finalizer
-		{[]byte("0007foo0005!0000"), []string{"foo", "!"}, ""},      // valid message with finalizer
-		{[]byte("0007foo000dpackfile\nstuff"), []string{"foo"}, ""}, // end at packfile
+		{nil, []string{}, protocolDecodeError},                                  // nil input
+		{[]byte(""), []string{}, protocolDecodeError},                           // empty input
+		{[]byte("0"), []string{}, parseIntError},                                // invalid short input
+		{[]byte("0000"), []string{}, ""},                                        // valid flush
+		{[]byte("0001"), []string{}, shortReadError},                            // valid delimiter, missing rest of message
+		{[]byte("0002"), []string{}, ""},                                        // valid finalizer
+		{[]byte("0003"), []string{}, protocolDecodeError},                       // invalid error
+		{[]byte("0004"), []string{}, protocolDecodeError},                       // invalid error
+		{[]byte("0005"), []string{}, protocolShortMessage},                      // missing message
+		{[]byte("xxxx"), []string{}, parseUintError},                            // invalid size
+		{[]byte("0003foo"), []string{}, protocolDecodeError},                    // missing finalizer
+		{[]byte("0007foo0000"), []string{"foo"}, ""},                            // valid message with finalizer
+		{[]byte("0007foo0005!0000"), []string{"foo", "!"}, ""},                  // valid message with finalizer
+		{[]byte("0007foo000dpackfile\nstuff"), []string{"foo", "packfile"}, ""}, // end at packfile
 	} {
 		msgs, err := git.DecodeGitProtocol(bytes.NewReader(tc.data))
 		if tc.errmsg == "" {

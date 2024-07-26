@@ -126,8 +126,8 @@ func (a Artefact) Sha256() digests.Sha256Digest {
 
 // addInspection adds the inspector's opinion to the artefact's
 // inspection map.
-func (a *Artefact) addInspection(insp InspectionMap, id string, op opinions.OpinionKind, reason string, args ...any) *Inspection {
-	logger.Infof("%s: opinion set to %v", id, op)
+func (a *Artefact) addInspection(insp InspectionMap, inspName, id string, op opinions.OpinionKind, reason string, args ...any) *Inspection {
+	logger.Infof("%s: %s opinion set to %s (%s)", id, inspName, op.String(), reason)
 	in := &Inspection{
 		Opinion: op,
 		Reason:  fmt.Sprintf(reason, args...),
@@ -140,37 +140,37 @@ func (a *Artefact) addInspection(insp InspectionMap, id string, op opinions.Opin
 // SetRequestPending adds a request inspection and sets the inspector
 // ins opinion to Pending.
 func (a *Artefact) SetRequestPending(ins Inspector, reason string, args ...any) *Inspection {
-	return a.addInspection(a.RequestInspection, ins.ID(), opinions.Pending, reason, args...)
+	return a.addInspection(a.RequestInspection, "request", ins.ID(), opinions.Pending, reason, args...)
 }
 
 // SetRequestRejected adds a request inspection and sets the inspector
 // ins opinion to Rejected.
 func (a *Artefact) SetRequestRejected(ins Inspector, reason string, args ...any) *Inspection {
-	return a.addInspection(a.RequestInspection, ins.ID(), opinions.Rejected, reason, args...)
+	return a.addInspection(a.RequestInspection, "request", ins.ID(), opinions.Rejected, reason, args...)
 }
 
 // SetRequestUnknown adds a request inspection and sets the inspector
 // ins opinion to Unknown.
 func (a *Artefact) SetRequestUnknown(ins Inspector, reason string, args ...any) *Inspection {
-	return a.addInspection(a.RequestInspection, ins.ID(), opinions.Unknown, reason, args...)
+	return a.addInspection(a.RequestInspection, "request", ins.ID(), opinions.Unknown, reason, args...)
 }
 
 // SetResponseApproved adds a response inspection and sets the inspector
 // ins opinion to Approved.
 func (a *Artefact) SetResponseApproved(ins Inspector, reason string, args ...any) *Inspection {
-	return a.addInspection(a.ResponseInspection, ins.ID(), opinions.Approved, reason, args...)
+	return a.addInspection(a.ResponseInspection, "response", ins.ID(), opinions.Approved, reason, args...)
 }
 
 // SetResponseRejected adds a response inspection and sets the inspector
 // ins opinion to Rejected.
 func (a *Artefact) SetResponseRejected(ins Inspector, reason string, args ...any) *Inspection {
-	return a.addInspection(a.ResponseInspection, ins.ID(), opinions.Rejected, reason, args...)
+	return a.addInspection(a.ResponseInspection, "response", ins.ID(), opinions.Rejected, reason, args...)
 }
 
 // SetResponseUnknown adds a response inspection and sets the inspector
 // ins opinion to Unknown.
 func (a *Artefact) SetResponseUnknown(ins Inspector, reason string, args ...any) *Inspection {
-	return a.addInspection(a.ResponseInspection, ins.ID(), opinions.Unknown, reason, args...)
+	return a.addInspection(a.ResponseInspection, "response", ins.ID(), opinions.Unknown, reason, args...)
 }
 
 // RequestRejected returns true when the artefact was rejected
