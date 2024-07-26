@@ -53,6 +53,7 @@ func (ins *SmartQueryInspector) InspectRequest(a RequestArtefact) error {
 	if info, err := newSmartQueryUrlInfo(u); err == nil {
 		a.SetRequestPending(ins, "valid URL for git smart request").Annotate(
 			Annotation{
+				"server":   strings.SplitN(u.Host, ":", 2)[0],
 				"protocol": proto,
 				"service":  info.service,
 			},
@@ -63,7 +64,7 @@ func (ins *SmartQueryInspector) InspectRequest(a RequestArtefact) error {
 }
 
 func (ins *SmartQueryInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
-	if !a.MimetypeIs("text/plain") {
+	if !a.MimetypeIs("application/octet-stream") && !a.MimetypeIs("text/plain") {
 		return nil
 	}
 
@@ -71,10 +72,14 @@ func (ins *SmartQueryInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 		return nil
 	}
 
+	vendor, _ := a.RequestStringAnnotation(ins.ID(), "server")
+
 	// Content type says it's an upload pack advertisement
 	a.SetArtefactMetadata(ArtefactMetadata{
-		Type: mimetypes.GitUploadPackAdvertisement,
-		Name: "git upload-pack advertisement",
+		Type:        mimetypes.GitUploadPackAdvertisement,
+		Name:        "git upload-pack advertisement",
+		Description: "response to git smart server query",
+		Vendor:      vendor,
 	})
 
 	msgs, err := decodeGitProtocol(f)
@@ -86,7 +91,7 @@ func (ins *SmartQueryInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 		return nil
 	}
 
-	if len(msgs) == 1 && msgs[0] == "# service=git-upload-pack\n" {
+	if len(msgs) == 1 && msgs[0] == "# service=git-upload-pack" {
 		var err error
 		msgs, err = decodeGitProtocol(f) // skip previous size+content
 		if err != nil {
@@ -98,9 +103,11 @@ func (ins *SmartQueryInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 		}
 	}
 
-	if len(msgs) < 1 || msgs[0] != "version 2\n" {
-		a.SetResponseRejected(ins, "git protocol is not version 2")
-		return nil
+	version := "2"
+	if len(msgs) < 1 || msgs[0] != "version 2" {
+		version = "not specified"
+		// a.SetResponseRejected(ins, "git protocol is not version 2")
+		// return nil
 	}
 
 	var server_msgs []string
@@ -113,7 +120,7 @@ func (ins *SmartQueryInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 	// in its initial response followed by an advertisement of its capabilities.
 	// Each capability is a key with an optional value.
 	a.SetResponseApproved(ins, "upload pack advertisement received").Annotate(
-		Annotation{"server-response": server_msgs},
+		Annotation{"version": version, "server-response": server_msgs},
 	)
 	return nil
 }
