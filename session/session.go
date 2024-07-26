@@ -256,7 +256,7 @@ func (s *Session) SaveMetadata(digest digests.Sha256Digest) error {
 		return fmt.Errorf("metadata for artefact %s not available", digest)
 	}
 
-	j, err := json.MarshalIndent(a, "", "\t")
+	j, err := utils.JSONMarshalIndentNoHTMLEscape(a, "", "\t")
 	if err != nil {
 		return err
 	}
