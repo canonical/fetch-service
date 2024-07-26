@@ -1,10 +1,10 @@
 module github.com/canonical/fetch-service
 
-go 1.22
+go 1.22.5
 
 require (
 	github.com/BurntSushi/toml v1.4.0
-	github.com/CalebQ42/squashfs v1.0.0
+	github.com/CalebQ42/squashfs v1.0.1
 	github.com/ProtonMail/go-crypto v1.0.0
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
 	github.com/elazarl/goproxy v0.0.0-20240618083138-03be62527ccb
@@ -26,10 +26,10 @@ require (
 	github.com/elazarl/goproxy/ext v0.0.0-20221015165544-a0805db90819 // indirect
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/pierrec/lz4/v4 v4.1.19 // indirect
+	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/rasky/go-lzo v0.0.0-20200203143853-96a758eda86e // indirect
 	github.com/therootcompany/xz v1.0.1 // indirect
-	github.com/ulikunitz/xz v0.5.11 // indirect
+	github.com/ulikunitz/xz v0.5.12 // indirect
 	golang.org/x/crypto v0.25.0 // indirect
 	golang.org/x/sys v0.22.0 // indirect
 )
