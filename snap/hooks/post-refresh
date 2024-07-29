@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-ACL_YAML="${SNAP_DATA}/acl.yaml"
+ACL_YAML="${SNAP_DATA}/conf/acl.yaml"
 
 [ -f "$ACL_YAML" ] && exit 0
 
