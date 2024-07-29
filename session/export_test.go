@@ -19,6 +19,10 @@
 
 package session
 
+import (
+	"os"
+)
+
 var (
 	RandomString = randomString
 	Sessions     = sessions
@@ -45,5 +49,13 @@ func MockGetSession(mock func(string) *Session) (restorer func()) {
 	GetSession = mock
 	return func() {
 		GetSession = old
+	}
+}
+
+func MockOsMkdirAll(mock func(string, os.FileMode) error) (restorer func()) {
+	old := osMkdirAll
+	osMkdirAll = mock
+	return func() {
+		osMkdirAll = old
 	}
 }
