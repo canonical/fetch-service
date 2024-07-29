@@ -31,6 +31,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/control"
+	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/service/messages"
 )
 
@@ -151,8 +152,14 @@ func (t *controlSuite) TestGetSessionReport(c *C) {
 		req.Header["Authorization"] = []string{"Basic Zm9vOmJhcg=="}
 
 		go func() {
+			artefacts := []*metadata.Artefact{metadata.NewArtefact()}
+			artefacts[0].Metadata.AuthorEmail = "Jürgen <juergen@example.com>"
+
 			msg := <-ch
-			msg.(messages.SessionReport).Rch <- messages.SessionReportResult{Err: tc.err}
+			msg.(messages.SessionReport).Rch <- messages.SessionReportResult{
+				Err:       tc.err,
+				Artefacts: artefacts,
+			}
 		}()
 
 		w := httptest.NewRecorder()
@@ -164,6 +171,7 @@ func (t *controlSuite) TestGetSessionReport(c *C) {
 			err = json.Unmarshal(w.Body.Bytes(), &res)
 			c.Assert(err, IsNil)
 			c.Check(res.Err, IsNil)
+			c.Check(res.Artefacts[0].Metadata.AuthorEmail, Equals, "Jürgen <juergen@example.com>")
 		}
 	}
 }

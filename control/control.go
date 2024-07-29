@@ -29,6 +29,7 @@ import (
 
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/service/messages"
+	"github.com/canonical/fetch-service/utils"
 )
 
 // Parameters for session creation
@@ -192,7 +193,7 @@ func (c *Server) getSessionReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	j, err := json.Marshal(res)
+	j, err := utils.JSONMarshalNoHTMLEscape(res)
 	if err != nil {
 		internalServerError(w, r)
 		return
