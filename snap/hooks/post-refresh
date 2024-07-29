@@ -10,6 +10,13 @@ if [ -f "${SNAP_DATA}/acl.yaml" ]; then
 	mv "${SNAP_DATA}/acl.yaml" "$ACL_YAML"
 fi
 
+mkdir -p $(dirname "$ACL_YAML")
+
+# If old acl configuration exists, move it to conf/
+if [ -f "${SNAP_DATA}/acl.yaml" ]; then
+	mv "${SNAP_DATA}/acl.yaml" "$ACL_YAML"
+fi
+
 # Create an acl file if it doesn't exist
 if [ ! -f "$ACL_YAML" ]; then
 	cat <<EOF >"$ACL_YAML"

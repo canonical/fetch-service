@@ -36,21 +36,21 @@ Endpoints
 
   .. code-block::
 
-    {
-        "uptime": <int>,				// service uptime in seconds
-        "start-time": <string>,			// start timestamp in RFC-3339 format
-        "session-count": <int>,			// total number of created sessions
-        "active-sessions": [			// list of sessions currently active
-            {
-                "session-id": <string>,		// session ID
-                "start-time": <string>,		// start timestamp in RFC-3339 format
-                "policy": <string>,		// "strict" or "permissive"
-                "age": <int>,			// seconds since session start
-                "timeout": <int>			// session TTL in seconds	
-            },
-            (...)
-        ],
-    }
+  {
+      "uptime": <int>,				// service uptime in seconds
+      "start-time": <string>,			// start timestamp in RFC-3339 format
+      "session-count": <int>,			// total number of created sessions
+      "active-sessions": [			// list of sessions currently active
+          {
+              "session-id": <string>,		// session ID
+              "start-time": <string>,		// start timestamp in RFC-3339 format
+              "policy": <string>,		// "strict" or "permissive"
+              "age": <int>,			// seconds since session start
+              "timeout": <int>			// session TTL in seconds	
+          },
+          (...)
+      ],
+  }
 
 
 ``POST /session``
@@ -134,7 +134,7 @@ Endpoints
 
     {
         "session-id": <string>,		// session ID
-        "comment": <string>,              // free-form comment string
+        "comment": <string>,            // free-form comment string
         "start-time": <string>,		// session start timestamp in RFC-3339 format
         "end-time": <string>,		// session end timestamp in RFC-3339 format
         "inspectors": <list of string>,	// list of registered inspector IDs
@@ -143,7 +143,7 @@ Endpoints
             "artefact-metadata-version": <string>,  // metadata compatibility (major.minor)
             "request-inspection": {
                 <inspector id>: {
-                    "opinion": <string>,		// "Unknown", "Rejected" or "Pending"
+                    "opinion": <string>,	// "Unknown", "Rejected" or "Pending"
                     "reason": <string>,		// Explanation for opinion
                     "annotations": <inspector-specific optional map of string to any>
                 },
@@ -151,7 +151,7 @@ Endpoints
             }.
             "response-inspection": {
                 <inspector id>: {
-                    "opinion": <string>,		// "Unknown", "Rejected" or "Approved"
+                    "opinion": <string>,	// "Unknown", "Rejected" or "Approved"
                     "reason": <string>,		// Explanation for opinion
                     "annotations": <inspector-specific optional map of string to any>
                 },
@@ -166,7 +166,7 @@ Endpoints
                 "name": <string>,		// artefact name
                 "version": <string>,		// artefact version
                 "vendor": <string>,		// artefact vendor
-                "description": <string>,		// brief description of the artefact
+                "description": <string>,	// brief description of the artefact
                 "author": <string>,		// author name
                 "author-email": <string>,	// author email address
                 "architecture": <string>,	// binary architecture in debian format
@@ -179,7 +179,7 @@ Endpoints
                     "end-time": <string>,	// end timestamp in RFC-3339 format
                     "method": <string>,		// URL request method
                     "url": <string>,		// URL
-                    "address": <string>,		// client IP address and port
+                    "address": <string>,	// client IP address and port
                     "user-agent": <string>,	// client user agent string
                     "status-code": <int>,	// HTTP request status code
                     "status": <string>,		// textual status message

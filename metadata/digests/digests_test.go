@@ -73,7 +73,6 @@ func (s *digestsSuite) TestSha1DigestMarshal(c *C) {
 }
 
 func (s *digestsSuite) TestSha1DigestUnmarshal(c *C) {
-
 	type Foo struct {
 		Bar digests.Sha1Digest `json:"bar"`
 	}
