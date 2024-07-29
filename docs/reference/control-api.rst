@@ -36,21 +36,21 @@ Endpoints
 
   .. code-block::
 
-  {
-      "uptime": <int>,				// service uptime in seconds
-      "start-time": <string>,			// start timestamp in RFC-3339 format
-      "session-count": <int>,			// total number of created sessions
-      "active-sessions": [			// list of sessions currently active
-          {
-              "session-id": <string>,		// session ID
-              "start-time": <string>,		// start timestamp in RFC-3339 format
-              "policy": <string>,		// "strict" or "permissive"
-              "age": <int>,			// seconds since session start
-              "timeout": <int>			// session TTL in seconds	
-          },
-          (...)
-      ],
-  }
+    {
+        "uptime": <int>,				// service uptime in seconds
+        "start-time": <string>,			// start timestamp in RFC-3339 format
+        "session-count": <int>,			// total number of created sessions
+        "active-sessions": [			// list of sessions currently active
+            {
+                "session-id": <string>,		// session ID
+                "start-time": <string>,		// start timestamp in RFC-3339 format
+                "policy": <string>,		// "strict" or "permissive"
+                "age": <int>,			// seconds since session start
+                "timeout": <int>			// session TTL in seconds
+            },
+            (...)
+        ],
+    }
 
 
 ``POST /session``
@@ -69,7 +69,7 @@ Endpoints
   .. code-block::
 
     {
-        "timeout": <int>,			// session timeout in seconds
+        "timeout": <int>,	// session timeout in seconds
         "policy": <string>		// "strict" or "permissive"
     }
 
@@ -79,7 +79,7 @@ Endpoints
 
     {
         "id": <string>,			// session ID
-        "token": <string>			// session token
+        "token": <string>	// session token
     }
 
 
@@ -189,11 +189,11 @@ Endpoints
                 },
                 (...)
             ]
+            (...)
           },
-          (...)
         ],
         "spool-path": <string>,		// file spool pathname
-        "policy": <string>                // policy used in this session
+        "policy": <string>            // policy used in this session
     }         
 
 ``DELETE /session/<id>``
