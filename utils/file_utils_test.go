@@ -131,6 +131,40 @@ func (t *fileutilsSuite) TestMoveFileCopy(c *C) {
 	c.Assert(err, ErrorMatches, "stat.*no such file or directory")
 }
 
+func (t *fileutilsSuite) TestGetLicense(c *C) {
+	for _, tc := range []struct {
+		filename string
+		license  string
+		errMsg   string
+	}{
+		{"export_test.go", "GPL-3", ""},
+		{"../go.mod", "UNKNOWN", ""},
+		{"does-not-exist", "", ""},
+	} {
+		res, err := utils.GetLicense(tc.filename)
+		if tc.errMsg == "" {
+			c.Assert(err, IsNil)
+			c.Check(res, Equals, tc.license)
+		} else {
+			c.Assert(err, ErrorMatches, tc.errMsg)
+		}
+	}
+}
+
+func (t *fileutilsSuite) TestCheckLicenseFiles(c *C) {
+	for _, tc := range []struct {
+		files   []string
+		license string
+	}{
+		{[]string{"does-not-exist", "export_test.go"}, "GPL-3"},
+		{[]string{"does-not-exist"}, ""},
+	} {
+		res, err := utils.CheckLicenseFiles(tc.files)
+		c.Assert(err, IsNil)
+		c.Check(res, Equals, tc.license)
+	}
+}
+
 func createZip(src string, dest io.Writer) error {
 	z := zip.NewWriter(dest)
 	defer z.Close()
