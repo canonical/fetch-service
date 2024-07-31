@@ -20,6 +20,8 @@
 package snap_test
 
 import (
+	"errors"
+	"io"
 	"testing"
 
 	. "gopkg.in/check.v1"
@@ -71,6 +73,15 @@ func (s *snapSuite) TestInspectRequest(c *C) {
 	}
 }
 
+func (s *snapSuite) TestInspectRequestError(c *C) {
+	ins := snap.NewSnapInspector()
+	a := metadata.NewArtefact()
+	a.CurrentDownload = metadata.Download{URL: "::"}
+
+	err := ins.InspectRequest(a)
+	c.Assert(err, ErrorMatches, ".*: missing protocol scheme")
+}
+
 func (s *snapSuite) TestSnapArtefactInspector(c *C) {
 	a := metadata.NewArtefact()
 	a.Metadata.Type = "application/x.squashfs"
@@ -84,7 +95,8 @@ func (s *snapSuite) TestSnapArtefactInspector(c *C) {
 	a.SetRequestPending(ins, "test")
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
-	c.Assert(a.Approved(), Equals, true)
+
+	c.Check(a.Approved(), Equals, true)
 	c.Check(a.Metadata.Type, Equals, "application/x.canonical.snap-package")
 	c.Check(a.Metadata.Name, Equals, "word-salad")
 	c.Check(a.Metadata.Vendor, Equals, "Alan Pope")
@@ -126,4 +138,215 @@ func (s *snapSuite) TestSnapArtefactInspector(c *C) {
 			"validation":        "starred",
 		},
 	})
+}
+
+func (s *snapSuite) TestSnapArtefactInspectorSkip(c *C) {
+	a := metadata.NewArtefact()
+	a.Metadata.Type = "application/octet-stream"
+	a.Metadata.Size = 8192
+
+	f, err := files.OpenArtefactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
+	c.Assert(err, IsNil)
+	defer f.Close()
+
+	ins := snap.NewSnapInspector()
+	a.SetRequestPending(ins, "test")
+	err = ins.InspectArtefact(f, a)
+	c.Assert(err, IsNil)
+
+	c.Check(a.ResponseInspection["snap"], IsNil)
+	c.Check(a.Rejected(), Equals, true)
+}
+
+func (s *snapSuite) TestSnapArtefactInspectorError(c *C) {
+	for _, tc := range []struct {
+		errorCase string
+		errorMsg  string
+	}{
+		{"compute-digest", "cannot compute digest: compute digest error"},
+		{"encode-digest", "cannot encode digest: encode digest error"},
+		{"revision-assertion-download", "cannot retrieve snap-revision assertion: assertion download error"},
+		{"declaration-assertion-download", "cannot retrieve snap-declaration assertion: assertion download error"},
+		{"account-assertion-download", "cannot retrieve account assertion: assertion download error"},
+	} {
+		c.Logf("error case: %s", tc.errorCase)
+
+		snap.MockComputeDigest(snap.ComputeDigestImpl)
+		snap.MockEncodeDigest(snap.EncodeDigestImpl)
+		snap.MockDownloadSnapRevisionAssertion(snap.DownloadSnapRevisionAssertionImpl)
+		snap.MockDownloadSnapDeclarationAssertion(snap.DownloadSnapDeclarationAssertionImpl)
+		snap.MockDownloadAccountAssertion(snap.DownloadAccountAssertionImpl)
+
+		switch tc.errorCase {
+		case "compute-digest":
+			restorer := snap.MockComputeDigest(func(f io.Reader) ([]byte, error) {
+				return nil, errors.New("compute digest error")
+			})
+			defer restorer()
+		case "encode-digest":
+			restorer := snap.MockEncodeDigest(func(b []byte) (string, error) {
+				return "", errors.New("encode digest error")
+			})
+			defer restorer()
+		case "revision-assertion-download":
+			restorer := snap.MockDownloadSnapRevisionAssertion(func(s string) (*snap.Assertion, error) {
+				return nil, errors.New("assertion download error")
+			})
+			defer restorer()
+		case "declaration-assertion-download":
+			restorer := snap.MockDownloadSnapDeclarationAssertion(func(s string) (*snap.Assertion, error) {
+				return nil, errors.New("assertion download error")
+			})
+			defer restorer()
+		case "account-assertion-download":
+			restorer := snap.MockDownloadAccountAssertion(func(s string) (*snap.Assertion, error) {
+				return nil, errors.New("assertion download error")
+			})
+			defer restorer()
+		}
+
+		a := metadata.NewArtefact()
+		a.Metadata.Type = "application/x.squashfs"
+		a.Metadata.Size = 8192
+
+		f, err := files.OpenArtefactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
+		c.Assert(err, IsNil)
+		defer f.Close()
+
+		ins := snap.NewSnapInspector()
+		a.SetRequestPending(ins, "test")
+		err = ins.InspectArtefact(f, a)
+		c.Assert(err, Not(IsNil))
+		c.Check(err.Error(), Equals, tc.errorMsg)
+	}
+}
+
+func (s *snapSuite) TestSnapArtefactInspectorReject(c *C) {
+	for _, tc := range []struct {
+		rejectCase string
+		reason     string
+	}{
+		{"snap-revision-signature-mismatch", "snap-revision assertion has invalid signature"},
+		{"digest-mismatch", "snap-revision assertion digest mismatch"},
+		{"snap-size-mismatch", "snap size mismatch in snap-revision assertion"},
+		{"missing-snap-id", "cannot find snap ID in snap-revision assertion"},
+		{"snap-declaration-signature-mismatch", "snap-declaration assertion has invalid signature"},
+		{"missing-publisher-id", "cannot find publisher ID in snap-declaration assertion"},
+		{"account-signature-mismatch", "account assertion has invalid signature"},
+	} {
+		c.Logf("rejection case: %s", tc.rejectCase)
+
+		snap.MockComputeDigest(snap.ComputeDigestImpl)
+		snap.MockEncodeDigest(snap.EncodeDigestImpl)
+		snap.MockDownloadSnapRevisionAssertion(snap.DownloadSnapRevisionAssertionImpl)
+		snap.MockDownloadSnapDeclarationAssertion(snap.DownloadSnapDeclarationAssertionImpl)
+		snap.MockDownloadAccountAssertion(snap.DownloadAccountAssertionImpl)
+
+		switch tc.rejectCase {
+		case "snap-revision-signature-mismatch":
+			restorer := snap.MockDownloadSnapRevisionAssertion(func(s string) (*snap.Assertion, error) {
+				ast := &snap.Assertion{
+					Signature: []byte("invalid-signature"),
+					Header: map[string]string{
+						"snap-size":     "8192",
+						"snap-id":       "UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7",
+						"snap-sha3-384": "v0QSLRBEj2jMuEmtgYJrVjTFArf27nZBIqZrh87mZIF_ph_fmedOwOcZu4wpvLOs",
+					},
+				}
+				return ast, nil
+			})
+			defer restorer()
+		case "digest-mismatch":
+			restorer := snap.MockDownloadSnapRevisionAssertion(func(s string) (*snap.Assertion, error) {
+				ast := &snap.Assertion{
+					Header: map[string]string{
+						"snap-size":     "8192",
+						"snap-sha3-384": "invalid",
+					},
+				}
+				return ast, nil
+			})
+			defer restorer()
+		case "snap-size-mismatch":
+			restorer := snap.MockDownloadSnapRevisionAssertion(func(s string) (*snap.Assertion, error) {
+				ast := &snap.Assertion{
+					Header: map[string]string{
+						"snap-size": "123",
+					},
+				}
+				return ast, nil
+			})
+			defer restorer()
+		case "missing-snap-id":
+			restorer := snap.MockDownloadSnapRevisionAssertion(func(s string) (*snap.Assertion, error) {
+				ast := &snap.Assertion{
+					Header: map[string]string{
+						"snap-size":     "8192",
+						"snap-sha3-384": "v0QSLRBEj2jMuEmtgYJrVjTFArf27nZBIqZrh87mZIF_ph_fmedOwOcZu4wpvLOs",
+					},
+				}
+				return ast, nil
+			})
+			defer restorer()
+		case "snap-declaration-signature-mismatch":
+			restorer := snap.MockDownloadSnapDeclarationAssertion(func(s string) (*snap.Assertion, error) {
+				ast := &snap.Assertion{
+					Signature: []byte("invalid-signature"),
+					Header: map[string]string{
+						"publisher-id": "ekRMaarzOfN1Vu3sDY0Bt1aGnM8Cd4kG",
+					},
+				}
+				return ast, nil
+			})
+			defer restorer()
+		case "missing-publisher-id":
+			restorer := snap.MockDownloadSnapDeclarationAssertion(func(s string) (*snap.Assertion, error) {
+				ast := &snap.Assertion{
+					Header: map[string]string{},
+				}
+				return ast, nil
+			})
+			defer restorer()
+		case "account-signature-mismatch":
+			restorer := snap.MockDownloadAccountAssertion(func(s string) (*snap.Assertion, error) {
+				ast := &snap.Assertion{
+					Signature: []byte("invalid-signature"),
+				}
+				return ast, nil
+			})
+			defer restorer()
+		}
+
+		a := metadata.NewArtefact()
+		a.Metadata.Type = "application/x.squashfs"
+		a.Metadata.Size = 8192
+
+		f, err := files.OpenArtefactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
+		c.Assert(err, IsNil)
+		defer f.Close()
+
+		ins := snap.NewSnapInspector()
+		a.SetRequestPending(ins, "test")
+		err = ins.InspectArtefact(f, a)
+		c.Assert(err, IsNil)
+
+		c.Assert(a.Rejected(), Equals, true)
+		c.Assert(a.ResponseInspection["snap"].Reason, Equals, tc.reason)
+	}
+}
+
+func (s *snapSuite) TestSquashFsDetector(c *C) {
+	for _, tc := range []struct {
+		buffer []byte
+		result bool
+	}{
+		{[]byte{}, false},
+		{[]byte{0, 0, 0, 0}, false},
+		{[]byte("hsq"), false},
+		{[]byte("hsqx---"), false},
+		{[]byte("hsqs---"), true},
+	} {
+		res := snap.SquashFsDetector(tc.buffer, uint32(len(tc.buffer)))
+		c.Assert(res, Equals, tc.result)
+	}
 }

@@ -37,6 +37,9 @@ import (
 )
 
 func SquashFsDetector(raw []byte, limit uint32) bool {
+	if limit < 4 {
+		return false
+	}
 	return slices.Compare(raw[:4], []byte("hsqs")) == 0
 }
 
@@ -105,10 +108,9 @@ func (ins *SnapInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) 
 	if err != nil {
 		return fmt.Errorf("cannot retrieve snap-revision assertion: %w", err)
 	}
-	if err := snapRevisionAssertion.VerifySignature(); err != nil {
-		a.SetResponseRejected(ins, "snap-revision assertion has invalid signature").Annotate(
+	if snapRevisionAssertion.SnapSize() != fmt.Sprintf("%d", a.Size()) {
+		a.SetResponseRejected(ins, "snap size mismatch in snap-revision assertion").Annotate(
 			Annotation{
-				"error-msg":                      err.Error(),
 				"snap-revision-assertion-header": snapRevisionAssertion.Header,
 			},
 		)
@@ -122,19 +124,19 @@ func (ins *SnapInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) 
 		)
 		return nil
 	}
-	if snapRevisionAssertion.SnapSize() != fmt.Sprintf("%d", a.Size()) {
-		a.SetResponseRejected(ins, "snap-revision assertion size mismatch").Annotate(
+	snapId := snapRevisionAssertion.SnapID()
+	if snapId == "" {
+		a.SetResponseRejected(ins, "cannot find snap ID in snap-revision assertion").Annotate(
 			Annotation{
 				"snap-revision-assertion-header": snapRevisionAssertion.Header,
 			},
 		)
 		return nil
 	}
-
-	snapId := snapRevisionAssertion.SnapID()
-	if snapId == "" {
-		a.SetResponseRejected(ins, "cannot find snap-id in snap-revision assertion").Annotate(
+	if err := snapRevisionAssertion.VerifySignature(); err != nil {
+		a.SetResponseRejected(ins, "snap-revision assertion has invalid signature").Annotate(
 			Annotation{
+				"error-msg":                      err.Error(),
 				"snap-revision-assertion-header": snapRevisionAssertion.Header,
 			},
 		)
@@ -146,20 +148,21 @@ func (ins *SnapInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) 
 	if err != nil {
 		return fmt.Errorf("cannot retrieve snap-declaration assertion: %w", err)
 	}
-	if err := snapDeclarationAssertion.VerifySignature(); err != nil {
-		a.SetResponseRejected(ins, "snap-declaration assertion has invalid signature").Annotate(
+
+	publisherId := snapDeclarationAssertion.PublisherID()
+	if publisherId == "" {
+		a.SetResponseRejected(ins, "cannot find publisher ID in snap-declaration assertion").Annotate(
 			Annotation{
-				"error-msg":                         err.Error(),
 				"snap-declaration-assertion-header": snapDeclarationAssertion.Header,
 			},
 		)
 		return nil
 	}
 
-	publisherId := snapDeclarationAssertion.PublisherID()
-	if publisherId == "" {
-		a.SetResponseRejected(ins, "cannot find publisher-id in snap-declaration assertion").Annotate(
+	if err := snapDeclarationAssertion.VerifySignature(); err != nil {
+		a.SetResponseRejected(ins, "snap-declaration assertion has invalid signature").Annotate(
 			Annotation{
+				"error-msg":                         err.Error(),
 				"snap-declaration-assertion-header": snapDeclarationAssertion.Header,
 			},
 		)
@@ -184,7 +187,7 @@ func (ins *SnapInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) 
 	// Extract additional metadata from snap.yaml
 	sqsh, err := squashfs.NewReader(f)
 	if err != nil {
-		return nil
+		return err
 	}
 	sf, err := sqsh.Open("meta/snap.yaml")
 	if err != nil {
@@ -221,17 +224,23 @@ func (ins *SnapInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) 
 	return nil
 }
 
-func downloadSnapRevisionAssertion(snapSha3_384 string) (*assertion, error) {
+var downloadSnapRevisionAssertion = downloadSnapRevisionAssertionImpl
+
+func downloadSnapRevisionAssertionImpl(snapSha3_384 string) (*assertion, error) {
 	url := fmt.Sprintf("https://api.snapcraft.io/v2/assertions/snap-revision/%s?max-format=0", snapSha3_384)
 	return downloadAssertion(url)
 }
 
-func downloadSnapDeclarationAssertion(snapId string) (*assertion, error) {
+var downloadSnapDeclarationAssertion = downloadSnapDeclarationAssertionImpl
+
+func downloadSnapDeclarationAssertionImpl(snapId string) (*assertion, error) {
 	url := fmt.Sprintf("https://api.snapcraft.io/v2/assertions/snap-declaration/16/%s?max-format=5", snapId)
 	return downloadAssertion(url)
 }
 
-func downloadAccountAssertion(publisherId string) (*assertion, error) {
+var downloadAccountAssertion = downloadAccountAssertionImpl
+
+func downloadAccountAssertionImpl(publisherId string) (*assertion, error) {
 	url := fmt.Sprintf("https://api.snapcraft.io/v2/assertions/account/%s?max-format=5", publisherId)
 	return downloadAssertion(url)
 }
