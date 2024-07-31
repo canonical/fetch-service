@@ -47,7 +47,7 @@ func (s *snapSuite) TestInspectRequest(c *C) {
 		url      string
 		approved bool
 	}{
-		{"https://api.snapcraft.io:443/v2/snaps/download/foo_42.snap?", true},
+		{"https://api.snapcraft.io:443/api/v1/snaps/download/foo_42.snap", true},
 		{"https://x.snapcraftcontent.com:443/subdir/foo_42.snap?", true},
 		{"https://api.snapcraft.io:443/v2/snaps/download/foo_42.snap", false},
 		{"https://x.snapcraftcontent.com:443/subdir/foo_42.snap", false},

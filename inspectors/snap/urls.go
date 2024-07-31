@@ -36,7 +36,7 @@ import (
 // https://api.snapcraft.io:443/v2/assertions/account-key/BWDEoaqyr25nF5SNCvEv2v7QnM9QsfCc0PBMYD_i2NGSQ32EF2d4D0hqUel3m8ul?...
 
 var (
-	reSnapPackage    = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/snaps/download/([A-Za-z0-9]+)_([0-9]+)\.snap\?`)
+	reSnapPackage    = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/download/([A-Za-z0-9]+)_([0-9]+)\.snap`)
 	reSnapPackageAlt = regexp.MustCompile(`^https://[^/]+\.snapcraftcontent\.com:443/[^?]+/([A-Za-z0-9]+)_([0-9]+)\.snap\?`)
 	reSnapInfo       = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/snaps/info/([^?/]+)`)
 	reSnapRefresh    = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/snaps/refresh$`)
