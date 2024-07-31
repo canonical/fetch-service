@@ -75,7 +75,13 @@ func New(opt *Options) (*Service, error) {
 
 // Start runs the fetch service dispatcher.
 func (svc *Service) Start() error {
-	// Load MITM certificate
+	// Set up idle auto-shutdown
+	idleTimer := time.NewTimer(time.Duration(svc.opt.IdleShutdown) * time.Second)
+	if svc.opt.IdleShutdown == 0 {
+		if !idleTimer.Stop() {
+			<-idleTimer.C
+		}
+	}
 
 	// Configuration file watcher
 	var err error
@@ -107,6 +113,9 @@ func (svc *Service) Start() error {
 		for {
 			select {
 			case msg := <-svc.ch:
+				if svc.opt.IdleShutdown > 0 {
+					idleTimer.Reset(time.Duration(svc.opt.IdleShutdown) * time.Second)
+				}
 				switch v := msg.(type) {
 				case messages.GetServiceStatus:
 					v.Rch <- messages.ServiceStatus{
@@ -288,8 +297,16 @@ func (svc *Service) Start() error {
 				if ok {
 					logger.Errorf("configuration file watcher error: %s", err)
 				}
-			}
 
+			case <-idleTimer.C:
+				n := len(session.ListAll())
+				if n < 1 {
+					logger.Infof("auto-shutdown after being idle for %d seconds", svc.opt.IdleShutdown)
+					return nil
+				} else {
+					logger.Infof("number of active sessions: %d", n)
+				}
+			}
 		}
 	})
 
@@ -304,6 +321,12 @@ func (svc *Service) Stop() error {
 
 	if err := svc.p.Stop(); err != nil {
 		logger.Warningf("Cannot shut down the HTTP server: %s", err)
+		return err
+	}
+
+	if err := svc.ctl.Stop(); err != nil {
+		logger.Warningf("Cannot shut down the control API server: %s", err)
+		return err
 	}
 
 	svc.tomb.Kill(nil)
@@ -312,6 +335,10 @@ func (svc *Service) Stop() error {
 	}
 
 	return nil
+}
+
+func (svc *Service) Alive() bool {
+	return svc.tomb.Alive()
 }
 
 func (svc *Service) Dying() <-chan struct{} {

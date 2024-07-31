@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	. "gopkg.in/check.v1"
 
@@ -110,6 +111,56 @@ func (t *serviceSuite) TestServiceEntombment(c *C) {
 
 	err = svc.Stop()
 	c.Assert(err, IsNil)
+}
+
+func (t *serviceSuite) TestServiceIdleShutdown(c *C) {
+	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+		t.ch = ch
+		t.proxyPort = port
+		return &proxy.HttpProxy{}, nil
+	})
+	defer restorer()
+
+	for _, tc := range []struct {
+		createSession bool
+		serviceAlive  bool
+	}{
+		{false, false},
+		{true, true},
+	} {
+
+		opt := service.Options{ProxyPort: 1337, IdleShutdown: 1, PermissiveMode: true}
+		svc, err := service.New(&opt)
+		c.Assert(err, IsNil)
+
+		err = svc.Start()
+		c.Assert(err, IsNil)
+
+		var sid string
+		if tc.createSession {
+			msg := messages.NewCreateSession("permissive", 1338)
+			t.ch <- msg
+			res := <-msg.Rch
+			c.Assert(res.Err, Equals, nil)
+			sid = res.Id
+		}
+
+		c.Assert(svc.Alive(), Equals, true)
+		time.Sleep(2 * time.Second)
+		c.Assert(svc.Alive(), Equals, tc.serviceAlive)
+
+		if !tc.createSession {
+			continue
+		}
+
+		msg := messages.NewEndSession(sid)
+		t.ch <- msg
+		err = <-msg.Rch
+		c.Assert(err, IsNil)
+
+		time.Sleep(2 * time.Second)
+		c.Assert(svc.Alive(), Equals, false)
+	}
 }
 
 func (t *serviceSuite) TestGetServiceStatus(c *C) {
