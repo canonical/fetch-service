@@ -156,7 +156,7 @@ func (s *Session) SaveSessionMetadata(sm *metadata.SessionMetadata) error {
 		return err
 	}
 
-	if err := os.MkdirAll(s.SessionDir, 0755); err != nil {
+	if err := osMkdirAll(s.SessionDir, 0755); err != nil {
 		return err
 	}
 
@@ -214,6 +214,8 @@ func (s *Session) AddDownload(di metadata.Download) {
 	}
 }
 
+var osMkdirAll = os.MkdirAll
+
 // SaveData writes the artefact data corresponding to the given
 // digest to the asset spool.
 func (s *Session) SaveData(digest digests.Sha256Digest) error {
@@ -223,7 +225,7 @@ func (s *Session) SaveData(digest digests.Sha256Digest) error {
 	}
 
 	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
-	if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
+	if err := osMkdirAll(filepath.Dir(dest), 0755); err != nil {
 		os.Remove(a.Tempfile)
 		return err
 	}

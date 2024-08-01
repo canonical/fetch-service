@@ -163,36 +163,60 @@ func (t *sessionSuite) TestAddInvalidDownload(c *C) {
 }
 
 func (t *sessionSuite) TestSaveData(c *C) {
-	s := session.New("", true)
-	defer s.Discard()
+	for _, tc := range []struct {
+		artefactAdded bool
+		mkdirFail     bool
+		errMsg        string
+	}{
+		{true, false, ""},
+		{false, false, "metadata for artefact .* not available"},
+		{true, true, "cannot create dir"},
+	} {
+		session.MockOsMkdirAll(func(path string, perm os.FileMode) error {
+			if tc.mkdirFail {
+				return errors.New("cannot create dir")
+			}
+			return os.MkdirAll(path, perm)
+		})
 
-	tmp := c.MkDir()
-	tempfile := filepath.Join(tmp, "tempfile")
+		s := session.New("", true)
+		defer s.Discard()
 
-	h, _ := digests.NewSha256Digest(MySha256)
-	a := metadata.NewArtefact()
-	a.AssetDir = tmp
-	a.Tempfile = tempfile
-	a.Metadata.Name = "test-metadata"
-	a.Metadata.Sha256 = h
+		tmp := c.MkDir()
+		tempfile := filepath.Join(tmp, "tempfile")
 
-	s.AddArtefact(a)
+		h, _ := digests.NewSha256Digest(MySha256)
 
-	content := []byte("hello world")
-	err := os.WriteFile(tempfile, content, 0644)
-	c.Assert(err, IsNil)
+		a := metadata.NewArtefact()
+		a.AssetDir = tmp
+		a.Tempfile = tempfile
+		a.Metadata.Name = "test-metadata"
+		a.Metadata.Sha256 = h
 
-	err = s.SaveData(h)
-	c.Assert(err, IsNil)
+		if tc.artefactAdded {
+			s.AddArtefact(a)
 
-	// data is stored in file named after the digest value
-	data, err := os.ReadFile(filepath.Join(tmp, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.data"))
-	c.Assert(err, IsNil)
-	c.Assert(data, DeepEquals, []byte("hello world"))
+			content := []byte("hello world")
+			err := os.WriteFile(tempfile, content, 0644)
+			c.Assert(err, IsNil)
+		}
 
-	// see if temporary file deleted
-	_, err = os.Stat(tempfile)
-	c.Assert(errors.Is(err, os.ErrNotExist), Equals, true)
+		err := s.SaveData(h)
+		if tc.errMsg == "" {
+			c.Assert(err, IsNil)
+
+			// data is stored in file named after the digest value
+			data, err := os.ReadFile(filepath.Join(tmp, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.data"))
+			c.Assert(err, IsNil)
+			c.Assert(data, DeepEquals, []byte("hello world"))
+		} else {
+			c.Assert(err, ErrorMatches, tc.errMsg)
+		}
+
+		// see if temporary file deleted
+		_, err = os.Stat(tempfile)
+		c.Assert(errors.Is(err, os.ErrNotExist), Equals, true)
+	}
 }
 
 func (t *sessionSuite) TestSaveMetadata(c *C) {
@@ -260,38 +284,56 @@ func (t *sessionSuite) TestFinish(c *C) {
 
 	sessionDir := filepath.Join(spool, s.Id)
 	assetDir := filepath.Join(sessionDir, "assets")
-
 	s.SessionDir = sessionDir
-
-	d0, _ := digests.NewSha256Digest("1234567890123456789012345678901234567890123456789012345678901234")
-	d1, _ := digests.NewSha256Digest("1111111111222222222233333333334444444444555555555566666666667777")
-
-	m0 := metadata.Artefact{AssetDir: assetDir}
-	m1 := metadata.Artefact{AssetDir: assetDir}
-
-	m0.Metadata.Sha256 = d0
-	m1.Metadata.Sha256 = d1
-
-	s.A[d0] = &m0
-	s.A[d1] = &m1
 
 	err := os.MkdirAll(assetDir, 0755)
 	c.Assert(err, IsNil)
 
-	err = s.Finish()
-	c.Assert(err, IsNil)
+	for _, tc := range []struct {
+		digest      string
+		mkdirFail   bool
+		jsonCreated bool
+		errMsg      string
+	}{
+		{"1234567890123456789012345678901234567890123456789012345678901234", false, true, ""},
+		{"1234567890123456789012345678901234567890123456789012345678901234", true, true, "cannot create dir"},
+		{"invalid-digest", false, false, ""},
+	} {
 
-	// Check if metadata files were created
-	_, err = os.Stat(filepath.Join(assetDir, "1234567890123456789012345678901234567890123456789012345678901234.json"))
-	c.Check(err, IsNil)
-	_, err = os.Stat(filepath.Join(assetDir, "1111111111222222222233333333334444444444555555555566666666667777.json"))
-	c.Check(err, IsNil)
-	_, err = os.Stat(filepath.Join(spool, s.Id, "session.json"))
-	c.Check(err, IsNil)
+		session.MockOsMkdirAll(func(path string, perm os.FileMode) error {
+			if tc.mkdirFail {
+				return errors.New("cannot create dir")
+			}
+			return os.MkdirAll(path, perm)
+		})
 
-	// Finishing again shouldn't result in error
-	err = s.Finish()
-	c.Assert(err, IsNil)
+		a := metadata.Artefact{AssetDir: assetDir}
+		d, err := digests.NewSha256Digest(tc.digest)
+		if err == nil {
+			a.Metadata.Sha256 = d
+		}
+		s.A[d] = &a
+
+		err = s.Finish()
+		if tc.errMsg == "" {
+			c.Assert(err, IsNil)
+
+			// Finishing again shouldn't result in error
+			err = s.Finish()
+			c.Assert(err, IsNil)
+		} else {
+			c.Assert(err, ErrorMatches, tc.errMsg)
+		}
+
+		// Check if metadata files were created
+		_, err = os.Stat(filepath.Join(assetDir, tc.digest+".json"))
+		if tc.jsonCreated {
+			c.Check(err, IsNil)
+		} else {
+			c.Check(err, ErrorMatches, "stat .*: no such file or directory")
+		}
+
+	}
 }
 
 func (t *sessionSuite) TestRevokeToken(c *C) {
