@@ -100,6 +100,8 @@ func (t *serviceSuite) TestControlServerCrash(c *C) {
 	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
 		return &proxy.HttpProxy{}, nil
 	})
+	defer restorer()
+
 	var ctl *control.Server
 	restorer = service.MockNewServer(func(port int, ch chan interface{}, creds string) *control.Server {
 		ctl = control.NewServer(port, ch, creds)
@@ -112,10 +114,12 @@ func (t *serviceSuite) TestControlServerCrash(c *C) {
 	svc, err := service.New(&opt)
 	c.Assert(err, IsNil)
 
-	svc.Start()
+	err = svc.Start()
+	c.Assert(err, IsNil)
 	c.Assert(svc.Alive(), Equals, true)
 
-	ctl.Stop() // control server crashes
+	err = ctl.Stop() // control server crashes
+	c.Assert(err, IsNil)
 	time.Sleep(2 * time.Second)
 	c.Assert(svc.Alive(), Equals, false)
 }
@@ -138,11 +142,13 @@ func (t *serviceSuite) TestHttpProxyCrash(c *C) {
 
 	svc, err := service.New(&opt)
 	c.Assert(err, IsNil)
-	svc.Start()
 
+	err = svc.Start()
+	c.Assert(err, IsNil)
 	c.Assert(svc.Alive(), Equals, true)
 
-	px.Stop() // proxy crashes
+	err = px.Stop() // proxy crashes
+	c.Assert(err, IsNil)
 	time.Sleep(2 * time.Second)
 	c.Assert(svc.Alive(), Equals, false)
 }
