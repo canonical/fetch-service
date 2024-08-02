@@ -19,7 +19,59 @@
 
 package snap
 
-var (
-	NewAssertion    = newAssertion
-	DecodeSignature = decodeSignature
+import (
+	"io"
 )
+
+var (
+	NewAssertion      = newAssertion
+	DecodeSignature   = decodeSignature
+	ComputeDigestImpl = computeDigestImpl
+	EncodeDigestImpl  = encodeDigestImpl
+
+	DownloadSnapRevisionAssertionImpl    = downloadSnapRevisionAssertion
+	DownloadSnapDeclarationAssertionImpl = downloadSnapDeclarationAssertion
+	DownloadAccountAssertionImpl         = downloadAccountAssertion
+)
+
+type Assertion = assertion
+
+func MockComputeDigest(mock func(io.Reader) ([]byte, error)) (restorer func()) {
+	old := computeDigest
+	computeDigest = mock
+	return func() {
+		computeDigest = old
+	}
+}
+
+func MockEncodeDigest(mock func([]byte) (string, error)) (restorer func()) {
+	old := encodeDigest
+	encodeDigest = mock
+	return func() {
+		encodeDigest = old
+	}
+}
+
+func MockDownloadSnapRevisionAssertion(mock func(string) (*assertion, error)) (restorer func()) {
+	old := downloadSnapRevisionAssertion
+	downloadSnapRevisionAssertion = mock
+	return func() {
+		downloadSnapRevisionAssertion = old
+	}
+}
+
+func MockDownloadSnapDeclarationAssertion(mock func(string) (*assertion, error)) (restorer func()) {
+	old := downloadSnapDeclarationAssertion
+	downloadSnapDeclarationAssertion = mock
+	return func() {
+		downloadSnapDeclarationAssertion = old
+	}
+}
+
+func MockDownloadAccountAssertion(mock func(string) (*assertion, error)) (restorer func()) {
+	old := downloadAccountAssertion
+	downloadAccountAssertion = mock
+	return func() {
+		downloadAccountAssertion = old
+	}
+}

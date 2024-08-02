@@ -39,9 +39,10 @@ var (
 	v1FixedTimestamp = time.Date(2016, time.January, 1, 0, 0, 0, 0, time.UTC)
 )
 
-// fileDigest computes a sha3-384 digest of the given file. It also
-// returns the file size.
-func computeDigest(f io.Reader) ([]byte, error) {
+var computeDigest = computeDigestImpl
+
+// fileDigest computes a sha3-384 digest of the given file.
+func computeDigestImpl(f io.Reader) ([]byte, error) {
 	h := crypto.SHA3_384.New()
 	_, err := io.CopyBuffer(h, f, make([]byte, hashDigestBufSize))
 	if err != nil {
@@ -50,9 +51,11 @@ func computeDigest(f io.Reader) ([]byte, error) {
 	return h.Sum(nil), nil
 }
 
+var encodeDigest = encodeDigestImpl
+
 // encodeDigest encodes the digest from hash algorithm to be put in
 // an assertion header.
-func encodeDigest(digest []byte) (string, error) {
+func encodeDigestImpl(digest []byte) (string, error) {
 	size := crypto.SHA3_384.Size()
 	if len(digest) != size {
 		return "", fmt.Errorf("hash digest must have %d bytes", size)
