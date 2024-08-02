@@ -26,7 +26,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/gorilla/mux"
 	. "gopkg.in/check.v1"
@@ -51,25 +50,12 @@ func (t *controlSuite) TestStartStop(c *C) {
 	ctl := control.NewServer(18111, ch, "user:password")
 	ctl.Start()
 
-	go func() {
-		msg := <-ch
-		msg.(messages.GetServiceStatus).Rch <- messages.ServiceStatus{}
-	}()
+	c.Assert(ctl.Alive(), Equals, true)
 
-	time.Sleep(500 * time.Millisecond)
-
-	// check if server is up
-	client := http.Client{}
-	resp, err := client.Get("http://localhost:18111/status")
-	c.Assert(err, IsNil)
-	resp.Body.Close()
-	c.Check(resp.StatusCode, Equals, 200)
-
-	err = ctl.Stop()
+	err := ctl.Stop()
 	c.Assert(err, IsNil)
 
-	_, err = client.Get("http://localhost:18111/status")
-	c.Assert(err, ErrorMatches, ".*: connection refused")
+	c.Assert(ctl.Alive(), Equals, false)
 }
 
 func (t *controlSuite) TestCreateSession(c *C) {

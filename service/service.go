@@ -281,6 +281,12 @@ func (svc *Service) Start() error {
 			case <-svc.tomb.Dying():
 				return nil
 
+			case <-svc.ctl.Dying():
+				return nil
+
+			case <-svc.p.Dying():
+				return nil
+
 			case event, ok := <-svc.cfgw.Events:
 				if ok && event.Op&(fsnotify.Write|fsnotify.Create) != 0 {
 					logger.Infof("Configuration file changed: %s", event.Name)

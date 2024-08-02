@@ -102,7 +102,18 @@ func (c *Server) Stop() error {
 	if err := c.server.Shutdown(ctx); err != nil {
 		return fmt.Errorf("server shutdown error: %s", err)
 	}
+
+	c.tomb.Kill(nil)
+
 	return nil
+}
+
+func (c *Server) Alive() bool {
+	return c.tomb.Alive()
+}
+
+func (c *Server) Dying() <-chan struct{} {
+	return c.tomb.Dying()
 }
 
 func (c *Server) getServiceStatus(w http.ResponseWriter, r *http.Request) {
