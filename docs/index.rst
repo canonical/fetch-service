@@ -9,6 +9,7 @@ Placeholder description!
 
    howto/index
    reference/index
+   changelog
 
 Indices and tables
 ==================
@@ -16,3 +17,4 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
