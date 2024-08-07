@@ -182,7 +182,10 @@ func parsePom(tf io.Reader) (*ArtefactMetadata, error) {
 	for i, l := range p.Licenses.License {
 		licenses[i] = l.Name
 	}
-	md.License = strings.Join(licenses, ", ")
+	// In case of multiple licenses, the maven standard assumes that they are
+	// user choice
+	// ref: https://maven.apache.org/ref/3-LATEST/maven-model/maven.html
+	md.License = strings.Join(licenses, " OR ")
 
 	return md, nil
 }
