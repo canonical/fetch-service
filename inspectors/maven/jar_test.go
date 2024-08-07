@@ -22,15 +22,15 @@ package maven_test
 import (
 	"path/filepath"
 
+	"github.com/gabriel-vasile/mimetype"
+	. "gopkg.in/check.v1"
+
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/files"
-
 	"github.com/canonical/fetch-service/inspectors/maven"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/metadata/opinions"
-	"github.com/gabriel-vasile/mimetype"
-	. "gopkg.in/check.v1"
 )
 
 func (s *mavenSuite) TestJarInspectorID(c *C) {
