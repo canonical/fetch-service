@@ -2,6 +2,13 @@
 Changelog
 *********
 
+0.1.4 (2024-07-30)
+------------------
+
+- fix(snap): update config dir in post-refresh hook (#171)
+- fix(control): don't escape HTML  in session report (#167)
+- fix(inspectors/git): make artefact verification less strict (#166)
+
 0.1.3 (2024-07-25)
 ------------------
 
