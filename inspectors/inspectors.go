@@ -33,6 +33,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/git"
 	"github.com/canonical/fetch-service/inspectors/gomod"
+	"github.com/canonical/fetch-service/inspectors/maven"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/inspectors/pip"
 	"github.com/canonical/fetch-service/inspectors/snap"
@@ -87,6 +88,9 @@ func New(permissive bool) Inspectors {
 		// rust
 		cargo.NewIndexInspector(),
 		cargo.NewCrateInspector(),
+
+		// maven
+		maven.NewJarInspector(),
 
 		// default inspector
 		// must be the last inspector to run
