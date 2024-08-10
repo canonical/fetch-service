@@ -45,6 +45,19 @@ func (t *controlSuite) SetUpTest(c *C) {
 
 var _ = Suite(&controlSuite{})
 
+func (t *controlSuite) TestStartStop(c *C) {
+	ch := make(chan any, 1)
+	ctl := control.NewServer(18111, ch, "user:password")
+	ctl.Start()
+
+	c.Assert(ctl.Alive(), Equals, true)
+
+	err := ctl.Stop()
+	c.Assert(err, IsNil)
+
+	c.Assert(ctl.Alive(), Equals, false)
+}
+
 func (t *controlSuite) TestCreateSession(c *C) {
 	for _, tc := range []struct {
 		params  string // request body parameters

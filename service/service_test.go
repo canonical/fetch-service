@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	. "gopkg.in/check.v1"
 
@@ -36,6 +37,7 @@ import (
 	"github.com/canonical/fetch-service/service"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
+	"github.com/canonical/fetch-service/testutils"
 )
 
 func Test(t *testing.T) { TestingT(t) }
@@ -94,6 +96,63 @@ func (t *serviceSuite) TestProxyStartError(c *C) {
 	c.Assert(err, ErrorMatches, "proxy start error")
 }
 
+func (t *serviceSuite) TestControlServerCrash(c *C) {
+	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+		return &proxy.HttpProxy{}, nil
+	})
+	defer restorer()
+
+	var ctl *control.Server
+	restorer = service.MockNewServer(func(port int, ch chan interface{}, creds string) *control.Server {
+		ctl = control.NewServer(port, ch, creds)
+		return ctl
+	})
+	defer restorer()
+
+	opt := service.Options{ProxyPort: 1337, ControlPort: 7331}
+
+	svc, err := service.New(&opt)
+	c.Assert(err, IsNil)
+
+	err = svc.Start()
+	c.Assert(err, IsNil)
+	c.Assert(svc.Alive(), Equals, true)
+
+	err = ctl.Stop() // control server crashes
+	c.Assert(err, IsNil)
+	time.Sleep(2 * time.Second)
+	c.Assert(svc.Alive(), Equals, false)
+}
+
+func (t *serviceSuite) TestHttpProxyCrash(c *C) {
+	var px *proxy.HttpProxy
+	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+		var err error
+		px, err = proxy.NewHttpProxy(port, spool, cert, key, ch)
+		return px, err
+	})
+	defer restorer()
+
+	opt := service.Options{
+		ProxyPort:   1337,
+		ControlPort: 7331,
+		Cert:        testutils.ProxyCert,
+		Key:         testutils.ProxyKey,
+	}
+
+	svc, err := service.New(&opt)
+	c.Assert(err, IsNil)
+
+	err = svc.Start()
+	c.Assert(err, IsNil)
+	c.Assert(svc.Alive(), Equals, true)
+
+	err = px.Stop() // proxy crashes
+	c.Assert(err, IsNil)
+	time.Sleep(2 * time.Second)
+	c.Assert(svc.Alive(), Equals, false)
+}
+
 func (t *serviceSuite) TestServiceEntombment(c *C) {
 	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
 		t.proxyPort = port
@@ -108,8 +167,62 @@ func (t *serviceSuite) TestServiceEntombment(c *C) {
 	err = svc.Start()
 	c.Assert(err, IsNil)
 
+	c.Assert(svc.Alive(), Equals, true)
+
 	err = svc.Stop()
 	c.Assert(err, IsNil)
+
+	c.Assert(svc.Alive(), Equals, false)
+}
+
+func (t *serviceSuite) TestServiceIdleShutdown(c *C) {
+	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+		t.ch = ch
+		t.proxyPort = port
+		return &proxy.HttpProxy{}, nil
+	})
+	defer restorer()
+
+	for _, tc := range []struct {
+		createSession bool
+		serviceAlive  bool
+	}{
+		{false, false},
+		{true, true},
+	} {
+
+		opt := service.Options{ProxyPort: 1337, IdleShutdown: 1, PermissiveMode: true}
+		svc, err := service.New(&opt)
+		c.Assert(err, IsNil)
+
+		err = svc.Start()
+		c.Assert(err, IsNil)
+
+		var sid string
+		if tc.createSession {
+			msg := messages.NewCreateSession("permissive", 1338)
+			t.ch <- msg
+			res := <-msg.Rch
+			c.Assert(res.Err, Equals, nil)
+			sid = res.Id
+		}
+
+		c.Assert(svc.Alive(), Equals, true)
+		time.Sleep(2 * time.Second)
+		c.Assert(svc.Alive(), Equals, tc.serviceAlive)
+
+		if !tc.createSession {
+			continue
+		}
+
+		msg := messages.NewEndSession(sid)
+		t.ch <- msg
+		err = <-msg.Rch
+		c.Assert(err, IsNil)
+
+		time.Sleep(2 * time.Second)
+		c.Assert(svc.Alive(), Equals, false)
+	}
 }
 
 func (t *serviceSuite) TestGetServiceStatus(c *C) {

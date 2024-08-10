@@ -20,12 +20,15 @@
 package control
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
+	"gopkg.in/tomb.v2"
 
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/service/messages"
@@ -44,10 +47,12 @@ type revokeTokenParameters struct {
 }
 
 type Server struct {
-	port int
-	ch   chan interface{}
-	user string
-	pw   string
+	server *http.Server
+	port   int
+	ch     chan interface{}
+	user   string
+	pw     string
+	tomb   tomb.Tomb
 }
 
 func NewServer(port int, ch chan interface{}, creds string) *Server {
@@ -55,16 +60,23 @@ func NewServer(port int, ch chan interface{}, creds string) *Server {
 	if len(v) != 2 {
 		v = []string{"", ""}
 	}
+
+	server := &http.Server{
+		Addr:         fmt.Sprintf(":%d", port),
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+	}
+
 	return &Server{
-		port: port,
-		ch:   ch,
-		user: v[0],
-		pw:   v[1],
+		server: server,
+		port:   port,
+		ch:     ch,
+		user:   v[0],
+		pw:     v[1],
 	}
 }
 
 func (c *Server) Start() {
-	addr := fmt.Sprintf(":%d", c.port)
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/status", c.getServiceStatus).Methods("GET")
 	router.HandleFunc("/session", c.createSession).Methods("POST")
@@ -73,11 +85,35 @@ func (c *Server) Start() {
 	router.HandleFunc("/session/{id}", c.deleteSession).Methods("DELETE")
 	router.HandleFunc("/resources/{id}", c.deleteResources).Methods("DELETE")
 
-	logger.Infof("control server listening on %s\n", addr)
+	c.server.Handler = router
 
-	go func() {
-		logger.Fatal(http.ListenAndServe(addr, router))
-	}()
+	logger.Infof("control server listening on :%d\n", c.port)
+
+	c.tomb.Go(func() error {
+		return c.server.ListenAndServe()
+	})
+}
+
+func (c *Server) Stop() error {
+	logger.Infof("Shutting down the control API server...")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := c.server.Shutdown(ctx); err != nil {
+		return fmt.Errorf("server shutdown error: %s", err)
+	}
+
+	c.tomb.Kill(nil)
+
+	return nil
+}
+
+func (c *Server) Alive() bool {
+	return c.tomb.Alive()
+}
+
+func (c *Server) Dying() <-chan struct{} {
+	return c.tomb.Dying()
 }
 
 func (c *Server) getServiceStatus(w http.ResponseWriter, r *http.Request) {

@@ -129,6 +129,10 @@ func (p *HttpProxy) Stop() error {
 	return nil
 }
 
+func (p *HttpProxy) Dying() <-chan struct{} {
+	return p.tomb.Dying()
+}
+
 // processRoundTrip gets destination connection information to check ACLs.
 func (p *HttpProxy) processRoundTrip(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
 	host, _, err := net.SplitHostPort(req.URL.Host)

@@ -72,6 +72,9 @@ var opts struct {
 
 	// Private key for the MITM proxy
 	KeyPath string `long:"key" description:"The path to a file containing the HTTPS proxy private key"`
+
+	// Auto-shutdown the service when idle
+	IdleShutdown int `long:"idle-shutdown" description:"Time in seconds to auto-shutdown if idle"`
 }
 
 func main() {
@@ -118,6 +121,7 @@ func main() {
 		PermissiveMode: opts.PermissiveMode,
 		Cert:           cert,
 		Key:            key,
+		IdleShutdown:   opts.IdleShutdown,
 	}
 
 	svc, err := service.New(&opt)
