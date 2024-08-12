@@ -60,7 +60,7 @@ func LoadSessionMetadata(spoolDir, sessionId string) (*metadata.SessionMetadata,
 
 func RemoveResources(spoolDir, sessionId string) error {
 	sessionDir := filepath.Join(spoolDir, sessionId)
-	logger.Infof("Removing session %s resources", sessionId)
+	logger.Infof("[%s] removing sesison resources", sessionId)
 	if err := os.RemoveAll(sessionDir); err != nil {
 		return err
 	}

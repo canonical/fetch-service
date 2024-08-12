@@ -27,27 +27,22 @@ import (
 type sessionTimer struct {
 	*time.Timer               // the session timer
 	done        chan struct{} // channel to signal monitoring end
-	onExpire    func()        // callback to be executed if the timer expires
-	onCancel    func()        // callback to be executed if monitoring is cancelled
 }
 
 // newSessionTimer creates a session timer with duration d, and executes
 // function f on expiration. If the timer is cancelled, it will never
 // expire and function g is executed instead.
-func newSessionTimer(d time.Duration, f, g func()) *sessionTimer {
+func newSessionTimer(s *Session, ch chan string) *sessionTimer {
 	t := &sessionTimer{
-		Timer:    time.NewTimer(d),
-		done:     make(chan struct{}, 1),
-		onExpire: f,
-		onCancel: g,
+		Timer: time.NewTimer(s.Timeout),
+		done:  make(chan struct{}, 1),
 	}
 
 	go func() {
 		select {
 		case <-t.C:
-			t.onExpire()
+			ch <- s.Id
 		case <-t.done:
-			t.onCancel()
 		}
 	}()
 
@@ -56,5 +51,6 @@ func newSessionTimer(d time.Duration, f, g func()) *sessionTimer {
 
 // Cancel stops time monitoring.
 func (t *sessionTimer) Cancel() {
+	t.Stop()
 	t.done <- struct{}{}
 }

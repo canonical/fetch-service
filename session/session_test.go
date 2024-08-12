@@ -30,8 +30,6 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/logger"
-	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/session"
@@ -44,10 +42,6 @@ const (
 func Test(t *testing.T) { TestingT(t) }
 
 type sessionSuite struct{}
-
-func (t *sessionSuite) SetUpTest(c *C) {
-	testlogger.Init(logger.InfoLevel)
-}
 
 var _ = Suite(&sessionSuite{})
 
@@ -109,9 +103,9 @@ func (t *sessionSuite) TestSessionTimeout(c *C) {
 	defer s2.Discard()
 
 	time.Sleep(2 * time.Second)
-	sessionId := <-session.ExpiredSessionId()
+	sessionId := <-session.ExpiredSessionId
 	c.Assert(sessionId, Equals, s1.Id)
-	sessionId = <-session.ExpiredSessionId()
+	sessionId = <-session.ExpiredSessionId
 	c.Assert(sessionId, Equals, s2.Id)
 }
 

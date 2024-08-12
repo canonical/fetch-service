@@ -41,11 +41,14 @@ import (
 )
 
 const (
-	DefaultSessionTimeout = time.Duration(6 * time.Hour)
+	//DefaultSessionTimeout = time.Duration(6 * time.Hour)
+	DefaultSessionTimeout = time.Duration(1 * time.Minute)
 )
 
 var (
 	ErrInvalidSessionPolicy = errors.New("Invalid session policy")
+
+	ExpiredSessionId = make(chan string, 1)
 )
 
 // Session has information about each authorized client.
@@ -97,11 +100,7 @@ func New(spoolDir string, timeout time.Duration, permissive bool) *Session {
 	logger.Infof("[%s] creating session%s, timeout = %s", s.Id, sType, timeout)
 
 	sessions.Store(s.Id, s)
-	s.timer = newSessionTimer(
-		timeout,
-		func() { expiredSession <- s.Id },
-		func() { logger.Infof("[%s] session timer cancelled", s.Id) },
-	)
+	s.timer = newSessionTimer(s, ExpiredSessionId)
 
 	return s
 }
@@ -327,8 +326,7 @@ func (sm *SessionMap) Size() int {
 }
 
 var (
-	sessions       = &SessionMap{}
-	expiredSession = make(chan string, 1)
+	sessions = &SessionMap{}
 )
 
 // CheckAuth verifies if the given credentials are valid and match an active session.
@@ -362,12 +360,6 @@ func FinishAll() {
 		return true
 	})
 	logger.Info("[session] all sessions finished")
-}
-
-// ExpiredSessionId returns a channel to which session IDs are
-// sent when they expire.
-func ExpiredSessionId() <-chan string {
-	return expiredSession
 }
 
 // NumSessions returns the number of active sessions.
