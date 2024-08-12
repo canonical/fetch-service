@@ -26,7 +26,7 @@ import (
 // sessionTimer manages the session timeout timer.
 type sessionTimer struct {
 	*time.Timer               // the session timer
-	done        chan struct{} // channel to signal monitoring end
+	done        chan struct{} // channel to signal end of monitoring
 }
 
 // newSessionTimer creates a session timer with duration d, and executes
