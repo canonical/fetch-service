@@ -35,6 +35,7 @@ import (
 	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/proxy"
 	"github.com/canonical/fetch-service/service"
+	"github.com/canonical/fetch-service/service/config"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
 	"github.com/canonical/fetch-service/testutils"
@@ -63,7 +64,7 @@ func (t *serviceSuite) TestProxyPort(c *C) {
 	})
 	defer restorer()
 
-	restorer = service.MockNewServer(func(port int, ch chan interface{}, creds string) *control.Server {
+	restorer = service.MockControlNewServer(func(port int, ch chan interface{}, creds string) *control.Server {
 		t.controlPort = port
 		return &control.Server{}
 	})
@@ -84,7 +85,7 @@ func (t *serviceSuite) TestProxyStartError(c *C) {
 	})
 	defer restorer()
 
-	restorer = service.MockNewServer(func(port int, ch chan interface{}, creds string) *control.Server {
+	restorer = service.MockControlNewServer(func(port int, ch chan interface{}, creds string) *control.Server {
 		t.controlPort = port
 		return &control.Server{}
 	})
@@ -96,6 +97,34 @@ func (t *serviceSuite) TestProxyStartError(c *C) {
 	c.Assert(err, ErrorMatches, "proxy start error")
 }
 
+func (t *serviceSuite) TestConfigServerCrash(c *C) {
+	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+		return &proxy.HttpProxy{}, nil
+	})
+	defer restorer()
+
+	var cfg *config.Server
+	restorer = service.MockConfigNewServer(func() *config.Server {
+		cfg = config.NewServer()
+		return cfg
+	})
+	defer restorer()
+
+	opt := service.Options{ProxyPort: 1337, ControlPort: 7331}
+
+	svc, err := service.New(&opt)
+	c.Assert(err, IsNil)
+
+	err = svc.Start()
+	c.Assert(err, IsNil)
+	c.Assert(svc.Alive(), Equals, true)
+
+	err = cfg.Stop() // config server crashes
+	c.Assert(err, IsNil)
+	time.Sleep(2 * time.Second)
+	c.Assert(svc.Alive(), Equals, false)
+}
+
 func (t *serviceSuite) TestControlServerCrash(c *C) {
 	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
 		return &proxy.HttpProxy{}, nil
@@ -103,7 +132,7 @@ func (t *serviceSuite) TestControlServerCrash(c *C) {
 	defer restorer()
 
 	var ctl *control.Server
-	restorer = service.MockNewServer(func(port int, ch chan interface{}, creds string) *control.Server {
+	restorer = service.MockControlNewServer(func(port int, ch chan interface{}, creds string) *control.Server {
 		ctl = control.NewServer(port, ch, creds)
 		return ctl
 	})
@@ -625,7 +654,7 @@ func (t *serviceSuite) TestEndSession(c *C) {
 }
 
 func (t *serviceSuite) TestControlAuthentication(c *C) {
-	restorer := service.MockNewServer(func(port int, ch chan interface{}, creds string) *control.Server {
+	restorer := service.MockControlNewServer(func(port int, ch chan interface{}, creds string) *control.Server {
 		t.controlPort = port
 		t.controlAuth = creds
 		return &control.Server{}
