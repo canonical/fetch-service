@@ -426,21 +426,6 @@ func (t *sessionSuite) TestSize(c *C) {
 	c.Assert(n, Equals, 2)
 }
 
-/*
-func (t *sessionSuite) TestListSessions(c *C) {
-	spool := c.MkDir()
-	s1 := session.New(spool, 0, true)
-	defer s1.Discard()
-
-	s2 := session.New(spool, 0, true)
-	defer s2.Discard()
-
-	activeSessions := session.Sessions.ListSessions()
-	c.Assert((activeSessions[0] == s1 && activeSessions[1] == s2) ||
-		(activeSessions[0] == s2 && activeSessions[1] == s1), Equals, true)
-}
-*/
-
 func (t *sessionSuite) TestFinishAll(c *C) {
 	spool := c.MkDir()
 	s1 := session.New(spool, 0, true)
