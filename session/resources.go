@@ -38,7 +38,7 @@ func SessionMetadataWritten(spoolDir, sessionId string) bool {
 }
 
 func LoadSessionMetadata(spoolDir, sessionId string) (*metadata.SessionMetadata, error) {
-	logger.Infof("Load session %s metadata", sessionId)
+	logger.Infof("[%s] load session metadata", sessionId)
 
 	metadataPath := filepath.Join(spoolDir, sessionId, "session.json")
 
@@ -60,7 +60,7 @@ func LoadSessionMetadata(spoolDir, sessionId string) (*metadata.SessionMetadata,
 
 func RemoveResources(spoolDir, sessionId string) error {
 	sessionDir := filepath.Join(spoolDir, sessionId)
-	logger.Infof("[%s] removing sesison resources", sessionId)
+	logger.Infof("[%s] removing session resources", sessionId)
 	if err := os.RemoveAll(sessionDir); err != nil {
 		return err
 	}
