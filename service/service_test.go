@@ -64,7 +64,7 @@ func (t *serviceSuite) TestProxyPort(c *C) {
 	})
 	defer restorer()
 
-	restorer = service.MockControlNewServer(func(port int, ch chan interface{}, creds string) *control.Server {
+	restorer = service.MockNewControlServer(func(port int, ch chan interface{}, creds string) *control.Server {
 		t.controlPort = port
 		return &control.Server{}
 	})
@@ -85,7 +85,7 @@ func (t *serviceSuite) TestProxyStartError(c *C) {
 	})
 	defer restorer()
 
-	restorer = service.MockControlNewServer(func(port int, ch chan interface{}, creds string) *control.Server {
+	restorer = service.MockNewControlServer(func(port int, ch chan interface{}, creds string) *control.Server {
 		t.controlPort = port
 		return &control.Server{}
 	})
@@ -104,7 +104,7 @@ func (t *serviceSuite) TestConfigServerCrash(c *C) {
 	defer restorer()
 
 	var cfg *config.Server
-	restorer = service.MockConfigNewServer(func() *config.Server {
+	restorer = service.MockNewConfigServer(func() *config.Server {
 		cfg = config.NewServer()
 		return cfg
 	})
@@ -132,7 +132,7 @@ func (t *serviceSuite) TestControlServerCrash(c *C) {
 	defer restorer()
 
 	var ctl *control.Server
-	restorer = service.MockControlNewServer(func(port int, ch chan interface{}, creds string) *control.Server {
+	restorer = service.MockNewControlServer(func(port int, ch chan interface{}, creds string) *control.Server {
 		ctl = control.NewServer(port, ch, creds)
 		return ctl
 	})
@@ -654,7 +654,7 @@ func (t *serviceSuite) TestEndSession(c *C) {
 }
 
 func (t *serviceSuite) TestControlAuthentication(c *C) {
-	restorer := service.MockControlNewServer(func(port int, ch chan interface{}, creds string) *control.Server {
+	restorer := service.MockNewControlServer(func(port int, ch chan interface{}, creds string) *control.Server {
 		t.controlPort = port
 		t.controlAuth = creds
 		return &control.Server{}

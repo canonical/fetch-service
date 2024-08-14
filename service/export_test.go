@@ -33,7 +33,7 @@ func MockNewHttpProxy(mock func(int, string, []byte, []byte, chan interface{}) (
 	}
 }
 
-func MockControlNewServer(mock func(port int, ch chan interface{}, creds string) *control.Server) (restorer func()) {
+func MockNewControlServer(mock func(port int, ch chan interface{}, creds string) *control.Server) (restorer func()) {
 	old := controlNewServer
 	controlNewServer = mock
 	return func() {
@@ -41,7 +41,7 @@ func MockControlNewServer(mock func(port int, ch chan interface{}, creds string)
 	}
 }
 
-func MockConfigNewServer(mock func() *config.Server) (restorer func()) {
+func MockNewConfigServer(mock func() *config.Server) (restorer func()) {
 	old := configNewServer
 	configNewServer = mock
 	return func() {
