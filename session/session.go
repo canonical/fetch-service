@@ -46,6 +46,8 @@ const (
 
 var (
 	ErrInvalidSessionPolicy = errors.New("Invalid session policy")
+
+	ExpiredSessionId = make(chan string, 1)
 )
 
 // Session has information about each authorized client.
@@ -56,11 +58,12 @@ type Session struct {
 	End        time.Time // session end time
 	Insps      inspectors.Inspectors
 	A          map[digests.Sha256Digest]*metadata.Artefact
-	Permissive bool
-	SessionDir string
-	Timeout    time.Duration
+	Permissive bool          // whether this is a permissive session
+	SessionDir string        // the session path including spool
+	Timeout    time.Duration // maximum time allowed for a session
 
-	revoked bool // session token has been revoked
+	timer   *sessionTimer // auto-finish the session after a Timeout
+	revoked bool          // session token has been revoked
 }
 
 var (
@@ -68,8 +71,15 @@ var (
 	randomString  = randomStringImpl
 )
 
-func New(spoolDir string, permissive bool) *Session {
+// New creates a session that stores artefact data and metadata under
+// spoolDir. The session is automatically finished if it times out.
+func New(spoolDir string, timeout time.Duration, permissive bool) *Session {
 	sessionId := makeSessionId()
+
+	if timeout == 0 {
+		timeout = DefaultSessionTimeout
+	}
+
 	s := &Session{
 		Id:         sessionId,
 		Token:      randomString(20),
@@ -77,7 +87,7 @@ func New(spoolDir string, permissive bool) *Session {
 		A:          map[digests.Sha256Digest]*metadata.Artefact{},
 		Permissive: permissive,
 		SessionDir: filepath.Join(spoolDir, sessionId),
-		Timeout:    DefaultSessionTimeout,
+		Timeout:    timeout,
 	}
 
 	s.Insps = inspectors.New(permissive)
@@ -86,9 +96,10 @@ func New(spoolDir string, permissive bool) *Session {
 	if permissive {
 		sType = " (permissive)"
 	}
-	logger.Infof("creating session %s%s", s.Id, sType)
+	logger.Infof("[%s] creating session%s, timeout = %s", s.Id, sType, timeout)
 
 	sessions.Store(s.Id, s)
+	s.timer = newSessionTimer(s, ExpiredSessionId)
 
 	return s
 }
@@ -115,10 +126,12 @@ func (s *Session) Metadata() *metadata.SessionMetadata {
 
 // Finish ends the session and saves metadata.
 func (s *Session) Finish() error {
+	s.timer.Stop()
+
 	sm := s.Metadata()
 
 	for k := range s.A {
-		logger.Infof("save metadata for artefact %s", k)
+		logger.Infof("[%s] save metadata for artefact %s", s.Id, k)
 		if err := s.SaveMetadata(k); err != nil {
 			return err
 		}
@@ -129,6 +142,7 @@ func (s *Session) Finish() error {
 	}
 
 	s.Discard()
+
 	return nil
 
 }
@@ -172,12 +186,13 @@ func (s *Session) SaveSessionMetadata(sm *metadata.SessionMetadata) error {
 func (s *Session) Discard() {
 	_, ok := sessions.Load(s.Id)
 	if !ok {
-		logger.Warningf("cannot discard non-existing session %s", s.Id)
+		logger.Warningf("[%s] cannot discard non-existing session", s.Id)
 		return
 	}
-	logger.Infof("discarding session %s", s.Id)
-
+	logger.Infof("[%s] discarding session", s.Id)
 	sessions.Delete(s.Id)
+	s.timer.Cancel() // end session timer
+	logger.Infof("[%s] session discarded", s.Id)
 }
 
 func (s *Session) Artefacts() []*metadata.Artefact {
@@ -300,16 +315,18 @@ func (sm *SessionMap) Get(id string) *Session {
 	return s.(*Session)
 }
 
-func (sm *SessionMap) ListIds() []string {
-	res := make([]string, 0, 100)
+func (sm *SessionMap) Size() int {
+	size := 0
 	sm.Range(func(key, value interface{}) bool {
-		res = append(res, key.(string))
+		size++
 		return true
 	})
-	return res
+	return size
 }
 
-var sessions = &SessionMap{}
+var (
+	sessions = &SessionMap{}
+)
 
 // CheckAuth verifies if the given credentials are valid and match an active session.
 func CheckAuth(id string, pw string) bool {
@@ -335,17 +352,22 @@ func FinishAll() {
 	sessions.Range(func(key, value any) bool {
 		id := key.(string)
 		s := value.(*Session)
-		logger.Infof("finishing session %s", id)
+		logger.Infof("[session] finishing session %s", id)
 		if err := s.Finish(); err != nil {
-			logger.Errorf("%s", err)
+			logger.Errorf("[session] cannot finish session: %s", err)
 		}
 		return true
 	})
-	logger.Info("all sessions finished")
+	logger.Info("[session] all sessions finished")
 }
 
-// ListAll lists all active session.
-func ListAll() []metadata.SessionInfo {
+// NumSessions returns the number of active sessions.
+func NumSessions() int {
+	return sessions.Size()
+}
+
+// SessionInfos returns the list of infos for all active sessions.
+func SessionInfos() []metadata.SessionInfo {
 	res := make([]metadata.SessionInfo, 0, 100)
 	sessions.Range(func(key, value any) bool {
 		id := key.(string)

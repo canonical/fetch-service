@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -30,8 +30,6 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/logger"
-	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/session"
@@ -44,10 +42,6 @@ const (
 func Test(t *testing.T) { TestingT(t) }
 
 type sessionSuite struct{}
-
-func (t *sessionSuite) SetUpTest(c *C) {
-	testlogger.Init(logger.InfoLevel)
-}
 
 var _ = Suite(&sessionSuite{})
 
@@ -64,7 +58,7 @@ func (t *sessionSuite) TestNewSession(c *C) {
 
 	before := time.Now()
 	tmp := c.MkDir()
-	s := session.New(tmp, true)
+	s := session.New(tmp, 0, true)
 	after := time.Now()
 
 	defer s.Discard()
@@ -88,7 +82,7 @@ func (t *sessionSuite) TestRandomString(c *C) {
 }
 
 func (t *sessionSuite) TestDiscardSession(c *C) {
-	s := session.New("", true)
+	s := session.New("", 0, true)
 	defer s.Discard()
 
 	c.Assert(s, Equals, session.GetSession(s.Id))
@@ -99,8 +93,32 @@ func (t *sessionSuite) TestDiscardSession(c *C) {
 	c.Assert(s, IsNil)
 }
 
+func (t *sessionSuite) TestSessionTimeout(c *C) {
+	s1 := session.New("", 1*time.Second, true)
+	defer s1.Discard()
+
+	time.Sleep(500 * time.Millisecond)
+
+	s2 := session.New("", 1*time.Second, true)
+	defer s2.Discard()
+
+	time.Sleep(2 * time.Second)
+	sessionId := <-session.ExpiredSessionId
+	c.Assert(sessionId, Equals, s1.Id)
+	sessionId = <-session.ExpiredSessionId
+	c.Assert(sessionId, Equals, s2.Id)
+}
+
+func (t *sessionSuite) TestSessionTimeoutCancel(c *C) {
+	s := session.New("", 2*time.Second, true)
+	time.Sleep(1 * time.Second)
+	s.Discard()
+	s = session.GetSession(s.Id)
+	c.Assert(s, IsNil)
+}
+
 func (t *sessionSuite) TestCheckAuth(c *C) {
-	s := session.New("", true)
+	s := session.New("", 0, true)
 	defer s.Discard()
 
 	c.Assert(session.CheckAuth("foo", "bar"), Equals, false)
@@ -108,7 +126,7 @@ func (t *sessionSuite) TestCheckAuth(c *C) {
 }
 
 func (t *sessionSuite) TestAddMetadata(c *C) {
-	s := session.New("", true)
+	s := session.New("", 0, true)
 	defer s.Discard()
 
 	h, _ := digests.NewSha256Digest(MySha256)
@@ -126,7 +144,7 @@ func (t *sessionSuite) TestAddMetadata(c *C) {
 }
 
 func (t *sessionSuite) TestAddDownload(c *C) {
-	s := session.New("", true)
+	s := session.New("", 0, true)
 	defer s.Discard()
 
 	h, _ := digests.NewSha256Digest(MySha256)
@@ -147,7 +165,7 @@ func (t *sessionSuite) TestAddDownload(c *C) {
 }
 
 func (t *sessionSuite) TestAddInvalidDownload(c *C) {
-	s := session.New("", true)
+	s := session.New("", 0, true)
 	defer s.Discard()
 
 	h, _ := digests.NewSha256Digest(MySha256)
@@ -179,7 +197,7 @@ func (t *sessionSuite) TestSaveData(c *C) {
 			return os.MkdirAll(path, perm)
 		})
 
-		s := session.New("", true)
+		s := session.New("", 0, true)
 		defer s.Discard()
 
 		tmp := c.MkDir()
@@ -220,7 +238,7 @@ func (t *sessionSuite) TestSaveData(c *C) {
 }
 
 func (t *sessionSuite) TestSaveMetadata(c *C) {
-	s := session.New("", true)
+	s := session.New("", 0, true)
 	defer s.Discard()
 
 	tmp := c.MkDir()
@@ -249,7 +267,7 @@ func (t *sessionSuite) TestGetSession(c *C) {
 	m := session.GetSession("invalid-session-id")
 	c.Assert(m, IsNil)
 
-	s := session.New("", true)
+	s := session.New("", 0, true)
 	defer s.Discard()
 
 	m = session.GetSession(s.Id)
@@ -264,7 +282,7 @@ func (t *sessionSuite) TestSessionMetadata(c *C) {
 		{true, "permissive"},
 		{false, "strict"},
 	} {
-		s := session.New("", tc.permissive)
+		s := session.New("", 0, tc.permissive)
 		defer s.Discard()
 
 		m := s.Metadata()
@@ -279,7 +297,7 @@ func (t *sessionSuite) TestSessionMetadata(c *C) {
 
 func (t *sessionSuite) TestFinish(c *C) {
 	spool := c.MkDir()
-	s := session.New(spool, true)
+	s := session.New(spool, 0, true)
 	defer s.Discard()
 
 	sessionDir := filepath.Join(spool, s.Id)
@@ -345,7 +363,7 @@ func (t *sessionSuite) TestRevokeToken(c *C) {
 		{"wrong-token", false},
 	} {
 		spool := c.MkDir()
-		s := session.New(spool, true)
+		s := session.New(spool, 0, true)
 		defer s.Discard()
 
 		s.Token = "right-token"
@@ -364,7 +382,7 @@ func (t *sessionSuite) TestIsRevoked(c *C) {
 		{false, false},
 	} {
 		spool := c.MkDir()
-		s := session.New(spool, true)
+		s := session.New(spool, 0, true)
 		defer s.Discard()
 
 		s.Token = "token"
@@ -379,7 +397,7 @@ func (t *sessionSuite) TestIsRevoked(c *C) {
 
 func (t *sessionSuite) TestArtefacts(c *C) {
 	spool := c.MkDir()
-	s := session.New(spool, true)
+	s := session.New(spool, 0, true)
 	defer s.Discard()
 
 	d0, _ := digests.NewSha256Digest("1234567890123456789012345678901234567890123456789012345678901234")
@@ -396,44 +414,56 @@ func (t *sessionSuite) TestArtefacts(c *C) {
 	c.Check((a[0] == &m0 && a[1] == &m1) || (a[0] == &m1 && a[1] == &m0), Equals, true)
 }
 
-func (t *sessionSuite) TestListIds(c *C) {
+func (t *sessionSuite) TestSize(c *C) {
 	spool := c.MkDir()
-	s1 := session.New(spool, true)
+	s1 := session.New(spool, 0, true)
 	defer s1.Discard()
 
-	s2 := session.New(spool, true)
+	s2 := session.New(spool, 0, true)
 	defer s2.Discard()
 
-	ids := session.Sessions.ListIds()
-	c.Assert((ids[0] == s1.Id && ids[1] == s2.Id) || (ids[0] == s2.Id && ids[1] == s1.Id), Equals, true)
+	n := session.Sessions.Size()
+	c.Assert(n, Equals, 2)
 }
 
 func (t *sessionSuite) TestFinishAll(c *C) {
 	spool := c.MkDir()
-	s1 := session.New(spool, true)
+	s1 := session.New(spool, 0, true)
 	defer s1.Discard()
 
-	s2 := session.New(spool, true)
+	s2 := session.New(spool, 0, true)
 	defer s2.Discard()
 
-	ids := session.Sessions.ListIds()
-	c.Assert(len(ids), Equals, 2)
+	n := session.Sessions.Size()
+	c.Assert(n, Equals, 2)
 
 	session.FinishAll()
 
-	ids = session.Sessions.ListIds()
-	c.Assert(len(ids), Equals, 0)
+	n = session.Sessions.Size()
+	c.Assert(n, Equals, 0)
 }
 
-func (t *sessionSuite) TestListAll(c *C) {
+func (t *sessionSuite) TestNumSessions(c *C) {
 	spool := c.MkDir()
-	s1 := session.New(spool, true)
+	s1 := session.New(spool, 0, true)
 	defer s1.Discard()
 
-	s2 := session.New(spool, false)
+	s2 := session.New(spool, 0, false)
 	defer s2.Discard()
 
-	all := session.ListAll()
+	n := session.NumSessions()
+	c.Assert(n, Equals, 2)
+}
+
+func (t *sessionSuite) TestSessionInfos(c *C) {
+	spool := c.MkDir()
+	s1 := session.New(spool, 0, true)
+	defer s1.Discard()
+
+	s2 := session.New(spool, 0, false)
+	defer s2.Discard()
+
+	all := session.SessionInfos()
 	c.Assert((all[0].SessionId == s1.Id && all[1].SessionId == s2.Id) ||
 		(all[0].SessionId == s2.Id && all[1].SessionId == s1.Id), Equals, true)
 }

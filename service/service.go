@@ -113,6 +113,7 @@ func (svc *Service) Start() error {
 		for {
 			select {
 			case msg := <-svc.ch:
+				logger.Debugf("[service] received message: %T", msg)
 				if svc.opt.IdleShutdown > 0 {
 					idleTimer.Reset(time.Duration(svc.opt.IdleShutdown) * time.Second)
 				}
@@ -122,7 +123,7 @@ func (svc *Service) Start() error {
 						Uptime:         uint64(time.Since(svc.start).Seconds()),
 						StartTime:      svc.start,
 						SessionCount:   svc.totalSessions,
-						ActiveSessions: session.ListAll(),
+						ActiveSessions: session.SessionInfos(),
 					}
 
 				case messages.RequestInspection:
@@ -156,7 +157,7 @@ func (svc *Service) Start() error {
 					logger.Infof("[%s] %s %s: %s (%s)", sessionId, dl.Method, dl.URL, dl.Status, dl.ContentType)
 
 					if s.HasArtefact(digest) {
-						logger.Infof("artefact %s already downloaded", digest)
+						logger.Infof("[%s] artefact %s already downloaded", sessionId, digest)
 						s.AddDownload(v.A.CurrentDownload)
 						os.Remove(v.A.Tempfile)
 						v.Rch <- nil
@@ -190,10 +191,9 @@ func (svc *Service) Start() error {
 						}
 					}
 
-					s := session.New(svc.opt.Spool, permissive)
-					if v.Timeout > 0 {
-						s.Timeout = time.Duration(v.Timeout * uint64(time.Second))
-					}
+					timeout := time.Duration(v.Timeout * uint64(time.Second))
+					s := session.New(svc.opt.Spool, timeout, permissive)
+
 					svc.totalSessions++
 					v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Token}
 
@@ -275,7 +275,24 @@ func (svc *Service) Start() error {
 					v.Rch <- session.CheckAuth(v.Id, v.Pw)
 
 				default:
-					logger.Warningf("Unknown message type %T", v)
+					logger.Warningf("[service] unknown message type %T", v)
+				}
+
+			case sessionId := <-session.ExpiredSessionId:
+				logger.Infof("[%s] session expired", sessionId)
+				s := session.GetSession(sessionId)
+				if s == nil {
+					logger.Warningf("[service] session %s does not exist", sessionId)
+					break
+				}
+				if err := s.Finish(); err != nil {
+					logger.Errorf("[%s] cannot finish session: %s", sessionId, err)
+				}
+				if err := session.RemoveResources(svc.opt.Spool, sessionId); err != nil {
+					logger.Errorf("[%s] cannot remove session resources: %s", sessionId, err)
+				}
+				if svc.opt.IdleShutdown > 0 {
+					idleTimer.Reset(time.Duration(svc.opt.IdleShutdown) * time.Second)
 				}
 
 			case <-svc.tomb.Dying():
@@ -289,28 +306,28 @@ func (svc *Service) Start() error {
 
 			case event, ok := <-svc.cfgw.Events:
 				if ok && event.Op&(fsnotify.Write|fsnotify.Create) != 0 {
-					logger.Infof("Configuration file changed: %s", event.Name)
+					logger.Infof("[service] configuration file changed: %s", event.Name)
 
 					switch filepath.Base(event.Name) {
 					case "acl.yaml":
 						if err := config.LoadHttpProxyRules(svc.opt.Config); err != nil {
-							logger.Errorf("cannot load proxy rules: %s", err)
+							logger.Errorf("[service] cannot load proxy rules: %s", err)
 						}
 					}
 				}
 
 			case err, ok := <-svc.cfgw.Errors:
 				if ok {
-					logger.Errorf("configuration file watcher error: %s", err)
+					logger.Errorf("[service] configuration file watcher error: %s", err)
 				}
 
 			case <-idleTimer.C:
-				n := len(session.ListAll())
+				n := session.NumSessions()
 				if n < 1 {
-					logger.Infof("auto-shutdown after being idle for %d seconds", svc.opt.IdleShutdown)
+					logger.Infof("[service] auto-shutdown after being idle for %d seconds", svc.opt.IdleShutdown)
 					return nil
 				} else {
-					logger.Infof("number of active sessions: %d", n)
+					logger.Infof("[service] number of active sessions: %d", n)
 				}
 			}
 		}

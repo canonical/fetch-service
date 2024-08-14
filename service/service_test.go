@@ -190,8 +190,13 @@ func (t *serviceSuite) TestServiceIdleShutdown(c *C) {
 		{false, false},
 		{true, true},
 	} {
-
-		opt := service.Options{ProxyPort: 1337, IdleShutdown: 1, PermissiveMode: true}
+		spoolDir := c.MkDir()
+		opt := service.Options{
+			ProxyPort:      1337,
+			IdleShutdown:   1,
+			PermissiveMode: true,
+			Spool:          spoolDir,
+		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
 
@@ -239,7 +244,7 @@ func (t *serviceSuite) TestGetServiceStatus(c *C) {
 
 	err = svc.Start()
 	c.Assert(err, IsNil)
-	s := session.New(opt.Spool, true)
+	s := session.New(opt.Spool, 0, true)
 	defer s.Discard()
 
 	msg := messages.NewGetServiceStatus()
@@ -277,7 +282,7 @@ func (t *serviceSuite) TestRequestInspection(c *C) {
 
 		err = svc.Start()
 		c.Assert(err, IsNil)
-		s := session.New(opt.Spool, true)
+		s := session.New(opt.Spool, 0, true)
 		defer s.Discard()
 
 		a := metadata.NewArtefact()
@@ -326,12 +331,13 @@ func (t *serviceSuite) TestResponseInspection(c *C) {
 
 		err = svc.Start()
 		c.Assert(err, IsNil)
-		s := session.New(opt.Spool, true)
+		s := session.New(opt.Spool, 0, true)
 		defer s.Discard()
 
 		sha, _ := digests.NewSha256Digest("5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03")
 		a := metadata.NewArtefact()
 		a.Metadata.Sha256 = sha
+		a.AssetDir = filepath.Join(s.SessionDir, "assets")
 
 		tmpfile := filepath.Join(spoolDir, "tempfile")
 		err = os.WriteFile(tmpfile, []byte("content"), 0644)
@@ -431,7 +437,7 @@ func (t *serviceSuite) TestDeleteResources(c *C) {
 		err = svc.Start()
 		c.Assert(err, IsNil)
 
-		s := session.New(opt.Spool, true)
+		s := session.New(opt.Spool, 0, true)
 		defer s.Discard()
 
 		var sid string
@@ -479,7 +485,7 @@ func (t *serviceSuite) TestRevokeToken(c *C) {
 
 		err = svc.Start()
 		c.Assert(err, IsNil)
-		s := session.New(opt.Spool, true)
+		s := session.New(opt.Spool, 0, true)
 		defer s.Discard()
 
 		var sid string
@@ -537,7 +543,7 @@ func (t *serviceSuite) TestGetSessionReport(c *C) {
 
 		err = svc.Start()
 		c.Assert(err, IsNil)
-		s := session.New(opt.Spool, true)
+		s := session.New(opt.Spool, 0, true)
 		defer s.Discard()
 
 		var sid string
@@ -593,7 +599,7 @@ func (t *serviceSuite) TestEndSession(c *C) {
 
 		err = svc.Start()
 		c.Assert(err, IsNil)
-		s := session.New(opt.Spool, true)
+		s := session.New(opt.Spool, 0, true)
 		defer s.Discard()
 
 		var sid string

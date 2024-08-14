@@ -26,6 +26,8 @@ import (
 var (
 	RandomString = randomString
 	Sessions     = sessions
+
+	NewSessionTimer = newSessionTimer
 )
 
 func MockMakeSessionId(mock func() string) (restorer func()) {
