@@ -29,9 +29,8 @@ type sessionTimer struct {
 	done        chan struct{} // channel to signal end of monitoring
 }
 
-// newSessionTimer creates a session timer with duration d, and executes
-// function f on expiration. If the timer is cancelled, it will never
-// expire and function g is executed instead.
+// newSessionTimer creates a timer for session s, and sends the expired
+// session ID to channel ch.
 func newSessionTimer(s *Session, ch chan string) *sessionTimer {
 	t := &sessionTimer{
 		Timer: time.NewTimer(s.Timeout),
