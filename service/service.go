@@ -22,10 +22,8 @@ package service
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
 	"gopkg.in/tomb.v2"
 
 	"github.com/canonical/fetch-service/control"
@@ -41,13 +39,13 @@ import (
 
 // Service implements the fetch service main loop.
 type Service struct {
-	p     *proxy.HttpProxy  // proxy instance
-	ctl   *control.Server   // control server
-	ch    chan interface{}  // channel to get feedback from handlers
-	start time.Time         // service start time (UTC)
-	opt   *Options          // configuration options
-	tomb  tomb.Tomb         // service dispatcher loop reaper
-	cfgw  *fsnotify.Watcher // configuration file watcher
+	p     *proxy.HttpProxy // proxy instance
+	ctl   *control.Server  // control server
+	cfg   *config.Server   // configuration server
+	ch    chan interface{} // channel to get feedback from handlers
+	start time.Time        // service start time (UTC)
+	opt   *Options         // configuration options
+	tomb  tomb.Tomb        // service dispatcher loop reaper
 
 	totalSessions uint64 // number of created sessions
 }
@@ -55,6 +53,7 @@ type Service struct {
 var (
 	proxyNewHttpProxy = proxy.NewHttpProxy
 	controlNewServer  = control.NewServer
+	configNewServer   = config.NewServer
 )
 
 func New(opt *Options) (*Service, error) {
@@ -67,39 +66,19 @@ func New(opt *Options) (*Service, error) {
 		return nil, err
 	}
 
+	cfg := configNewServer()
 	ctl := controlNewServer(opt.ControlPort, ch, creds)
 	start := time.Now().UTC()
 
-	return &Service{p: p, ctl: ctl, opt: opt, ch: ch, start: start}, nil
+	return &Service{p: p, ctl: ctl, cfg: cfg, opt: opt, ch: ch, start: start}, nil
 }
 
 // Start runs the fetch service dispatcher.
 func (svc *Service) Start() error {
-	// Set up idle auto-shutdown
-	idleTimer := time.NewTimer(time.Duration(svc.opt.IdleShutdown) * time.Second)
-	if svc.opt.IdleShutdown == 0 {
-		if !idleTimer.Stop() {
-			<-idleTimer.C
-		}
-	}
-
-	// Configuration file watcher
-	var err error
-	svc.cfgw, err = fsnotify.NewWatcher()
-	if err != nil {
-		return fmt.Errorf("cannot create watcher: %s", err)
-	}
-
-	err = config.LoadHttpProxyRules(svc.opt.Config)
+	err := config.LoadHttpProxyRules(svc.opt.Config)
 	if err != nil {
 		return fmt.Errorf("cannot load proxy rules: %s", err)
 	}
-
-	// Set up file watcher
-	if err := svc.cfgw.Add(svc.opt.Config); err != nil {
-		return fmt.Errorf("cannot set up configuration watcher: %s", err)
-	}
-	logger.Infof("Watching configuration files in %s", svc.opt.Config)
 
 	logger.Info("Starting service...")
 
@@ -107,13 +86,24 @@ func (svc *Service) Start() error {
 		return err
 	}
 
+	if err := svc.cfg.Start(); err != nil {
+		return err
+	}
+
 	svc.ctl.Start()
 
 	svc.tomb.Go(func() error {
+		// Set up idle auto-shutdown
+		idleTimer := time.NewTimer(time.Duration(svc.opt.IdleShutdown) * time.Second)
+		if svc.opt.IdleShutdown == 0 {
+			if !idleTimer.Stop() {
+				<-idleTimer.C
+			}
+		}
+
 		for {
 			select {
 			case msg := <-svc.ch:
-				logger.Debugf("[service] received message: %T", msg)
 				if svc.opt.IdleShutdown > 0 {
 					idleTimer.Reset(time.Duration(svc.opt.IdleShutdown) * time.Second)
 				}
@@ -157,7 +147,7 @@ func (svc *Service) Start() error {
 					logger.Infof("[%s] %s %s: %s (%s)", sessionId, dl.Method, dl.URL, dl.Status, dl.ContentType)
 
 					if s.HasArtefact(digest) {
-						logger.Infof("[%s] artefact %s already downloaded", sessionId, digest)
+						logger.Infof("artefact %s already downloaded", digest)
 						s.AddDownload(v.A.CurrentDownload)
 						os.Remove(v.A.Tempfile)
 						v.Rch <- nil
@@ -193,7 +183,6 @@ func (svc *Service) Start() error {
 
 					timeout := time.Duration(v.Timeout * uint64(time.Second))
 					s := session.New(svc.opt.Spool, timeout, permissive)
-
 					svc.totalSessions++
 					v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Token}
 
@@ -301,33 +290,19 @@ func (svc *Service) Start() error {
 			case <-svc.ctl.Dying():
 				return nil
 
-			case <-svc.p.Dying():
+			case <-svc.cfg.Dying():
 				return nil
 
-			case event, ok := <-svc.cfgw.Events:
-				if ok && event.Op&(fsnotify.Write|fsnotify.Create) != 0 {
-					logger.Infof("[service] configuration file changed: %s", event.Name)
-
-					switch filepath.Base(event.Name) {
-					case "acl.yaml":
-						if err := config.LoadHttpProxyRules(svc.opt.Config); err != nil {
-							logger.Errorf("[service] cannot load proxy rules: %s", err)
-						}
-					}
-				}
-
-			case err, ok := <-svc.cfgw.Errors:
-				if ok {
-					logger.Errorf("[service] configuration file watcher error: %s", err)
-				}
+			case <-svc.p.Dying():
+				return nil
 
 			case <-idleTimer.C:
 				n := session.NumSessions()
 				if n < 1 {
-					logger.Infof("[service] auto-shutdown after being idle for %d seconds", svc.opt.IdleShutdown)
+					logger.Infof("auto-shutdown after being idle for %d seconds", svc.opt.IdleShutdown)
 					return nil
 				} else {
-					logger.Infof("[service] number of active sessions: %d", n)
+					logger.Infof("number of active sessions: %d", n)
 				}
 			}
 		}
@@ -340,10 +315,13 @@ func (svc *Service) Stop() error {
 	logger.Info("Stopping service...")
 	session.FinishAll()
 
-	svc.cfgw.Close()
-
 	if err := svc.p.Stop(); err != nil {
 		logger.Warningf("Cannot shut down the HTTP server: %s", err)
+		return err
+	}
+
+	if err := svc.cfg.Stop(); err != nil {
+		logger.Warningf("Cannot shut down the configuration socket: %s", err)
 		return err
 	}
 
