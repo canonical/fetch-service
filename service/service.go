@@ -264,7 +264,24 @@ func (svc *Service) Start() error {
 					v.Rch <- session.CheckAuth(v.Id, v.Pw)
 
 				default:
-					logger.Warningf("Unknown message type %T", v)
+					logger.Warningf("[service] unknown message type %T", v)
+				}
+
+			case sessionId := <-session.ExpiredSessionId:
+				logger.Infof("[%s] session expired", sessionId)
+				s := session.GetSession(sessionId)
+				if s == nil {
+					logger.Warningf("[service] session %s does not exist", sessionId)
+					break
+				}
+				if err := s.Finish(); err != nil {
+					logger.Errorf("[%s] cannot finish session: %s", sessionId, err)
+				}
+				if err := session.RemoveResources(svc.opt.Spool, sessionId); err != nil {
+					logger.Errorf("[%s] cannot remove session resources: %s", sessionId, err)
+				}
+				if svc.opt.IdleShutdown > 0 {
+					idleTimer.Reset(time.Duration(svc.opt.IdleShutdown) * time.Second)
 				}
 
 			case <-svc.tomb.Dying():
