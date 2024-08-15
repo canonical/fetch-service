@@ -68,6 +68,6 @@ func parser() *flags.Parser {
 	return p
 }
 
-func main() {
-	os.Exit(Run())
-}
+// func main() {
+// 	os.Exit(Run())
+// }
