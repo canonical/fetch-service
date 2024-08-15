@@ -31,10 +31,10 @@ func MockArgs(args []string) func() {
 	}
 }
 
-func MockFmtPrintf(mock func(format string, a ...any) (int, error)) func() {
-	old := fmtPrintf
-	fmtPrintf = mock
+func MockPrintf(mock func(format string, a ...any)) func() {
+	old := printf
+	printf = mock
 	return func() {
-		fmtPrintf = old
+		printf = old
 	}
 }

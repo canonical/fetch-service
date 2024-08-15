@@ -37,10 +37,9 @@ var _ = Suite(&mainSuite{})
 
 func (t *mainSuite) TestVersion(c *C) {
 	output := []string{}
-	restorer := main.MockFmtPrintf(func(format string, a ...any) (int, error) {
+	restorer := main.MockPrintf(func(format string, a ...any) {
 		line := fmt.Sprintf(format, a...)
 		output = append(output, line)
-		return len(line), nil
 	})
 	defer restorer()
 

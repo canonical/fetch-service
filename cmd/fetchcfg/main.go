@@ -38,25 +38,27 @@ var opts struct {
 	Version bool `long:"version" description:"Display the program version and exit"`
 }
 
-var (
-	fmtPrintf = fmt.Printf
-)
-
 func Run() int {
 	p := parser()
 
 	_, err := p.ParseArgs(os.Args[1:])
 	if err != nil {
-		fmtPrintf("error: %v", err)
+		printf("error: %v", err)
 		return 1
 	}
 
 	if opts.Version {
-		fmtPrintf("fetchcfg %s\n", Version)
+		printf("fetchcfg %s\n", Version)
 		return 0
 	}
 
 	return 0
+}
+
+var printf = printfImpl
+
+func printfImpl(format string, a ...any) {
+	fmt.Printf(format, a...)
 }
 
 func parser() *flags.Parser {

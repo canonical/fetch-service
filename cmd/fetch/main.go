@@ -79,21 +79,17 @@ var opts struct {
 	IdleShutdown int `long:"idle-shutdown" description:"Time in seconds to auto-shutdown if idle"`
 }
 
-var (
-	fmtPrintf = fmt.Printf
-)
-
 func Run() int {
 	p := parser()
 
 	_, err := p.ParseArgs(os.Args[1:])
 	if err != nil {
-		fmtPrintf("error: %v", err)
+		printf("error: %v", err)
 		return 1
 	}
 
 	if opts.Version {
-		fmtPrintf("fetch %s\n", Version)
+		printf("fetch %s\n", Version)
 		return 0
 	}
 
@@ -167,6 +163,12 @@ loop:
 	}
 
 	return 0
+}
+
+var printf = printfImpl
+
+func printfImpl(format string, a ...any) {
+	fmt.Printf(format, a...)
 }
 
 func parser() *flags.Parser {
