@@ -113,7 +113,7 @@ func (svc *Service) Start() error {
 						Uptime:         uint64(time.Since(svc.start).Seconds()),
 						StartTime:      svc.start,
 						SessionCount:   svc.totalSessions,
-						ActiveSessions: session.ListAll(),
+						ActiveSessions: session.SessionInfos(),
 					}
 
 				case messages.RequestInspection:
@@ -181,10 +181,8 @@ func (svc *Service) Start() error {
 						}
 					}
 
-					s := session.New(svc.opt.Spool, permissive)
-					if v.Timeout > 0 {
-						s.Timeout = time.Duration(v.Timeout * uint64(time.Second))
-					}
+					timeout := time.Duration(v.Timeout * uint64(time.Second))
+					s := session.New(svc.opt.Spool, timeout, permissive)
 					svc.totalSessions++
 					v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Token}
 
