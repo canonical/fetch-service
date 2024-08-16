@@ -91,6 +91,7 @@ func New(permissive bool) Inspectors {
 
 		// maven
 		maven.NewJarInspector(),
+		maven.NewPomInspector(),
 
 		// default inspector
 		// must be the last inspector to run
