@@ -23,10 +23,12 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/jessevdk/go-flags"
 
+	"github.com/canonical/fetch-service/cmd/fetchcfg"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/profile"
 	"github.com/canonical/fetch-service/service"
@@ -77,18 +79,18 @@ var opts struct {
 	IdleShutdown int `long:"idle-shutdown" description:"Time in seconds to auto-shutdown if idle"`
 }
 
-func main() {
+func Run() int {
 	p := parser()
 
 	_, err := p.ParseArgs(os.Args[1:])
 	if err != nil {
-		fmt.Printf("error: %v", err)
-		os.Exit(1)
+		printf("error: %v", err)
+		return 1
 	}
 
 	if opts.Version {
-		fmt.Printf("fetch %s\n", Version)
-		os.Exit(0)
+		printf("fetch %s\n", Version)
+		return 0
 	}
 
 	lv := logger.InfoLevel
@@ -159,6 +161,14 @@ loop:
 	if err := svc.Stop(); err != nil {
 		logger.Fatalf("error: %s", err)
 	}
+
+	return 0
+}
+
+var printf = printfImpl
+
+func printfImpl(format string, a ...any) {
+	fmt.Printf(format, a...)
 }
 
 func parser() *flags.Parser {
@@ -189,4 +199,13 @@ func loadCertificate(certPath, keyPath string) ([]byte, []byte, error) {
 	}
 
 	return cert, key, nil
+}
+
+func main() {
+	cmd := filepath.Base(os.Args[0])
+	if cmd == "fetchcfg" || cmd == "fetch-service.fetchcfg" {
+		os.Exit(fetchcfg.Run())
+	}
+
+	os.Exit(Run())
 }

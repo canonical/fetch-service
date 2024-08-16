@@ -24,7 +24,7 @@ go.work
 /*.snap
 
 # Version file from git tag
-cmd/fetch/version.txt
+cmd/*/version.txt
 
 # Generated docs
 docs/_build

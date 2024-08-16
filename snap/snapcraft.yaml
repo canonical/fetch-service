@@ -27,6 +27,10 @@ apps:
     plugs:
       - network-bind
       - home
+  fetchcfg:  # Fetch service configuration tool
+    command: bin/fetchcfg
+    plugs:
+      - home
 
 environment:
   # PERLLIB needed for licensecheck
@@ -44,7 +48,7 @@ parts:
     plugin: go
     source: .
     override-build: |
-      rm -f cmd/fetch/version.txt
+      rm -f cmd/fetch*/version.txt
       craftctl default
       craftctl set version=$(cat cmd/fetch/version.txt)
   service-runner:
@@ -54,3 +58,8 @@ parts:
     stage-packages:
       - gpg
       - ubuntu-keyring
+  fetchcfg:
+    plugin: nil
+    override-prime: |
+      craftctl default
+      ln -s fetch bin/fetchcfg
