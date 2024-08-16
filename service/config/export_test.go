@@ -20,6 +20,5 @@
 package config
 
 var (
-	SocketPath = socketPath
 	BuildReply = buildReply
 )

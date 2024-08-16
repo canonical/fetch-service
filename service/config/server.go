@@ -30,12 +30,13 @@ import (
 	"gopkg.in/tomb.v2"
 
 	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/version"
 )
 
 type OperationRequest struct {
 	Operation    string `json:"operation"`
-	Type         string `json:"type"`
-	ValidateOnly bool   `json:"validate-only"`
+	Type         string `json:"type,omitempty"`
+	ValidateOnly bool   `json:"validate-only,omitempty"`
 	Payload      string `json:"payload"`
 }
 
@@ -66,14 +67,14 @@ func NewServer() *Server {
 }
 
 func (cs *Server) Start() error {
-	err := os.RemoveAll(socketPath())
+	err := os.RemoveAll(SocketPath())
 	if err != nil {
 		return err
 	}
 
 	logger.Info("Listening on configuration socket...")
 	var lc net.ListenConfig
-	ln, err := lc.Listen(cs.ctx, "unix", socketPath())
+	ln, err := lc.Listen(cs.ctx, "unix", SocketPath())
 	if err != nil {
 		return err
 	}
@@ -95,7 +96,12 @@ func (cs *Server) Start() error {
 				reply = buildReply("error", err.Error())
 			} else {
 				logger.Infof("[config] operation requested: %s", op.Operation)
-				reply = buildReply("ok", "operation successful")
+				switch op.Operation {
+				case "version":
+					reply = buildReply("ok", version.Version)
+				default:
+					reply = buildReply("error", "unsupported operation")
+				}
 			}
 
 			_, err = fd.Write(reply)
@@ -115,7 +121,7 @@ func (cs *Server) Stop() error {
 	cs.cancel()
 	<-cs.ctx.Done()
 
-	err := os.RemoveAll(socketPath())
+	err := os.RemoveAll(SocketPath())
 	if err != nil {
 		return err
 	}
@@ -128,6 +134,6 @@ func (cs *Server) Dying() <-chan struct{} {
 	return cs.tomb.Dying()
 }
 
-func socketPath() string {
+func SocketPath() string {
 	return filepath.Join(os.TempDir(), "fetchctl.socket")
 }

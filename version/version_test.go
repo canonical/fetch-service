@@ -17,48 +17,29 @@
  *
  */
 
-package fetchcfg
+package version_test
 
 import (
-	"fmt"
-	"os"
+	"os/exec"
+	"strings"
+	"testing"
 
-	"github.com/jessevdk/go-flags"
+	"github.com/canonical/fetch-service/version"
+	. "gopkg.in/check.v1"
 )
 
-var (
-	shortHelp = "Fetch service configuration tool"
-	longHelp  = `
-Fetchcfg is a tool to update the configuration of the running
-fetch service.`
-)
+func Test(t *testing.T) { TestingT(t) }
 
-var (
-	opts struct {
-	}
-
-	parser = flags.NewParser(&opts, flags.HelpFlag|flags.PassDoubleDash|flags.PassAfterNonOption)
-)
-
-func Run() int {
-	parser.ShortDescription = shortHelp
-	parser.LongDescription = longHelp
-
-	_, err := parser.ParseArgs(os.Args[1:])
-	if err != nil {
-		printf("error: %s\n", err)
-		return 1
-	}
-
-	return 0
+type versionSuite struct {
 }
 
-var printf = printfImpl
-
-func printfImpl(format string, a ...any) {
-	fmt.Printf(format, a...)
+func (t *versionSuite) SetUpTest(c *C) {
 }
 
-// func main() {
-// 	os.Exit(Run())
-// }
+var _ = Suite(&versionSuite{})
+
+func (t *versionSuite) TestVersion(c *C) {
+	out, err := exec.Command("git", "describe").Output()
+	c.Assert(err, IsNil)
+	c.Check(version.Version, Equals, strings.TrimSpace(string(out)))
+}

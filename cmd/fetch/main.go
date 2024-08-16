@@ -32,6 +32,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/profile"
 	"github.com/canonical/fetch-service/service"
+	"github.com/canonical/fetch-service/version"
 )
 
 var (
@@ -89,7 +90,7 @@ func Run() int {
 	}
 
 	if opts.Version {
-		printf("fetch %s\n", Version)
+		printf("fetch %s\n", version.Version)
 		return 0
 	}
 
@@ -100,7 +101,7 @@ func Run() int {
 	logger.Init(lv)
 	defer logger.Close()
 
-	logger.Infof("Version %s", Version)
+	logger.Infof("Version %s", version.Version)
 	logger.Debug("Running in debug mode")
 
 	// Start continuous profiling server
