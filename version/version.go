@@ -4,6 +4,5 @@ package version
 
 import _ "embed"
 
-//nolint:all
 //go:embed version.txt
 var Version string
