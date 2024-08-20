@@ -25,7 +25,6 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	//. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/maven"
 	"github.com/canonical/fetch-service/metadata"
@@ -47,7 +46,7 @@ var pomurltests = []struct {
 
 	// expected output
 	group_id    string
-	artifact_id string
+	artefact_id string
 	version     string
 }{
 	{"/joda-time/joda-time/2.2/joda-time-2.2.pom", "joda-time", "joda-time", "2.2"},
@@ -68,7 +67,7 @@ func (s *mavenSuite) TestPomInspectRequest(c *C) {
 		c.Assert(insp.Opinion, Equals, opinions.Pending)
 
 		c.Check(a.RequestInspection[ins.ID()].Annotations["group-id"], Equals, pt.group_id)
-		c.Check(a.RequestInspection[ins.ID()].Annotations["artifact-id"], Equals, pt.artifact_id)
+		c.Check(a.RequestInspection[ins.ID()].Annotations["artefact-id"], Equals, pt.artefact_id)
 		c.Check(a.RequestInspection[ins.ID()].Annotations["version"], Equals, pt.version)
 	}
 }
@@ -77,7 +76,7 @@ var pomtests = []struct {
 	filename    string
 	slug        string
 	group_id    string
-	artifact_id string
+	artefact_id string
 	version     string
 
 	description string
@@ -117,7 +116,7 @@ func (s *mavenSuite) TestPomInspectArtefact(c *C) {
 		a.RequestInspection[ins.ID()] = &Inspection{
 			Opinion:     opinions.Pending,
 			Reason:      "some reason",
-			Annotations: Annotation{"group-id": jt.group_id, "artifact-id": jt.artifact_id, "version": jt.version},
+			Annotations: Annotation{"group-id": jt.group_id, "artefact-id": jt.artefact_id, "version": jt.version},
 		}
 
 		f, err := files.OpenArtefactFile(filename)
@@ -130,7 +129,7 @@ func (s *mavenSuite) TestPomInspectArtefact(c *C) {
 		c.Assert(a.Approved(), Equals, true)
 
 		c.Check(a.Metadata.Type, Equals, "text/xml")
-		c.Check(a.Metadata.Name, Equals, fmt.Sprintf(`Maven POM file for '%s'`, jt.artifact_id))
+		c.Check(a.Metadata.Name, Equals, fmt.Sprintf(`Maven POM file for '%s'`, jt.artefact_id))
 		c.Check(a.Metadata.Version, Equals, jt.version)
 		c.Check(a.Metadata.Description, Equals, jt.description)
 		c.Check(a.Metadata.Author, Equals, jt.author)

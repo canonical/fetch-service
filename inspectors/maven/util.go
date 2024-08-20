@@ -28,17 +28,17 @@ import (
 	. "github.com/canonical/fetch-service/inspectors/common"
 )
 
-type artifactUrl struct {
-	ArtifactId string
+type artefactUrl struct {
+	ArtefactId string
 	GroupId    string
 	Version    string
 }
 
-func parseUrl(slug *regexp.Regexp, url string) *artifactUrl {
+func parseUrl(slug *regexp.Regexp, url string) *artefactUrl {
 	m := slug.FindStringSubmatch(url)
 	if len(m) == 4 {
 		// Convert the "/" org separator into "."
-		return &artifactUrl{GroupId: strings.ReplaceAll(m[1], "/", "."), ArtifactId: m[2], Version: m[3]}
+		return &artefactUrl{GroupId: strings.ReplaceAll(m[1], "/", "."), ArtefactId: m[2], Version: m[3]}
 	}
 	return nil
 }
