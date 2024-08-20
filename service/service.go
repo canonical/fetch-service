@@ -68,6 +68,7 @@ func New(opt *Options) (*Service, error) {
 	}
 
 	cfg := configNewServer(ch)
+
 	ctl := controlNewServer(opt.ControlPort, ch, creds)
 	start := time.Now().UTC()
 
@@ -97,6 +98,8 @@ func (svc *Service) Start() error {
 
 	return nil
 }
+
+var configUpdateConfig = config.UpdateConfig
 
 func (svc *Service) dispatcher() error {
 	// Set up idle auto-shutdown
@@ -281,6 +284,28 @@ loop:
 						Status:  "ok",
 						Message: version.Version,
 					}
+				case "update-config":
+					err := configUpdateConfig(v.Type, v.ValidateOnly, v.Payload, svc.opt.Config)
+					if err != nil {
+						reply = messages.ConfigurationResult{
+							Status:  "error",
+							Message: fmt.Sprintf("%s configuration update error", v.Type),
+						}
+						logger.Warningf("[service] %s update error: %s", v.Type, err.Error())
+					} else if v.ValidateOnly {
+						reply = messages.ConfigurationResult{
+							Status:  "ok",
+							Message: "configuration validated",
+						}
+						logger.Infof("[service] %s configuration validated", v.Type)
+					} else {
+						reply = messages.ConfigurationResult{
+							Status:  "ok",
+							Message: "configuration updated",
+						}
+						logger.Infof("[service] %s configuration updated", v.Type)
+					}
+
 				default:
 					reply = messages.ConfigurationResult{
 						Status:  "error",

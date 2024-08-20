@@ -48,3 +48,11 @@ func MockNewConfigServer(mock func(chan interface{}) *config.Server) (restorer f
 		configNewServer = old
 	}
 }
+
+func MockConfigUpdateConfig(mock func(string, bool, []byte, string) error) (restorer func()) {
+	old := configUpdateConfig
+	configUpdateConfig = mock
+	return func() {
+		configUpdateConfig = old
+	}
+}
