@@ -1,0 +1,61 @@
+name: TICS
+
+on:
+  push:
+    branches:
+    - main
+    # to easy test changes to the workflow
+    - tiobe
+
+jobs:
+  CI:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          echo "::group::golang"
+          sudo snap install go --channel 1.22 --classic --no-wait
+          echo "::endgroup::"
+          echo "::group::apt-get update"
+          sudo apt-get update
+          echo "::endgroup::"
+          echo "::group::apt-get install..."
+          sudo apt-get install -y  cpanminus gcc make
+          echo "::endgroup::"
+          echo "::group::cpanm"
+          sudo cpanm --notest https://cpan.metacpan.org/authors/id/J/JO/JONASS/Regexp-Pattern-License-v3.9.3.tar.gz  # 3.11.1 doesn't work!
+          sudo cpanm --notest https://cpan.metacpan.org/authors/id/P/PE/PEVANS/Syntax-Keyword-Try-0.27.tar.gz
+          sudo cpanm --notest https://cpan.metacpan.org/authors/id/J/JO/JONASS/App-Licensecheck-v3.3.9.tar.gz
+          echo "::endgroup::"
+          sudo snap watch --last=install
+          echo "::group::gocov"
+          go install github.com/axw/gocov/gocov@latest
+          go install github.com/AlekSi/gocov-xml@latest
+          echo "::endgroup::"
+
+      - name: Build code
+        run: |
+          go build ./cmd/fetch
+
+      - name: Run unit tests
+        run: |
+          mkdir .coverage
+          go test -coverprofile .coverage/cover.out ./...
+          cd .coverage
+          ~/go/bin/gocov convert cover.out > coverage.json
+          ~/go/bin/gocov-xml < coverage.json > coverage-go.xml
+
+      - name: Run TICS analysis
+        uses: tiobe/tics-github-action@v3
+        with:
+          mode: qserver
+          project: fetch-service
+          viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
+          branchdir: ${{ github.workspace }}
+          ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
+          installTics: true
