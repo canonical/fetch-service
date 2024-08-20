@@ -20,25 +20,27 @@
 package maven_test
 
 import (
+	"fmt"
 	"path/filepath"
 
-	"github.com/gabriel-vasile/mimetype"
 	. "gopkg.in/check.v1"
 
-	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/maven"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/metadata/opinions"
+	"github.com/gabriel-vasile/mimetype"
+
+	. "github.com/canonical/fetch-service/inspectors/common"
 )
 
-func (s *mavenSuite) TestJarInspectorID(c *C) {
-	ins := maven.NewJarInspector()
-	c.Assert(ins.ID(), Equals, "maven.jar")
+func (s *mavenSuite) TestPomInspectorID(c *C) {
+	ins := maven.NewPomInspector()
+	c.Assert(ins.ID(), Equals, "maven.pom")
 }
 
-var urltests = []struct {
+var pomurltests = []struct {
 	// input
 	slug string
 
@@ -47,15 +49,15 @@ var urltests = []struct {
 	artefact_id string
 	version     string
 }{
-	{"/joda-time/joda-time/2.2/joda-time-2.2.jar", "joda-time", "joda-time", "2.2"},
-	{"/org/apache/maven/maven-artifact/2.0.9/maven-artifact-2.0.9.jar", "org.apache.maven", "maven-artifact", "2.0.9"},
+	{"/joda-time/joda-time/2.2/joda-time-2.2.pom", "joda-time", "joda-time", "2.2"},
+	{"/apache/maven/maven-artifact/2.0.6/maven-artifact-2.0.6.pom", "apache.maven", "maven-artifact", "2.0.6"},
 }
 
-func (s *mavenSuite) TestJarInspectRequest(c *C) {
-	for _, jt := range urltests {
-		ins := maven.NewJarInspector()
+func (s *mavenSuite) TestPomInspectRequest(c *C) {
+	for _, pt := range pomurltests {
+		ins := maven.NewPomInspector()
 		a := metadata.NewArtefact()
-		a.CurrentDownload = metadata.Download{URL: "https://repo.maven.apache.org:443/maven2" + jt.slug}
+		a.CurrentDownload = metadata.Download{URL: "https://repo.maven.apache.org:443/maven2" + pt.slug}
 
 		err := ins.InspectRequest(a)
 		c.Assert(err, IsNil)
@@ -64,13 +66,13 @@ func (s *mavenSuite) TestJarInspectRequest(c *C) {
 		c.Assert(ok, Equals, true)
 		c.Assert(insp.Opinion, Equals, opinions.Pending)
 
-		c.Check(a.RequestInspection[ins.ID()].Annotations["group-id"], Equals, jt.group_id)
-		c.Check(a.RequestInspection[ins.ID()].Annotations["artefact-id"], Equals, jt.artefact_id)
-		c.Check(a.RequestInspection[ins.ID()].Annotations["version"], Equals, jt.version)
+		c.Check(a.RequestInspection[ins.ID()].Annotations["group-id"], Equals, pt.group_id)
+		c.Check(a.RequestInspection[ins.ID()].Annotations["artefact-id"], Equals, pt.artefact_id)
+		c.Check(a.RequestInspection[ins.ID()].Annotations["version"], Equals, pt.version)
 	}
 }
 
-var jartests = []struct {
+var pomtests = []struct {
 	filename    string
 	slug        string
 	group_id    string
@@ -82,34 +84,34 @@ var jartests = []struct {
 	license     string
 }{
 	{
-		"joda-time.jar",
-		"/joda-time/joda-time/2.2/joda-time-2.2.jar",
+		"joda-time-pom.xml",
+		"/joda-time/joda-time/2.2/joda-time-2.2.pom",
 		"joda-time", "joda-time", "2.2",
 		"Date and time library to replace JDK date handling",
 		"Stephen Colebourne, Brian S O'Neill",
 		"Apache 2",
 	},
 	{
-		"maven-artifact.jar",
-		"/org/apache/maven/maven-artifact/2.0.9/maven-artifact-2.0.9.jar",
-		"org.apache.maven", "maven-artifact", "2.0.9",
+		"plexus-interpolation-pom.xml",
+		"/org/codehaus/plexus/plexus-interpolation/1.15/plexus-interpolation-1.15.pom",
+		"org.codehaus.plexus", "plexus-interpolation", "1.15",
 		"", // no description, author or license in pom
 		"",
 		"",
 	},
 }
 
-func (s *mavenSuite) TestJarInspectArtefact(c *C) {
-	for _, jt := range jartests {
+func (s *mavenSuite) TestPomInspectArtefact(c *C) {
+	for _, jt := range pomtests {
 		filename := filepath.Join("testdata", jt.filename)
 
-		ins := maven.NewJarInspector()
+		ins := maven.NewPomInspector()
 		h, _ := digests.NewSha1Digest("a5f29a7acaddea3f4af307e8cf2d0cc82645fd7d")
 
 		a := metadata.NewArtefact()
-		a.Metadata.Type = "application/jar"
+		a.Metadata.Type = "text/xml"
 		a.Metadata.Sha1 = h
-		a.MimeType = mimetype.Lookup("application/jar")
+		a.MimeType = mimetype.Lookup("text/xml")
 		a.CurrentDownload.URL = "https://repo.maven.apache.org:443/maven2" + jt.slug
 		a.RequestInspection[ins.ID()] = &Inspection{
 			Opinion:     opinions.Pending,
@@ -126,8 +128,8 @@ func (s *mavenSuite) TestJarInspectArtefact(c *C) {
 
 		c.Assert(a.Approved(), Equals, true)
 
-		c.Check(a.Metadata.Type, Equals, "application/jar")
-		c.Check(a.Metadata.Name, Equals, jt.artefact_id)
+		c.Check(a.Metadata.Type, Equals, "text/xml")
+		c.Check(a.Metadata.Name, Equals, fmt.Sprintf(`Maven POM file for '%s'`, jt.artefact_id))
 		c.Check(a.Metadata.Version, Equals, jt.version)
 		c.Check(a.Metadata.Description, Equals, jt.description)
 		c.Check(a.Metadata.Author, Equals, jt.author)
