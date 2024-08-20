@@ -26,6 +26,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	main "github.com/canonical/fetch-service/cmd/fetch"
+	"github.com/canonical/fetch-service/version"
 )
 
 func Test(t *testing.T) { TestingT(t) }
@@ -48,5 +49,5 @@ func (t *mainSuite) TestVersion(c *C) {
 
 	c.Assert(main.Run(), Equals, 0)
 	c.Check(output, HasLen, 1)
-	c.Check(output[0], Equals, "fetch "+main.Version+"\n")
+	c.Check(output[0], Equals, "fetch "+version.Version+"\n")
 }

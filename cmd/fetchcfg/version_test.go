@@ -20,24 +20,41 @@
 package fetchcfg_test
 
 import (
-	"testing"
+	"net"
+	"path/filepath"
+	"time"
 
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/cmd/fetchcfg"
 )
 
-func Test(t *testing.T) { TestingT(t) }
-
-type fetchcfgSuite struct {
-}
-
-var _ = Suite(&fetchcfgSuite{})
-
-func (t *fetchcfgSuite) TestRun(c *C) {
-	restorer := fetchcfg.MockArgs([]string{"fetchcfg", "invalid"})
+func (t *fetchcfgSuite) TestVersion(c *C) {
+	tmpdir := c.MkDir()
+	spath := filepath.Join(tmpdir, "test.socket")
+	restorer := fetchcfg.MockConfigSocketPath(func() string {
+		return spath
+	})
 	defer restorer()
 
-	res := fetchcfg.Run()
-	c.Assert(res, Equals, 1)
+	go func() {
+		ln, err := net.Listen("unix", spath)
+		c.Assert(err, IsNil)
+
+		f, err := ln.Accept()
+		c.Assert(err, IsNil)
+
+		data := make([]byte, 4096)
+		n, err := f.Read(data)
+		c.Assert(err, IsNil)
+		c.Check(string(data[:n]), Equals, `{"operation":"version","payload":""}`)
+
+		_, err = f.Write([]byte(`{"result":"ok","message":"1.2.3"}`))
+		c.Assert(err, IsNil)
+	}()
+
+	time.Sleep(500 * time.Millisecond)
+
+	cmd := fetchcfg.VersionCmd{}
+	c.Assert(cmd.Execute([]string{"fetchcfg", "version"}), IsNil)
 }

@@ -54,7 +54,7 @@ func (t *serverSuite) TestConfigServerConnect(c *C) {
 		request string
 		errMsg  string
 	}{
-		{`{"operation":"foo", "type":"bar", "validate-only":false, "payload":"baz"}`, ""},
+		{`{"operation":"version", "payload":""}`, ""},
 		{`not a valid json`, "bla"},
 	} {
 		cs := config.NewServer()

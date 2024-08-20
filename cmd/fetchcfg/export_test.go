@@ -38,3 +38,11 @@ func MockPrintf(mock func(format string, a ...any)) func() {
 		printf = old
 	}
 }
+
+func MockConfigSocketPath(mock func() string) func() {
+	old := configSocketPath
+	configSocketPath = mock
+	return func() {
+		configSocketPath = old
+	}
+}
