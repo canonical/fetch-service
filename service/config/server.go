@@ -30,7 +30,7 @@ import (
 	"gopkg.in/tomb.v2"
 
 	"github.com/canonical/fetch-service/logger"
-	"github.com/canonical/fetch-service/version"
+	"github.com/canonical/fetch-service/service/messages"
 )
 
 type OperationRequest struct {
@@ -46,7 +46,7 @@ type OperationReply struct {
 }
 
 func buildReply(result, message string) []byte {
-	data := OperationReply{result, message}
+	data := OperationReply{Result: result, Message: message}
 	j, err := json.Marshal(data)
 	if err != nil {
 		return []byte(fmt.Sprintf(`{"result":"error","message":%q}`, err.Error()))
@@ -55,13 +55,14 @@ func buildReply(result, message string) []byte {
 }
 
 type Server struct {
+	ch     chan interface{}
 	tomb   tomb.Tomb
 	ctx    context.Context
 	cancel context.CancelFunc
 }
 
-func NewServer() *Server {
-	cs := &Server{}
+func NewServer(ch chan interface{}) *Server {
+	cs := &Server{ch: ch}
 	cs.ctx, cs.cancel = context.WithCancel(context.Background())
 	return cs
 }
@@ -81,7 +82,6 @@ func (cs *Server) Start() error {
 
 	cs.tomb.Go(func() error {
 		for {
-
 			fd, err := ln.Accept()
 			if err != nil {
 				logger.Errorf("cannot accept configuration connection: %s", err)
@@ -96,12 +96,10 @@ func (cs *Server) Start() error {
 				reply = buildReply("error", err.Error())
 			} else {
 				logger.Infof("[config] operation requested: %s", op.Operation)
-				switch op.Operation {
-				case "version":
-					reply = buildReply("ok", version.Version)
-				default:
-					reply = buildReply("error", "unsupported operation")
-				}
+				msg := messages.NewConfiguration(op.Operation, op.Type, op.ValidateOnly, []byte(op.Payload))
+				cs.ch <- msg
+				res := <-msg.Rch
+				reply = buildReply(res.Status, res.Message)
 			}
 
 			_, err = fd.Write(reply)

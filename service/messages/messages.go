@@ -179,3 +179,28 @@ func NewDeleteResources(sessionId string) DeleteResources {
 		Id:  sessionId,
 	}
 }
+
+// Configuration
+
+type Configuration struct {
+	Rch          chan ConfigurationResult
+	Operation    string
+	Type         string
+	ValidateOnly bool
+	Payload      []byte
+}
+
+func NewConfiguration(operation, optype string, validateOnly bool, payload []byte) Configuration {
+	return Configuration{
+		Operation:    operation,
+		Type:         optype,
+		ValidateOnly: validateOnly,
+		Payload:      payload,
+		Rch:          make(chan ConfigurationResult, 1),
+	}
+}
+
+type ConfigurationResult struct {
+	Status  string
+	Message string
+}

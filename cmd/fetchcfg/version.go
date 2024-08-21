@@ -46,7 +46,8 @@ func (cmd *VersionCmd) Execute(args []string) error {
 	}
 	defer conn.Close()
 
-	err = send(conn, "version", "", false, "")
+	request := config.OperationRequest{Operation: "version"}
+	err = send(conn, request)
 	if err != nil {
 		return fmt.Errorf("cannot send request: %s", err)
 	}

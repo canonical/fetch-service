@@ -26,18 +26,8 @@ import (
 	"github.com/canonical/fetch-service/service/config"
 )
 
-func buildRequest(operation, optype string, dryRun bool, payload string) ([]byte, error) {
-	data := config.OperationRequest{
-		Operation:    operation,
-		Type:         optype,
-		ValidateOnly: dryRun,
-		Payload:      payload,
-	}
-	return json.Marshal(data)
-}
-
-func send(conn net.Conn, operation, optype string, dryRun bool, payload string) error {
-	data, err := buildRequest(operation, optype, dryRun, payload)
+func send(conn net.Conn, request config.OperationRequest) error {
+	data, err := json.Marshal(request)
 	if err != nil {
 		return err
 	}

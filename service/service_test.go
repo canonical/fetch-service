@@ -104,8 +104,8 @@ func (t *serviceSuite) TestConfigServerCrash(c *C) {
 	defer restorer()
 
 	var cfg *config.Server
-	restorer = service.MockNewConfigServer(func() *config.Server {
-		cfg = config.NewServer()
+	restorer = service.MockNewConfigServer(func(ch chan interface{}) *config.Server {
+		cfg = config.NewServer(ch)
 		return cfg
 	})
 	defer restorer()
@@ -673,4 +673,41 @@ func (t *serviceSuite) TestControlAuthentication(c *C) {
 	_, err := service.New(&opt)
 	c.Assert(err, IsNil)
 	c.Assert(t.controlAuth, Equals, "suzy:shalamacookie")
+}
+
+func (t *serviceSuite) TestConfiguration(c *C) {
+	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+		t.ch = ch
+		t.proxyPort = port
+		return &proxy.HttpProxy{}, nil
+	})
+	defer restorer()
+
+	for _, tc := range []struct {
+		operation string
+		result    string
+	}{
+		{"version", "ok"},
+		{"", "error"},
+		{"invalid", "error"},
+	} {
+		spool := c.MkDir()
+		opt := service.Options{ProxyPort: 1337, Spool: spool}
+		svc, err := service.New(&opt)
+		c.Assert(err, IsNil)
+
+		err = svc.Start()
+		c.Assert(err, IsNil)
+		s := session.New(opt.Spool, 0, true)
+		defer s.Discard()
+
+		msg := messages.NewConfiguration(tc.operation, "", false, nil)
+		t.ch <- msg
+		res := <-msg.Rch
+
+		c.Assert(res.Status, Equals, tc.result)
+
+		err = svc.Stop()
+		c.Assert(err, IsNil)
+	}
 }
