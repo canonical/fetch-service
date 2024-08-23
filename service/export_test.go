@@ -41,7 +41,7 @@ func MockNewControlServer(mock func(port int, ch chan interface{}, creds string)
 	}
 }
 
-func MockNewConfigServer(mock func() *config.Server) (restorer func()) {
+func MockNewConfigServer(mock func(chan interface{}) *config.Server) (restorer func()) {
 	old := configNewServer
 	configNewServer = mock
 	return func() {

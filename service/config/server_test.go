@@ -29,6 +29,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/service/config"
+	"github.com/canonical/fetch-service/service/messages"
 )
 
 type serverSuite struct{}
@@ -36,7 +37,8 @@ type serverSuite struct{}
 var _ = Suite(&serverSuite{})
 
 func (t *serverSuite) TestConfigServer(c *C) {
-	cs := config.NewServer()
+	ch := make(chan interface{})
+	cs := config.NewServer(ch)
 
 	err := cs.Start()
 	c.Assert(err, IsNil)
@@ -55,9 +57,21 @@ func (t *serverSuite) TestConfigServerConnect(c *C) {
 		errMsg  string
 	}{
 		{`{"operation":"version", "payload":""}`, ""},
-		{`not a valid json`, "bla"},
+		{`not a valid json`, "invalid character .*"},
 	} {
-		cs := config.NewServer()
+		ch := make(chan interface{})
+		cs := config.NewServer(ch)
+
+		go func() {
+			v := <-ch
+			op := v.(messages.Configuration)
+			if op.Operation == "version" {
+				op.Rch <- messages.ConfigurationResult{Status: "ok", Message: ""}
+			} else {
+				op.Rch <- messages.ConfigurationResult{Status: "error", Message: ""}
+			}
+
+		}()
 
 		err := cs.Start()
 		c.Assert(err, IsNil)
@@ -80,7 +94,7 @@ func (t *serverSuite) TestConfigServerConnect(c *C) {
 			c.Check(reply.Result, Equals, "ok")
 		} else {
 			c.Check(reply.Result, Equals, "error")
-			c.Check(reply.Message, Matches, "invalid character .*")
+			c.Check(reply.Message, Matches, tc.errMsg)
 		}
 
 		err = cs.Stop()

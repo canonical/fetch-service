@@ -35,6 +35,7 @@ import (
 	"github.com/canonical/fetch-service/service/config"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
+	"github.com/canonical/fetch-service/version"
 )
 
 // Service implements the fetch service main loop.
@@ -66,7 +67,7 @@ func New(opt *Options) (*Service, error) {
 		return nil, err
 	}
 
-	cfg := configNewServer()
+	cfg := configNewServer(ch)
 	ctl := controlNewServer(opt.ControlPort, ch, creds)
 	start := time.Now().UTC()
 
@@ -107,6 +108,8 @@ func (svc *Service) Start() error {
 				if svc.opt.IdleShutdown > 0 {
 					idleTimer.Reset(time.Duration(svc.opt.IdleShutdown) * time.Second)
 				}
+				logger.Infof("[service] received message: %T", msg)
+
 				switch v := msg.(type) {
 				case messages.GetServiceStatus:
 					v.Rch <- messages.ServiceStatus{
@@ -262,6 +265,23 @@ func (svc *Service) Start() error {
 
 				case messages.ProxyAuth:
 					v.Rch <- session.CheckAuth(v.Id, v.Pw)
+
+				case messages.Configuration:
+					logger.Infof("[service] configuration operation: %s", v.Operation)
+					var reply messages.ConfigurationResult
+					switch v.Operation {
+					case "version":
+						reply = messages.ConfigurationResult{
+							Status:  "ok",
+							Message: version.Version,
+						}
+					default:
+						reply = messages.ConfigurationResult{
+							Status:  "error",
+							Message: "unsupported operation",
+						}
+					}
+					v.Rch <- reply
 
 				default:
 					logger.Warningf("[service] unknown message type %T", v)
