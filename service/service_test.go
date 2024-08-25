@@ -39,6 +39,7 @@ import (
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
 	"github.com/canonical/fetch-service/testutils"
+	"github.com/canonical/fetch-service/version"
 )
 
 func Test(t *testing.T) { TestingT(t) }
@@ -685,12 +686,27 @@ func (t *serviceSuite) TestConfiguration(c *C) {
 
 	for _, tc := range []struct {
 		operation string
+		optype    string
+		dryRun    bool
+		cfgFail   bool
 		result    string
+		message   string
 	}{
-		{"version", "ok"},
-		{"", "error"},
-		{"invalid", "error"},
+		{"version", "", false, false, "ok", version.Version},
+		{"update-config", "foo", false, false, "ok", "configuration updated"},
+		{"update-config", "foo", false, true, "error", "foo configuration update error"},
+		{"update-config", "foo", true, false, "ok", "configuration validated"},
+		{"", "", false, false, "error", "unsupported operation"},
+		{"invalid", "", false, false, "error", "unsupported operation"},
 	} {
+		restorer = service.MockConfigUpdateConfig(func(optype string, dryRun bool, payload []byte, cfgdir string) error {
+			if tc.cfgFail {
+				return errors.New("something failed")
+			}
+			return nil
+		})
+		defer restorer()
+
 		spool := c.MkDir()
 		opt := service.Options{ProxyPort: 1337, Spool: spool}
 		svc, err := service.New(&opt)
@@ -701,11 +717,12 @@ func (t *serviceSuite) TestConfiguration(c *C) {
 		s := session.New(opt.Spool, 0, true)
 		defer s.Discard()
 
-		msg := messages.NewConfiguration(tc.operation, "", false, nil)
+		msg := messages.NewConfiguration(tc.operation, tc.optype, tc.dryRun, nil)
 		t.ch <- msg
 		res := <-msg.Rch
 
 		c.Assert(res.Status, Equals, tc.result)
+		c.Check(res.Message, Equals, tc.message)
 
 		err = svc.Stop()
 		c.Assert(err, IsNil)

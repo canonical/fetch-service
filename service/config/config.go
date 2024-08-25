@@ -20,7 +20,9 @@
 package config
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -37,6 +39,10 @@ type ACLPolicy int
 const (
 	Allow ACLPolicy = iota
 	Deny
+)
+
+const (
+	aclConfigFile = "acl.yaml"
 )
 
 func (t ACLPolicy) MarshalYAML() (interface{}, error) {
@@ -149,10 +155,13 @@ func SetHttpProxyConfig(cfg HttpProxyConfig) {
 	globalACLConfig.HttpProxy.Policy = cfg.Policy
 	globalACLConfig.HttpProxy.Rules = make([]Rule, len(cfg.Rules))
 	copy(globalACLConfig.HttpProxy.Rules, cfg.Rules)
+
+	logger.Infof("Proxy configuration updated: %d dst rules, default policy: %s",
+		len(cfg.Rules), cfg.Policy.String())
 }
 
 func LoadHttpProxyRules(cfgdir string) error {
-	cfgfile := filepath.Join(cfgdir, "acl.yaml")
+	cfgfile := filepath.Join(cfgdir, aclConfigFile)
 	if _, err := os.Stat(cfgfile); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			logger.Infof("ACL configuration file %s does not exist", cfgfile)
@@ -168,9 +177,8 @@ func LoadHttpProxyRules(cfgdir string) error {
 	}
 	defer f.Close()
 
-	var cfg ACLConfig
-	dec := yaml.NewDecoder(f)
-	if err := dec.Decode(&cfg); err != nil {
+	cfg, err := decodeHttpProxyRules(f)
+	if err != nil {
 		return err
 	}
 
@@ -178,8 +186,59 @@ func LoadHttpProxyRules(cfgdir string) error {
 	// is correctly parsed.
 	SetHttpProxyConfig(cfg.HttpProxy)
 
-	logger.Infof("Proxy configuration updated: %d dst rules, default policy: %s",
-		len(cfg.HttpProxy.Rules), cfg.HttpProxy.Policy.String())
+	return nil
+}
+
+func decodeHttpProxyRules(r io.Reader) (ACLConfig, error) {
+	var cfg ACLConfig
+	dec := yaml.NewDecoder(r)
+	if err := dec.Decode(&cfg); err != nil {
+		return cfg, err
+	}
+	return cfg, nil
+}
+
+func UpdateConfig(optype string, dryRun bool, payload []byte, cfgdir string) error {
+	r := bytes.NewReader(payload)
+
+	switch optype {
+	case "acl":
+		cfg, err := decodeHttpProxyRules(r)
+		if err != nil {
+			return err
+		}
+		if !dryRun {
+			SetHttpProxyConfig(cfg.HttpProxy)
+
+			// Overwrite the configuration file only if the data is valid
+			// and we're not in a dry run.
+			if err := writeTemporaryFile(cfgdir, aclConfigFile, payload); err != nil {
+				return err
+			}
+			logger.Infof("[config] write configuration file: %s", filepath.Join(cfgdir, aclConfigFile))
+		}
+	}
+	return nil
+}
+
+func writeTemporaryFile(cfgdir, filename string, payload []byte) error {
+	f, err := os.CreateTemp(cfgdir, "fetchcfg-")
+	if err != nil {
+		os.Remove(f.Name())
+		return err
+	}
+
+	_, err = f.Write(payload)
+	if err != nil {
+		f.Close()
+		os.Remove(f.Name())
+		return err
+	}
+	f.Close()
+
+	if err := os.Rename(f.Name(), filepath.Join(cfgdir, filename)); err != nil {
+		return err
+	}
 
 	return nil
 }
