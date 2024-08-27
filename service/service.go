@@ -61,8 +61,13 @@ func New(opt *Options) (*Service, error) {
 	// obtain authentication credentials from the environment
 	creds := os.Getenv("FETCH_SERVICE_AUTH")
 
+	cert, key, err := proxy.LoadCertificate(opt.CertPath, opt.KeyPath)
+	if err != nil {
+		logger.Fatalf("Cannot load certificates: %s", err)
+	}
+
 	ch := make(chan interface{})
-	p, err := proxyNewHttpProxy(opt.ProxyPort, opt.Spool, opt.Cert, opt.Key, ch)
+	p, err := proxyNewHttpProxy(opt.ProxyPort, opt.Spool, cert, key, ch)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +104,9 @@ func (svc *Service) Start() error {
 	return nil
 }
 
-var configUpdateConfig = config.UpdateConfig
+var (
+	configUpdateConfig = config.UpdateConfig
+)
 
 func (svc *Service) dispatcher() error {
 	// Set up idle auto-shutdown

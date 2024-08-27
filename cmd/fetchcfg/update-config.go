@@ -20,13 +20,10 @@
 package fetchcfg
 
 import (
-	"errors"
 	"fmt"
 	"net"
-	"os"
 
 	"github.com/canonical/fetch-service/service/config"
-	"io"
 )
 
 type UpdateConfigCmd struct {
@@ -40,17 +37,11 @@ type UpdateConfigCmd struct {
 func (cmd *UpdateConfigCmd) Execute(args []string) error {
 	socket := configSocketPath()
 
-	if _, err := os.Stat(socket); err != nil {
-		return errors.New("cannot access socket, is the service running?")
+	if err := checkSocket(socket); err != nil {
+		return err
 	}
 
-	var content []byte
-	var err error
-	if cmd.Args.Filename == "-" {
-		content, err = io.ReadAll(os.Stdin)
-	} else {
-		content, err = os.ReadFile(cmd.Args.Filename)
-	}
+	content, err := readContent(cmd.Args.Filename)
 	if err != nil {
 		return err
 	}
@@ -89,5 +80,5 @@ func (cmd *UpdateConfigCmd) Execute(args []string) error {
 var updateConfigCmd UpdateConfigCmd
 
 func init() {
-	_, _ = parser.AddCommand("update-config", "update the runnign service configuration", "long description", &updateConfigCmd)
+	_, _ = parser.AddCommand("update-config", "update the running service configuration", "", &updateConfigCmd)
 }

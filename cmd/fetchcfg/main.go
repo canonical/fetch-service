@@ -20,7 +20,9 @@
 package fetchcfg
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/jessevdk/go-flags"
@@ -57,6 +59,24 @@ var printf = printfImpl
 
 func printfImpl(format string, a ...any) {
 	fmt.Printf(format, a...)
+}
+
+func checkSocket(filename string) error {
+	if _, err := os.Stat(filename); err != nil {
+		return errors.New("cannot access socket, is the service running?")
+	}
+	return nil
+}
+
+func readContent(filename string) ([]byte, error) {
+	var content []byte
+	var err error
+	if filename == "-" {
+		content, err = io.ReadAll(os.Stdin)
+	} else {
+		content, err = os.ReadFile(filename)
+	}
+	return content, err
 }
 
 // func main() {
