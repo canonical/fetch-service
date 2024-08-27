@@ -20,8 +20,10 @@
 package proxy
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"os"
 
@@ -67,6 +69,33 @@ func SetProxyCA(ca tls.Certificate) error {
 	return nil
 }
 
+func UpdateCert(dryRun bool, payload []byte, certPath, keyPath string) error {
+	cert, key, err := splitCertKey(payload)
+	if err != nil {
+		return err
+	}
+
+	// Validate certificate and key PEM block data
+	ca, err := CreateProxyCA(cert, key)
+	if err != nil {
+		return err
+	}
+
+	if !dryRun {
+		if err := SetProxyCA(ca); err != nil {
+			return err
+		}
+
+		// Overwrite files only if the data is valid
+		if err := UpdateCertFiles(certPath, keyPath, cert, key); err != nil {
+			return err
+		}
+		logger.Info("[config] write certificate and key files")
+	}
+
+	return nil
+}
+
 // LoadCertificate loads the proxy MITM certificates from the file system.
 func LoadCertificate(certPath, keyPath string) ([]byte, []byte, error) {
 	if certPath == "" {
@@ -88,4 +117,38 @@ func LoadCertificate(certPath, keyPath string) ([]byte, []byte, error) {
 	}
 
 	return cert, key, nil
+}
+
+func UpdateCertFiles(certPath, keyPath string, cert, key []byte) error {
+	tmpCertPath := certPath + ".new"
+	tmpKeyPath := keyPath + ".new"
+
+	// Create temporary files
+	if err := os.WriteFile(tmpCertPath, cert, 0644); err != nil {
+		return err
+	}
+	if err := os.WriteFile(tmpKeyPath, key, 0644); err != nil {
+		os.Remove(tmpCertPath)
+		return err
+	}
+
+	// Rename cert and key files
+	// Not fully atomic!
+	if err := os.Rename(tmpCertPath, certPath); err != nil {
+		return err
+	}
+	if err := os.Rename(tmpKeyPath, keyPath); err != nil {
+		return fmt.Errorf("inconsistent state: %w", err)
+	}
+
+	return nil
+}
+
+func splitCertKey(content []byte) ([]byte, []byte, error) {
+	s := bytes.SplitN(content, []byte("\n\n"), 2)
+	if len(s) != 2 {
+		return nil, nil, errors.New("cannot parse certificate and key")
+	}
+
+	return s[0], s[1], nil
 }

@@ -20,5 +20,6 @@
 package proxy
 
 var (
-	CopyHeader = copyHeader
+	CopyHeader   = copyHeader
+	SplitCertKey = splitCertKey
 )
