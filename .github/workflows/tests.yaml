@@ -58,18 +58,23 @@ jobs:
         with:
           name: snap
           path: ${{ steps.snap.outputs.snap }}
-  snap-tests:
+  spread-tests:
     needs:
       - snap-build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
+      - name: Install spread # XXX: spread to be bundled with snapcraft
+        run: |
+          git clone --depth 1 -b master --single-branch https://github.com/canonical/spread
+          cd spread
+          go install ./cmd/spread
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Download snap artifact
         uses: actions/download-artifact@v4
         with:
           name: snap
-      - name: Install snap
-        run: sudo snap install --dangerous *.snap
-      - name: Run snap tests
-        run: sudo testdata/snap-test.sh
+      - name: Copy snap to tests dir
+        run: cp *.snap tests/
+      - name: Run spread tests
+        run: ~/go/bin/spread -v localhost:ubuntu-22.04:tests/spread/

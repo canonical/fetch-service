@@ -1,0 +1,99 @@
+#!/bin/bash
+
+usage() {
+	echo "usage: $(basename "$0") [command]"
+	echo "valid commands:"
+	echo "    allocate      Create an instance to run tests on"
+	echo "    discard       Destroy an instance used to run tests"
+	echo "    prepare       Set up the system to run tests"
+	echo "    restore       Restore the system after the tests ran"
+	echo "    prepare-each  Preparation to run before each test"
+	echo "    restore-each  Restore the system after each test run"
+}
+
+prepare() {
+	case "$SPREAD_SYSTEM" in
+	fedora*)
+		dnf update
+		dnf install -y snapd yq jq
+		while ! snap install snapd; do
+			echo "waiting for snapd..."
+			sleep 2
+		done
+		;;
+	ubuntu* | debian*)
+		apt update
+		apt install -y jq
+		;;
+	esac
+
+	snap refresh --hold
+
+	if systemctl is-enabled unattended-upgades.service; then
+		systemctl stop unattended-upgrades.service
+		systemctl mask unattended-upgrades.service
+	fi
+}
+
+restore() {
+	case "$SPREAD_SYSTEM" in
+	ubuntu* | debian*)
+		apt autoremove -y --purge
+		;;
+	esac
+
+	rm -Rf "$PROJECT_PATH"
+	mkdir -p "$PROJECT_PATH"
+}
+
+prepare_each() {
+	true
+}
+
+restore_each() {
+	true
+}
+
+set -e
+DIR=$(dirname "$0")
+
+while getopts ":s:p:" o; do
+	case "${o}" in
+	*)
+		usage
+		exit 1
+		;;
+	esac
+done
+shift $((OPTIND - 1))
+
+CMD="$1"
+
+if [ -z "$CMD" ]; then
+	usage
+	exit 0
+fi
+
+case "$CMD" in
+allocate)
+	"$DIR/backend/$SPREAD_BACKEND" allocate
+	;;
+discard)
+	"$DIR/backend/$SPREAD_BACKEND" discard
+	;;
+prepare)
+	prepare
+	;;
+restore)
+	restore
+	;;
+prepare-each)
+	prepare_each
+	;;
+restore-each)
+	restore_each
+	;;
+*)
+	echo "unknown command $CMD" >&2
+	;;
+esac
