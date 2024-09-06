@@ -63,7 +63,7 @@ func New(opt *Options) (*Service, error) {
 
 	cert, key, err := proxy.LoadCertificate(opt.CertPath, opt.KeyPath)
 	if err != nil {
-		logger.Fatalf("Cannot load certificates: %s", err)
+		return nil, fmt.Errorf("Cannot load certificates: %s", err)
 	}
 
 	ch := make(chan interface{})

@@ -70,7 +70,7 @@ func SetProxyCA(ca tls.Certificate) error {
 // LoadCertificate loads the proxy MITM certificates from the file system.
 func LoadCertificate(certPath, keyPath string) ([]byte, []byte, error) {
 	if certPath == "" {
-		return nil, nil, fmt.Errorf("HTTPS proxy certificate path not tspecified")
+		return nil, nil, fmt.Errorf("HTTPS proxy certificate path not specified")
 	}
 	logger.Infof("Loading certificate from %s", certPath)
 	cert, err := os.ReadFile(certPath)

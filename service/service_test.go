@@ -71,9 +71,7 @@ func (t *serviceSuite) TestProxyPort(c *C) {
 	})
 	defer restorer()
 
-	opt := service.Options{ProxyPort: 1337, ControlPort: 7331}
-
-	svc, err := service.New(&opt)
+	svc, err := service.New(serviceOptionsFixture(c))
 	c.Assert(err, IsNil)
 	c.Assert(svc, FitsTypeOf, &service.Service{})
 	c.Assert(t.proxyPort, Equals, 1337)
@@ -92,9 +90,7 @@ func (t *serviceSuite) TestProxyStartError(c *C) {
 	})
 	defer restorer()
 
-	opt := service.Options{ProxyPort: 1337, ControlPort: 7331}
-
-	_, err := service.New(&opt)
+	_, err := service.New(serviceOptionsFixture(c))
 	c.Assert(err, ErrorMatches, "proxy start error")
 }
 
@@ -111,9 +107,7 @@ func (t *serviceSuite) TestConfigServerCrash(c *C) {
 	})
 	defer restorer()
 
-	opt := service.Options{ProxyPort: 1337, ControlPort: 7331}
-
-	svc, err := service.New(&opt)
+	svc, err := service.New(serviceOptionsFixture(c))
 	c.Assert(err, IsNil)
 
 	err = svc.Start()
@@ -139,9 +133,7 @@ func (t *serviceSuite) TestControlServerCrash(c *C) {
 	})
 	defer restorer()
 
-	opt := service.Options{ProxyPort: 1337, ControlPort: 7331}
-
-	svc, err := service.New(&opt)
+	svc, err := service.New(serviceOptionsFixture(c))
 	c.Assert(err, IsNil)
 
 	err = svc.Start()
@@ -163,24 +155,7 @@ func (t *serviceSuite) TestHttpProxyCrash(c *C) {
 	})
 	defer restorer()
 
-	dir := c.MkDir()
-
-	certPath := filepath.Join(dir, "cert")
-	err := os.WriteFile(certPath, testutils.ProxyCert, 0644)
-	c.Assert(err, IsNil)
-
-	keyPath := filepath.Join(dir, "key")
-	err = os.WriteFile(keyPath, testutils.ProxyKey, 0644)
-	c.Assert(err, IsNil)
-
-	opt := service.Options{
-		ProxyPort:   1337,
-		ControlPort: 7331,
-		CertPath:    certPath,
-		KeyPath:     keyPath,
-	}
-
-	svc, err := service.New(&opt)
+	svc, err := service.New(serviceOptionsFixture(c))
 	c.Assert(err, IsNil)
 
 	err = svc.Start()
@@ -200,8 +175,7 @@ func (t *serviceSuite) TestServiceEntombment(c *C) {
 	})
 	defer restorer()
 
-	opt := service.Options{ProxyPort: 1337}
-	svc, err := service.New(&opt)
+	svc, err := service.New(serviceOptionsFixture(c))
 	c.Assert(err, IsNil)
 
 	err = svc.Start()
@@ -223,6 +197,10 @@ func (t *serviceSuite) TestServiceIdleShutdown(c *C) {
 	})
 	defer restorer()
 
+	dir := c.MkDir()
+	certPath, keyPath, err := createCertFiles(dir)
+	c.Assert(err, IsNil)
+
 	for _, tc := range []struct {
 		createSession bool
 		serviceAlive  bool
@@ -230,12 +208,13 @@ func (t *serviceSuite) TestServiceIdleShutdown(c *C) {
 		{false, false},
 		{true, true},
 	} {
-		spoolDir := c.MkDir()
 		opt := service.Options{
 			ProxyPort:      1337,
 			IdleShutdown:   1,
 			PermissiveMode: true,
-			Spool:          spoolDir,
+			Spool:          dir,
+			CertPath:       certPath,
+			KeyPath:        keyPath,
 		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
@@ -278,7 +257,16 @@ func (t *serviceSuite) TestGetServiceStatus(c *C) {
 	})
 	defer restorer()
 
-	opt := service.Options{ProxyPort: 1337, Spool: "/my/spool"}
+	dir := c.MkDir()
+	certPath, keyPath, err := createCertFiles(dir)
+	c.Assert(err, IsNil)
+
+	opt := service.Options{
+		ProxyPort: 1337,
+		Spool:     "/my/spool",
+		CertPath:  certPath,
+		KeyPath:   keyPath,
+	}
 	svc, err := service.New(&opt)
 	c.Assert(err, IsNil)
 
@@ -308,7 +296,16 @@ func (t *serviceSuite) TestRequestInspection(c *C) {
 	})
 	defer restorer()
 
-	opt := service.Options{ProxyPort: 1337, Spool: "/my/spool"}
+	dir := c.MkDir()
+	certPath, keyPath, err := createCertFiles(dir)
+	c.Assert(err, IsNil)
+
+	opt := service.Options{
+		ProxyPort: 1337,
+		Spool:     "/my/spool",
+		CertPath:  certPath,
+		KeyPath:   keyPath,
+	}
 
 	for _, tc := range []struct {
 		sessionExists bool
@@ -363,8 +360,17 @@ func (t *serviceSuite) TestResponseInspection(c *C) {
 		{true, true, ""},
 		{false, false, "cannot inspect response: session foo is not active"},
 	} {
-		spoolDir := c.MkDir()
-		opt := service.Options{ProxyPort: 1337, Spool: spoolDir}
+		dir := c.MkDir()
+		certPath, keyPath, err := createCertFiles(dir)
+		c.Assert(err, IsNil)
+
+		spoolDir := dir
+		opt := service.Options{
+			ProxyPort: 1337,
+			Spool:     spoolDir,
+			CertPath:  certPath,
+			KeyPath:   keyPath,
+		}
 
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
@@ -415,6 +421,10 @@ func (t *serviceSuite) TestCreateSession(c *C) {
 	})
 	defer restorer()
 
+	dir := c.MkDir()
+	certPath, keyPath, err := createCertFiles(dir)
+	c.Assert(err, IsNil)
+
 	for _, tc := range []struct {
 		permissiveMode bool
 		policy         string
@@ -428,6 +438,8 @@ func (t *serviceSuite) TestCreateSession(c *C) {
 			ProxyPort:      1337,
 			Spool:          "/my/spool",
 			PermissiveMode: tc.permissiveMode,
+			CertPath:       certPath,
+			KeyPath:        keyPath,
 		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
@@ -468,8 +480,18 @@ func (t *serviceSuite) TestDeleteResources(c *C) {
 		{false, ""},
 		{true, "session not finished"},
 	} {
-		spoolDir := c.MkDir()
-		opt := service.Options{ProxyPort: 1337, Spool: spoolDir}
+		dir := c.MkDir()
+		certPath, keyPath, err := createCertFiles(dir)
+		c.Assert(err, IsNil)
+
+		spoolDir := dir
+
+		opt := service.Options{
+			ProxyPort: 1337,
+			Spool:     spoolDir,
+			CertPath:  certPath,
+			KeyPath:   keyPath,
+		}
 
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
@@ -510,6 +532,10 @@ func (t *serviceSuite) TestRevokeToken(c *C) {
 	})
 	defer restorer()
 
+	dir := c.MkDir()
+	certPath, keyPath, err := createCertFiles(dir)
+	c.Assert(err, IsNil)
+
 	for _, tc := range []struct {
 		sessionExists bool
 		tokenIsValid  bool
@@ -519,7 +545,12 @@ func (t *serviceSuite) TestRevokeToken(c *C) {
 		{true, false, messages.ErrInvalidSessionToken},
 		{false, true, messages.ErrSessionNotFound},
 	} {
-		opt := service.Options{ProxyPort: 1337, Spool: "/my/spool"}
+		opt := service.Options{
+			ProxyPort: 1337,
+			Spool:     "/my/spool",
+			CertPath:  certPath,
+			KeyPath:   keyPath,
+		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
 
@@ -576,8 +607,16 @@ func (t *serviceSuite) TestGetSessionReport(c *C) {
 		{true, false, messages.ErrSessionActive},
 		{false, true, messages.ErrSessionNotFound},
 	} {
-		spool := c.MkDir()
-		opt := service.Options{ProxyPort: 1337, Spool: spool}
+		dir := c.MkDir()
+		certPath, keyPath, err := createCertFiles(dir)
+		c.Assert(err, IsNil)
+
+		opt := service.Options{
+			ProxyPort: 1337,
+			Spool:     dir,
+			CertPath:  certPath,
+			KeyPath:   keyPath,
+		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
 
@@ -605,7 +644,7 @@ func (t *serviceSuite) TestGetSessionReport(c *C) {
 			c.Assert(res.Err, IsNil)
 			c.Assert(res.Artefacts, DeepEquals, []*metadata.Artefact{})
 			c.Assert(res.SessionMetadata.SessionId, Equals, s.Id)
-			c.Assert(res.SessionMetadata.SpoolPath, Equals, filepath.Join(spool, s.Id))
+			c.Assert(res.SessionMetadata.SpoolPath, Equals, filepath.Join(dir, s.Id))
 		} else {
 			c.Assert(res.Err, Equals, tc.err)
 		}
@@ -623,6 +662,10 @@ func (t *serviceSuite) TestEndSession(c *C) {
 	})
 	defer restorer()
 
+	dir := c.MkDir()
+	certPath, keyPath, err := createCertFiles(dir)
+	c.Assert(err, IsNil)
+
 	for _, tc := range []struct {
 		sessionExists bool
 		tokenRevoked  bool
@@ -632,8 +675,12 @@ func (t *serviceSuite) TestEndSession(c *C) {
 		{true, false, nil},
 		{false, true, messages.ErrSessionNotFound},
 	} {
-		spool := c.MkDir()
-		opt := service.Options{ProxyPort: 1337, Spool: spool}
+		opt := service.Options{
+			ProxyPort: 1337,
+			Spool:     dir,
+			CertPath:  certPath,
+			KeyPath:   keyPath,
+		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
 
@@ -680,8 +727,7 @@ func (t *serviceSuite) TestControlAuthentication(c *C) {
 	defer restorer()
 
 	os.Setenv("FETCH_SERVICE_AUTH", "suzy:shalamacookie")
-	opt := service.Options{}
-	_, err := service.New(&opt)
+	_, err := service.New(serviceOptionsFixture(c))
 	c.Assert(err, IsNil)
 	c.Assert(t.controlAuth, Equals, "suzy:shalamacookie")
 }
@@ -693,6 +739,10 @@ func (t *serviceSuite) TestConfiguration(c *C) {
 		return &proxy.HttpProxy{}, nil
 	})
 	defer restorer()
+
+	dir := c.MkDir()
+	certPath, keyPath, err := createCertFiles(dir)
+	c.Assert(err, IsNil)
 
 	for _, tc := range []struct {
 		operation string
@@ -717,8 +767,8 @@ func (t *serviceSuite) TestConfiguration(c *C) {
 		})
 		defer restorer()
 
-		spool := c.MkDir()
-		opt := service.Options{ProxyPort: 1337, Spool: spool}
+		spool := filepath.Join(dir, "spool")
+		opt := service.Options{ProxyPort: 1337, Spool: spool, CertPath: certPath, KeyPath: keyPath}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
 
@@ -732,9 +782,36 @@ func (t *serviceSuite) TestConfiguration(c *C) {
 		res := <-msg.Rch
 
 		c.Assert(res.Status, Equals, tc.result)
-		c.Check(res.Message, Equals, tc.message)
+		c.Assert(res.Message, Equals, tc.message)
 
 		err = svc.Stop()
 		c.Assert(err, IsNil)
+	}
+}
+
+func createCertFiles(dir string) (string, string, error) {
+	certPath := filepath.Join(dir, "cert")
+	if err := os.WriteFile(certPath, testutils.ProxyCert, 0644); err != nil {
+		return "", "", err
+	}
+
+	keyPath := filepath.Join(dir, "key")
+	if err := os.WriteFile(keyPath, testutils.ProxyKey, 0644); err != nil {
+		return "", "", err
+	}
+
+	return certPath, keyPath, nil
+}
+
+func serviceOptionsFixture(c *C) *service.Options {
+	dir := c.MkDir()
+	certPath, keyPath, err := createCertFiles(dir)
+	c.Assert(err, IsNil)
+
+	return &service.Options{
+		ProxyPort:   1337,
+		ControlPort: 7331,
+		CertPath:    certPath,
+		KeyPath:     keyPath,
 	}
 }
