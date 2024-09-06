@@ -110,11 +110,6 @@ func Run() int {
 		pp.Start()
 	}
 
-	cert, key, err := loadCertificate(opts.CertPath, opts.KeyPath)
-	if err != nil {
-		logger.Fatalf("Cannot load certificates: %s", err)
-	}
-
 	// Start the fetch service
 	opt := service.Options{
 		ControlPort:    opts.ControlPort,
@@ -122,8 +117,8 @@ func Run() int {
 		Config:         opts.Config,
 		Spool:          opts.Spool,
 		PermissiveMode: opts.PermissiveMode,
-		Cert:           cert,
-		Key:            key,
+		CertPath:       opts.CertPath,
+		KeyPath:        opts.KeyPath,
 		IdleShutdown:   opts.IdleShutdown,
 	}
 
@@ -177,29 +172,6 @@ func parser() *flags.Parser {
 	p.ShortDescription = shortHelp
 	p.LongDescription = longHelp
 	return p
-}
-
-// loadCertificate loads the proxy MITM certificates from the file system.
-func loadCertificate(certPath, keyPath string) ([]byte, []byte, error) {
-	if certPath == "" {
-		return nil, nil, fmt.Errorf("HTTPS proxy certificate path not specified")
-	}
-	logger.Infof("Loading certificate from %s", certPath)
-	cert, err := os.ReadFile(certPath)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if keyPath == "" {
-		return nil, nil, fmt.Errorf("HTTPS proxy key path not specified")
-	}
-	logger.Infof("Loading key from %s", keyPath)
-	key, err := os.ReadFile(keyPath)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return cert, key, nil
 }
 
 func main() {

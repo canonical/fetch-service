@@ -20,6 +20,5 @@
 package proxy
 
 var (
-	CopyHeader          = copyHeader
-	SetProxyCertificate = setProxyCertificate
+	CopyHeader = copyHeader
 )

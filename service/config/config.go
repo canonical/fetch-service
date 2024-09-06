@@ -212,7 +212,7 @@ func UpdateConfig(optype string, dryRun bool, payload []byte, cfgdir string) err
 
 			// Overwrite the configuration file only if the data is valid
 			// and we're not in a dry run.
-			if err := writeTemporaryFile(cfgdir, aclConfigFile, payload); err != nil {
+			if err := updateConfigFile(cfgdir, aclConfigFile, payload); err != nil {
 				return err
 			}
 			logger.Infof("[config] write configuration file: %s", filepath.Join(cfgdir, aclConfigFile))
@@ -221,22 +221,15 @@ func UpdateConfig(optype string, dryRun bool, payload []byte, cfgdir string) err
 	return nil
 }
 
-func writeTemporaryFile(cfgdir, filename string, payload []byte) error {
-	f, err := os.CreateTemp(cfgdir, "fetchcfg-")
-	if err != nil {
-		os.Remove(f.Name())
-		return err
+func updateConfigFile(cfgdir, filename string, payload []byte) error {
+	cfgfile := filepath.Join(cfgdir, filename)
+	tmpfile := cfgfile + ".new"
+
+	if err := os.WriteFile(tmpfile, payload, 0644); err != nil {
+		return nil
 	}
 
-	_, err = f.Write(payload)
-	if err != nil {
-		f.Close()
-		os.Remove(f.Name())
-		return err
-	}
-	f.Close()
-
-	if err := os.Rename(f.Name(), filepath.Join(cfgdir, filename)); err != nil {
+	if err := os.Rename(tmpfile, cfgfile); err != nil {
 		return err
 	}
 

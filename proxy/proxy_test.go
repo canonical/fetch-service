@@ -50,11 +50,6 @@ func (t *proxySuite) SetUpTest(c *C) {
 
 var _ = Suite(&proxySuite{})
 
-func (t *proxySuite) TestSetProxyCertificate(c *C) {
-	err := proxy.SetProxyCertificate(testutils.ProxyCert, testutils.ProxyKey)
-	c.Assert(err, IsNil)
-}
-
 // Test file transfer using the proxy.
 func (t *proxySuite) TestProxyDownload(c *C) {
 	// start the fetch service proxy

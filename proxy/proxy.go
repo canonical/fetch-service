@@ -22,7 +22,6 @@ package proxy
 import (
 	"bytes"
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"io"
 	"net"
@@ -63,7 +62,11 @@ type HttpProxy struct {
 }
 
 func NewHttpProxy(port int, spool string, cert, key []byte, ch chan interface{}) (*HttpProxy, error) {
-	if err := setProxyCertificate(cert, key); err != nil {
+	ca, err := CreateProxyCA(cert, key)
+	if err != nil {
+		return nil, err
+	}
+	if err = SetProxyCA(ca); err != nil {
 		return nil, err
 	}
 
@@ -295,36 +298,4 @@ func copyHeader(data map[string][]string) map[string][]string {
 		c[k] = vv
 	}
 	return c
-}
-
-// setProxyCertificate enables the HTTPS proxy MITM certificate
-func setProxyCertificate(cert, key []byte) error {
-	logger.Info("Setting proxy CA certificate")
-
-	goproxyCa, err := tls.X509KeyPair(cert, key)
-	if err != nil {
-		return err
-	}
-	if goproxyCa.Leaf, err = x509.ParseCertificate(goproxyCa.Certificate[0]); err != nil {
-		return err
-	}
-	goproxy.GoproxyCa = goproxyCa
-	goproxy.OkConnect = &goproxy.ConnectAction{
-		Action:    goproxy.ConnectAccept,
-		TLSConfig: goproxy.TLSConfigFromCA(&goproxyCa),
-	}
-	goproxy.MitmConnect = &goproxy.ConnectAction{
-		Action:    goproxy.ConnectMitm,
-		TLSConfig: goproxy.TLSConfigFromCA(&goproxyCa),
-	}
-	goproxy.HTTPMitmConnect = &goproxy.ConnectAction{
-		Action:    goproxy.ConnectHTTPMitm,
-		TLSConfig: goproxy.TLSConfigFromCA(&goproxyCa),
-	}
-	goproxy.RejectConnect = &goproxy.ConnectAction{
-		Action:    goproxy.ConnectReject,
-		TLSConfig: goproxy.TLSConfigFromCA(&goproxyCa),
-	}
-
-	return nil
 }
