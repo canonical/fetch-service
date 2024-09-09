@@ -155,7 +155,24 @@ func (t *serviceSuite) TestHttpProxyCrash(c *C) {
 	})
 	defer restorer()
 
-	svc, err := service.New(serviceOptionsFixture(c))
+	dir := c.MkDir()
+
+	certPath := filepath.Join(dir, "cert")
+	err := os.WriteFile(certPath, testutils.ProxyCert, 0644)
+	c.Assert(err, IsNil)
+
+	keyPath := filepath.Join(dir, "key")
+	err = os.WriteFile(keyPath, testutils.ProxyKey, 0644)
+	c.Assert(err, IsNil)
+
+	opt := service.Options{
+		ProxyPort:   1337,
+		ControlPort: 7331,
+		CertPath:    certPath,
+		KeyPath:     keyPath,
+	}
+
+	svc, err := service.New(&opt)
 	c.Assert(err, IsNil)
 
 	err = svc.Start()

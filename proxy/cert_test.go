@@ -22,6 +22,7 @@ package proxy_test
 import (
 	"os"
 	"path/filepath"
+	"slices"
 
 	. "gopkg.in/check.v1"
 
@@ -62,4 +63,42 @@ func (t *certSuite) TestLoadCertificate(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(string(certData), Equals, "cert data")
 	c.Check(string(keyData), Equals, "key data")
+}
+
+func (t *certSuite) TestUpdateCertFiles(c *C) {
+	dir := c.MkDir()
+	certPath := filepath.Join(dir, "cert.txt")
+	keyPath := filepath.Join(dir, "key.txt")
+	err := proxy.UpdateCertFiles(certPath, keyPath, testutils.ProxyCert, testutils.ProxyKey)
+	c.Assert(err, IsNil)
+
+	certData, err := os.ReadFile(certPath)
+	c.Assert(err, IsNil)
+	c.Check(slices.Compare(certData, testutils.ProxyCert), Equals, 0)
+
+	keyData, err := os.ReadFile(keyPath)
+	c.Assert(err, IsNil)
+	c.Check(slices.Compare(keyData, testutils.ProxyKey), Equals, 0)
+}
+
+func (t *certSuite) TestSplitCertKey(c *C) {
+	for _, tc := range []struct {
+		data   []byte
+		cert   []byte
+		key    []byte
+		errMsg string
+	}{
+		{[]byte("block1\nblock1\n\nblock2\nblock2"), []byte("block1\nblock1"), []byte("block2\nblock2"), ""},
+		{[]byte("block1\nblock1"), []byte{}, []byte{}, "cannot parse certificate and key"},
+		{[]byte("block1\n\nblock2\n\nblock3"), []byte("block1"), []byte("block2\n\nblock3"), ""},
+	} {
+		cert, key, err := proxy.SplitCertKey(tc.data)
+		if tc.errMsg == "" {
+			c.Assert(err, IsNil)
+			c.Check(slices.Compare(cert, tc.cert), Equals, 0)
+			c.Check(slices.Compare(key, tc.key), Equals, 0)
+		} else {
+			c.Assert(err, ErrorMatches, tc.errMsg)
+		}
+	}
 }

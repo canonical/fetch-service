@@ -106,6 +106,7 @@ func (svc *Service) Start() error {
 
 var (
 	configUpdateConfig = config.UpdateConfig
+	proxyUpdateCert    = proxy.UpdateCert
 )
 
 func (svc *Service) dispatcher() error {
@@ -311,6 +312,27 @@ loop:
 							Message: "configuration updated",
 						}
 						logger.Infof("[service] %s configuration updated", v.Type)
+					}
+				case "update-cert":
+					err := proxyUpdateCert(v.ValidateOnly, v.Payload, svc.opt.CertPath, svc.opt.KeyPath)
+					if err != nil {
+						reply = messages.ConfigurationResult{
+							Status:  "error",
+							Message: "certificate update error",
+						}
+						logger.Warningf("[service] certificate update error: %s", err.Error())
+					} else if v.ValidateOnly {
+						reply = messages.ConfigurationResult{
+							Status:  "ok",
+							Message: "certificate validated",
+						}
+						logger.Info("[service] proxy certificate updated")
+					} else {
+						reply = messages.ConfigurationResult{
+							Status:  "ok",
+							Message: "proxy certificate updated",
+						}
+						logger.Info("[service] certificate updated")
 					}
 
 				default:
