@@ -62,11 +62,15 @@ func (s *smartQuerySuite) TestInspectRequest(c *C) {
 	}{
 		// FIXME: using github as placeholder, final URLs will change
 		{"https://github.com:443/user/project.git/info/refs?service=git-upload-pack", true},
+		{"https://git.launchpad.net:443/project/info/refs?service=git-upload-pack", true},
+		{"https://git.launchpad.net:443/~user/project/+git/project/info/refs?service=git-upload-pack", true},
 		{"http://github.com/user/project.git/info/refs?service=git-upload-pack", false},
 		{"ahttps://github.com:443/user/project.git/info/refs?service=git-upload-pack", false},
 		{"https://github.com:443/user/project.git/info/refs?service=git-upload-packs", false},
 		{"https://github.com:443/user/project.git/info/refs?service=something-else", false},
 		{"https://github.com:443/user/project.git/info/refs", false},
+		{"https://git.launchpad.com:443/project/info/refs?service=git-upload-pack", false},
+		{"https://git.lpad.net:443/~user/project/+git/project/info/refs", false},
 	} {
 		ins := git.NewSmartQueryInspector()
 		a := fakeGitArtefact()

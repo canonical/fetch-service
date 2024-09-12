@@ -30,6 +30,8 @@ import (
 // https://github.com:443/user/project/git-upload-pack
 // https://gopkg.in:443/project/git-upload-pack
 // https://go.googlesource.com:443/project/git-upload-pack
+// https://git.launchpad.net:443/project/git-upload-pack
+// https://git.launchpad.net:443/~user/project/+git/project/
 
 var (
 	// FIXME: using github URL for now
@@ -37,6 +39,7 @@ var (
 		regexp.MustCompile(`^https://github\.com:443$`),
 		regexp.MustCompile(`^https://gopkg\.in:443$`),
 		regexp.MustCompile(`^https://go\.googlesource\.com:443$`),
+		regexp.MustCompile(`^https://git.launchpad.net\.com:443$`),
 	}
 
 	reGoModuleGit = regexp.MustCompile(`^/([^/]+/)?([^/]+)/git-upload-pack$`)

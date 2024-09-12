@@ -63,12 +63,16 @@ func (s *uploadPackSuite) TestInspectLsRefsRequest(c *C) {
 	}{
 		// FIXME: using github as placeholder, final URLs will change
 		{"https://github.com:443/user/project.git/git-upload-pack", true},
+		{"https://git.launchpad.net:443/project/git-upload-pack", true},
+		{"https://git.launchpad.net:443/~user/project/+git/project/git-upload-pack", true},
 		{"https://invalid.com:443/user/project.git/git-upload-pack", false},
 		{"http://github.com/user/project.git/git-upload-pack", false},
 		{"https://gothub.com:443/user/project.git/git-upload-pack", false},
 		{"ahttps://github.com:443/user/project.git/git-upload-pack", false},
 		{"https://github.com:443/user/project.git/git-upload-packs", false},
 		{"https://github.com:443/user/project.git/something-else", false},
+		{"https://git.launchpad.com:443/project/git-upload-pack", false},
+		{"https://git.lpad.net:443/~user/project/+git/project/git-upload-pack", false},
 	} {
 		ins := git.NewUploadPackInspector()
 		a := fakeGitArtefact()
