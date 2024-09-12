@@ -30,6 +30,7 @@ const (
 	GitUploadPackAdvertisement = "application/x.git.upload-pack-advertisement"
 	GitUploadPackLsRef         = "application/x.git.upload-pack-result.ls-ref"
 	GitUploadPackFetch         = "application/x.git.upload-pack-result.fetch"
+	SourcecraftGit             = "application/x.git.sourcecraft"
 	GoModuleGit                = "application/x.go.module.git-repo"
 	SquashFs                   = "application/x.squashfs"
 	SnapPackage                = "application/x.canonical.snap-package"
