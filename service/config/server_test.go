@@ -21,6 +21,7 @@ package config_test
 
 import (
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"net"
 	"os"
@@ -49,6 +50,18 @@ func (t *serverSuite) TestConfigServer(c *C) {
 
 	err = cs.Stop()
 	c.Assert(err, IsNil)
+}
+
+func (t *serverSuite) TestConfigServerError(c *C) {
+	ch := make(chan interface{})
+	cs := config.NewServer(ch)
+
+	err := cs.Start()
+	c.Assert(err, IsNil)
+
+	err = errors.New("an error")
+	cs.ForceError(err)
+	c.Assert(cs.Err(), Equals, err)
 }
 
 func (t *serverSuite) TestConfigServerConnect(c *C) {

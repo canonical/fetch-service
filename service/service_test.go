@@ -139,6 +139,7 @@ func (t *serviceSuite) TestControlServerCrash(c *C) {
 	err = svc.Start()
 	c.Assert(err, IsNil)
 	c.Assert(svc.Alive(), Equals, true)
+	defer svc.Stop() // nolint:errcheck
 
 	err = ctl.Stop() // control server crashes
 	c.Assert(err, IsNil)
@@ -178,6 +179,7 @@ func (t *serviceSuite) TestHttpProxyCrash(c *C) {
 	err = svc.Start()
 	c.Assert(err, IsNil)
 	c.Assert(svc.Alive(), Equals, true)
+	defer svc.Stop() // nolint:errcheck
 
 	err = px.Stop() // proxy crashes
 	c.Assert(err, IsNil)

@@ -23,3 +23,7 @@ var (
 	CopyHeader   = copyHeader
 	SplitCertKey = splitCertKey
 )
+
+func (p *HttpProxy) ForceError(err error) {
+	p.tomb.Kill(err)
+}

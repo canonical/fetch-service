@@ -22,3 +22,7 @@ package config
 var (
 	BuildReply = buildReply
 )
+
+func (cs *Server) ForceError(err error) {
+	cs.tomb.Kill(err)
+}

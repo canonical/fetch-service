@@ -368,13 +368,13 @@ loop:
 			break loop
 
 		case <-svc.ctl.Dying():
-			break loop
+			return svc.ctl.Err()
 
 		case <-svc.cfg.Dying():
-			break loop
+			return svc.cfg.Err()
 
 		case <-svc.p.Dying():
-			break loop
+			return svc.p.Err()
 
 		case <-idleTimer.C:
 			n := session.NumSessions()
@@ -395,23 +395,20 @@ func (svc *Service) Stop() error {
 	session.FinishAll()
 
 	if err := svc.p.Stop(); err != nil {
-		logger.Warningf("Cannot shut down the HTTP server: %s", err)
-		return err
+		return fmt.Errorf("cannot shut down the HTTP server: %w", err)
 	}
 
 	if err := svc.cfg.Stop(); err != nil {
-		logger.Warningf("Cannot shut down the configuration socket: %s", err)
-		return err
+		return fmt.Errorf("cannot shut down the configuration socket: %w", err)
 	}
 
 	if err := svc.ctl.Stop(); err != nil {
-		logger.Warningf("Cannot shut down the control API server: %s", err)
-		return err
+		return fmt.Errorf("cannot shut down the control API server: %w", err)
 	}
 
 	svc.tomb.Kill(nil)
 	if err := svc.tomb.Wait(); err != nil {
-		return err
+		return fmt.Errorf("cannot shut down service: %w", err)
 	}
 
 	return nil
