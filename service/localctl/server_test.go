@@ -17,7 +17,7 @@
  *
  */
 
-package config_test
+package localctl_test
 
 import (
 	"encoding/json"
@@ -29,7 +29,7 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/service/config"
+	"github.com/canonical/fetch-service/service/localctl"
 	"github.com/canonical/fetch-service/service/messages"
 )
 
@@ -39,12 +39,12 @@ var _ = Suite(&serverSuite{})
 
 func (t *serverSuite) TestConfigServer(c *C) {
 	ch := make(chan interface{})
-	cs := config.NewServer(ch)
+	cs := localctl.NewServer(ch)
 
 	err := cs.Start()
 	c.Assert(err, IsNil)
 
-	fi, err := os.Stat(config.SocketPath())
+	fi, err := os.Stat(localctl.SocketPath())
 	c.Assert(err, IsNil)
 	c.Check(fi.Mode()&fs.ModeSocket, Equals, fs.ModeSocket)
 
@@ -73,7 +73,7 @@ func (t *serverSuite) TestConfigServerConnect(c *C) {
 		{`not a valid json`, "invalid character .*"},
 	} {
 		ch := make(chan interface{})
-		cs := config.NewServer(ch)
+		cs := localctl.NewServer(ch)
 
 		go func() {
 			v := <-ch
@@ -89,7 +89,7 @@ func (t *serverSuite) TestConfigServerConnect(c *C) {
 		err := cs.Start()
 		c.Assert(err, IsNil)
 
-		conn, err := net.Dial("unix", config.SocketPath())
+		conn, err := net.Dial("unix", localctl.SocketPath())
 		c.Assert(err, IsNil)
 
 		_, err = conn.Write([]byte(tc.request))
@@ -99,7 +99,7 @@ func (t *serverSuite) TestConfigServerConnect(c *C) {
 		n, err := conn.Read(data)
 		c.Assert(err, IsNil)
 
-		var reply config.OperationReply
+		var reply localctl.OperationReply
 		err = json.Unmarshal(data[:n], &reply)
 		c.Assert(err, IsNil)
 
@@ -116,11 +116,11 @@ func (t *serverSuite) TestConfigServerConnect(c *C) {
 }
 
 func (t *serverSuite) TestBuildReply(c *C) {
-	x := config.BuildReply("foo", "bar")
+	x := localctl.BuildReply("foo", "bar")
 	c.Assert(string(x), Equals, `{"result":"foo","message":"bar"}`)
 }
 
 func (t *serverSuite) TestSocketPath(c *C) {
-	x := config.SocketPath()
+	x := localctl.SocketPath()
 	c.Assert(strings.HasPrefix(x, os.TempDir()), Equals, true)
 }

@@ -17,32 +17,12 @@
  *
  */
 
-package fetchcfg
+package localctl
 
-import (
-	"encoding/json"
-	"net"
-
-	"github.com/canonical/fetch-service/service/config"
+var (
+	BuildReply = buildReply
 )
 
-func send(conn net.Conn, request config.OperationRequest) error {
-	data, err := json.Marshal(request)
-	if err != nil {
-		return err
-	}
-	_, err = conn.Write(data)
-	return err
-}
-
-func receive(conn net.Conn, reply *config.OperationReply) error {
-	data := make([]byte, 4096)
-	n, err := conn.Read(data)
-	if err != nil {
-		return err
-	}
-	if err := json.Unmarshal(data[:n], reply); err != nil {
-		return err
-	}
-	return nil
+func (cs *Server) ForceError(err error) {
+	cs.tomb.Kill(err)
 }

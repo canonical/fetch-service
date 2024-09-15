@@ -17,7 +17,7 @@
  *
  */
 
-package config
+package localctl
 
 import (
 	"context"

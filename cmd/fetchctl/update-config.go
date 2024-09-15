@@ -17,13 +17,13 @@
  *
  */
 
-package fetchcfg
+package fetchctl
 
 import (
 	"fmt"
 	"net"
 
-	"github.com/canonical/fetch-service/service/config"
+	"github.com/canonical/fetch-service/service/localctl"
 )
 
 type UpdateConfigCmd struct {
@@ -35,7 +35,7 @@ type UpdateConfigCmd struct {
 }
 
 func (cmd *UpdateConfigCmd) Execute(args []string) error {
-	socket := configSocketPath()
+	socket := localctlSocketPath()
 
 	if err := checkSocket(socket); err != nil {
 		return err
@@ -52,7 +52,7 @@ func (cmd *UpdateConfigCmd) Execute(args []string) error {
 	}
 	defer conn.Close()
 
-	request := config.OperationRequest{
+	request := localctl.OperationRequest{
 		Operation:    "update-config",
 		Type:         cmd.Type,
 		ValidateOnly: cmd.ValidateOnly,
@@ -63,7 +63,7 @@ func (cmd *UpdateConfigCmd) Execute(args []string) error {
 		return fmt.Errorf("cannot send request: %s", err)
 	}
 
-	var reply config.OperationReply
+	var reply localctl.OperationReply
 	if err := receive(conn, &reply); err != nil {
 		return fmt.Errorf("cannot read reply: %s", err)
 	}

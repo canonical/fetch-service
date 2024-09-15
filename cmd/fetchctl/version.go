@@ -17,32 +17,25 @@
  *
  */
 
-package fetchcfg
+package fetchctl
 
 import (
+	"errors"
 	"fmt"
 	"net"
+	"os"
 
-	"github.com/canonical/fetch-service/service/config"
+	"github.com/canonical/fetch-service/service/localctl"
 )
 
-type UpdateCertCmd struct {
-	ValidateOnly bool `long:"validate-only" description:"Validate the certificate and exit"`
-	Args         struct {
-		Filename string `positional-arg-name:"filename"`
-	} `required:"yes" positional-args:"yes"`
+type VersionCmd struct {
 }
 
-func (cmd *UpdateCertCmd) Execute(args []string) error {
-	socket := configSocketPath()
+func (cmd *VersionCmd) Execute(args []string) error {
+	socket := localctlSocketPath()
 
-	if err := checkSocket(socket); err != nil {
-		return err
-	}
-
-	content, err := readContent(cmd.Args.Filename)
-	if err != nil {
-		return err
+	if _, err := os.Stat(socket); err != nil {
+		return errors.New("cannot access socket, is the service running?")
 	}
 
 	conn, err := net.Dial("unix", socket)
@@ -51,23 +44,19 @@ func (cmd *UpdateCertCmd) Execute(args []string) error {
 	}
 	defer conn.Close()
 
-	request := config.OperationRequest{
-		Operation:    "update-cert",
-		ValidateOnly: cmd.ValidateOnly,
-		Payload:      string(content),
-	}
+	request := localctl.OperationRequest{Operation: "version"}
 	err = send(conn, request)
 	if err != nil {
 		return fmt.Errorf("cannot send request: %s", err)
 	}
 
-	var reply config.OperationReply
+	var reply localctl.OperationReply
 	if err := receive(conn, &reply); err != nil {
 		return fmt.Errorf("cannot read reply: %s", err)
 	}
 
 	if reply.Result != "ok" {
-		return fmt.Errorf("%s", reply.Message)
+		return fmt.Errorf("cannot obtain service version: %s", reply.Message)
 	}
 
 	fmt.Printf("%s\n", reply.Message)
@@ -75,8 +64,8 @@ func (cmd *UpdateCertCmd) Execute(args []string) error {
 	return nil
 }
 
-var updateCertCmd UpdateCertCmd
+var versionCmd VersionCmd
 
 func init() {
-	_, _ = parser.AddCommand("update-cert", "update the running service certificate", "", &updateCertCmd)
+	_, _ = parser.AddCommand("version", "check the Fetch Service version", "long description", &versionCmd)
 }

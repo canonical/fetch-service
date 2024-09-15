@@ -17,7 +17,7 @@
  *
  */
 
-package fetchcfg_test
+package fetchctl_test
 
 import (
 	"fmt"
@@ -28,23 +28,21 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/cmd/fetchcfg"
+	"github.com/canonical/fetch-service/cmd/fetchctl"
 )
 
-func (t *fetchcfgSuite) TestUpdateConfig(c *C) {
+func (t *fetchctlSuite) TestUpdateCert(c *C) {
 	for _, tc := range []struct {
-		optype   string
-		dryRun   bool
 		filename string
 		result   string
 		message  string
 	}{
-		{"acl", false, "file.txt", "ok", ""},
-		{"invalid", false, "file.txt", "error", "unsupported type"},
+		{"file.txt", "ok", ""},
+		{"file.txt", "error", "something failed"},
 	} {
 		tmpdir := c.MkDir()
 		spath := filepath.Join(tmpdir, "test.socket")
-		restorer := fetchcfg.MockConfigSocketPath(func() string {
+		restorer := fetchctl.MockLocalctlSocketPath(func() string {
 			return spath
 		})
 		defer restorer()
@@ -59,7 +57,7 @@ func (t *fetchcfgSuite) TestUpdateConfig(c *C) {
 			data := make([]byte, 4096)
 			n, err := f.Read(data)
 			c.Assert(err, IsNil)
-			c.Check(string(data[:n]), Equals, fmt.Sprintf(`{"operation":"update-config","type":%q,"payload":"content"}`, tc.optype))
+			c.Check(string(data[:n]), Equals, `{"operation":"update-cert","payload":"content"}`)
 
 			_, err = f.Write([]byte(fmt.Sprintf(`{"result":%q,"message":%q}`, tc.result, tc.message)))
 			c.Assert(err, IsNil)
@@ -70,8 +68,7 @@ func (t *fetchcfgSuite) TestUpdateConfig(c *C) {
 		err := os.WriteFile(filename, []byte("content"), 0644)
 		c.Assert(err, IsNil)
 
-		cmd := fetchcfg.UpdateConfigCmd{
-			Type:         tc.optype,
+		cmd := fetchctl.UpdateCertCmd{
 			ValidateOnly: false,
 			Args: struct {
 				Filename string `positional-arg-name:"filename"`
@@ -80,7 +77,7 @@ func (t *fetchcfgSuite) TestUpdateConfig(c *C) {
 			},
 		}
 
-		res := cmd.Execute([]string{"fetchcfg", "update-config", "--type=acl", filename})
+		res := cmd.Execute([]string{"fetchctl", "update-cert", filename})
 
 		if tc.result == "ok" {
 			c.Assert(res, IsNil)

@@ -27,8 +27,8 @@ apps:
     plugs:
       - network-bind
       - home
-  fetchcfg:  # Fetch service configuration tool
-    command: bin/fetchcfg
+  fetchctl:  # Fetch service configuration tool
+    command: bin/fetchctl
     plugs:
       - home
 
@@ -58,8 +58,8 @@ parts:
     stage-packages:
       - gpg
       - ubuntu-keyring
-  fetchcfg:
+  fetchctl:
     plugin: nil
     override-prime: |
       craftctl default
-      ln -s fetch bin/fetchcfg
+      ln -s fetch bin/fetchctl

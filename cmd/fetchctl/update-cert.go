@@ -17,27 +17,32 @@
  *
  */
 
-package fetchcfg
+package fetchctl
 
 import (
-	"errors"
 	"fmt"
 	"net"
-	"os"
 
-	"github.com/canonical/fetch-service/service/config"
+	"github.com/canonical/fetch-service/service/localctl"
 )
 
-type VersionCmd struct {
+type UpdateCertCmd struct {
+	ValidateOnly bool `long:"validate-only" description:"Validate the certificate and exit"`
+	Args         struct {
+		Filename string `positional-arg-name:"filename"`
+	} `required:"yes" positional-args:"yes"`
 }
 
-var configSocketPath = config.SocketPath
+func (cmd *UpdateCertCmd) Execute(args []string) error {
+	socket := localctlSocketPath()
 
-func (cmd *VersionCmd) Execute(args []string) error {
-	socket := configSocketPath()
+	if err := checkSocket(socket); err != nil {
+		return err
+	}
 
-	if _, err := os.Stat(socket); err != nil {
-		return errors.New("cannot access socket, is the service running?")
+	content, err := readContent(cmd.Args.Filename)
+	if err != nil {
+		return err
 	}
 
 	conn, err := net.Dial("unix", socket)
@@ -46,19 +51,23 @@ func (cmd *VersionCmd) Execute(args []string) error {
 	}
 	defer conn.Close()
 
-	request := config.OperationRequest{Operation: "version"}
+	request := localctl.OperationRequest{
+		Operation:    "update-cert",
+		ValidateOnly: cmd.ValidateOnly,
+		Payload:      string(content),
+	}
 	err = send(conn, request)
 	if err != nil {
 		return fmt.Errorf("cannot send request: %s", err)
 	}
 
-	var reply config.OperationReply
+	var reply localctl.OperationReply
 	if err := receive(conn, &reply); err != nil {
 		return fmt.Errorf("cannot read reply: %s", err)
 	}
 
 	if reply.Result != "ok" {
-		return fmt.Errorf("cannot obtain service version: %s", reply.Message)
+		return fmt.Errorf("%s", reply.Message)
 	}
 
 	fmt.Printf("%s\n", reply.Message)
@@ -66,8 +75,8 @@ func (cmd *VersionCmd) Execute(args []string) error {
 	return nil
 }
 
-var versionCmd VersionCmd
+var updateCertCmd UpdateCertCmd
 
 func init() {
-	_, _ = parser.AddCommand("version", "check the Fetch Service version", "long description", &versionCmd)
+	_, _ = parser.AddCommand("update-cert", "update the running service certificate", "", &updateCertCmd)
 }

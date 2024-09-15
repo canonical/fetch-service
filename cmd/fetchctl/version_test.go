@@ -17,7 +17,7 @@
  *
  */
 
-package fetchcfg_test
+package fetchctl_test
 
 import (
 	"net"
@@ -26,13 +26,13 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/cmd/fetchcfg"
+	"github.com/canonical/fetch-service/cmd/fetchctl"
 )
 
-func (t *fetchcfgSuite) TestVersion(c *C) {
+func (t *fetchctlSuite) TestVersion(c *C) {
 	tmpdir := c.MkDir()
 	spath := filepath.Join(tmpdir, "test.socket")
-	restorer := fetchcfg.MockConfigSocketPath(func() string {
+	restorer := fetchctl.MockLocalctlSocketPath(func() string {
 		return spath
 	})
 	defer restorer()
@@ -55,6 +55,6 @@ func (t *fetchcfgSuite) TestVersion(c *C) {
 
 	time.Sleep(500 * time.Millisecond)
 
-	cmd := fetchcfg.VersionCmd{}
-	c.Assert(cmd.Execute([]string{"fetchcfg", "version"}), IsNil)
+	cmd := fetchctl.VersionCmd{}
+	c.Assert(cmd.Execute([]string{"fetchctl", "version"}), IsNil)
 }

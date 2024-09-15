@@ -17,7 +17,7 @@
  *
  */
 
-package fetchcfg
+package fetchctl
 
 import (
 	"errors"
@@ -26,6 +26,8 @@ import (
 	"os"
 
 	"github.com/jessevdk/go-flags"
+
+	"github.com/canonical/fetch-service/service/localctl"
 )
 
 var (
@@ -40,6 +42,10 @@ var (
 	}
 
 	parser = flags.NewParser(&opts, flags.HelpFlag|flags.PassDoubleDash|flags.PassAfterNonOption)
+)
+
+var (
+	localctlSocketPath = localctl.SocketPath
 )
 
 func Run() int {

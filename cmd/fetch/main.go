@@ -28,7 +28,7 @@ import (
 
 	"github.com/jessevdk/go-flags"
 
-	"github.com/canonical/fetch-service/cmd/fetchcfg"
+	"github.com/canonical/fetch-service/cmd/fetchctl"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/profile"
 	"github.com/canonical/fetch-service/service"
@@ -176,8 +176,8 @@ func parser() *flags.Parser {
 
 func main() {
 	cmd := filepath.Base(os.Args[0])
-	if cmd == "fetchcfg" || cmd == "fetch-service.fetchcfg" {
-		os.Exit(fetchcfg.Run())
+	if cmd == "fetchctl" || cmd == "fetch-service.fetchctl" {
+		os.Exit(fetchctl.Run())
 	}
 
 	os.Exit(Run())

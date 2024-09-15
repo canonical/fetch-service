@@ -33,6 +33,7 @@ import (
 	"github.com/canonical/fetch-service/metadata/opinions"
 	"github.com/canonical/fetch-service/proxy"
 	"github.com/canonical/fetch-service/service/config"
+	"github.com/canonical/fetch-service/service/localctl"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
 	"github.com/canonical/fetch-service/version"
@@ -42,7 +43,7 @@ import (
 type Service struct {
 	p     *proxy.HttpProxy // proxy instance
 	ctl   *control.Server  // control server
-	cfg   *config.Server   // configuration server
+	lctl  *localctl.Server // configuration server
 	ch    chan interface{} // channel to get feedback from handlers
 	start time.Time        // service start time (UTC)
 	opt   *Options         // configuration options
@@ -54,7 +55,7 @@ type Service struct {
 var (
 	proxyNewHttpProxy = proxy.NewHttpProxy
 	controlNewServer  = control.NewServer
-	configNewServer   = config.NewServer
+	localctlNewServer = localctl.NewServer
 )
 
 func New(opt *Options) (*Service, error) {
@@ -72,12 +73,12 @@ func New(opt *Options) (*Service, error) {
 		return nil, err
 	}
 
-	cfg := configNewServer(ch)
+	lctl := localctlNewServer(ch)
 
 	ctl := controlNewServer(opt.ControlPort, ch, creds)
 	start := time.Now().UTC()
 
-	return &Service{p: p, ctl: ctl, cfg: cfg, opt: opt, ch: ch, start: start}, nil
+	return &Service{p: p, ctl: ctl, lctl: lctl, opt: opt, ch: ch, start: start}, nil
 }
 
 // Start runs the fetch service dispatcher.
@@ -93,7 +94,7 @@ func (svc *Service) Start() error {
 		return err
 	}
 
-	if err := svc.cfg.Start(); err != nil {
+	if err := svc.lctl.Start(); err != nil {
 		return err
 	}
 
@@ -370,7 +371,7 @@ loop:
 		case <-svc.ctl.Dying():
 			return svc.ctl.Err()
 
-		case <-svc.cfg.Dying():
+		case <-svc.lctl.Dying():
 			return svc.cfg.Err()
 
 		case <-svc.p.Dying():
@@ -398,8 +399,8 @@ func (svc *Service) Stop() error {
 		return fmt.Errorf("cannot shut down the HTTP server: %w", err)
 	}
 
-	if err := svc.cfg.Stop(); err != nil {
-		return fmt.Errorf("cannot shut down the configuration socket: %w", err)
+	if err := svc.lctl.Stop(); err != nil {
+		return fmt.Errorf("cannot shut down the local ctl socket: %w", err)
 	}
 
 	if err := svc.ctl.Stop(); err != nil {

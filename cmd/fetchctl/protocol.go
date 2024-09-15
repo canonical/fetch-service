@@ -17,32 +17,32 @@
  *
  */
 
-package fetchcfg
+package fetchctl
 
 import (
-	"os"
+	"encoding/json"
+	"net"
+
+	"github.com/canonical/fetch-service/service/localctl"
 )
 
-func MockArgs(args []string) func() {
-	old := os.Args
-	os.Args = args
-	return func() {
-		os.Args = old
+func send(conn net.Conn, request localctl.OperationRequest) error {
+	data, err := json.Marshal(request)
+	if err != nil {
+		return err
 	}
+	_, err = conn.Write(data)
+	return err
 }
 
-func MockPrintf(mock func(format string, a ...any)) func() {
-	old := printf
-	printf = mock
-	return func() {
-		printf = old
+func receive(conn net.Conn, reply *localctl.OperationReply) error {
+	data := make([]byte, 4096)
+	n, err := conn.Read(data)
+	if err != nil {
+		return err
 	}
-}
-
-func MockConfigSocketPath(mock func() string) func() {
-	old := configSocketPath
-	configSocketPath = mock
-	return func() {
-		configSocketPath = old
+	if err := json.Unmarshal(data[:n], reply); err != nil {
+		return err
 	}
+	return nil
 }

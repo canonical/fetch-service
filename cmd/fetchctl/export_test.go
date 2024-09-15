@@ -17,4 +17,32 @@
  *
  */
 
-package config
+package fetchctl
+
+import (
+	"os"
+)
+
+func MockArgs(args []string) func() {
+	old := os.Args
+	os.Args = args
+	return func() {
+		os.Args = old
+	}
+}
+
+func MockPrintf(mock func(format string, a ...any)) func() {
+	old := printf
+	printf = mock
+	return func() {
+		printf = old
+	}
+}
+
+func MockLocalctlSocketPath(mock func() string) func() {
+	old := localctlSocketPath
+	localctlSocketPath = mock
+	return func() {
+		localctlSocketPath = old
+	}
+}
