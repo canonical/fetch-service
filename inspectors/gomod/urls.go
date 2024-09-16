@@ -39,10 +39,10 @@ var (
 		regexp.MustCompile(`^https://github\.com:443$`),
 		regexp.MustCompile(`^https://gopkg\.in:443$`),
 		regexp.MustCompile(`^https://go\.googlesource\.com:443$`),
-		regexp.MustCompile(`^https://git\.launchpad\.net\.com:443$`),
+		regexp.MustCompile(`^https://git\.launchpad\.net:443$`),
 	}
 
-	reGoModuleGit = regexp.MustCompile(`^/([^/]+/)?([^/]+)/git-upload-pack$`)
+	reGoModuleGit = regexp.MustCompile(`^/([^/]+/)*([^/]+)/git-upload-pack$`)
 )
 
 func checkValidOrigin(u *url.URL) error {
