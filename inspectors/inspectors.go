@@ -80,6 +80,7 @@ func New(permissive bool) Inspectors {
 		// git
 		git.NewSmartQueryInspector(),
 		git.NewUploadPackInspector(),
+		git.NewSourcecraftInspector(),
 
 		// go
 		// must run after git
