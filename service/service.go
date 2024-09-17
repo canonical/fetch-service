@@ -407,10 +407,6 @@ func (svc *Service) Stop() error {
 	}
 
 	svc.tomb.Kill(nil)
-	if err := svc.tomb.Wait(); err != nil {
-		return fmt.Errorf("cannot shut down service: %w", err)
-	}
-
 	return nil
 }
 
