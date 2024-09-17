@@ -39,7 +39,6 @@ const (
 
 var osStat = os.Stat
 var osOpen = os.Open
-var yamlNewDecoder = yaml.NewDecoder
 
 // The SourcecraftInspector handles upload-pack requests. It recognizes
 type SourcecraftInspector struct {
@@ -70,8 +69,8 @@ type sourcecraftYaml struct {
 //   - The Content-Type header must be set to "application/x-git-upload-pack-request".
 //   - The Accept header must be set to "application/x-git-upload-pack-result"
 //   - The request URL must match a valid upload-pack pattern.
-//   - The upload-pack command must be "ls-refs" or "fetch".
-//   - If command is "fetch", it must want a single shallow ref.
+//   - The upload-pack command must be "fetch".
+//   - It must be a shallow fetch.
 func (ins *SourcecraftInspector) InspectRequest(a RequestArtefact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
@@ -206,7 +205,7 @@ func (ins *SourcecraftInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 	defer yamldata_filereader.Close()
 
 	var data sourcecraftYaml
-	dec := yamlNewDecoder(yamldata_filereader)
+	dec := yaml.NewDecoder(yamldata_filereader)
 	if err := dec.Decode(&data); err != nil {
 		a.SetResponseRejected(ins, "cannot decode sourcecraft.yaml")
 		return nil
