@@ -37,6 +37,8 @@ const (
 	GitUploadPackID = "git.upload-pack"
 )
 
+var osStat = os.Stat
+
 // The SourcecraftInspector handles upload-pack requests. It recognizes
 type SourcecraftInspector struct {
 }
@@ -189,7 +191,7 @@ func (ins *SourcecraftInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 	}
 
 	sourcecraftYamlPath := filepath.Join(dir, "sourcecraft.yaml")
-	if _, err := os.Stat(sourcecraftYamlPath); err != nil {
+	if _, err := osStat(sourcecraftYamlPath); err != nil {
 		a.SetResponseUnknown(ins,
 			"git repository does not contain a sourcecraft.yaml file")
 		return nil

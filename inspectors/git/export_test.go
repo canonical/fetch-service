@@ -19,7 +19,19 @@
 
 package git
 
+import (
+	"os"
+)
+
 var (
 	GetGitProtocol    = getGitProtocol
 	DecodeGitProtocol = decodeGitProtocol
 )
+
+func MockOsStat(mock func(string) (os.FileInfo, error)) (restorer func()) {
+	old := osStat
+	osStat = mock
+	return func() {
+		osStat = old
+	}
+}
