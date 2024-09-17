@@ -99,7 +99,7 @@ func (ins *SourcecraftInspector) InspectRequest(a RequestArtefact) error {
 }
 
 func (ins *SourcecraftInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
-	// FIXME: text/html is here temporarly, due to bug in launchpad git serving
+	// FIXME: text/html is here temporarily, due to a bug in launchpad git serving
 	if a.ContentType() != "application/x-git-upload-pack-result" && a.ContentType() != "text/html" {
 		logger.Debugf("Does not handle request of type %s", a.ContentType())
 		return nil
