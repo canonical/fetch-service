@@ -35,3 +35,11 @@ func MockOsStat(mock func(string) (os.FileInfo, error)) (restorer func()) {
 		osStat = old
 	}
 }
+
+func MockOsOpen(mock func(string) (*os.File, error)) (restorer func()) {
+	old := osOpen
+	osOpen = mock
+	return func() {
+		osOpen = old
+	}
+}

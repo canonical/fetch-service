@@ -290,10 +290,6 @@ func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefact(c *C) {
 	}{
 		{sourcecraftGitFetch, true, opinions.Approved, "sourcecraft repository found"},
 		{sourcecraftGitFetch, false, opinions.Rejected, "sourcecraft repository is not shallow"},
-		// TODO: mock os.Read() to make it work
-		{sourcecraftGitFetch, true, opinions.Rejected, "cannot open sourcecraft.yaml file"},
-		// TODO: mock yaml.NewDecoder() to make it work
-		{sourcecraftGitFetch, true, opinions.Rejected, "cannot decode sourcecraft.yaml"},
 	} {
 		a := metadata.NewArtefact()
 		a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
@@ -415,8 +411,73 @@ func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefactUnreadableSourcec
 		opinions.Rejected,
 		"cannot open sourcecraft.yaml file",
 	}
+
 	restorer := git.MockOsOpen(func(string) (*os.File, error) {
 		return nil, os.ErrNotExist
+	})
+	defer restorer()
+
+	a := metadata.NewArtefact()
+	a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
+	a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
+	a.Request.Body = io.NopCloser(strings.NewReader("0014command=fetch\n0000"))
+	a.MimeType = mimetype.Lookup("application/octet-stream")
+	a.RequestInspection = metadata.InspectionMap{
+		"git.upload-pack": &Inspection{
+			Opinion: opinions.Pending,
+			Reason:  "valid URL for git upload-pack",
+			Annotations: Annotation{
+				"client-request": []string{
+					"command=fetch",
+					"agent=git/2.34.1",
+					"object-format=sha1",
+					"",
+					"thin-pack",
+					"no-progress",
+					"include-tag",
+					"ofs-delta",
+					"deepen 1",
+					"want 10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
+					"done",
+				},
+				"repository": "https://my.repo/foo",
+				"command":    "fetch",
+				"project":    "bump2version",
+				"protocol":   "version=2",
+				"wants": []string{
+					"10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
+				},
+				"is-shallow": tc.is_shallow,
+			},
+		},
+	}
+	f := bytes.NewReader(tc.data)
+
+	ins := git.NewSourcecraftInspector()
+	err := ins.InspectArtefact(f, a)
+	c.Assert(err, IsNil)
+
+	inspection := a.ResponseInspection["git.sourcecraft"]
+	c.Assert(inspection.Opinion, Equals, tc.opinion)
+	c.Assert(inspection.Reason, Equals, tc.reason)
+}
+
+func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefactUnableToDecodeSourcecraftYaml(c *C) {
+	tc := struct {
+		data       []byte
+		is_shallow bool
+		opinion    opinions.OpinionKind
+		reason     string
+	}{
+		sourcecraftGitFetch,
+		true,
+		opinions.Rejected,
+		"cannot decode sourcecraft.yaml",
+	}
+
+	restorer := git.MockOsOpen(func(string) (*os.File, error) {
+		temp, _ := os.CreateTemp("", "sourcecraft-empty.yaml")
+		return os.Open(temp.Name())
 	})
 	defer restorer()
 
