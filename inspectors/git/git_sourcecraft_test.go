@@ -58,6 +58,44 @@ func (s *sourcecraftGitSuite) TestUploadPackInspectorID(c *C) {
 
 }
 
+func createTestMetadata(is_shallow bool) *metadata.Artefact {
+	a := metadata.NewArtefact()
+	a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
+	a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
+	a.Request.Body = io.NopCloser(strings.NewReader("0014command=fetch\n0000"))
+	a.MimeType = mimetype.Lookup("application/octet-stream")
+	a.RequestInspection = metadata.InspectionMap{
+		"git.upload-pack": &Inspection{
+			Opinion: opinions.Pending,
+			Reason:  "valid URL for git upload-pack",
+			Annotations: Annotation{
+				"client-request": []string{
+					"command=fetch",
+					"agent=git/2.34.1",
+					"object-format=sha1",
+					"",
+					"thin-pack",
+					"no-progress",
+					"include-tag",
+					"ofs-delta",
+					"deepen 1",
+					"want 10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
+					"done",
+				},
+				"repository": "https://my.repo/foo",
+				"command":    "fetch",
+				"project":    "bump2version",
+				"protocol":   "version=2",
+				"wants": []string{
+					"10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
+				},
+				"is-shallow": is_shallow,
+			},
+		},
+	}
+	return a
+}
+
 func (s *sourcecraftGitSuite) TestInspectSourcecraftGitRequest(c *C) {
 	for _, tc := range []struct {
 		url      string
@@ -291,40 +329,8 @@ func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefact(c *C) {
 		{sourcecraftGitFetch, true, opinions.Approved, "sourcecraft repository found"},
 		{sourcecraftGitFetch, false, opinions.Rejected, "sourcecraft repository is not shallow"},
 	} {
-		a := metadata.NewArtefact()
-		a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
-		a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
-		a.Request.Body = io.NopCloser(strings.NewReader("0014command=fetch\n0000"))
-		a.MimeType = mimetype.Lookup("application/octet-stream")
-		a.RequestInspection = metadata.InspectionMap{
-			"git.upload-pack": &Inspection{
-				Opinion: opinions.Pending,
-				Reason:  "valid URL for git upload-pack",
-				Annotations: Annotation{
-					"client-request": []string{
-						"command=fetch",
-						"agent=git/2.34.1",
-						"object-format=sha1",
-						"",
-						"thin-pack",
-						"no-progress",
-						"include-tag",
-						"ofs-delta",
-						"deepen 1",
-						"want 10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
-						"done",
-					},
-					"repository": "https://my.repo/foo",
-					"command":    "fetch",
-					"project":    "bump2version",
-					"protocol":   "version=2",
-					"wants": []string{
-						"10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
-					},
-					"is-shallow": tc.is_shallow,
-				},
-			},
-		}
+
+		a := createTestMetadata(tc.is_shallow)
 		f := bytes.NewReader(tc.data)
 
 		ins := git.NewSourcecraftInspector()
@@ -354,40 +360,7 @@ func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefactMissingSourcecraf
 	})
 	defer restorer()
 
-	a := metadata.NewArtefact()
-	a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
-	a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
-	a.Request.Body = io.NopCloser(strings.NewReader("0014command=fetch\n0000"))
-	a.MimeType = mimetype.Lookup("application/octet-stream")
-	a.RequestInspection = metadata.InspectionMap{
-		"git.upload-pack": &Inspection{
-			Opinion: opinions.Pending,
-			Reason:  "valid URL for git upload-pack",
-			Annotations: Annotation{
-				"client-request": []string{
-					"command=fetch",
-					"agent=git/2.34.1",
-					"object-format=sha1",
-					"",
-					"thin-pack",
-					"no-progress",
-					"include-tag",
-					"ofs-delta",
-					"deepen 1",
-					"want 10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
-					"done",
-				},
-				"repository": "https://my.repo/foo",
-				"command":    "fetch",
-				"project":    "bump2version",
-				"protocol":   "version=2",
-				"wants": []string{
-					"10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
-				},
-				"is-shallow": tc.is_shallow,
-			},
-		},
-	}
+	a := createTestMetadata(tc.is_shallow)
 	f := bytes.NewReader(tc.data)
 
 	ins := git.NewSourcecraftInspector()
@@ -417,40 +390,7 @@ func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefactUnreadableSourcec
 	})
 	defer restorer()
 
-	a := metadata.NewArtefact()
-	a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
-	a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
-	a.Request.Body = io.NopCloser(strings.NewReader("0014command=fetch\n0000"))
-	a.MimeType = mimetype.Lookup("application/octet-stream")
-	a.RequestInspection = metadata.InspectionMap{
-		"git.upload-pack": &Inspection{
-			Opinion: opinions.Pending,
-			Reason:  "valid URL for git upload-pack",
-			Annotations: Annotation{
-				"client-request": []string{
-					"command=fetch",
-					"agent=git/2.34.1",
-					"object-format=sha1",
-					"",
-					"thin-pack",
-					"no-progress",
-					"include-tag",
-					"ofs-delta",
-					"deepen 1",
-					"want 10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
-					"done",
-				},
-				"repository": "https://my.repo/foo",
-				"command":    "fetch",
-				"project":    "bump2version",
-				"protocol":   "version=2",
-				"wants": []string{
-					"10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
-				},
-				"is-shallow": tc.is_shallow,
-			},
-		},
-	}
+	a := createTestMetadata(tc.is_shallow)
 	f := bytes.NewReader(tc.data)
 
 	ins := git.NewSourcecraftInspector()
@@ -481,40 +421,7 @@ func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefactUnableToDecodeSou
 	})
 	defer restorer()
 
-	a := metadata.NewArtefact()
-	a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
-	a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
-	a.Request.Body = io.NopCloser(strings.NewReader("0014command=fetch\n0000"))
-	a.MimeType = mimetype.Lookup("application/octet-stream")
-	a.RequestInspection = metadata.InspectionMap{
-		"git.upload-pack": &Inspection{
-			Opinion: opinions.Pending,
-			Reason:  "valid URL for git upload-pack",
-			Annotations: Annotation{
-				"client-request": []string{
-					"command=fetch",
-					"agent=git/2.34.1",
-					"object-format=sha1",
-					"",
-					"thin-pack",
-					"no-progress",
-					"include-tag",
-					"ofs-delta",
-					"deepen 1",
-					"want 10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
-					"done",
-				},
-				"repository": "https://my.repo/foo",
-				"command":    "fetch",
-				"project":    "bump2version",
-				"protocol":   "version=2",
-				"wants": []string{
-					"10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
-				},
-				"is-shallow": tc.is_shallow,
-			},
-		},
-	}
+	a := createTestMetadata(tc.is_shallow)
 	f := bytes.NewReader(tc.data)
 
 	ins := git.NewSourcecraftInspector()
