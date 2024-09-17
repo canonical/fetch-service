@@ -417,6 +417,8 @@ func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefactUnableToDecodeSou
 
 	restorer := git.MockOsOpen(func(string) (*os.File, error) {
 		temp, _ := os.CreateTemp("", "sourcecraft-empty.yaml")
+		defer temp.Close()
+		defer os.Remove(temp.Name())
 		return os.Open(temp.Name())
 	})
 	defer restorer()
