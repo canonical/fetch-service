@@ -17,4 +17,5 @@ Reference
    maven_pom
    pip_metadata
    sdist
+   sourcecraft
    wheels
