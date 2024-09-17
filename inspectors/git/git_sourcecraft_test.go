@@ -58,7 +58,7 @@ func (s *sourcecraftGitSuite) TestUploadPackInspectorID(c *C) {
 
 }
 
-func createTestMetadata(is_shallow bool) *metadata.Artefact {
+func createTestArtefact(is_shallow bool) *metadata.Artefact {
 	a := metadata.NewArtefact()
 	a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
 	a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
@@ -140,93 +140,93 @@ func (s *sourcecraftGitSuite) TestInspectSourcecraftGitRequest(c *C) {
 }
 
 /*
-00000000: 3030 3131 7368 616c 6c6f 772d 696e 666f  0011shallow-info
-00000010: 0a30 3033 3473 6861 6c6c 6f77 2031 3066  .0034shallow 10f
-00000020: 6365 3263 3865 3361 3334 3139 3938 6666  ce2c8e3a341998ff
-00000030: 6432 6161 3465 3237 6230 3236 3939 6431  d2aa4e27b02699d1
-00000040: 6262 3561 6430 3030 3130 3030 6470 6163  bb5ad0001000dpac
-00000050: 6b66 696c 650a 3030 3233 0245 6e75 6d65  kfile.0023.Enume
-00000060: 7261 7469 6e67 206f 626a 6563 7473 3a20  rating objects:
-00000070: 332c 2064 6f6e 652e 0a30 3032 3202 436f  3, done..0022.Co
-00000080: 756e 7469 6e67 206f 626a 6563 7473 3a20  unting objects:
-00000090: 2033 3325 2028 312f 3329 0d30 3032 3202   33% (1/3).0022.
-000000a0: 436f 756e 7469 6e67 206f 626a 6563 7473  Counting objects
-000000b0: 3a20 2036 3625 2028 322f 3329 0d30 3034  :  66% (2/3).004
-000000c0: 3602 436f 756e 7469 6e67 206f 626a 6563  6.Counting objec
-000000d0: 7473 3a20 3130 3025 2028 332f 3329 0d43  ts: 100% (3/3).C
-000000e0: 6f75 6e74 696e 6720 6f62 6a65 6374 733a  ounting objects:
-000000f0: 2031 3030 2520 2833 2f33 292c 2064 6f6e   100% (3/3), don
-00000100: 652e 0a30 3036 6302 436f 6d70 7265 7373  e..006c.Compress
-00000110: 696e 6720 6f62 6a65 6374 733a 2020 3530  ing objects:  50
-00000120: 2520 2831 2f32 290d 436f 6d70 7265 7373  % (1/2).Compress
-00000130: 696e 6720 6f62 6a65 6374 733a 2031 3030  ing objects: 100
-00000140: 2520 2832 2f32 290d 436f 6d70 7265 7373  % (2/2).Compress
-00000150: 696e 6720 6f62 6a65 6374 733a 2031 3030  ing objects: 100
-00000160: 2520 2832 2f32 292c 2064 6f6e 652e 0a30  % (2/2), done..0
-00000170: 3032 6202 546f 7461 6c20 3320 2864 656c  02b.Total 3 (del
-00000180: 7461 2030 292c 2072 6575 7365 6420 3020  ta 0), reused 0
-00000190: 2864 656c 7461 2030 290a 3033 6334 0150  (delta 0).03c4.P
-000001a0: 4143 4b00 0000 0200 0000 0398 2078 9c9d  ACK......... x..
-000001b0: 904d 7382 3018 84ef f915 efdd b10d c847  .Ms.0..........G
-000001c0: e8b4 9d22 50b5 2a28 0ab6 de42 0801 aaa0  ..."P.*(...B....
-000001d0: 10c6 d65f dfcf e9a9 874e f7b4 fb1c 7666  ..._.....N....vf
-000001e0: 5736 9c03 b60c 3321 5851 1555 4f32 9210  W6....3!XQ.UO2..
-000001f0: 820d 6c31 8571 2d31 2dca 131d 330b 673a  ..l1.q-1-...3.g:
-00000200: a29d cceb 065c da14 5d7b 06b7 4b29 5ca7  .....\..]{..K)\.
-00000210: 5fe9 227d 4f77 8c56 7555 30ba bb60 f5fe  _."}Ow.VuU0..`..
-00000220: 1614 53d5 8969 2803 0c7d ac61 8cde e9be  ..S..i(..}.a....
-00000230: 9092 ffa3 4435 8cef 1271 106d 21a0 ffa1  ....D5...q.m!...
-00000240: a137 9af8 b018 2d60 3519 f9f6 3a0a bd4f  .7....-`5...:..O
-00000250: 8e00 4131 8e3c 7bf8 34b5 8778 3359 8671  ..A1.<{.4..x3Y.q
-00000260: 594e aba4 f7e4 a63c ef56 db65 7a28 4aa7  YN.....<.V.ez(J.
-00000270: 889b a358 46ce 569a 9399 b0a7 4e68 ff70  ...XF.V.....Nh.p
-00000280: 0462 33d7 ec85 354b c76b cd7c 26ee 49d9  .b3...5K.k.|&.I.
-00000290: 6d58 bcaa 0744 7d19 3767 ef98 fba1 5b85  mX...D}.7g....[.
-000002a0: c72c 0d62 8b88 c7f2 e45e ae83 dcb1 0ff7  .,.b.....^......
-000002b0: a3e1 7349 1170 a31c fb4e 9768 f92c 6803  ..sI.p...N.h.,h.
-000002c0: 76f6 1faa dcd3 7b61 34df 7aae 886e 10dc  v.....{a4.z..n..
-000002d0: 90ca 1ca0 af35 9eef feb6 0565 9cca 2be8  .....5.....e..+.
-000002e0: 0ead 6c38 dd43 5b77 0de3 2dc8 fadb 422b  ..l8.C[w..-...B+
-000002f0: eb86 23b4 2a44 c5d3 7e9d 65fd e4f5 eaef  ..#.*D..~.e.....
-00000300: 1fa3 3711 0fa2 efac 0278 9c33 3430 3033  ..7......x.34003
-00000310: 3151 28ce 2f2d 4a4e 4d2e 4a4c 2bd1 ab4c  1Q(./-JNM.JL+..L
-00000320: cccd 6190 66f7 cd15 7820 7beb 2b47 e1eb  ..a.f...x {.+G..
-00000330: 4df3 ecbe 7ccc fab2 0600 516d 126b bb3f  M...|.....Qm.k.?
-00000340: 789c 8d53 4b6f 1331 10be efaf 1829 8782  x..SKo.1.....)..
-00000350: 9447 45a3 08f6 0407 2a71 4054 2442 5c1d  .GE.....*q@T$B\.
-00000360: 7b76 d78d 5f78 ecb6 91f8 f18c d7d9 364d  {v.._x........6M
-00000370: 2f9c 3cf6 f87b cc8c 3d83 dda0 093a 6d10  /.<..{..=....:m.
-00000380: a477 9dee 7344 82ad cf51 a28c a24b cba6  .w..sD...Q...K..
-00000390: 99c1 bb9f f827 eb88 ea3d 6f76 0302 8d17  .....'...=ov....
-000003a0: 2008 7910 3d82 1316 e7e0 3c10 9f20 f1a5   .y.=.....<.. ..
-000003b0: db6f bfbf 7f6d 4128 0521 fa80 1194 97d9  .o...mA(.!......
-000003c0: a24b 2269 efc0 6877 80ce c713 d328 c5b0  .K"i..hw.....(..
-000003d0: 2d22 0c29 056a 57ab fb7c 9f97 9a56 0ca4  -".).jW..|...V..
-000003e0: 15a9 c38a 55b4 eb67 030a c5eb 6251 f70b  ....U..g....bQ..
-000003f0: 3988 6869 24eb b356 c249 5c36 c511 cbe7  9.hi$..V.I\6....
-00000400: e489 86ff 29e1 0123 b1b1 e6b4 b6d0 ebf4  ....)..#........
-00000410: 06f7 ab26 c177 9098 629f b551 b017 84f0  ...&.w..b..Q....
-00000420: 63db 94b5 85bc cf2e e5cf 1fd6 cbeb f509  c...............
-00000430: 2fbd e5c2 55a1 483a 19be 74d6 5fd8 a10d  /...U.H:..t._...
-00000440: 4624 84bb eae4 4294 b2b5 221e 5bf8 522c  F$....B...".[.R,
-00000450: 1e81 061f 1378 870b 6e21 5751 d393 a353  .....x..n!WQ...S
-00000460: 3597 4353 4832 ea90 c6c2 fe36 c064 c4ad  5.CSH2.....6.d..
-00000470: e3a1 134f 04b9 638c 1609 481c 091e 4b94  ...O..c...H...K.
-00000480: 5e3a a469 5ede 86d4 84e6 08c2 29b0 687d  ^:.i^.......).h}
-00000490: 147b 7364 9dc2 1544 147d 1461 2836 d81a  .{sd...D.}.a(6..
-000004a0: 24cf 0491 6759 dd4e 224c 34ca 543b 7b7c  $...gY.N"L4.T;{|
-000004b0: 919a a6a0 3cd2 8934 0d3a aa33 ea11 894f  ....<..4.:.3...O
-000004c0: dc2b ed4e 261d a27a 05b7 88a9 e26f b513  .+.N&..z.....o..
-000004d0: c61c e720 2e29 26f1 c2e1 ed2b 38ff 844c  ... .)&....+8..L
-000004e0: d865 531e d3db 877f c763 e204 bfb5 9168  .eS......c.....h
-000004f0: 4225 117b 966d c294 6e59 5f58 b559 8f41  B%.{.m..nY_X.Y.A
-00000500: b4cf c1d0 9540 df7c dc94 35f8 478c 418e  .....@.|..5.G.A.
-00000510: 6190 9b35 9a12 464d f2a1 22e8 e6d3 f553  a..5..FM.."....S
-00000520: db34 5c40 aaa4 f539 9710 a07e 96ab b3ff  .4\@...9...~....
-00000530: 03c1 e49e 9b73 35e6 eba6 fe81 e4bd a1f1  .....s5.........
-00000540: b45e 6f61 d9fc 034b 5754 e714 ceae d697  .^oa...KWT......
-00000550: ed1a 425a cb82 9e87 1584 1141 a298 3030  ..BZ.......A..00
-00000560: 3036 012a 3030 3030                      06.*0000
+00000000  30 30 31 31 73 68 61 6c  6c 6f 77 2d 69 6e 66 6f  |0011shallow-info|
+00000010  0a 30 30 33 34 73 68 61  6c 6c 6f 77 20 31 30 66  |.0034shallow 10f|
+00000020  63 65 32 63 38 65 33 61  33 34 31 39 39 38 66 66  |ce2c8e3a341998ff|
+00000030  64 32 61 61 34 65 32 37  62 30 32 36 39 39 64 31  |d2aa4e27b02699d1|
+00000040  62 62 35 61 64 30 30 30  31 30 30 30 64 70 61 63  |bb5ad0001000dpac|
+00000050  6b 66 69 6c 65 0a 30 30  32 33 02 45 6e 75 6d 65  |kfile.0023.Enume|
+00000060  72 61 74 69 6e 67 20 6f  62 6a 65 63 74 73 3a 20  |rating objects: |
+00000070  33 2c 20 64 6f 6e 65 2e  0a 30 30 32 32 02 43 6f  |3, done..0022.Co|
+00000080  75 6e 74 69 6e 67 20 6f  62 6a 65 63 74 73 3a 20  |unting objects: |
+00000090  20 33 33 25 20 28 31 2f  33 29 0d 30 30 32 32 02  | 33% (1/3).0022.|
+000000a0  43 6f 75 6e 74 69 6e 67  20 6f 62 6a 65 63 74 73  |Counting objects|
+000000b0  3a 20 20 36 36 25 20 28  32 2f 33 29 0d 30 30 34  |:  66% (2/3).004|
+000000c0  36 02 43 6f 75 6e 74 69  6e 67 20 6f 62 6a 65 63  |6.Counting objec|
+000000d0  74 73 3a 20 31 30 30 25  20 28 33 2f 33 29 0d 43  |ts: 100% (3/3).C|
+000000e0  6f 75 6e 74 69 6e 67 20  6f 62 6a 65 63 74 73 3a  |ounting objects:|
+000000f0  20 31 30 30 25 20 28 33  2f 33 29 2c 20 64 6f 6e  | 100% (3/3), don|
+00000100  65 2e 0a 30 30 36 63 02  43 6f 6d 70 72 65 73 73  |e..006c.Compress|
+00000110  69 6e 67 20 6f 62 6a 65  63 74 73 3a 20 20 35 30  |ing objects:  50|
+00000120  25 20 28 31 2f 32 29 0d  43 6f 6d 70 72 65 73 73  |% (1/2).Compress|
+00000130  69 6e 67 20 6f 62 6a 65  63 74 73 3a 20 31 30 30  |ing objects: 100|
+00000140  25 20 28 32 2f 32 29 0d  43 6f 6d 70 72 65 73 73  |% (2/2).Compress|
+00000150  69 6e 67 20 6f 62 6a 65  63 74 73 3a 20 31 30 30  |ing objects: 100|
+00000160  25 20 28 32 2f 32 29 2c  20 64 6f 6e 65 2e 0a 30  |% (2/2), done..0|
+00000170  30 32 62 02 54 6f 74 61  6c 20 33 20 28 64 65 6c  |02b.Total 3 (del|
+00000180  74 61 20 30 29 2c 20 72  65 75 73 65 64 20 30 20  |ta 0), reused 0 |
+00000190  28 64 65 6c 74 61 20 30  29 0a 30 33 63 34 01 50  |(delta 0).03c4.P|
+000001a0  41 43 4b 00 00 00 02 00  00 00 03 98 20 78 9c 9d  |ACK......... x..|
+000001b0  90 4d 73 82 30 18 84 ef  f9 15 ef dd b1 0d c8 47  |.Ms.0..........G|
+000001c0  e8 b4 9d 22 50 b5 2a 28  0a b6 de 42 08 01 aa a0  |..."P.*(...B....|
+000001d0  10 c6 d6 5f df cf e9 a9  87 4e f7 b4 fb 1c 76 66  |..._.....N....vf|
+000001e0  57 36 9c 03 b6 0c 33 21  58 51 15 55 4f 32 92 10  |W6....3!XQ.UO2..|
+000001f0  82 0d 6c 31 85 71 2d 31  2d ca 13 1d 33 0b 67 3a  |..l1.q-1-...3.g:|
+00000200  a2 9d cc eb 06 5c da 14  5d 7b 06 b7 4b 29 5c a7  |.....\..]{..K)\.|
+00000210  5f e9 22 7d 4f 77 8c 56  75 55 30 ba bb 60 f5 fe  |_."}Ow.VuU0..`..|
+00000220  16 14 53 d5 89 69 28 03  0c 7d ac 61 8c de e9 be  |..S..i(..}.a....|
+00000230  90 92 ff a3 44 35 8c ef  12 71 10 6d 21 a0 ff a1  |....D5...q.m!...|
+00000240  a1 37 9a f8 b0 18 2d 60  35 19 f9 f6 3a 0a bd 4f  |.7....-`5...:..O|
+00000250  8e 00 41 31 8e 3c 7b f8  34 b5 87 78 33 59 86 71  |..A1.<{.4..x3Y.q|
+00000260  59 4e ab a4 f7 e4 a6 3c  ef 56 db 65 7a 28 4a a7  |YN.....<.V.ez(J.|
+00000270  88 9b a3 58 46 ce 56 9a  93 99 b0 a7 4e 68 ff 70  |...XF.V.....Nh.p|
+00000280  04 62 33 d7 ec 85 35 4b  c7 6b cd 7c 26 ee 49 d9  |.b3...5K.k.|&.I.|
+00000290  6d 58 bc aa 07 44 7d 19  37 67 ef 98 fb a1 5b 85  |mX...D}.7g....[.|
+000002a0  c7 2c 0d 62 8b 88 c7 f2  e4 5e ae 83 dc b1 0f f7  |.,.b.....^......|
+000002b0  a3 e1 73 49 11 70 a3 1c  fb 4e 97 68 f9 2c 68 03  |..sI.p...N.h.,h.|
+000002c0  76 f6 1f aa dc d3 7b 61  34 df 7a ae 88 6e 10 dc  |v.....{a4.z..n..|
+000002d0  90 ca 1c a0 af 35 9e ef  fe b6 05 65 9c ca 2b e8  |.....5.....e..+.|
+000002e0  0e ad 6c 38 dd 43 5b 77  0d e3 2d c8 fa db 42 2b  |..l8.C[w..-...B+|
+000002f0  eb 86 23 b4 2a 44 c5 d3  7e 9d 65 fd e4 f5 ea ef  |..#.*D..~.e.....|
+00000300  1f a3 37 11 0f a2 ef ac  02 78 9c 33 34 30 30 33  |..7......x.34003|
+00000310  31 51 28 ce 2f 2d 4a 4e  4d 2e 4a 4c 2b d1 ab 4c  |1Q(./-JNM.JL+..L|
+00000320  cc cd 61 90 66 f7 cd 15  78 20 7b eb 2b 47 e1 eb  |..a.f...x {.+G..|
+00000330  4d f3 ec be 7c cc fa b2  06 00 51 6d 12 6b bb 3f  |M...|.....Qm.k.?|
+00000340  78 9c 8d 53 4b 6f 13 31  10 be ef af 18 29 87 82  |x..SKo.1.....)..|
+00000350  94 47 45 a3 08 f6 04 07  2a 71 40 54 24 42 5c 1d  |.GE.....*q@T$B\.|
+00000360  7b 76 d7 8d 5f 78 ec b6  91 f8 f1 8c d7 d9 36 4d  |{v.._x........6M|
+00000370  2f 9c 3c f6 f8 7b cc 8c  3d 83 dd a0 09 3a 6d 10  |/.<..{..=....:m.|
+00000380  a4 77 9d ee 73 44 82 ad  cf 51 a2 8c a2 4b cb a6  |.w..sD...Q...K..|
+00000390  99 c1 bb 9f f8 27 eb 88  ea 3d 6f 76 03 02 8d 17  |.....'...=ov....|
+000003a0  20 08 79 10 3d 82 13 16  e7 e0 3c 10 9f 20 f1 a5  | .y.=.....<.. ..|
+000003b0  db 6f bf bf 7f 6d 41 28  05 21 fa 80 11 94 97 d9  |.o...mA(.!......|
+000003c0  a2 4b 22 69 ef c0 68 77  80 ce c7 13 d3 28 c5 b0  |.K"i..hw.....(..|
+000003d0  2d 22 0c 29 05 6a 57 ab  fb 7c 9f 97 9a 56 0c a4  |-".).jW..|...V..|
+000003e0  15 a9 c3 8a 55 b4 eb 67  03 0a c5 eb 62 51 f7 0b  |....U..g....bQ..|
+000003f0  39 88 68 69 24 eb b3 56  c2 49 5c 36 c5 11 cb e7  |9.hi$..V.I\6....|
+00000400  e4 89 86 ff 29 e1 01 23  b1 b1 e6 b4 b6 d0 eb f4  |....)..#........|
+00000410  06 f7 ab 26 c1 77 90 98  62 9f b5 51 b0 17 84 f0  |...&.w..b..Q....|
+00000420  63 db 94 b5 85 bc cf 2e  e5 cf 1f d6 cb eb f5 09  |c...............|
+00000430  2f bd e5 c2 55 a1 48 3a  19 be 74 d6 5f d8 a1 0d  |/...U.H:..t._...|
+00000440  46 24 84 bb ea e4 42 94  b2 b5 22 1e 5b f8 52 2c  |F$....B...".[.R,|
+00000450  1e 81 06 1f 13 78 87 0b  6e 21 57 51 d3 93 a3 53  |.....x..n!WQ...S|
+00000460  35 97 43 53 48 32 ea 90  c6 c2 fe 36 c0 64 c4 ad  |5.CSH2.....6.d..|
+00000470  e3 a1 13 4f 04 b9 63 8c  16 09 48 1c 09 1e 4b 94  |...O..c...H...K.|
+00000480  5e 3a a4 69 5e de 86 d4  84 e6 08 c2 29 b0 68 7d  |^:.i^.......).h}|
+00000490  14 7b 73 64 9d c2 15 44  14 7d 14 61 28 36 d8 1a  |.{sd...D.}.a(6..|
+000004a0  24 cf 04 91 67 59 dd 4e  22 4c 34 ca 54 3b 7b 7c  |$...gY.N"L4.T;{||
+000004b0  91 9a a6 a0 3c d2 89 34  0d 3a aa 33 ea 11 89 4f  |....<..4.:.3...O|
+000004c0  dc 2b ed 4e 26 1d a2 7a  05 b7 88 a9 e2 6f b5 13  |.+.N&..z.....o..|
+000004d0  c6 1c e7 20 2e 29 26 f1  c2 e1 ed 2b 38 ff 84 4c  |... .)&....+8..L|
+000004e0  d8 65 53 1e d3 db 87 7f  c7 63 e2 04 bf b5 91 68  |.eS......c.....h|
+000004f0  42 25 11 7b 96 6d c2 94  6e 59 5f 58 b5 59 8f 41  |B%.{.m..nY_X.Y.A|
+00000500  b4 cf c1 d0 95 40 df 7c  dc 94 35 f8 47 8c 41 8e  |.....@.|..5.G.A.|
+00000510  61 90 9b 35 9a 12 46 4d  f2 a1 22 e8 e6 d3 f5 53  |a..5..FM.."....S|
+00000520  db 34 5c 40 aa a4 f5 39  97 10 a0 7e 96 ab b3 ff  |.4\@...9...~....|
+00000530  03 c1 e4 9e 9b 73 35 e6  eb a6 fe 81 e4 bd a1 f1  |.....s5.........|
+00000540  b4 5e 6f 61 d9 fc 03 4b  57 54 e7 14 ce ae d6 97  |.^oa...KWT......|
+00000550  ed 1a 42 5a cb 82 9e 87  15 84 11 41 a2 98 30 30  |..BZ.......A..00|
+00000560  30 36 01 2a 30 30 30 30                           |06.*0000|
 */
 
 var sourcecraftGitFetch = []byte{
@@ -330,7 +330,7 @@ func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefact(c *C) {
 		{sourcecraftGitFetch, false, opinions.Rejected, "sourcecraft repository is not shallow"},
 	} {
 
-		a := createTestMetadata(tc.is_shallow)
+		a := createTestArtefact(tc.is_shallow)
 		f := bytes.NewReader(tc.data)
 
 		ins := git.NewSourcecraftInspector()
@@ -360,7 +360,7 @@ func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefactMissingSourcecraf
 	})
 	defer restorer()
 
-	a := createTestMetadata(tc.is_shallow)
+	a := createTestArtefact(tc.is_shallow)
 	f := bytes.NewReader(tc.data)
 
 	ins := git.NewSourcecraftInspector()
@@ -390,7 +390,7 @@ func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefactUnreadableSourcec
 	})
 	defer restorer()
 
-	a := createTestMetadata(tc.is_shallow)
+	a := createTestArtefact(tc.is_shallow)
 	f := bytes.NewReader(tc.data)
 
 	ins := git.NewSourcecraftInspector()
@@ -423,7 +423,7 @@ func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefactUnableToDecodeSou
 	})
 	defer restorer()
 
-	a := createTestMetadata(tc.is_shallow)
+	a := createTestArtefact(tc.is_shallow)
 	f := bytes.NewReader(tc.data)
 
 	ins := git.NewSourcecraftInspector()
