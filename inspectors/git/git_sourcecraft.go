@@ -38,6 +38,8 @@ const (
 )
 
 var osStat = os.Stat
+var osOpen = os.Open
+var yamlNewDecoder = yaml.NewDecoder
 
 // The SourcecraftInspector handles upload-pack requests. It recognizes
 type SourcecraftInspector struct {
@@ -196,14 +198,15 @@ func (ins *SourcecraftInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 			"git repository does not contain a sourcecraft.yaml file")
 		return nil
 	}
-	yamldata_filereader, err := os.Open(sourcecraftYamlPath)
+	yamldata_filereader, err := osOpen(sourcecraftYamlPath)
 	if err != nil {
 		a.SetResponseRejected(ins, "cannot open sourcecraft.yaml file")
+		return nil
 	}
 	defer yamldata_filereader.Close()
 
 	var data sourcecraftYaml
-	dec := yaml.NewDecoder(yamldata_filereader)
+	dec := yamlNewDecoder(yamldata_filereader)
 	if err := dec.Decode(&data); err != nil {
 		a.SetResponseRejected(ins, "cannot decode sourcecraft.yaml")
 		return nil

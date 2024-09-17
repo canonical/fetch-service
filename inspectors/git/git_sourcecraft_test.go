@@ -353,9 +353,10 @@ func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefactMissingSourcecraf
 		opinions.Unknown,
 		"git repository does not contain a sourcecraft.yaml file",
 	}
-	git.MockOsStat(func(string) (os.FileInfo, error) {
+	restorer := git.MockOsStat(func(string) (os.FileInfo, error) {
 		return nil, os.ErrNotExist
 	})
+	defer restorer()
 
 	a := metadata.NewArtefact()
 	a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
@@ -411,12 +412,13 @@ func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefactUnreadableSourcec
 	}{
 		sourcecraftGitFetch,
 		true,
-		opinions.Unknown,
+		opinions.Rejected,
 		"cannot open sourcecraft.yaml file",
 	}
-	git.MockOsStat(func(string) (os.FileInfo, error) {
+	restorer := git.MockOsOpen(func(string) (*os.File, error) {
 		return nil, os.ErrNotExist
 	})
+	defer restorer()
 
 	a := metadata.NewArtefact()
 	a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
