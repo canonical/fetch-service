@@ -132,6 +132,10 @@ func (cs *Server) Dying() <-chan struct{} {
 	return cs.tomb.Dying()
 }
 
+func (cs *Server) Err() error {
+	return cs.tomb.Err()
+}
+
 func SocketPath() string {
 	return filepath.Join(os.TempDir(), "fetchctl.socket")
 }
