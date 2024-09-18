@@ -365,7 +365,7 @@ loop:
 			}
 
 		case <-svc.tomb.Dying():
-			break loop
+			return svc.tomb.Err()
 
 		case <-svc.ctl.Dying():
 			return svc.ctl.Err()
