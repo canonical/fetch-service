@@ -40,7 +40,8 @@ const (
 var osStat = os.Stat
 var osOpen = os.Open
 
-// The SourcecraftInspector handles upload-pack requests. It recognizes
+// The SourcecraftInspector handles upload-pack requests.
+// It recognizes "fetch" command from the Git v2 protocol.
 type SourcecraftInspector struct {
 }
 
@@ -59,8 +60,6 @@ type sourcecraftYaml struct {
 	License string `json:"license,omitempty"`
 	Base    string `json:"base"`
 }
-
-// TODO: check with the team if we want need to do that
 
 // InspectRequest verifies whether this is a valid upload-pack request. For
 // it to succeed the following conditions must be satisfied:
