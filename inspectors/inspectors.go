@@ -29,6 +29,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/apt"
 	"github.com/canonical/fetch-service/inspectors/cargo"
 	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/craft"
 	"github.com/canonical/fetch-service/inspectors/deb"
 	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/git"
@@ -80,6 +81,10 @@ func New(permissive bool) Inspectors {
 		// git
 		git.NewSmartQueryInspector(),
 		git.NewUploadPackInspector(),
+
+		// craft
+		// must run after git
+		craft.NewSourcecraftInspector(),
 
 		// go
 		// must run after git
