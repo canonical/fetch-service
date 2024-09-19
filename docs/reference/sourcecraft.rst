@@ -1,16 +1,21 @@
-Git sourcecraft inspector
+Sourcecraft inspector
 =========================
 
-The sourcecraft inspector examines requests against source
-repositories - it validates if the cloning targed is the
-proper sourcecraft repository.
-This inspector only supports the smart protocol version 2.
+The Sourcecraft inspector checks whether the git
+repository that is selected for cloning is a valid sourcecraft repository.
 
+Once request is accepted for inspection it tries to extract the packed content
+of the repository. In the extracted repository it looks for the 
+``sourcecraft.yaml`` file. If file is found, it is used
+to extract the metadata of the processed entity.
+
+Inspector has to be called after the ``git.upload-pack`` inspector.
+This inspector only supports the git v2 smart protocol.
 
 Inspector ID
 ------------
 
-``git.sourcecraft``
+``craft.sourcecraft``
 
 
 Internal state
@@ -22,25 +27,35 @@ None.
 Request verification
 --------------------
 
-It uses the ``git.upload-pack`` result to check the entry requirements:
+A request is approved for the further inspection if it meets all the
+following criteria:
 
-* if clone is shallow
-* if single revision is requested
-* if data is a reponse to the ``fetch`` command
+* Request comes from the known origin
 
-After the initial validation it tries to extract the packed content of the repository.
-In the extracted repository it looks for the ``sourcecraft.yaml`` file and loads it
-for further inspection. File is used to extract the metadata of the processed artefact.
+* `Content-Type <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type>`_
+  HTTP header field is declared as ``application/x-git-upload-pack-request``
+
+* `Accept <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept>`_
+  HTTP header field is declared as ``application/x-git-upload-pack-result``
+
+* Request is a response to the ``fetch`` command.
+
 
 
 Acceptance criteria
 -------------------
 
-* Content format is binary.
-* Content-type is declared as ``application/x-git-upload-pack-result``.
+A repository is approved if processed artefact meets all of the following criteria:
+
+* `Content-Type <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type>`_
+  of the request is declared as ``application/x-git-upload-pack-result``
+
+* The clone is
+  `shallow <https://git-scm.com/docs/git-clone#Documentation/git-clone.txt-code--depthcodeemltdepthgtem>`_.
+
+* The request is for a single revision.
+* The data is a response to the ``fetch`` command.
 * Content can be decoded using the git protocol v2.
-* It must be a shallow fetch.
-* It must request a single ref.
 * Repository contains the ``sourcecraft.yaml`` file.
 * ``sourcecraft.yaml`` can be read and contains valid basic fields.
 
@@ -48,9 +63,12 @@ Acceptance criteria
 Rejection reasons
 -----------------
 
-* repository clone is not shallow
+* The clone is not
+  `shallow <https://git-scm.com/docs/git-clone#Documentation/git-clone.txt-code--depthcodeemltdepthgtem>`_
+
+* Multiple git revisions were requested
 * ``sourcecraft.yaml`` cannot be read
-* ``sourcecraft.yaml`` does not have required metadata
+* ``sourcecraft.yaml`` does not have required metadata fields
 
 
 Extracted metadata
@@ -64,7 +82,7 @@ The following pieces of metadata are extracted by the Sourcecraft inspector:
    ============  ====  ============================================
    Field         Used  Data source
    ============  ====  ============================================
-   type          Yes   ``application/x.git.sourcecraft``
+   type          Yes   ``application/x.craft.sourcecraft``
    name          Yes   ``sourcecraft.yaml`` field ``name``
    version       Yes   ``sourcecraft.yaml`` field ``version``
    description   Yes   ``sourcecraft.yaml`` field ``summary``
