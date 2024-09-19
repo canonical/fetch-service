@@ -5,9 +5,9 @@ The Sourcecraft inspector checks whether the git
 repository that is selected for cloning is a valid sourcecraft repository.
 
 Once request is accepted for inspection it tries to extract the packed content
-of the repository. In the extracted repository it looks for the 
-``sourcecraft.yaml`` file. If file is found, it is used
-to extract the metadata of the processed entity.
+of the repository. In the extracted data it looks for the ``sourcecraft.yaml``
+file. If file is found, it is used to extract the metadata of the processed
+entity.
 
 Inspector has to be called after the ``git.upload-pack`` inspector.
 This inspector only supports the git v2 smart protocol.
