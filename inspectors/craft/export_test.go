@@ -17,9 +17,24 @@
  *
  */
 
-package git
+package craft
 
-var (
-	GetGitProtocol    = getGitProtocol
-	DecodeGitProtocol = decodeGitProtocol
+import (
+	"os"
 )
+
+func MockOsStat(mock func(string) (os.FileInfo, error)) (restorer func()) {
+	old := osStat
+	osStat = mock
+	return func() {
+		osStat = old
+	}
+}
+
+func MockOsOpen(mock func(string) (*os.File, error)) (restorer func()) {
+	old := osOpen
+	osOpen = mock
+	return func() {
+		osOpen = old
+	}
+}

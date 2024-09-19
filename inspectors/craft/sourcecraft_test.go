@@ -1,0 +1,265 @@
+// -*- Mode: Go; indent-tabs-mode: t -*-
+
+/*
+ * Copyright 2024 Canonical Ltd.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+package craft_test
+
+import (
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+
+	. "gopkg.in/check.v1"
+
+	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/craft"
+	"github.com/canonical/fetch-service/inspectors/files"
+	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/logger/testlogger"
+	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/opinions"
+	"github.com/gabriel-vasile/mimetype"
+)
+
+type sourcecraftGitSuite struct{}
+
+var _ = Suite(&sourcecraftGitSuite{})
+
+func (t *sourcecraftGitSuite) SetUpTest(c *C) {
+	testlogger.Init(logger.InfoLevel)
+}
+
+func (s *sourcecraftGitSuite) TestSourcecraftGitInspectorInterface(c *C) {
+	var iface Inspector
+	ins := craft.NewSourcecraftInspector()
+	c.Assert(ins, Implements, &iface)
+
+}
+
+func (s *sourcecraftGitSuite) TestUploadPackInspectorID(c *C) {
+	ins := craft.NewSourcecraftInspector()
+	c.Assert(ins.ID(), Equals, "craft.sourcecraft")
+
+}
+
+func createTestArtefact(is_shallow bool) *metadata.Artefact {
+	a := metadata.NewArtefact()
+	a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
+	a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
+	a.Request.Body = io.NopCloser(strings.NewReader("0014command=fetch\n0000"))
+	a.MimeType = mimetype.Lookup("application/octet-stream")
+	a.RequestInspection = metadata.InspectionMap{
+		"git.upload-pack": &Inspection{
+			Opinion: opinions.Pending,
+			Reason:  "valid URL for git upload-pack",
+			Annotations: Annotation{
+				"client-request": []string{
+					"command=fetch",
+					"agent=git/2.34.1",
+					"object-format=sha1",
+					"",
+					"thin-pack",
+					"no-progress",
+					"include-tag",
+					"ofs-delta",
+					"deepen 1",
+					"want 10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
+					"done",
+				},
+				"repository": "https://my.repo/foo",
+				"command":    "fetch",
+				"project":    "bump2version",
+				"protocol":   "version=2",
+				"wants": []string{
+					"10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
+				},
+				"is-shallow": is_shallow,
+			},
+		},
+	}
+	return a
+}
+
+func loadTestArtefactData() (*files.ArtefactFile, error) {
+	sourcpkg_file := filepath.Join("testdata", "sourcepkg.raw")
+	file, err := files.OpenArtefactFile(sourcpkg_file)
+	return file, err
+}
+
+func (s *sourcecraftGitSuite) TestInspectSourcecraftGitRequest(c *C) {
+	for _, tc := range []struct {
+		url      string
+		approved bool
+	}{
+		// FIXME: using github as placeholder, final URLs will change
+		{"https://github.com:443/user/project.git/git-upload-pack", true},
+		{"https://git.launchpad.net:443/project/git-upload-pack", true},
+		{"https://git.launchpad.net:443/~user/project/+git/project/git-upload-pack", true},
+		{"https://github.com:443/user/project/git-upload-pack", true},
+		{"https://invalid.com:443/user/project.git/git-upload-pack", false},
+		{"http://github.com/user/project.git/git-upload-pack", false},
+		{"https://gothub.com:443/user/project.git/git-upload-pack", false},
+		{"ahttps://github.com:443/user/project.git/git-upload-pack", false},
+		{"https://github.com:443/user/project.git/git-upload-packs", false},
+		{"https://github.com:443/user/project.git/something-else", false},
+		{"https://git.launchpad.com:443/project/git-upload-pack", false},
+		{"https://git.lpad.net:443/~user/project/+git/project/git-upload-pack", false},
+	} {
+		ins := craft.NewSourcecraftInspector()
+		a := metadata.NewArtefact()
+		a.CurrentDownload.URL = tc.url
+		a.CurrentDownload.RequestHeader = map[string][]string{
+			"Content-Type": {"application/x-git-upload-pack-request"},
+			"Accept":       {"application/x-git-upload-pack-result"},
+		}
+		a.RequestInspection["git.upload-pack"] = &Inspection{
+			Annotations: Annotation{"command": "fetch"},
+		}
+		a.Request, _ = http.NewRequest("GET", tc.url, nil)
+		a.Request.Body = io.NopCloser(strings.NewReader("0014command=ls-refs\n0000"))
+
+		err := ins.InspectRequest(a)
+		c.Assert(err, IsNil)
+
+		insp, ok := a.RequestInspection[ins.ID()]
+		c.Assert(ok, Equals, tc.approved, Commentf("Aproval status is wrong for '%s' (%t != %t)", tc.url, ok, tc.approved))
+		if tc.approved {
+			c.Assert(insp.Opinion, Equals, opinions.Pending)
+		}
+	}
+}
+
+func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefact(c *C) {
+	for _, tc := range []struct {
+		is_shallow bool
+		opinion    opinions.OpinionKind
+		reason     string
+	}{
+		{true, opinions.Approved, "sourcecraft repository found"},
+		{false, opinions.Rejected, "sourcecraft repository is not shallow"},
+	} {
+
+		a := createTestArtefact(tc.is_shallow)
+		f, err := loadTestArtefactData()
+		c.Assert(err, IsNil)
+		defer f.Close()
+
+		ins := craft.NewSourcecraftInspector()
+		err = ins.InspectArtefact(f, a)
+		c.Assert(err, IsNil)
+
+		inspection := a.ResponseInspection["git.sourcecraft"]
+		c.Assert(inspection.Opinion, Equals, tc.opinion)
+		c.Assert(inspection.Reason, Equals, tc.reason)
+	}
+}
+
+func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefactMissingSourcecraftYaml(c *C) {
+	tc := struct {
+		is_shallow bool
+		opinion    opinions.OpinionKind
+		reason     string
+	}{
+		true,
+		opinions.Unknown,
+		"git repository does not contain a sourcecraft.yaml file",
+	}
+	restorer := craft.MockOsStat(func(string) (os.FileInfo, error) {
+		return nil, os.ErrNotExist
+	})
+	defer restorer()
+
+	a := createTestArtefact(tc.is_shallow)
+	f, err := loadTestArtefactData()
+	c.Assert(err, IsNil)
+	defer f.Close()
+
+	ins := craft.NewSourcecraftInspector()
+
+	err = ins.InspectArtefact(f, a)
+	c.Assert(err, IsNil)
+
+	inspection := a.ResponseInspection["git.sourcecraft"]
+	c.Assert(inspection.Opinion, Equals, tc.opinion)
+	c.Assert(inspection.Reason, Equals, tc.reason)
+}
+
+func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefactUnreadableSourcecraftYaml(c *C) {
+	tc := struct {
+		is_shallow bool
+		opinion    opinions.OpinionKind
+		reason     string
+	}{
+		true,
+		opinions.Rejected,
+		"cannot open sourcecraft.yaml file",
+	}
+
+	restorer := craft.MockOsOpen(func(string) (*os.File, error) {
+		return nil, os.ErrNotExist
+	})
+	defer restorer()
+	f, err := loadTestArtefactData()
+	c.Assert(err, IsNil)
+	defer f.Close()
+
+	a := createTestArtefact(tc.is_shallow)
+
+	ins := craft.NewSourcecraftInspector()
+	err = ins.InspectArtefact(f, a)
+	c.Assert(err, IsNil)
+
+	inspection := a.ResponseInspection["git.sourcecraft"]
+	c.Assert(inspection.Opinion, Equals, tc.opinion)
+	c.Assert(inspection.Reason, Equals, tc.reason)
+}
+
+func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefactUnableToDecodeSourcecraftYaml(c *C) {
+	tc := struct {
+		is_shallow bool
+		opinion    opinions.OpinionKind
+		reason     string
+	}{
+		true,
+		opinions.Rejected,
+		"cannot decode sourcecraft.yaml",
+	}
+	f, err := loadTestArtefactData()
+	c.Assert(err, IsNil)
+	defer f.Close()
+
+	restorer := craft.MockOsOpen(func(string) (*os.File, error) {
+		temp, _ := os.CreateTemp("", "sourcecraft-empty.yaml")
+		defer temp.Close()
+		defer os.Remove(temp.Name())
+		return os.Open(temp.Name())
+	})
+	defer restorer()
+
+	a := createTestArtefact(tc.is_shallow)
+
+	ins := craft.NewSourcecraftInspector()
+	err = ins.InspectArtefact(f, a)
+	c.Assert(err, IsNil)
+
+	inspection := a.ResponseInspection["git.sourcecraft"]
+	c.Assert(inspection.Opinion, Equals, tc.opinion)
+	c.Assert(inspection.Reason, Equals, tc.reason)
+}

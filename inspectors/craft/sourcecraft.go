@@ -17,7 +17,7 @@
  *
  */
 
-package git
+package craft
 
 import (
 	"errors"
@@ -29,6 +29,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/git"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/logger"
 )
@@ -50,7 +51,7 @@ func NewSourcecraftInspector() *SourcecraftInspector {
 }
 
 func (ins *SourcecraftInspector) ID() string {
-	return "git.sourcecraft"
+	return "craft.sourcecraft"
 }
 
 type sourcecraftYaml struct {
@@ -86,7 +87,7 @@ func (ins *SourcecraftInspector) InspectRequest(a RequestArtefact) error {
 		return nil // we don't recognize this request
 	}
 
-	_, err = newUploadPackUrlInfo(u)
+	_, err = newCraftRepositoryUrlInfo(u)
 	if err != nil {
 		return nil // we don't recognize this request
 	}
@@ -172,14 +173,14 @@ func (ins *SourcecraftInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 
 	defer os.RemoveAll(dir)
 
-	if err = UnpackObjects(f, dir); err != nil {
+	if err = git.UnpackObjects(f, dir); err != nil {
 		return fmt.Errorf("git unpack error: %w", err)
 	}
 
 	if has_wants {
 		// check out wanted digest
 		notes.Add("checkout", wants[0])
-		err = Checkout(dir, wants[0])
+		err = git.Checkout(dir, wants[0])
 		if err != nil {
 			return fmt.Errorf("git checkout error: %w", err)
 		}
@@ -211,7 +212,7 @@ func (ins *SourcecraftInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 	}
 
 	a.SetArtefactMetadata(ArtefactMetadata{
-		Type:        mimetypes.SourcecraftGit,
+		Type:        mimetypes.CraftSourcecraft,
 		Name:        data.Name,
 		Version:     data.Version,
 		Description: data.Summary,
