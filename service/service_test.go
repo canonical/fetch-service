@@ -796,7 +796,7 @@ func (t *serviceSuite) TestConfiguration(c *C) {
 		s := session.New(opt.Spool, 0, true)
 		defer s.Discard()
 
-		msg := messages.NewConfiguration(tc.operation, tc.optype, tc.dryRun, nil)
+		msg := messages.NewLocalCtl(tc.operation, tc.optype, tc.dryRun, nil)
 		t.ch <- msg
 		res := <-msg.Rch
 

@@ -37,7 +37,7 @@ type serverSuite struct{}
 
 var _ = Suite(&serverSuite{})
 
-func (t *serverSuite) TestConfigServer(c *C) {
+func (t *serverSuite) TestLocalctlServer(c *C) {
 	ch := make(chan interface{})
 	cs := localctl.NewServer(ch)
 
@@ -52,9 +52,9 @@ func (t *serverSuite) TestConfigServer(c *C) {
 	c.Assert(err, IsNil)
 }
 
-func (t *serverSuite) TestConfigServerError(c *C) {
+func (t *serverSuite) TestLocalctlServerError(c *C) {
 	ch := make(chan interface{})
-	cs := config.NewServer(ch)
+	cs := localctl.NewServer(ch)
 
 	err := cs.Start()
 	c.Assert(err, IsNil)
@@ -64,7 +64,7 @@ func (t *serverSuite) TestConfigServerError(c *C) {
 	c.Assert(cs.Err(), Equals, err)
 }
 
-func (t *serverSuite) TestConfigServerConnect(c *C) {
+func (t *serverSuite) TestLocalctlServerConnect(c *C) {
 	for _, tc := range []struct {
 		request string
 		errMsg  string
@@ -77,11 +77,11 @@ func (t *serverSuite) TestConfigServerConnect(c *C) {
 
 		go func() {
 			v := <-ch
-			op := v.(messages.Configuration)
+			op := v.(messages.LocalCtl)
 			if op.Operation == "version" {
-				op.Rch <- messages.ConfigurationResult{Status: "ok", Message: ""}
 			} else {
-				op.Rch <- messages.ConfigurationResult{Status: "error", Message: ""}
+				op.Rch <- messages.LocalCtlResult{Status: "ok", Message: ""}
+				op.Rch <- messages.LocalCtlResult{Status: "error", Message: ""}
 			}
 
 		}()

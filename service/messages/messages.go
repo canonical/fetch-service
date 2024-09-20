@@ -180,27 +180,27 @@ func NewDeleteResources(sessionId string) DeleteResources {
 	}
 }
 
-// Configuration
+// Local ctl
 
-type Configuration struct {
-	Rch          chan ConfigurationResult
+type LocalCtl struct {
+	Rch          chan LocalCtlResult
 	Operation    string
 	Type         string
 	ValidateOnly bool
 	Payload      []byte
 }
 
-func NewConfiguration(operation, optype string, validateOnly bool, payload []byte) Configuration {
-	return Configuration{
+func NewLocalCtl(operation, optype string, validateOnly bool, payload []byte) LocalCtl {
+	return LocalCtl{
 		Operation:    operation,
 		Type:         optype,
 		ValidateOnly: validateOnly,
 		Payload:      payload,
-		Rch:          make(chan ConfigurationResult, 1),
+		Rch:          make(chan LocalCtlResult, 1),
 	}
 }
 
-type ConfigurationResult struct {
+type LocalCtlResult struct {
 	Status  string
 	Message string
 }

@@ -284,31 +284,31 @@ loop:
 			case messages.ProxyAuth:
 				v.Rch <- session.CheckAuth(v.Id, v.Pw)
 
-			case messages.Configuration:
-				logger.Infof("[service] configuration operation: %s", v.Operation)
-				var reply messages.ConfigurationResult
+			case messages.LocalCtl:
+				logger.Infof("[service] local ctl operation: %s", v.Operation)
+				var reply messages.LocalCtlResult
 				switch v.Operation {
 				case "version":
-					reply = messages.ConfigurationResult{
+					reply = messages.LocalCtlResult{
 						Status:  "ok",
 						Message: version.Version,
 					}
 				case "update-config":
 					err := configUpdateConfig(v.Type, v.ValidateOnly, v.Payload, svc.opt.Config)
 					if err != nil {
-						reply = messages.ConfigurationResult{
+						reply = messages.LocalCtlResult{
 							Status:  "error",
 							Message: fmt.Sprintf("%s configuration update error", v.Type),
 						}
 						logger.Warningf("[service] %s update error: %s", v.Type, err.Error())
 					} else if v.ValidateOnly {
-						reply = messages.ConfigurationResult{
+						reply = messages.LocalCtlResult{
 							Status:  "ok",
 							Message: "configuration validated",
 						}
 						logger.Infof("[service] %s configuration validated", v.Type)
 					} else {
-						reply = messages.ConfigurationResult{
+						reply = messages.LocalCtlResult{
 							Status:  "ok",
 							Message: "configuration updated",
 						}
@@ -317,19 +317,19 @@ loop:
 				case "update-cert":
 					err := proxyUpdateCert(v.ValidateOnly, v.Payload, svc.opt.CertPath, svc.opt.KeyPath)
 					if err != nil {
-						reply = messages.ConfigurationResult{
+						reply = messages.LocalCtlResult{
 							Status:  "error",
 							Message: "certificate update error",
 						}
 						logger.Warningf("[service] certificate update error: %s", err.Error())
 					} else if v.ValidateOnly {
-						reply = messages.ConfigurationResult{
+						reply = messages.LocalCtlResult{
 							Status:  "ok",
 							Message: "certificate validated",
 						}
 						logger.Info("[service] proxy certificate updated")
 					} else {
-						reply = messages.ConfigurationResult{
+						reply = messages.LocalCtlResult{
 							Status:  "ok",
 							Message: "proxy certificate updated",
 						}
@@ -337,7 +337,7 @@ loop:
 					}
 
 				default:
-					reply = messages.ConfigurationResult{
+					reply = messages.LocalCtlResult{
 						Status:  "error",
 						Message: "unsupported operation",
 					}
@@ -372,7 +372,7 @@ loop:
 			return svc.ctl.Err()
 
 		case <-svc.lctl.Dying():
-			return svc.cfg.Err()
+			return svc.lctl.Err()
 
 		case <-svc.p.Dying():
 			return svc.p.Err()
