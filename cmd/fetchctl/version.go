@@ -25,7 +25,7 @@ import (
 	"net"
 	"os"
 
-	ctlserver "github.com/canonical/fetch-service/service/fetchctl"
+	"github.com/canonical/fetch-service/service/fetchctl"
 )
 
 type VersionCmd struct {
@@ -44,13 +44,13 @@ func (cmd *VersionCmd) Execute(args []string) error {
 	}
 	defer conn.Close()
 
-	request := ctlserver.OperationRequest{Operation: "version"}
+	request := fetchctl.OperationRequest{Operation: "version"}
 	err = send(conn, request)
 	if err != nil {
 		return fmt.Errorf("cannot send request: %s", err)
 	}
 
-	var reply ctlserver.OperationReply
+	var reply fetchctl.OperationReply
 	if err := receive(conn, &reply); err != nil {
 		return fmt.Errorf("cannot read reply: %s", err)
 	}
