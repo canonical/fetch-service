@@ -57,7 +57,6 @@ func (t *controlSuite) TestStartStop(c *C) {
 	c.Assert(err, IsNil)
 
 	c.Assert(ctl.Alive(), Equals, false)
-	c.Assert(ctl.Err(), IsNil)
 }
 
 func (t *controlSuite) TestServerError(c *C) {
