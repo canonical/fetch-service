@@ -22,7 +22,7 @@ package service
 import (
 	"github.com/canonical/fetch-service/control"
 	"github.com/canonical/fetch-service/proxy"
-	"github.com/canonical/fetch-service/service/localctl"
+	"github.com/canonical/fetch-service/service/fetchctl"
 )
 
 func MockNewHttpProxy(mock func(int, string, []byte, []byte, chan interface{}) (*proxy.HttpProxy, error)) (restorer func()) {
@@ -41,11 +41,11 @@ func MockNewControlServer(mock func(port int, ch chan interface{}, creds string)
 	}
 }
 
-func MockNewLocalctlServer(mock func(chan interface{}) *localctl.Server) (restorer func()) {
-	old := localctlNewServer
-	localctlNewServer = mock
+func MockNewFetchctlServer(mock func(chan interface{}) *fetchctl.Server) (restorer func()) {
+	old := fetchctlNewServer
+	fetchctlNewServer = mock
 	return func() {
-		localctlNewServer = old
+		fetchctlNewServer = old
 	}
 }
 

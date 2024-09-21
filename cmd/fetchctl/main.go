@@ -27,7 +27,7 @@ import (
 
 	"github.com/jessevdk/go-flags"
 
-	"github.com/canonical/fetch-service/service/localctl"
+	ctlserver "github.com/canonical/fetch-service/service/fetchctl"
 )
 
 var (
@@ -45,7 +45,7 @@ var (
 )
 
 var (
-	localctlSocketPath = localctl.SocketPath
+	fetchctlSocketPath = ctlserver.SocketPath
 )
 
 func Run() int {

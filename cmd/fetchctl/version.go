@@ -25,14 +25,14 @@ import (
 	"net"
 	"os"
 
-	"github.com/canonical/fetch-service/service/localctl"
+	ctlserver "github.com/canonical/fetch-service/service/fetchctl"
 )
 
 type VersionCmd struct {
 }
 
 func (cmd *VersionCmd) Execute(args []string) error {
-	socket := localctlSocketPath()
+	socket := fetchctlSocketPath()
 
 	if _, err := os.Stat(socket); err != nil {
 		return errors.New("cannot access socket, is the service running?")
@@ -44,13 +44,13 @@ func (cmd *VersionCmd) Execute(args []string) error {
 	}
 	defer conn.Close()
 
-	request := localctl.OperationRequest{Operation: "version"}
+	request := ctlserver.OperationRequest{Operation: "version"}
 	err = send(conn, request)
 	if err != nil {
 		return fmt.Errorf("cannot send request: %s", err)
 	}
 
-	var reply localctl.OperationReply
+	var reply ctlserver.OperationReply
 	if err := receive(conn, &reply); err != nil {
 		return fmt.Errorf("cannot read reply: %s", err)
 	}

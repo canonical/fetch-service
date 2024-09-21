@@ -17,7 +17,7 @@
  *
  */
 
-package localctl
+package fetchctl
 
 import (
 	"context"
@@ -73,7 +73,7 @@ func (cs *Server) Start() error {
 		return err
 	}
 
-	logger.Info("Listening on local ctl socket...")
+	logger.Info("Listening on fetchctl socket...")
 	var lc net.ListenConfig
 	ln, err := lc.Listen(cs.ctx, "unix", SocketPath())
 	if err != nil {
@@ -84,7 +84,7 @@ func (cs *Server) Start() error {
 		for {
 			fd, err := ln.Accept()
 			if err != nil {
-				logger.Errorf("cannot accept local ctl connection: %s", err)
+				logger.Errorf("cannot accept fetchctl connection: %s", err)
 				continue
 			}
 
@@ -92,11 +92,11 @@ func (cs *Server) Start() error {
 			var reply []byte
 			dec := json.NewDecoder(fd)
 			if err := dec.Decode(&op); err != nil {
-				logger.Errorf("[localctl] cannot unmarshal operation request: %s", err)
+				logger.Errorf("[fetchctl] cannot unmarshal operation request: %s", err)
 				reply = buildReply("error", err.Error())
 			} else {
-				logger.Infof("[localctl] operation requested: %s", op.Operation)
-				msg := messages.NewLocalCtl(op.Operation, op.Type, op.ValidateOnly, []byte(op.Payload))
+				logger.Infof("[fetchctl] operation requested: %s", op.Operation)
+				msg := messages.NewFetchCtl(op.Operation, op.Type, op.ValidateOnly, []byte(op.Payload))
 				cs.ch <- msg
 				res := <-msg.Rch
 				reply = buildReply(res.Status, res.Message)
@@ -104,7 +104,7 @@ func (cs *Server) Start() error {
 
 			_, err = fd.Write(reply)
 			if err != nil {
-				logger.Errorf("[localctl] cannot write local ctl reply: %s", err)
+				logger.Errorf("[fetchctl] cannot write fetchtl reply: %s", err)
 
 			}
 		}
@@ -115,7 +115,7 @@ func (cs *Server) Start() error {
 }
 
 func (cs *Server) Stop() error {
-	logger.Info("Shutting down local ctl socket...")
+	logger.Info("Shutting down fetchctl socket...")
 	cs.cancel()
 	<-cs.ctx.Done()
 

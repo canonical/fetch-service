@@ -17,7 +17,7 @@
  *
  */
 
-package localctl
+package fetchctl
 
 var (
 	BuildReply = buildReply

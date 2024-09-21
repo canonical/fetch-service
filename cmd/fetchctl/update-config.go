@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/canonical/fetch-service/service/localctl"
+	ctlserver "github.com/canonical/fetch-service/service/fetchctl"
 )
 
 type UpdateConfigCmd struct {
@@ -35,7 +35,7 @@ type UpdateConfigCmd struct {
 }
 
 func (cmd *UpdateConfigCmd) Execute(args []string) error {
-	socket := localctlSocketPath()
+	socket := fetchctlSocketPath()
 
 	if err := checkSocket(socket); err != nil {
 		return err
@@ -52,7 +52,7 @@ func (cmd *UpdateConfigCmd) Execute(args []string) error {
 	}
 	defer conn.Close()
 
-	request := localctl.OperationRequest{
+	request := ctlserver.OperationRequest{
 		Operation:    "update-config",
 		Type:         cmd.Type,
 		ValidateOnly: cmd.ValidateOnly,
@@ -63,7 +63,7 @@ func (cmd *UpdateConfigCmd) Execute(args []string) error {
 		return fmt.Errorf("cannot send request: %s", err)
 	}
 
-	var reply localctl.OperationReply
+	var reply ctlserver.OperationReply
 	if err := receive(conn, &reply); err != nil {
 		return fmt.Errorf("cannot read reply: %s", err)
 	}

@@ -44,7 +44,7 @@ func (t *fetchctlSuite) TestUpdateConfig(c *C) {
 	} {
 		tmpdir := c.MkDir()
 		spath := filepath.Join(tmpdir, "test.socket")
-		restorer := fetchctl.MockLocalctlSocketPath(func() string {
+		restorer := fetchctl.MockFetchctlSocketPath(func() string {
 			return spath
 		})
 		defer restorer()

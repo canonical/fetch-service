@@ -23,10 +23,10 @@ import (
 	"encoding/json"
 	"net"
 
-	"github.com/canonical/fetch-service/service/localctl"
+	"github.com/canonical/fetch-service/service/fetchctl"
 )
 
-func send(conn net.Conn, request localctl.OperationRequest) error {
+func send(conn net.Conn, request fetchctl.OperationRequest) error {
 	data, err := json.Marshal(request)
 	if err != nil {
 		return err
@@ -35,7 +35,7 @@ func send(conn net.Conn, request localctl.OperationRequest) error {
 	return err
 }
 
-func receive(conn net.Conn, reply *localctl.OperationReply) error {
+func receive(conn net.Conn, reply *fetchctl.OperationReply) error {
 	data := make([]byte, 4096)
 	n, err := conn.Read(data)
 	if err != nil {

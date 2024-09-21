@@ -39,10 +39,10 @@ func MockPrintf(mock func(format string, a ...any)) func() {
 	}
 }
 
-func MockLocalctlSocketPath(mock func() string) func() {
-	old := localctlSocketPath
-	localctlSocketPath = mock
+func MockFetchctlSocketPath(mock func() string) func() {
+	old := fetchctlSocketPath
+	fetchctlSocketPath = mock
 	return func() {
-		localctlSocketPath = old
+		fetchctlSocketPath = old
 	}
 }

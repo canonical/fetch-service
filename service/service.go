@@ -33,7 +33,7 @@ import (
 	"github.com/canonical/fetch-service/metadata/opinions"
 	"github.com/canonical/fetch-service/proxy"
 	"github.com/canonical/fetch-service/service/config"
-	"github.com/canonical/fetch-service/service/localctl"
+	"github.com/canonical/fetch-service/service/fetchctl"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
 	"github.com/canonical/fetch-service/version"
@@ -41,13 +41,13 @@ import (
 
 // Service implements the fetch service main loop.
 type Service struct {
-	p     *proxy.HttpProxy // proxy instance
-	ctl   *control.Server  // control server
-	lctl  *localctl.Server // configuration server
-	ch    chan interface{} // channel to get feedback from handlers
-	start time.Time        // service start time (UTC)
-	opt   *Options         // configuration options
-	tomb  tomb.Tomb        // service dispatcher loop reaper
+	p        *proxy.HttpProxy // proxy instance
+	ctl      *control.Server  // control server
+	fetchctl *fetchctl.Server // configuration server
+	ch       chan interface{} // channel to get feedback from handlers
+	start    time.Time        // service start time (UTC)
+	opt      *Options         // configuration options
+	tomb     tomb.Tomb        // service dispatcher loop reaper
 
 	totalSessions uint64 // number of created sessions
 }
@@ -55,7 +55,7 @@ type Service struct {
 var (
 	proxyNewHttpProxy = proxy.NewHttpProxy
 	controlNewServer  = control.NewServer
-	localctlNewServer = localctl.NewServer
+	fetchctlNewServer = fetchctl.NewServer
 )
 
 func New(opt *Options) (*Service, error) {
@@ -73,12 +73,12 @@ func New(opt *Options) (*Service, error) {
 		return nil, err
 	}
 
-	lctl := localctlNewServer(ch)
+	fctl := fetchctlNewServer(ch)
 
 	ctl := controlNewServer(opt.ControlPort, ch, creds)
 	start := time.Now().UTC()
 
-	return &Service{p: p, ctl: ctl, lctl: lctl, opt: opt, ch: ch, start: start}, nil
+	return &Service{p: p, ctl: ctl, fetchctl: fctl, opt: opt, ch: ch, start: start}, nil
 }
 
 // Start runs the fetch service dispatcher.
@@ -94,7 +94,7 @@ func (svc *Service) Start() error {
 		return err
 	}
 
-	if err := svc.lctl.Start(); err != nil {
+	if err := svc.fetchctl.Start(); err != nil {
 		return err
 	}
 
@@ -284,31 +284,31 @@ loop:
 			case messages.ProxyAuth:
 				v.Rch <- session.CheckAuth(v.Id, v.Pw)
 
-			case messages.LocalCtl:
+			case messages.FetchCtl:
 				logger.Infof("[service] local ctl operation: %s", v.Operation)
-				var reply messages.LocalCtlResult
+				var reply messages.FetchCtlResult
 				switch v.Operation {
 				case "version":
-					reply = messages.LocalCtlResult{
+					reply = messages.FetchCtlResult{
 						Status:  "ok",
 						Message: version.Version,
 					}
 				case "update-config":
 					err := configUpdateConfig(v.Type, v.ValidateOnly, v.Payload, svc.opt.Config)
 					if err != nil {
-						reply = messages.LocalCtlResult{
+						reply = messages.FetchCtlResult{
 							Status:  "error",
 							Message: fmt.Sprintf("%s configuration update error", v.Type),
 						}
 						logger.Warningf("[service] %s update error: %s", v.Type, err.Error())
 					} else if v.ValidateOnly {
-						reply = messages.LocalCtlResult{
+						reply = messages.FetchCtlResult{
 							Status:  "ok",
 							Message: "configuration validated",
 						}
 						logger.Infof("[service] %s configuration validated", v.Type)
 					} else {
-						reply = messages.LocalCtlResult{
+						reply = messages.FetchCtlResult{
 							Status:  "ok",
 							Message: "configuration updated",
 						}
@@ -317,19 +317,19 @@ loop:
 				case "update-cert":
 					err := proxyUpdateCert(v.ValidateOnly, v.Payload, svc.opt.CertPath, svc.opt.KeyPath)
 					if err != nil {
-						reply = messages.LocalCtlResult{
+						reply = messages.FetchCtlResult{
 							Status:  "error",
 							Message: "certificate update error",
 						}
 						logger.Warningf("[service] certificate update error: %s", err.Error())
 					} else if v.ValidateOnly {
-						reply = messages.LocalCtlResult{
+						reply = messages.FetchCtlResult{
 							Status:  "ok",
 							Message: "certificate validated",
 						}
 						logger.Info("[service] proxy certificate updated")
 					} else {
-						reply = messages.LocalCtlResult{
+						reply = messages.FetchCtlResult{
 							Status:  "ok",
 							Message: "proxy certificate updated",
 						}
@@ -337,7 +337,7 @@ loop:
 					}
 
 				default:
-					reply = messages.LocalCtlResult{
+					reply = messages.FetchCtlResult{
 						Status:  "error",
 						Message: "unsupported operation",
 					}
@@ -371,8 +371,8 @@ loop:
 		case <-svc.ctl.Dying():
 			return svc.ctl.Err()
 
-		case <-svc.lctl.Dying():
-			return svc.lctl.Err()
+		case <-svc.fetchctl.Dying():
+			return svc.fetchctl.Err()
 
 		case <-svc.p.Dying():
 			return svc.p.Err()
@@ -399,7 +399,7 @@ func (svc *Service) Stop() error {
 		return fmt.Errorf("cannot shut down the HTTP server: %w", err)
 	}
 
-	if err := svc.lctl.Stop(); err != nil {
+	if err := svc.fetchctl.Stop(); err != nil {
 		return fmt.Errorf("cannot shut down the local ctl socket: %w", err)
 	}
 

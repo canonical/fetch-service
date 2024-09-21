@@ -35,7 +35,7 @@ import (
 	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/proxy"
 	"github.com/canonical/fetch-service/service"
-	"github.com/canonical/fetch-service/service/localctl"
+	"github.com/canonical/fetch-service/service/fetchctl"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
 	"github.com/canonical/fetch-service/testutils"
@@ -94,16 +94,16 @@ func (t *serviceSuite) TestProxyStartError(c *C) {
 	c.Assert(err, ErrorMatches, "proxy start error")
 }
 
-func (t *serviceSuite) TestLocalctlServerCrash(c *C) {
+func (t *serviceSuite) TestFetchctlServerCrash(c *C) {
 	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
 		return &proxy.HttpProxy{}, nil
 	})
 	defer restorer()
 
-	var lctl *localctl.Server
-	restorer = service.MockNewLocalctlServer(func(ch chan interface{}) *localctl.Server {
-		lctl = localctl.NewServer(ch)
-		return lctl
+	var fctl *fetchctl.Server
+	restorer = service.MockNewFetchctlServer(func(ch chan interface{}) *fetchctl.Server {
+		fctl = fetchctl.NewServer(ch)
+		return fctl
 	})
 	defer restorer()
 
@@ -114,7 +114,7 @@ func (t *serviceSuite) TestLocalctlServerCrash(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(svc.Alive(), Equals, true)
 
-	err = lctl.Stop() // config server crashes
+	err = fctl.Stop() // config server crashes
 	c.Assert(err, IsNil)
 	time.Sleep(2 * time.Second)
 	c.Assert(svc.Alive(), Equals, false)
@@ -796,7 +796,7 @@ func (t *serviceSuite) TestConfiguration(c *C) {
 		s := session.New(opt.Spool, 0, true)
 		defer s.Discard()
 
-		msg := messages.NewLocalCtl(tc.operation, tc.optype, tc.dryRun, nil)
+		msg := messages.NewFetchCtl(tc.operation, tc.optype, tc.dryRun, nil)
 		t.ch <- msg
 		res := <-msg.Rch
 
