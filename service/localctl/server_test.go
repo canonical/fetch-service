@@ -79,8 +79,8 @@ func (t *serverSuite) TestLocalctlServerConnect(c *C) {
 			v := <-ch
 			op := v.(messages.LocalCtl)
 			if op.Operation == "version" {
-			} else {
 				op.Rch <- messages.LocalCtlResult{Status: "ok", Message: ""}
+			} else {
 				op.Rch <- messages.LocalCtlResult{Status: "error", Message: ""}
 			}
 
