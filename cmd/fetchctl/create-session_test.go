@@ -22,7 +22,6 @@ package fetchctl_test
 import (
 	"fmt"
 	"net"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -31,16 +30,23 @@ import (
 	"github.com/canonical/fetch-service/cmd/fetchctl"
 )
 
-func (t *fetchctlSuite) TestUpdateConfig(c *C) {
+func (t *fetchctlSuite) TestCreateSession(c *C) {
 	for _, tc := range []struct {
-		optype   string
-		dryRun   bool
-		filename string
-		result   string
-		message  string
+		sid        string
+		token      string
+		timeout    int
+		permissive bool
+		payload    string
+		result     string
+		errmsg     string
 	}{
-		{"acl", false, "file.txt", "ok", ""},
-		{"invalid", false, "file.txt", "error", "unsupported type"},
+		{"", "", 0, false, "::0:strict", "ok", ""},
+		{"session-id", "", 0, false, "session-id::0:strict", "ok", ""},
+		{"", "token", 0, false, ":token:0:strict", "ok", ""},
+		{"", "", 31415, false, "::31415:strict", "ok", ""},
+		{"", "", 0, true, "::0:permissive", "ok", ""},
+		{"session-id", "token", 31415, true, "session-id:token:31415:permissive", "ok", ""},
+		{"", "", 0, false, "::0:strict", "error", "something wrong happened"},
 	} {
 		tmpdir := c.MkDir()
 		spath := filepath.Join(tmpdir, "test.socket")
@@ -59,34 +65,28 @@ func (t *fetchctlSuite) TestUpdateConfig(c *C) {
 			data := make([]byte, 4096)
 			n, err := f.Read(data)
 			c.Assert(err, IsNil)
-			c.Check(string(data[:n]), Equals, fmt.Sprintf(`{"operation":"update-config","type":%q,"payload":"content"}`, tc.optype))
+			c.Check(string(data[:n]), Equals, fmt.Sprintf(`{"operation":"create-session","payload":%q}`, tc.payload))
 
-			_, err = f.Write([]byte(fmt.Sprintf(`{"result":%q,"message":%q}`, tc.result, tc.message)))
+			_, err = f.Write([]byte(fmt.Sprintf(`{"result":%q,"message":%q}`, tc.result, tc.errmsg)))
 			c.Assert(err, IsNil)
 			f.Close()
 		}()
 
 		time.Sleep(500 * time.Millisecond)
-		filename := filepath.Join(tmpdir, tc.filename)
-		err := os.WriteFile(filename, []byte("content"), 0644)
-		c.Assert(err, IsNil)
 
-		cmd := fetchctl.UpdateConfigCmd{
-			Type:         tc.optype,
-			ValidateOnly: false,
-			Args: struct {
-				Filename string `positional-arg-name:"filename"`
-			}{
-				filename,
-			},
+		cmd := fetchctl.CreateSessionCmd{
+			SessionId:  tc.sid,
+			Token:      tc.token,
+			Timeout:    tc.timeout,
+			Permissive: tc.permissive,
 		}
 
-		res := cmd.Execute([]string{"fetchctl", "update-config", "--type=acl", filename})
+		err := cmd.Execute([]string{"fetchctl", "create-session"}) // only argv[0] is relevant
 
 		if tc.result == "ok" {
-			c.Assert(res, IsNil)
+			c.Assert(err, IsNil)
 		} else {
-			c.Assert(res, ErrorMatches, tc.message)
+			c.Assert(err.Error(), Equals, tc.errmsg)
 		}
 	}
 }

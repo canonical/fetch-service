@@ -40,6 +40,7 @@ var (
 		regexp.MustCompile(`^https://gopkg\.in:443$`),
 		regexp.MustCompile(`^https://go\.googlesource\.com:443$`),
 		regexp.MustCompile(`^https://git\.launchpad\.net:443$`),
+		regexp.MustCompile(`^https://git.qastaging.paddev.net:443$`),
 	}
 
 	reSmartQuery = regexp.MustCompile(`^/.*/info/refs$`)

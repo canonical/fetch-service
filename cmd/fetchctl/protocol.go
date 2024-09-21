@@ -21,6 +21,7 @@ package fetchctl
 
 import (
 	"encoding/json"
+	"io"
 	"net"
 
 	"github.com/canonical/fetch-service/service/fetchctl"
@@ -36,12 +37,11 @@ func send(conn net.Conn, request fetchctl.OperationRequest) error {
 }
 
 func receive(conn net.Conn, reply *fetchctl.OperationReply) error {
-	data := make([]byte, 4096)
-	n, err := conn.Read(data)
+	data, err := io.ReadAll(conn)
 	if err != nil {
 		return err
 	}
-	if err := json.Unmarshal(data[:n], reply); err != nil {
+	if err := json.Unmarshal(data, reply); err != nil {
 		return err
 	}
 	return nil

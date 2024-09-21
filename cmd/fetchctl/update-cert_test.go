@@ -61,6 +61,7 @@ func (t *fetchctlSuite) TestUpdateCert(c *C) {
 
 			_, err = f.Write([]byte(fmt.Sprintf(`{"result":%q,"message":%q}`, tc.result, tc.message)))
 			c.Assert(err, IsNil)
+			f.Close()
 		}()
 
 		time.Sleep(500 * time.Millisecond)

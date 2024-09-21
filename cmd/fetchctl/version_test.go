@@ -51,6 +51,7 @@ func (t *fetchctlSuite) TestVersion(c *C) {
 
 		_, err = f.Write([]byte(`{"result":"ok","message":"1.2.3"}`))
 		c.Assert(err, IsNil)
+		f.Close()
 	}()
 
 	time.Sleep(500 * time.Millisecond)

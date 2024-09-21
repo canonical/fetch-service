@@ -21,6 +21,7 @@ package service_test
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -751,7 +752,7 @@ func (t *serviceSuite) TestControlAuthentication(c *C) {
 	c.Assert(t.controlAuth, Equals, "suzy:shalamacookie")
 }
 
-func (t *serviceSuite) TestConfiguration(c *C) {
+func (t *serviceSuite) TestFetchctlConfiguration(c *C) {
 	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
 		t.ch = ch
 		t.proxyPort = port
@@ -808,7 +809,7 @@ func (t *serviceSuite) TestConfiguration(c *C) {
 	}
 }
 
-func (t *serviceSuite) TestCertificateUpdate(c *C) {
+func (t *serviceSuite) TestFetchctlCertificateUpdate(c *C) {
 	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
 		t.ch = ch
 		t.proxyPort = port
@@ -821,15 +822,14 @@ func (t *serviceSuite) TestCertificateUpdate(c *C) {
 	c.Assert(err, IsNil)
 
 	for _, tc := range []struct {
-		operation string
-		dryRun    bool
-		fail      bool
-		result    string
-		message   string
+		dryRun  bool
+		fail    bool
+		result  string
+		message string
 	}{
-		{"update-cert", false, false, "ok", "proxy certificate updated"},
-		{"update-cert", false, true, "error", "certificate update error"},
-		{"update-cert", true, false, "ok", "certificate validated"},
+		{false, false, "ok", "proxy certificate updated"},
+		{false, true, "error", "certificate update error"},
+		{true, false, "ok", "certificate validated"},
 	} {
 		restorer = service.MockProxyUpdateCert(func(validateOnly bool, payload []byte, certPath, keyPath string) error {
 			if tc.fail {
@@ -849,12 +849,83 @@ func (t *serviceSuite) TestCertificateUpdate(c *C) {
 		s := session.New(opt.Spool, 0, true)
 		defer s.Discard()
 
-		msg := messages.NewFetchCtl(tc.operation, "", tc.dryRun, nil)
+		msg := messages.NewFetchCtl("update-cert", "", tc.dryRun, nil)
 		t.ch <- msg
 		res := <-msg.Rch
 
 		c.Assert(res.Status, Equals, tc.result)
 		c.Assert(res.Message, Equals, tc.message)
+
+		err = svc.Stop()
+		c.Assert(err, IsNil)
+	}
+}
+
+func (t *serviceSuite) TestFetchctlCreateSession(c *C) {
+	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+		t.ch = ch
+		t.proxyPort = port
+		return &proxy.HttpProxy{}, nil
+	})
+	defer restorer()
+
+	dir := c.MkDir()
+	certPath, keyPath, err := createCertFiles(dir)
+	c.Assert(err, IsNil)
+
+	for _, tc := range []struct {
+		globalPerm bool
+		payload    string
+		sid        string
+		token      string
+		timeout    time.Duration
+		permissive bool
+	}{
+		{true, "x:y:0:strict", "x", "y", time.Duration(0), false},
+		{false, "x:y:60:strict", "x", "y", time.Duration(1 * time.Minute), false},
+		{true, "x:y:0:permissive", "x", "y", time.Duration(0), true},
+		{false, "x:y:0:permissive", "x", "y", time.Duration(0), false},
+	} {
+		var ss *session.Session
+		restorer = service.MockSessionNewWithId(func(sessionId, token, spool string, timeout time.Duration, permissive bool) *session.Session {
+			c.Check(sessionId, Equals, tc.sid)
+			c.Check(token, Equals, tc.token)
+			c.Check(timeout, Equals, tc.timeout)
+			c.Check(permissive, Equals, tc.permissive)
+
+			ss = session.NewWithId(sessionId, token, spool, timeout, permissive)
+			return ss
+		})
+		defer restorer()
+
+		spool := filepath.Join(dir, "spool")
+		opt := service.Options{
+			ProxyPort:      1337,
+			Spool:          spool,
+			CertPath:       certPath,
+			KeyPath:        keyPath,
+			PermissiveMode: tc.globalPerm,
+		}
+		svc, err := service.New(&opt)
+		c.Assert(err, IsNil)
+
+		err = svc.Start()
+		c.Assert(err, IsNil)
+
+		msg := messages.NewFetchCtl("create-session", "", false, []byte(tc.payload))
+		t.ch <- msg
+		res := <-msg.Rch
+		defer ss.Finish()
+
+		var policy string
+		if tc.permissive {
+			policy = "permissive"
+		} else {
+			policy = "strict"
+		}
+
+		c.Assert(res.Status, Equals, "ok")
+		c.Assert(res.Message, Equals, fmt.Sprintf("session x:y created (%s)", policy))
 
 		err = svc.Stop()
 		c.Assert(err, IsNil)

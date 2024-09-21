@@ -135,10 +135,8 @@ func (ins *UploadPackInspector) InspectRequest(a RequestArtefact) error {
 	// Special actions for commands
 	switch command {
 	case "ls-refs":
-		// check if url matches
-		if info.project == "" {
-			return nil
-		}
+		// do nothing
+
 	case "fetch":
 		// allow fetch only if shallow and single ref
 		isShallow := false

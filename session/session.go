@@ -75,14 +75,20 @@ var (
 // spoolDir. The session is automatically finished if it times out.
 func New(spoolDir string, timeout time.Duration, permissive bool) *Session {
 	sessionId := makeSessionId()
+	token := randomString(20)
 
+	return NewWithId(sessionId, token, spoolDir, timeout, permissive)
+}
+
+// NewWithId creates a session using the specified sessionId and token.
+func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permissive bool) *Session {
 	if timeout == 0 {
 		timeout = DefaultSessionTimeout
 	}
 
 	s := &Session{
 		Id:         sessionId,
-		Token:      randomString(20),
+		Token:      token,
 		Start:      time.Now().UTC(),
 		A:          map[digests.Sha256Digest]*metadata.Artefact{},
 		Permissive: permissive,
