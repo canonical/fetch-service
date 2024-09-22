@@ -808,6 +808,59 @@ func (t *serviceSuite) TestConfiguration(c *C) {
 	}
 }
 
+func (t *serviceSuite) TestCertificateUpdate(c *C) {
+	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+		t.ch = ch
+		t.proxyPort = port
+		return &proxy.HttpProxy{}, nil
+	})
+	defer restorer()
+
+	dir := c.MkDir()
+	certPath, keyPath, err := createCertFiles(dir)
+	c.Assert(err, IsNil)
+
+	for _, tc := range []struct {
+		operation string
+		dryRun    bool
+		fail      bool
+		result    string
+		message   string
+	}{
+		{"update-cert", false, false, "ok", "proxy certificate updated"},
+		{"update-cert", false, true, "error", "certificate update error"},
+		{"update-cert", true, false, "ok", "certificate validated"},
+	} {
+		restorer = service.MockProxyUpdateCert(func(validateOnly bool, payload []byte, certPath, keyPath string) error {
+			if tc.fail {
+				return errors.New("something failed")
+			}
+			return nil
+		})
+		defer restorer()
+
+		spool := filepath.Join(dir, "spool")
+		opt := service.Options{ProxyPort: 1337, Spool: spool, CertPath: certPath, KeyPath: keyPath}
+		svc, err := service.New(&opt)
+		c.Assert(err, IsNil)
+
+		err = svc.Start()
+		c.Assert(err, IsNil)
+		s := session.New(opt.Spool, 0, true)
+		defer s.Discard()
+
+		msg := messages.NewFetchCtl(tc.operation, "", tc.dryRun, nil)
+		t.ch <- msg
+		res := <-msg.Rch
+
+		c.Assert(res.Status, Equals, tc.result)
+		c.Assert(res.Message, Equals, tc.message)
+
+		err = svc.Stop()
+		c.Assert(err, IsNil)
+	}
+}
+
 func createCertFiles(dir string) (string, string, error) {
 	certPath := filepath.Join(dir, "cert")
 	if err := os.WriteFile(certPath, testutils.ProxyCert, 0644); err != nil {

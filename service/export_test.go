@@ -56,3 +56,11 @@ func MockConfigUpdateConfig(mock func(string, bool, []byte, string) error) (rest
 		configUpdateConfig = old
 	}
 }
+
+func MockProxyUpdateCert(mock func(bool, []byte, string, string) error) (restorer func()) {
+	old := proxyUpdateCert
+	proxyUpdateCert = mock
+	return func() {
+		proxyUpdateCert = old
+	}
+}
