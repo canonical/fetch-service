@@ -25,6 +25,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"testing"
 
 	. "gopkg.in/check.v1"
 
@@ -38,22 +39,24 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 )
 
-type sourcecraftGitSuite struct{}
+type sourcecraftSuite struct{}
 
-var _ = Suite(&sourcecraftGitSuite{})
+var _ = Suite(&sourcecraftSuite{})
 
-func (t *sourcecraftGitSuite) SetUpTest(c *C) {
+func (t *sourcecraftSuite) SetUpTest(c *C) {
 	testlogger.Init(logger.InfoLevel)
 }
 
-func (s *sourcecraftGitSuite) TestSourcecraftGitInspectorInterface(c *C) {
+func Test(t *testing.T) { TestingT(t) }
+
+func (s *sourcecraftSuite) TestSourcecraftInspectorInterface(c *C) {
 	var iface Inspector
 	ins := craft.NewSourcecraftInspector()
 	c.Assert(ins, Implements, &iface)
 
 }
 
-func (s *sourcecraftGitSuite) TestUploadPackInspectorID(c *C) {
+func (s *sourcecraftSuite) TestUploadPackInspectorID(c *C) {
 	ins := craft.NewSourcecraftInspector()
 	c.Assert(ins.ID(), Equals, "craft.sourcecraft")
 
@@ -103,7 +106,7 @@ func loadTestArtefactData() (*files.ArtefactFile, error) {
 	return file, err
 }
 
-func (s *sourcecraftGitSuite) TestInspectSourcecraftGitRequest(c *C) {
+func (s *sourcecraftSuite) TestInspectSourcecraftGitRequest(c *C) {
 	for _, tc := range []struct {
 		url      string
 		approved bool
@@ -146,7 +149,7 @@ func (s *sourcecraftGitSuite) TestInspectSourcecraftGitRequest(c *C) {
 	}
 }
 
-func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefact(c *C) {
+func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefact(c *C) {
 	for _, tc := range []struct {
 		is_shallow bool
 		opinion    opinions.OpinionKind
@@ -165,13 +168,21 @@ func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefact(c *C) {
 		err = ins.InspectArtefact(f, a)
 		c.Assert(err, IsNil)
 
-		inspection := a.ResponseInspection["git.sourcecraft"]
+		inspection := a.ResponseInspection["craft.sourcecraft"]
 		c.Assert(inspection.Opinion, Equals, tc.opinion)
 		c.Assert(inspection.Reason, Equals, tc.reason)
+
+		if tc.opinion == opinions.Approved {
+			c.Check(a.Metadata.Type, Equals, "application/x.canonical.sourcecraft")
+			c.Check(a.Metadata.Name, Equals, "autossh")
+			c.Check(a.Metadata.Version, Equals, "git")
+			c.Check(a.Metadata.Description, Equals, "A very short one-line summary of the package.")
+			// FIXME: add more fields to test data
+		}
 	}
 }
 
-func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefactMissingSourcecraftYaml(c *C) {
+func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactMissingSourcecraftYaml(c *C) {
 	tc := struct {
 		is_shallow bool
 		opinion    opinions.OpinionKind
@@ -196,12 +207,12 @@ func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefactMissingSourcecraf
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 
-	inspection := a.ResponseInspection["git.sourcecraft"]
+	inspection := a.ResponseInspection["craft.sourcecraft"]
 	c.Assert(inspection.Opinion, Equals, tc.opinion)
 	c.Assert(inspection.Reason, Equals, tc.reason)
 }
 
-func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefactUnreadableSourcecraftYaml(c *C) {
+func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactUnreadableSourcecraftYaml(c *C) {
 	tc := struct {
 		is_shallow bool
 		opinion    opinions.OpinionKind
@@ -226,12 +237,12 @@ func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefactUnreadableSourcec
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 
-	inspection := a.ResponseInspection["git.sourcecraft"]
+	inspection := a.ResponseInspection["craft.sourcecraft"]
 	c.Assert(inspection.Opinion, Equals, tc.opinion)
 	c.Assert(inspection.Reason, Equals, tc.reason)
 }
 
-func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefactUnableToDecodeSourcecraftYaml(c *C) {
+func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactUnableToDecodeSourcecraftYaml(c *C) {
 	tc := struct {
 		is_shallow bool
 		opinion    opinions.OpinionKind
@@ -259,7 +270,7 @@ func (s *sourcecraftGitSuite) TestSourcecraftGitInspectArtefactUnableToDecodeSou
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 
-	inspection := a.ResponseInspection["git.sourcecraft"]
+	inspection := a.ResponseInspection["craft.sourcecraft"]
 	c.Assert(inspection.Opinion, Equals, tc.opinion)
 	c.Assert(inspection.Reason, Equals, tc.reason)
 }
