@@ -104,7 +104,6 @@ func (ins *SourcecraftInspector) InspectRequest(a RequestArtefact) error {
 func (ins *SourcecraftInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
 	// FIXME: text/html is here temporarily, due to a bug in launchpad git serving
 	if a.ContentType() != "application/x-git-upload-pack-result" && a.ContentType() != "text/html" {
-		logger.Debugf("Does not handle request of type %s", a.ContentType())
 		return nil
 	}
 	logger.Debugf("Inspecting source artefact")
@@ -165,7 +164,8 @@ func (ins *SourcecraftInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 	}
 
 	// Unpack and checkout in temporary directory
-	dir, err := os.MkdirTemp("", "fetch-sourcecraft-")
+	// FIXME: unpack once for all inspectors
+	dir, err := os.MkdirTemp("", "fetch-")
 	if err != nil {
 		return err
 	}
@@ -212,7 +212,7 @@ func (ins *SourcecraftInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 	}
 
 	a.SetArtefactMetadata(ArtefactMetadata{
-		Type:        mimetypes.CraftSourcecraft,
+		Type:        mimetypes.Sourcecraft,
 		Name:        data.Name,
 		Version:     data.Version,
 		Description: data.Summary,

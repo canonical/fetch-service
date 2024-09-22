@@ -171,6 +171,14 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefact(c *C) {
 		inspection := a.ResponseInspection["craft.sourcecraft"]
 		c.Assert(inspection.Opinion, Equals, tc.opinion)
 		c.Assert(inspection.Reason, Equals, tc.reason)
+
+		if tc.opinion == opinions.Approved {
+			c.Check(a.Metadata.Type, Equals, "application/x.canonical.sourcecraft")
+			c.Check(a.Metadata.Name, Equals, "autossh")
+			c.Check(a.Metadata.Version, Equals, "git")
+			c.Check(a.Metadata.Description, Equals, "A very short one-line summary of the package.")
+			// FIXME: add more fields to test data
+		}
 	}
 }
 
