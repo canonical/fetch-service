@@ -915,7 +915,7 @@ func (t *serviceSuite) TestFetchctlCreateSession(c *C) {
 		msg := messages.NewFetchCtl("create-session", "", false, []byte(tc.payload))
 		t.ch <- msg
 		res := <-msg.Rch
-		defer ss.Finish()
+		defer ss.Finish() // nolint:errcheck
 
 		var policy string
 		if tc.permissive {
