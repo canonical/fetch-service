@@ -4,12 +4,12 @@ Sourcecraft inspector
 The Sourcecraft inspector checks whether the git
 repository that is selected for cloning is a valid sourcecraft repository.
 
-Once request is accepted for inspection it tries to extract the packed content
+Once a request is accepted for inspection it tries to extract the packed content
 of the repository. In the extracted data it looks for the ``sourcecraft.yaml``
-file. If file is found, it is used to extract the metadata of the processed
+file, which if found is used to extract the metadata of the processed
 entity.
 
-Inspector has to be called after the ``git.upload-pack`` inspector.
+This inspector has to be called after the ``git.upload-pack`` inspector.
 This inspector only supports the git v2 smart protocol.
 
 Inspector ID
@@ -30,7 +30,7 @@ Request verification
 A request is approved for the further inspection if it meets all the
 following criteria:
 
-* Request comes from the known origin
+* Request comes from a known origin
 
 * `Content-Type <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type>`_
   HTTP header field is declared as ``application/x-git-upload-pack-request``
@@ -45,10 +45,10 @@ following criteria:
 Acceptance criteria
 -------------------
 
-A repository is approved if processed artefact meets all of the following criteria:
+A repository is approved if the processed artefact meets all of the following criteria:
 
 * `Content-Type <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type>`_
-  of the request is declared as ``application/x-git-upload-pack-result``
+  of the response is declared as ``application/x-git-upload-pack-result``
 
 * The clone is
   `shallow <https://git-scm.com/docs/git-clone#Documentation/git-clone.txt-code--depthcodeemltdepthgtem>`_.
