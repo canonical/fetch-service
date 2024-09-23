@@ -62,12 +62,14 @@ A repository is approved if the processed artefact meets all of the following cr
 Rejection reasons
 -----------------
 
+A repository is rejected if any of the following criteria is met:
+
 * The clone is not
   `shallow <https://git-scm.com/docs/git-clone#Documentation/git-clone.txt-code--depthcodeemltdepthgtem>`_
 
 * Multiple git revisions were requested
-* ``sourcecraft.yaml`` cannot be read
-* ``sourcecraft.yaml`` does not have required metadata fields
+* ``sourcecraft.yaml`` file exists, but it cannot be read
+* ``sourcecraft.yaml`` file does not include required metadata fields
 
 
 Extracted metadata
