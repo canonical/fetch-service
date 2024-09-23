@@ -6,8 +6,7 @@ repository that is selected for cloning is a valid sourcecraft repository.
 
 Once a request is accepted for inspection it tries to extract the packed content
 of the repository. In the extracted data it looks for the ``sourcecraft.yaml``
-file, which if found is used to extract the metadata of the processed
-entity.
+file, which if found is used to extract the metadata of the processed project.
 
 This inspector has to be called after the ``git.upload-pack`` inspector.
 This inspector only supports the git v2 smart protocol.
