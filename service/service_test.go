@@ -35,7 +35,7 @@ import (
 	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/proxy"
 	"github.com/canonical/fetch-service/service"
-	"github.com/canonical/fetch-service/service/config"
+	"github.com/canonical/fetch-service/service/fetchctl"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
 	"github.com/canonical/fetch-service/testutils"
@@ -94,16 +94,16 @@ func (t *serviceSuite) TestProxyStartError(c *C) {
 	c.Assert(err, ErrorMatches, "proxy start error")
 }
 
-func (t *serviceSuite) TestConfigServerCrash(c *C) {
+func (t *serviceSuite) TestFetchctlServerCrash(c *C) {
 	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
 		return &proxy.HttpProxy{}, nil
 	})
 	defer restorer()
 
-	var cfg *config.Server
-	restorer = service.MockNewConfigServer(func(ch chan interface{}) *config.Server {
-		cfg = config.NewServer(ch)
-		return cfg
+	var fctl *fetchctl.Server
+	restorer = service.MockNewFetchctlServer(func(ch chan interface{}) *fetchctl.Server {
+		fctl = fetchctl.NewServer(ch)
+		return fctl
 	})
 	defer restorer()
 
@@ -114,7 +114,7 @@ func (t *serviceSuite) TestConfigServerCrash(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(svc.Alive(), Equals, true)
 
-	err = cfg.Stop() // config server crashes
+	err = fctl.Stop() // config server crashes
 	c.Assert(err, IsNil)
 	time.Sleep(2 * time.Second)
 	c.Assert(svc.Alive(), Equals, false)
@@ -796,7 +796,60 @@ func (t *serviceSuite) TestConfiguration(c *C) {
 		s := session.New(opt.Spool, 0, true)
 		defer s.Discard()
 
-		msg := messages.NewConfiguration(tc.operation, tc.optype, tc.dryRun, nil)
+		msg := messages.NewFetchCtl(tc.operation, tc.optype, tc.dryRun, nil)
+		t.ch <- msg
+		res := <-msg.Rch
+
+		c.Assert(res.Status, Equals, tc.result)
+		c.Assert(res.Message, Equals, tc.message)
+
+		err = svc.Stop()
+		c.Assert(err, IsNil)
+	}
+}
+
+func (t *serviceSuite) TestCertificateUpdate(c *C) {
+	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+		t.ch = ch
+		t.proxyPort = port
+		return &proxy.HttpProxy{}, nil
+	})
+	defer restorer()
+
+	dir := c.MkDir()
+	certPath, keyPath, err := createCertFiles(dir)
+	c.Assert(err, IsNil)
+
+	for _, tc := range []struct {
+		operation string
+		dryRun    bool
+		fail      bool
+		result    string
+		message   string
+	}{
+		{"update-cert", false, false, "ok", "proxy certificate updated"},
+		{"update-cert", false, true, "error", "certificate update error"},
+		{"update-cert", true, false, "ok", "certificate validated"},
+	} {
+		restorer = service.MockProxyUpdateCert(func(validateOnly bool, payload []byte, certPath, keyPath string) error {
+			if tc.fail {
+				return errors.New("something failed")
+			}
+			return nil
+		})
+		defer restorer()
+
+		spool := filepath.Join(dir, "spool")
+		opt := service.Options{ProxyPort: 1337, Spool: spool, CertPath: certPath, KeyPath: keyPath}
+		svc, err := service.New(&opt)
+		c.Assert(err, IsNil)
+
+		err = svc.Start()
+		c.Assert(err, IsNil)
+		s := session.New(opt.Spool, 0, true)
+		defer s.Discard()
+
+		msg := messages.NewFetchCtl(tc.operation, "", tc.dryRun, nil)
 		t.ch <- msg
 		res := <-msg.Rch
 

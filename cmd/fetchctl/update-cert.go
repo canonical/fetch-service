@@ -17,13 +17,13 @@
  *
  */
 
-package fetchcfg
+package fetchctl
 
 import (
 	"fmt"
 	"net"
 
-	"github.com/canonical/fetch-service/service/config"
+	"github.com/canonical/fetch-service/service/fetchctl"
 )
 
 type UpdateCertCmd struct {
@@ -34,7 +34,7 @@ type UpdateCertCmd struct {
 }
 
 func (cmd *UpdateCertCmd) Execute(args []string) error {
-	socket := configSocketPath()
+	socket := fetchctlSocketPath()
 
 	if err := checkSocket(socket); err != nil {
 		return err
@@ -51,7 +51,7 @@ func (cmd *UpdateCertCmd) Execute(args []string) error {
 	}
 	defer conn.Close()
 
-	request := config.OperationRequest{
+	request := fetchctl.OperationRequest{
 		Operation:    "update-cert",
 		ValidateOnly: cmd.ValidateOnly,
 		Payload:      string(content),
@@ -61,7 +61,7 @@ func (cmd *UpdateCertCmd) Execute(args []string) error {
 		return fmt.Errorf("cannot send request: %s", err)
 	}
 
-	var reply config.OperationReply
+	var reply fetchctl.OperationReply
 	if err := receive(conn, &reply); err != nil {
 		return fmt.Errorf("cannot read reply: %s", err)
 	}

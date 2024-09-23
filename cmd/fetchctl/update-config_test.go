@@ -17,7 +17,7 @@
  *
  */
 
-package fetchcfg_test
+package fetchctl_test
 
 import (
 	"fmt"
@@ -28,10 +28,10 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/cmd/fetchcfg"
+	"github.com/canonical/fetch-service/cmd/fetchctl"
 )
 
-func (t *fetchcfgSuite) TestUpdateConfig(c *C) {
+func (t *fetchctlSuite) TestUpdateConfig(c *C) {
 	for _, tc := range []struct {
 		optype   string
 		dryRun   bool
@@ -44,7 +44,7 @@ func (t *fetchcfgSuite) TestUpdateConfig(c *C) {
 	} {
 		tmpdir := c.MkDir()
 		spath := filepath.Join(tmpdir, "test.socket")
-		restorer := fetchcfg.MockConfigSocketPath(func() string {
+		restorer := fetchctl.MockFetchctlSocketPath(func() string {
 			return spath
 		})
 		defer restorer()
@@ -70,7 +70,7 @@ func (t *fetchcfgSuite) TestUpdateConfig(c *C) {
 		err := os.WriteFile(filename, []byte("content"), 0644)
 		c.Assert(err, IsNil)
 
-		cmd := fetchcfg.UpdateConfigCmd{
+		cmd := fetchctl.UpdateConfigCmd{
 			Type:         tc.optype,
 			ValidateOnly: false,
 			Args: struct {
@@ -80,7 +80,7 @@ func (t *fetchcfgSuite) TestUpdateConfig(c *C) {
 			},
 		}
 
-		res := cmd.Execute([]string{"fetchcfg", "update-config", "--type=acl", filename})
+		res := cmd.Execute([]string{"fetchctl", "update-config", "--type=acl", filename})
 
 		if tc.result == "ok" {
 			c.Assert(res, IsNil)

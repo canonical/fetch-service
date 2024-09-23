@@ -17,7 +17,7 @@
  *
  */
 
-package fetchcfg
+package fetchctl
 
 import (
 	"errors"
@@ -25,16 +25,14 @@ import (
 	"net"
 	"os"
 
-	"github.com/canonical/fetch-service/service/config"
+	"github.com/canonical/fetch-service/service/fetchctl"
 )
 
 type VersionCmd struct {
 }
 
-var configSocketPath = config.SocketPath
-
 func (cmd *VersionCmd) Execute(args []string) error {
-	socket := configSocketPath()
+	socket := fetchctlSocketPath()
 
 	if _, err := os.Stat(socket); err != nil {
 		return errors.New("cannot access socket, is the service running?")
@@ -46,13 +44,13 @@ func (cmd *VersionCmd) Execute(args []string) error {
 	}
 	defer conn.Close()
 
-	request := config.OperationRequest{Operation: "version"}
+	request := fetchctl.OperationRequest{Operation: "version"}
 	err = send(conn, request)
 	if err != nil {
 		return fmt.Errorf("cannot send request: %s", err)
 	}
 
-	var reply config.OperationReply
+	var reply fetchctl.OperationReply
 	if err := receive(conn, &reply); err != nil {
 		return fmt.Errorf("cannot read reply: %s", err)
 	}

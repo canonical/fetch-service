@@ -17,7 +17,7 @@
  *
  */
 
-package config_test
+package fetchctl_test
 
 import (
 	"encoding/json"
@@ -29,7 +29,7 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/service/config"
+	"github.com/canonical/fetch-service/service/fetchctl"
 	"github.com/canonical/fetch-service/service/messages"
 )
 
@@ -37,14 +37,14 @@ type serverSuite struct{}
 
 var _ = Suite(&serverSuite{})
 
-func (t *serverSuite) TestConfigServer(c *C) {
+func (t *serverSuite) TestfetchctlServer(c *C) {
 	ch := make(chan interface{})
-	cs := config.NewServer(ch)
+	cs := fetchctl.NewServer(ch)
 
 	err := cs.Start()
 	c.Assert(err, IsNil)
 
-	fi, err := os.Stat(config.SocketPath())
+	fi, err := os.Stat(fetchctl.SocketPath())
 	c.Assert(err, IsNil)
 	c.Check(fi.Mode()&fs.ModeSocket, Equals, fs.ModeSocket)
 
@@ -52,9 +52,9 @@ func (t *serverSuite) TestConfigServer(c *C) {
 	c.Assert(err, IsNil)
 }
 
-func (t *serverSuite) TestConfigServerError(c *C) {
+func (t *serverSuite) TestfetchctlServerError(c *C) {
 	ch := make(chan interface{})
-	cs := config.NewServer(ch)
+	cs := fetchctl.NewServer(ch)
 
 	err := cs.Start()
 	c.Assert(err, IsNil)
@@ -64,7 +64,7 @@ func (t *serverSuite) TestConfigServerError(c *C) {
 	c.Assert(cs.Err(), Equals, err)
 }
 
-func (t *serverSuite) TestConfigServerConnect(c *C) {
+func (t *serverSuite) TestfetchctlServerConnect(c *C) {
 	for _, tc := range []struct {
 		request string
 		errMsg  string
@@ -73,15 +73,15 @@ func (t *serverSuite) TestConfigServerConnect(c *C) {
 		{`not a valid json`, "invalid character .*"},
 	} {
 		ch := make(chan interface{})
-		cs := config.NewServer(ch)
+		cs := fetchctl.NewServer(ch)
 
 		go func() {
 			v := <-ch
-			op := v.(messages.Configuration)
+			op := v.(messages.FetchCtl)
 			if op.Operation == "version" {
-				op.Rch <- messages.ConfigurationResult{Status: "ok", Message: ""}
+				op.Rch <- messages.FetchCtlResult{Status: "ok", Message: ""}
 			} else {
-				op.Rch <- messages.ConfigurationResult{Status: "error", Message: ""}
+				op.Rch <- messages.FetchCtlResult{Status: "error", Message: ""}
 			}
 
 		}()
@@ -89,7 +89,7 @@ func (t *serverSuite) TestConfigServerConnect(c *C) {
 		err := cs.Start()
 		c.Assert(err, IsNil)
 
-		conn, err := net.Dial("unix", config.SocketPath())
+		conn, err := net.Dial("unix", fetchctl.SocketPath())
 		c.Assert(err, IsNil)
 
 		_, err = conn.Write([]byte(tc.request))
@@ -99,7 +99,7 @@ func (t *serverSuite) TestConfigServerConnect(c *C) {
 		n, err := conn.Read(data)
 		c.Assert(err, IsNil)
 
-		var reply config.OperationReply
+		var reply fetchctl.OperationReply
 		err = json.Unmarshal(data[:n], &reply)
 		c.Assert(err, IsNil)
 
@@ -116,11 +116,11 @@ func (t *serverSuite) TestConfigServerConnect(c *C) {
 }
 
 func (t *serverSuite) TestBuildReply(c *C) {
-	x := config.BuildReply("foo", "bar")
+	x := fetchctl.BuildReply("foo", "bar")
 	c.Assert(string(x), Equals, `{"result":"foo","message":"bar"}`)
 }
 
 func (t *serverSuite) TestSocketPath(c *C) {
-	x := config.SocketPath()
+	x := fetchctl.SocketPath()
 	c.Assert(strings.HasPrefix(x, os.TempDir()), Equals, true)
 }

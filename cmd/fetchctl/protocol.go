@@ -17,16 +17,16 @@
  *
  */
 
-package fetchcfg
+package fetchctl
 
 import (
 	"encoding/json"
 	"net"
 
-	"github.com/canonical/fetch-service/service/config"
+	"github.com/canonical/fetch-service/service/fetchctl"
 )
 
-func send(conn net.Conn, request config.OperationRequest) error {
+func send(conn net.Conn, request fetchctl.OperationRequest) error {
 	data, err := json.Marshal(request)
 	if err != nil {
 		return err
@@ -35,7 +35,7 @@ func send(conn net.Conn, request config.OperationRequest) error {
 	return err
 }
 
-func receive(conn net.Conn, reply *config.OperationReply) error {
+func receive(conn net.Conn, reply *fetchctl.OperationReply) error {
 	data := make([]byte, 4096)
 	n, err := conn.Read(data)
 	if err != nil {

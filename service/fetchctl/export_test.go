@@ -17,32 +17,12 @@
  *
  */
 
-package fetchcfg
+package fetchctl
 
-import (
-	"os"
+var (
+	BuildReply = buildReply
 )
 
-func MockArgs(args []string) func() {
-	old := os.Args
-	os.Args = args
-	return func() {
-		os.Args = old
-	}
-}
-
-func MockPrintf(mock func(format string, a ...any)) func() {
-	old := printf
-	printf = mock
-	return func() {
-		printf = old
-	}
-}
-
-func MockConfigSocketPath(mock func() string) func() {
-	old := configSocketPath
-	configSocketPath = mock
-	return func() {
-		configSocketPath = old
-	}
+func (cs *Server) ForceError(err error) {
+	cs.tomb.Kill(err)
 }

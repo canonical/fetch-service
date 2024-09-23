@@ -17,27 +17,27 @@
  *
  */
 
-package fetchcfg_test
+package fetchctl_test
 
 import (
 	"testing"
 
 	. "gopkg.in/check.v1"
 
-	"github.com/canonical/fetch-service/cmd/fetchcfg"
+	"github.com/canonical/fetch-service/cmd/fetchctl"
 )
 
 func Test(t *testing.T) { TestingT(t) }
 
-type fetchcfgSuite struct {
+type fetchctlSuite struct {
 }
 
-var _ = Suite(&fetchcfgSuite{})
+var _ = Suite(&fetchctlSuite{})
 
-func (t *fetchcfgSuite) TestRun(c *C) {
-	restorer := fetchcfg.MockArgs([]string{"fetchcfg", "invalid"})
+func (t *fetchctlSuite) TestRun(c *C) {
+	restorer := fetchctl.MockArgs([]string{"fetchctl", "invalid"})
 	defer restorer()
 
-	res := fetchcfg.Run()
+	res := fetchctl.Run()
 	c.Assert(res, Equals, 1)
 }
