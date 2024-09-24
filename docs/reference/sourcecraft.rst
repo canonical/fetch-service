@@ -26,7 +26,7 @@ None.
 Request verification
 --------------------
 
-A request is approved for the further inspection if it meets all the
+A request is approved for further inspection if it meets all the
 following criteria:
 
 * Request comes from a known origin
