@@ -83,7 +83,7 @@ The following pieces of metadata are extracted by the Sourcecraft inspector:
    ============  ====  ============================================
    Field         Used  Data source
    ============  ====  ============================================
-   type          Yes   ``application/x.craft.sourcecraft``
+   type          Yes   ``application/x.canonical.sourcecraft``
    name          Yes   ``sourcecraft.yaml`` field ``name``
    version       Yes   ``sourcecraft.yaml`` field ``version``
    description   Yes   ``sourcecraft.yaml`` field ``summary``
