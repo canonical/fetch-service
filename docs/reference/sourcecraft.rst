@@ -68,7 +68,7 @@ A repository is approved if the processed artefact meets all of the following cr
 Rejection reasons
 -----------------
 
-A repository is rejected if any of the following criteria is met:
+A repository is rejected if any of the following criteria are met:
 
 * The clone is not
   `shallow <https://git-scm.com/docs/git-clone#Documentation/git-clone.txt-code--depthcodeemltdepthgtem>`_.
