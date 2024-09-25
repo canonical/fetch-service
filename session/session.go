@@ -82,6 +82,13 @@ func New(spoolDir string, timeout time.Duration, permissive bool) *Session {
 
 // NewWithId creates a session using the specified sessionId and token.
 func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permissive bool) *Session {
+	_, ok := sessions.Load(sessionId)
+	if ok {
+		id := makeSessionId()
+		logger.Warningf("[%s] attempt to re-create existing session ID, use %s instead", sessionId, id)
+		sessionId = id
+	}
+
 	if timeout == 0 {
 		timeout = DefaultSessionTimeout
 	}
