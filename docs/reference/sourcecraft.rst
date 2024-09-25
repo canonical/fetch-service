@@ -71,11 +71,10 @@ Rejection reasons
 A repository is rejected if any of the following criteria is met:
 
 * The clone is not
-  `shallow <https://git-scm.com/docs/git-clone#Documentation/git-clone.txt-code--depthcodeemltdepthgtem>`_
-
-* Multiple git revisions were requested
-* ``sourcecraft.yaml`` file exists, but it cannot be read
-* ``sourcecraft.yaml`` file does not include required metadata fields
+  `shallow <https://git-scm.com/docs/git-clone#Documentation/git-clone.txt-code--depthcodeemltdepthgtem>`_.
+* Multiple Git revisions were requested.
+* The ``sourcecraft.yaml`` file is unreadable.
+* The ``sourcecraft.yaml`` file doesn't include the required metadata keys.
 
 
 Extracted metadata
