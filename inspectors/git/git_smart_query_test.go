@@ -25,8 +25,10 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/glob"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/git"
+	"github.com/canonical/fetch-service/inspectors/git/config"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata/opinions"
@@ -42,15 +44,24 @@ func (t *smartQuerySuite) SetUpTest(c *C) {
 
 func Test(t *testing.T) { TestingT(t) }
 
+func getTestConfig() config.GitInspectorConfig {
+	return config.GitInspectorConfig{
+		Urls: []glob.Glob{
+			glob.MustCompile("https://github.com:443"),
+			glob.MustCompile("https://git.launchpad.net:443"),
+		},
+	}
+}
+
 func (s *smartQuerySuite) TestSmartQueryInspectorInterface(c *C) {
 	var iface Inspector
-	ins := git.NewSmartQueryInspector()
+	ins := git.NewSmartQueryInspector(config.GitInspectorConfig{})
 	c.Assert(ins, Implements, &iface)
 
 }
 
 func (s *smartQuerySuite) TestSmartQueryInspectorID(c *C) {
-	ins := git.NewSmartQueryInspector()
+	ins := git.NewSmartQueryInspector(config.GitInspectorConfig{})
 	c.Assert(ins.ID(), Equals, "git.smart-query")
 
 }
@@ -60,7 +71,6 @@ func (s *smartQuerySuite) TestInspectRequest(c *C) {
 		url      string
 		approved bool
 	}{
-		// FIXME: using github as placeholder, final URLs will change
 		{"https://github.com:443/user/project.git/info/refs?service=git-upload-pack", true},
 		{"https://git.launchpad.net:443/project/info/refs?service=git-upload-pack", true},
 		{"https://git.launchpad.net:443/~user/project/+git/project/info/refs?service=git-upload-pack", true},
@@ -72,7 +82,7 @@ func (s *smartQuerySuite) TestInspectRequest(c *C) {
 		{"https://git.launchpad.com:443/project/info/refs?service=git-upload-pack", false},
 		{"https://git.lpad.net:443/~user/project/+git/project/info/refs", false},
 	} {
-		ins := git.NewSmartQueryInspector()
+		ins := git.NewSmartQueryInspector(getTestConfig())
 		a := fakeGitArtefact()
 		a.CurrentDownload.URL = tc.url
 
@@ -110,7 +120,7 @@ func (s *smartQuerySuite) TestSmartQueryInspectArtefact(c *C) {
 
 		f := strings.NewReader(tc.data)
 
-		ins := git.NewSmartQueryInspector()
+		ins := git.NewSmartQueryInspector(config.GitInspectorConfig{})
 		a.SetRequestPending(ins, "test")
 		err := ins.InspectArtefact(f, a)
 		c.Assert(err, IsNil)
