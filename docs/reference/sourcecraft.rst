@@ -1,15 +1,23 @@
 Sourcecraft inspector
 =========================
 
-The Sourcecraft inspector checks whether the git
-repository that is selected for cloning is a valid sourcecraft repository.
+The Sourcecraft inspector checks whether the Git
+repository that was selected for cloning is a valid and trustworthy
+Sourcecraft repository.
 
-Once a request is accepted for inspection it tries to extract the packed content
+Once a request is accepted for inspection it downloads and tries to extract the packed content
 of the repository. In the extracted data it looks for the ``sourcecraft.yaml``
 file, which if found is used to extract the metadata of the processed project.
 
-This inspector has to be called after the ``git.upload-pack`` inspector.
-This inspector only supports the git v2 smart protocol.
+If the metadata is missing or doesn't properly attest for the code in the
+repository, the proxy rejects the request, protecting the calling machine from
+accessing the code.
+
+This inspector must be called after the :doc:`git.upload-pack
+<git_upload_pack>` inspector, and only supports v2 of the `smart transfer
+protocol
+<https://git-scm.com/book/en/v2/Git-Internals-Transfer-Protocols#_the_smart_protocol>`_
+in Git.
 
 Inspector ID
 ------------
@@ -29,15 +37,15 @@ Request verification
 A request is approved for further inspection if it meets all the
 following criteria:
 
-* Request comes from a known origin
+* The request comes from a known origin.
 
-* `Content-Type <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type>`_
-  HTTP header field is declared as ``application/x-git-upload-pack-request``
+* The `Content-Type <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type>`_
+  HTTP header is ``application/x-git-upload-pack-request``.
 
-* `Accept <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept>`_
-  HTTP header field is declared as ``application/x-git-upload-pack-result``
+* The `Accept <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept>`_
+  HTTP header is ``application/x-git-upload-pack-result``.
 
-* Request is a response to the ``fetch`` command.
+* The request is a response to the ``fetch`` command.
 
 
 
@@ -46,17 +54,15 @@ Acceptance criteria
 
 A repository is approved if the processed artefact meets all of the following criteria:
 
-* `Content-Type <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type>`_
-  of the response is declared as ``application/x-git-upload-pack-result``
-
+* The response's `Content-Type <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type>`_
+  HTTP header is ``application/x-git-upload-pack-result``.
 * The clone is
   `shallow <https://git-scm.com/docs/git-clone#Documentation/git-clone.txt-code--depthcodeemltdepthgtem>`_.
-
 * The request is for a single revision.
 * The data is a response to the ``fetch`` command.
-* Content can be decoded using the git protocol v2.
-* Repository contains the ``sourcecraft.yaml`` file.
-* ``sourcecraft.yaml`` can be read and contains valid basic fields.
+* The content can be decoded with v2 of Git's smart transfer protocol.
+* The repository contains a ``sourcecraft.yaml`` file.
+* The ``sourcecraft.yaml`` file is readable and contains valid metadata keys.
 
 
 Rejection reasons
@@ -84,14 +90,14 @@ The following pieces of metadata are extracted by the Sourcecraft inspector:
    Field         Used  Data source
    ============  ====  ============================================
    type          Yes   ``application/x.canonical.sourcecraft``
-   name          Yes   ``sourcecraft.yaml`` field ``name``
-   version       Yes   ``sourcecraft.yaml`` field ``version``
-   description   Yes   ``sourcecraft.yaml`` field ``summary``
+   name          Yes   ``name`` key in ``sourcecraft.yaml``
+   version       Yes   ``version`` key in ``sourcecraft.yaml``
+   description   Yes   ``summary`` key in ``sourcecraft.yaml``
    vendor
    author
    author-email
    architecture
-   license       Yes   ``sourcecraft.yaml`` field ``license``
+   license       Yes   ``license`` key in ``sourcecraft.yaml``
    copyright
    ============  ====  ============================================
 
