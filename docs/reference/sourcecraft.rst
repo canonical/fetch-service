@@ -76,6 +76,10 @@ A repository is rejected if any of the following criteria is met:
 * The ``sourcecraft.yaml`` file is unreadable.
 * The ``sourcecraft.yaml`` file doesn't include the required metadata keys.
 
+If the repository is missing the ``sourcecraft.yaml`` file, the inspector can't
+determine validity on its own, and redirects the request for the further
+inspection.
+
 
 Extracted metadata
 ------------------
