@@ -102,8 +102,7 @@ func (ins *SourcecraftInspector) InspectRequest(a RequestArtefact) error {
 }
 
 func (ins *SourcecraftInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
-	// FIXME: text/html is here temporarily, due to a bug in launchpad git serving
-	if a.ContentType() != "application/x-git-upload-pack-result" && a.ContentType() != "text/html" {
+	if a.ContentType() != "application/x-git-upload-pack-result" {
 		return nil
 	}
 	logger.Debugf("Inspecting source artefact")
