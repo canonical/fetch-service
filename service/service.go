@@ -22,6 +22,8 @@ package service
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"gopkg.in/tomb.v2"
@@ -36,6 +38,7 @@ import (
 	"github.com/canonical/fetch-service/service/fetchctl"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
+	"github.com/canonical/fetch-service/utils"
 	"github.com/canonical/fetch-service/version"
 )
 
@@ -56,6 +59,7 @@ var (
 	proxyNewHttpProxy = proxy.NewHttpProxy
 	controlNewServer  = control.NewServer
 	fetchctlNewServer = fetchctl.NewServer
+	sessionNewWithId  = session.NewWithId
 )
 
 func New(opt *Options) (*Service, error) {
@@ -73,12 +77,14 @@ func New(opt *Options) (*Service, error) {
 		return nil, err
 	}
 
-	fctl := fetchctlNewServer(ch)
-
-	ctl := controlNewServer(opt.ControlPort, ch, creds)
-	start := time.Now().UTC()
-
-	return &Service{p: p, ctl: ctl, fetchctl: fctl, opt: opt, ch: ch, start: start}, nil
+	return &Service{
+		p:        p,
+		ctl:      controlNewServer(opt.ControlPort, ch, creds),
+		fetchctl: fetchctlNewServer(ch),
+		opt:      opt,
+		ch:       ch,
+		start:    time.Now().UTC(),
+	}, nil
 }
 
 // Start runs the fetch service dispatcher.
@@ -285,7 +291,7 @@ loop:
 				v.Rch <- session.CheckAuth(v.Id, v.Pw)
 
 			case messages.FetchCtl:
-				logger.Infof("[service] local ctl operation: %s", v.Operation)
+				logger.Infof("[service] fetchctl operation: %s", v.Operation)
 				var reply messages.FetchCtlResult
 				switch v.Operation {
 				case "version":
@@ -334,6 +340,46 @@ loop:
 							Message: "proxy certificate updated",
 						}
 						logger.Info("[service] certificate updated")
+					}
+				case "create-session":
+					parms := strings.Split(string(v.Payload), ":")
+					if len(parms) != 4 {
+						reply = messages.FetchCtlResult{Status: "error", Message: "malformed payload"}
+						break
+					}
+					permissive := svc.opt.PermissiveMode && parms[3] == "permissive"
+
+					t, err := strconv.Atoi(parms[2])
+					if err != nil {
+						reply = messages.FetchCtlResult{Status: "error", Message: "cannot parse timeout"}
+						break
+					}
+
+					timeout := time.Duration(t) * time.Second
+					s := sessionNewWithId(parms[0], parms[1], svc.opt.Spool, timeout, permissive)
+
+					reply = messages.FetchCtlResult{
+						Status:  "ok",
+						Message: fmt.Sprintf("session %s:%s created (%s)", s.Id, s.Token, s.Metadata().Policy),
+					}
+					logger.Infof("[service] session %s created", s.Id)
+					svc.totalSessions++
+
+				case "list-artefacts":
+					sessionId := string(v.Payload)
+					s := session.GetSession(sessionId)
+					if s == nil {
+						reply = messages.FetchCtlResult{Status: "error", Message: "session does not exist"}
+						break
+					}
+					j, err := utils.JSONMarshalIndentNoHTMLEscape(s.Artefacts(), "", "   ")
+					if err != nil {
+						reply = messages.FetchCtlResult{Status: "error", Message: err.Error()}
+						break
+					}
+					reply = messages.FetchCtlResult{
+						Status:  "ok",
+						Message: string(j),
 					}
 
 				default:
@@ -400,7 +446,7 @@ func (svc *Service) Stop() error {
 	}
 
 	if err := svc.fetchctl.Stop(); err != nil {
-		return fmt.Errorf("cannot shut down the local ctl socket: %w", err)
+		return fmt.Errorf("cannot shut down the fetchctl socket: %w", err)
 	}
 
 	if err := svc.ctl.Stop(); err != nil {

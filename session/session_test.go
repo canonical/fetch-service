@@ -71,6 +71,25 @@ func (t *sessionSuite) TestNewSession(c *C) {
 	c.Assert(s, Equals, session.GetSession(s.Id))
 }
 
+func (t *sessionSuite) TestNewWithId(c *C) {
+	restorer := session.MockMakeSessionId(func() string {
+		return "6ba7b8109dad11d180b400c04fd430c8"
+	})
+	defer restorer()
+
+	tmp := c.MkDir()
+	s := session.NewWithId("known-session-id", "known-token", tmp, 0, true)
+	defer s.Discard()
+	c.Assert(s.Id, Equals, "known-session-id")
+	c.Assert(s.Token, Equals, "known-token")
+
+	// Re-create session with same ID
+	s = session.NewWithId("known-session-id", "known-token", tmp, 0, true)
+	defer s.Discard()
+	c.Assert(s.Id, Equals, "6ba7b8109dad11d180b400c04fd430c8")
+	c.Assert(s.Token, Equals, "known-token")
+}
+
 func (t *sessionSuite) TestRandomString(c *C) {
 	for _, n := range []int{0, 10, 20} {
 		x := session.RandomString(n)

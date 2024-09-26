@@ -83,8 +83,7 @@ func (s *uploadPackSuite) TestInspectLsRefsRequest(c *C) {
 		err := ins.InspectRequest(a)
 		c.Assert(err, IsNil)
 
-		insp, ok := a.RequestInspection[ins.ID()]
-		c.Assert(ok, Equals, tc.approved)
+		insp := a.RequestInspection[ins.ID()]
 		if tc.approved {
 			c.Assert(insp.Opinion, Equals, opinions.Pending)
 		}

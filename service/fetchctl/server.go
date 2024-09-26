@@ -105,8 +105,8 @@ func (cs *Server) Start() error {
 			_, err = fd.Write(reply)
 			if err != nil {
 				logger.Errorf("[fetchctl] cannot write fetchtl reply: %s", err)
-
 			}
+			fd.Close()
 		}
 
 	})
