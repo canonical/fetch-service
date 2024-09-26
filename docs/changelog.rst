@@ -2,6 +2,22 @@
 Changelog
 *********
 
+0.2.1 (2024-09-25)
+------------------
+
+- fix: remove inspecting text/html in sourcecraft inspector (#229)
+
+0.2.0 (2024-09-25)
+------------------
+
+- service: implement idle auto-shutdown (#183)
+- feat(service): add configuration socket server (#190)
+- feat(config): add service configuration client (#191)
+- feat: add Maven POM inspector (#192)
+- feat(config): add update-config command (#199)
+- feat(config): add update-cert command (#206)
+- feat: add sourcecraft inspector (#217)
+
 0.1.4 (2024-07-30)
 ------------------
 
