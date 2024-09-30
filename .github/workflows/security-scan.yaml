@@ -10,4 +10,4 @@ on:
 jobs:
   go-scans:
     name: Scan Go project
-    uses: canonical/starflow/.github/workflows/scan-golang.yaml@master
+    uses: canonical/starflow/.github/workflows/scan-golang.yaml@main
