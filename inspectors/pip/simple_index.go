@@ -95,7 +95,10 @@ func parseHtmlIndex(ins *SimpleIndexInspector, f ArtefactReader, a ResponseArtef
 			t := z.Token()
 			if t.Data == "meta" {
 				ver, ok := extractMetaProperty(t, "pypi:repository-version")
-				if ok && ver == "1.1" {
+				if !ok {
+					break
+				}
+				if ver == "1.1" || ver == "1.2" {
 					u, err := url.Parse(a.DownloadURL())
 					if err != nil {
 						return err
@@ -121,6 +124,14 @@ func parseHtmlIndex(ins *SimpleIndexInspector, f ArtefactReader, a ResponseArtef
 						},
 					)
 					return nil
+				} else {
+					a.SetResponseRejected(ins, "unknown pypi repository version").Annotate(
+						Annotation{
+							"format":             "HTML",
+							"repository-version": ver,
+						},
+					)
+
 				}
 			}
 		}

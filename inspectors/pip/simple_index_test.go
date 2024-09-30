@@ -20,6 +20,7 @@
 package pip_test
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -129,48 +130,66 @@ func (s *simpleIndexSuite) TestWheelInspectArtefactBadContent(c *C) {
 }
 
 func (s *simpleIndexSuite) TestWheelInspectArtefact(c *C) {
-	tmp := c.MkDir()
-	filename := filepath.Join(tmp, "index.html")
-	err := os.WriteFile(filename, []byte("<!DOCTYPE html>\n"+
-		"<html>\n"+
-		"  <head>\n"+
-		`    <meta name="pypi:repository-version" content="1.1">\n`+
-		"    <title>Links for foobar</title>\n"+
-		"  </head>\n"+
-		"  <body>\n"+
-		"    <h1>Links for foobar</h1>\n"+
-		"  </body>\n"+
-		"</html>"), 0755)
-	c.Assert(err, IsNil)
+	for _, tc := range []struct {
+		ver     string
+		failMsg string
+	}{
+		{"1.1", ""},
+		{"1.2", ""},
+		{"2.0", "unknown pypi repository version"},
+	} {
+		tmp := c.MkDir()
+		filename := filepath.Join(tmp, "index.html")
+		err := os.WriteFile(filename, []byte(fmt.Sprintf("<!DOCTYPE html>\n"+
+			"<html>\n"+
+			"  <head>\n"+
+			`    <meta name="pypi:repository-version" content=%q>\n`+
+			"    <title>Links for foobar</title>\n"+
+			"  </head>\n"+
+			"  <body>\n"+
+			"    <h1>Links for foobar</h1>\n"+
+			"  </body>\n"+
+			"</html>", tc.ver)), 0755)
+		c.Assert(err, IsNil)
 
-	ins := pip.NewSimpleIndexInspector()
-	h, _ := digests.NewSha1Digest("85fc2d2a3764089191e57cd552601278a5985c46")
+		ins := pip.NewSimpleIndexInspector()
+		h, _ := digests.NewSha1Digest("85fc2d2a3764089191e57cd552601278a5985c46")
 
-	a := metadata.NewArtefact()
-	a.Metadata.Type = "text/html"
-	a.Metadata.Sha1 = h
-	a.MimeType = mimetype.Lookup("text/html")
-	a.CurrentDownload.URL = "https://pypi.org:443/simple/foobar/"
-	a.RequestInspection["pip.simple-index"] = &Inspection{
-		Opinion:     opinions.Pending,
-		Reason:      "some reason",
-		Annotations: Annotation{"package-name": "foobar"},
+		a := metadata.NewArtefact()
+		a.Metadata.Type = "text/html"
+		a.Metadata.Sha1 = h
+		a.MimeType = mimetype.Lookup("text/html")
+		a.CurrentDownload.URL = "https://pypi.org:443/simple/foobar/"
+		a.RequestInspection["pip.simple-index"] = &Inspection{
+			Opinion:     opinions.Pending,
+			Reason:      "some reason",
+			Annotations: Annotation{"package-name": "foobar"},
+		}
+
+		f, err := files.OpenArtefactFile(filename)
+		c.Assert(err, IsNil)
+		defer f.Close()
+
+		err = ins.InspectArtefact(f, a)
+		c.Assert(err, IsNil)
+
+		if tc.failMsg == "" {
+			c.Assert(a.Approved(), Equals, true)
+			c.Check(a.Metadata.Type, Equals, "text/html")
+			c.Check(a.Metadata.Name, Equals, "Simple index for 'foobar'")
+			c.Check(a.Metadata.Vendor, Equals, "pypi.org")
+			c.Check(a.Metadata.Description, Equals, "PyPI repository index HTML file for package 'foobar'")
+			c.Check(a.Metadata.Author, Equals, "pypi.org")
+			c.Check(a.Metadata.AuthorEmail, Equals, "")
+			c.Check(a.Metadata.License, Equals, "")
+		} else {
+			c.Assert(a.Rejected(), Equals, true)
+			c.Check(a.ResponseInspection["pip.simple-index"].Reason, Equals, tc.failMsg)
+		}
+
+		c.Check(a.ResponseInspection["pip.simple-index"].Annotations, DeepEquals, Annotation{
+			"format":             "HTML",
+			"repository-version": tc.ver,
+		})
 	}
-
-	f, err := files.OpenArtefactFile(filename)
-	c.Assert(err, IsNil)
-	defer f.Close()
-
-	err = ins.InspectArtefact(f, a)
-	c.Assert(err, IsNil)
-	c.Assert(a.Approved(), Equals, true)
-
-	c.Check(a.Metadata.Type, Equals, "text/html")
-	c.Check(a.Metadata.Name, Equals, "Simple index for 'foobar'")
-	c.Check(a.Metadata.Vendor, Equals, "pypi.org")
-	c.Check(a.Metadata.Description, Equals, "PyPI repository index HTML file for package 'foobar'")
-	c.Check(a.Metadata.Author, Equals, "pypi.org")
-	c.Check(a.Metadata.AuthorEmail, Equals, "")
-	c.Check(a.Metadata.License, Equals, "")
-	c.Assert(a.Approved(), Equals, true)
 }
