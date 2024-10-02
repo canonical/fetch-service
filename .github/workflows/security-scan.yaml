@@ -1,0 +1,13 @@
+name: Security scan
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - hotfix/*
+      - work/secscan  # For development
+
+jobs:
+  go-scans:
+    name: Scan Go project
+    uses: canonical/starflow/.github/workflows/scan-golang.yaml@main
