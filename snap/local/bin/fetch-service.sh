@@ -21,7 +21,7 @@ control_auth="$(snapctl get control.auth)"
 
 log_file="$(snapctl get log.file || true)"
 
-keyring="S{SNAP}/usr/share/keyrings/ubuntu-archive-keyring.gpg"
+keyring="${SNAP}/usr/share/keyrings/ubuntu-archive-keyring.gpg"
 key="F6ECB3762474EDA9D21B7022871920D1991BC93C"
 
 # split setting and exporting into two calls to avoid export
