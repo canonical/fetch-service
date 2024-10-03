@@ -26,36 +26,16 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/gobwas/glob"
-
+	"github.com/canonical/fetch-service/glob"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/utils"
 )
 
-type Glob struct {
-	G glob.Glob
-}
-
-func (t *Glob) UnmarshalYAML(unmarshal func(v interface{}) error) error {
-	var s string
-	if err := unmarshal(&s); err != nil {
-		return err
-	}
-
-	g, err := glob.Compile(s)
-	if err != nil {
-		return err
-	}
-
-	*t = Glob{g}
-	return nil
-}
-
 type AptInspectorConfigRepository struct {
-	Urls       []Glob `yaml:"urls"`       // List of allowed URL glob patterns
-	Dists      []Glob `yaml:"dists"`      // List of allowed dist glob patterns
-	Components []Glob `yaml:"components"` // List of allowed component glob patterns
-	PublicKey  string `yaml:"public-key"` // Repository public key
+	Urls       []glob.Glob `yaml:"urls"`       // List of allowed URL glob patterns
+	Dists      []glob.Glob `yaml:"dists"`      // List of allowed dist glob patterns
+	Components []glob.Glob `yaml:"components"` // List of allowed component glob patterns
+	PublicKey  string      `yaml:"public-key"` // Repository public key
 }
 
 type AptInspectorConfig struct {

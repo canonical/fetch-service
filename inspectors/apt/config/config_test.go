@@ -24,10 +24,9 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/gobwas/glob"
 	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v3"
 
+	"github.com/canonical/fetch-service/glob"
 	"github.com/canonical/fetch-service/inspectors/apt/config"
 )
 
@@ -37,26 +36,13 @@ var _ = Suite(&configSuite{})
 
 func Test(t *testing.T) { TestingT(t) }
 
-func (t *configSuite) TestGlobUnmarshal(c *C) {
-	type testGlob struct {
-		Foo config.Glob `yaml:"foo"`
-	}
-
-	data := []byte(`foo: "*.txt"`)
-
-	var y testGlob
-	err := yaml.Unmarshal(data, &y)
-	c.Assert(err, IsNil)
-	c.Assert(y.Foo.G, DeepEquals, glob.MustCompile("*.txt"))
-}
-
 func getTestAptConfig() config.AptInspectorConfig {
 	return config.AptInspectorConfig{
 		Repositories: map[string]config.AptInspectorConfigRepository{
 			"default": {
-				Urls:       []config.Glob{{G: glob.MustCompile("http://*.ubuntu.com/ubuntu")}},
-				Dists:      []config.Glob{{G: glob.MustCompile("focal")}},
-				Components: []config.Glob{{G: glob.MustCompile("main")}},
+				Urls:       []glob.Glob{glob.MustCompile("http://*.ubuntu.com/ubuntu")},
+				Dists:      []glob.Glob{glob.MustCompile("focal")},
+				Components: []glob.Glob{glob.MustCompile("main")},
 				PublicKey:  "",
 			},
 		},
