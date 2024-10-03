@@ -263,10 +263,8 @@ func (ins *AptPackagesInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 	// the file should be also annotated by the release inspector
 	vendor, ok := a.ResponseStringAnnotation("apt.release", "vendor")
 	if ok {
-		if ok {
-			md.Author = vendor
-			md.Vendor = vendor
-		}
+		md.Author = vendor
+		md.Vendor = vendor
 	}
 
 	a.SetArtefactMetadata(md)
