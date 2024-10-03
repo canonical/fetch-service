@@ -304,6 +304,9 @@ func parsePackages(r io.Reader, entries map[digests.Sha256Digest]aptPackagesEntr
 
 		k, v, ok := strings.Cut(line, ":")
 		if !ok {
+			// It should be safe to ignore this field; the ones we're interested
+			// should always be single-line according to
+			// https://www.debian.org/doc/debian-policy/ch-controlfields.html#syntax-of-control-files
 			logger.Debugf("ignoring unknown line format '%s'", line)
 			continue
 		}
