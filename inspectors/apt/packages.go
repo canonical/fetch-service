@@ -306,7 +306,8 @@ func parsePackages(r io.Reader, entries map[digests.Sha256Digest]aptPackagesEntr
 
 		k, v, ok := strings.Cut(line, ":")
 		if !ok {
-			return 0, fmt.Errorf("error parsing line '%s'", line)
+			logger.Debugf("ignoring unknown line format '%s'", line)
+			continue
 		}
 		v = strings.TrimSpace(v)
 

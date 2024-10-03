@@ -119,6 +119,22 @@ var packagetests = []struct {
 		"0.20221023.1237-1",
 		14936,
 	},
+	{
+		"python3-grpcio.package",
+		"e29b93360482e909d7545335b99fca8aa2f59594d7096a8c99478e9dc7b85631",
+		"python3-grpcio",
+		"arm64",
+		"1.16.1-1ubuntu5",
+		747272,
+	},
+	{
+		"btm.package",
+		"62b3c95436097e45edeebd72396831938df40de055d2e0dd9fcf276639314799",
+		"btm",
+		"amd64",
+		"0.9.6-4",
+		1607224,
+	},
 }
 
 func (s *aptSuite) TestPackageParsing(c *C) {
@@ -133,8 +149,8 @@ func (s *aptSuite) TestPackageParsing(c *C) {
 		var num int
 		num, err = apt.ParsePackages(reader, entries)
 
-		c.Assert(num, Equals, 1)
 		c.Assert(err, IsNil)
+		c.Assert(num, Equals, 1)
 		c.Assert(len(entries), Equals, 1)
 
 		for sha256, entry := range entries {
