@@ -51,8 +51,8 @@ func (t *sourcecraftSuite) SetUpTest(c *C) {
 
 func Test(t *testing.T) { TestingT(t) }
 
-func getTestSourcecraftConfig() config.SourcecraftInspectorConfig {
-	return config.SourcecraftInspectorConfig{
+func getTestSourcecraftConfig() config.CraftsInspectorConfig {
+	return config.CraftsInspectorConfig{
 		Origins: []glob.Glob{
 			glob.MustCompile("https://github.com:443"),
 			glob.MustCompile("https://git.launchpad.net:443"),
@@ -82,7 +82,7 @@ func createTestArtefact(is_shallow bool) *metadata.Artefact {
 	a.RequestInspection = metadata.InspectionMap{
 		"git.upload-pack": &Inspection{
 			Opinion: opinions.Pending,
-			Reason:  "valid URL for git upload-pack",
+			Reason:  "valid URL for sourcecraft upload-pack",
 			Annotations: Annotation{
 				"client-request": []string{
 					"command=fetch",

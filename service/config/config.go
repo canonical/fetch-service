@@ -265,8 +265,8 @@ var (
 )
 
 type InspectorsConfig struct {
-	Apt         apt_cfg.AptInspectorConfig            `yaml:"apt"`
-	Sourcecraft crafts_cfg.SourcecraftInspectorConfig `yaml:"sourcecraft"`
+	Apt    apt_cfg.AptInspectorConfig       `yaml:"apt"`
+	Crafts crafts_cfg.CraftsInspectorConfig `yaml:"crafts"`
 }
 
 func LoadInspectorsConfig(cfgdir string) error {
@@ -328,8 +328,8 @@ func GetInspectorsConfig() InspectorsConfig {
 		}
 	}
 
-	cfg.Sourcecraft.Origins = make([]glob.Glob, len(globalInspectorsConfig.Sourcecraft.Origins))
-	copy(cfg.Sourcecraft.Origins, globalInspectorsConfig.Sourcecraft.Origins)
+	cfg.Crafts.Origins = make([]glob.Glob, len(globalInspectorsConfig.Crafts.Origins))
+	copy(cfg.Crafts.Origins, globalInspectorsConfig.Crafts.Origins)
 
 	return cfg
 }

@@ -45,10 +45,10 @@ var osOpen = os.Open
 // The SourcecraftInspector handles upload-pack requests.
 // It recognizes "fetch" command from the Git v2 protocol.
 type SourcecraftInspector struct {
-	config config.SourcecraftInspectorConfig
+	config config.CraftsInspectorConfig
 }
 
-func NewSourcecraftInspector(cfg config.SourcecraftInspectorConfig) *SourcecraftInspector {
+func NewSourcecraftInspector(cfg config.CraftsInspectorConfig) *SourcecraftInspector {
 	return &SourcecraftInspector{cfg}
 }
 

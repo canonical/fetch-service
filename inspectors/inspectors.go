@@ -85,7 +85,7 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 
 		// craft
 		// must run after git
-		craft.NewSourcecraftInspector(),
+		craft.NewSourcecraftInspector(cfg.Crafts),
 
 		// go
 		// must run after git

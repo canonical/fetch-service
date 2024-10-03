@@ -49,8 +49,8 @@ func (t *configSuite) TestGlobUnmarshal(c *C) {
 	c.Assert(y.Foo, DeepEquals, glob.MustCompile("*.txt"))
 }
 
-func getTestSourcecraftConfig() config.SourcecraftInspectorConfig {
-	return config.SourcecraftInspectorConfig{
+func getTestCraftsConfig() config.CraftsInspectorConfig {
+	return config.CraftsInspectorConfig{
 		Origins: []glob.Glob{
 			glob.MustCompile("https://github.com:443"),
 		},
@@ -66,13 +66,13 @@ func (t *configSuite) TestSourcecraftUrlInfo(c *C) {
 		{"https://github.com/canonical/fetch-service/git-upload-pack", "fetch-service", ""},
 		{"https://github.com:443/canonical/fetch-service/git-upload-pack", "fetch-service", ""},
 		{"http://github.com/canonical/fetch-service/git-upload-pack", "", "invalid origin http://github.com"},
-		{"https://github.com/canonical/fetch-service", "", "not a valid git upload-pack path"},
-		{"https://github.com/canonical/fetch-service/info?service=git-upload-pack", "", "not a valid git upload-pack path"},
+		{"https://github.com/canonical/fetch-service", "", "not a valid sourcecraft upload-pack path"},
+		{"https://github.com/canonical/fetch-service/info?service=git-upload-pack", "", "not a valid sourcecraft upload-pack path"},
 	} {
 		u, err := url.Parse(tc.url)
 		c.Assert(err, IsNil)
 
-		cfg := getTestSourcecraftConfig()
+		cfg := getTestCraftsConfig()
 		info, err := config.NewSourcecraftUrlInfo(u, &cfg)
 
 		if tc.msg == "" {
