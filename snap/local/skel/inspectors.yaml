@@ -1,3 +1,6 @@
+sourcecraft:
+  origins:
+    - https://tbd:443
 
 apt:
   repositories:

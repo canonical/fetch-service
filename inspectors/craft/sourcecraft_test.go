@@ -29,8 +29,10 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/glob"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/craft"
+	"github.com/canonical/fetch-service/inspectors/craft/config"
 	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
@@ -49,15 +51,24 @@ func (t *sourcecraftSuite) SetUpTest(c *C) {
 
 func Test(t *testing.T) { TestingT(t) }
 
+func getTestSourcecraftConfig() config.SourcecraftInspectorConfig {
+	return config.SourcecraftInspectorConfig{
+		Origins: []glob.Glob{
+			glob.MustCompile("https://github.com:443"),
+			glob.MustCompile("https://git.launchpad.net:443"),
+		},
+	}
+}
+
 func (s *sourcecraftSuite) TestSourcecraftInspectorInterface(c *C) {
 	var iface Inspector
-	ins := craft.NewSourcecraftInspector()
+	ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
 	c.Assert(ins, Implements, &iface)
 
 }
 
 func (s *sourcecraftSuite) TestUploadPackInspectorID(c *C) {
-	ins := craft.NewSourcecraftInspector()
+	ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
 	c.Assert(ins.ID(), Equals, "craft.sourcecraft")
 
 }
@@ -111,7 +122,6 @@ func (s *sourcecraftSuite) TestInspectSourcecraftGitRequest(c *C) {
 		url      string
 		approved bool
 	}{
-		// FIXME: using github as placeholder, final URLs will change
 		{"https://github.com:443/user/project.git/git-upload-pack", true},
 		{"https://git.launchpad.net:443/project/git-upload-pack", true},
 		{"https://git.launchpad.net:443/~user/project/+git/project/git-upload-pack", true},
@@ -125,7 +135,7 @@ func (s *sourcecraftSuite) TestInspectSourcecraftGitRequest(c *C) {
 		{"https://git.launchpad.com:443/project/git-upload-pack", false},
 		{"https://git.lpad.net:443/~user/project/+git/project/git-upload-pack", false},
 	} {
-		ins := craft.NewSourcecraftInspector()
+		ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
 		a := metadata.NewArtefact()
 		a.CurrentDownload.URL = tc.url
 		a.CurrentDownload.RequestHeader = map[string][]string{
@@ -164,7 +174,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefact(c *C) {
 		c.Assert(err, IsNil)
 		defer f.Close()
 
-		ins := craft.NewSourcecraftInspector()
+		ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
 		err = ins.InspectArtefact(f, a)
 		c.Assert(err, IsNil)
 
@@ -202,7 +212,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactMissingSourcecraftYa
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	ins := craft.NewSourcecraftInspector()
+	ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
 
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
@@ -233,7 +243,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactUnreadableSourcecraf
 
 	a := createTestArtefact(tc.is_shallow)
 
-	ins := craft.NewSourcecraftInspector()
+	ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 
@@ -266,7 +276,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactUnableToDecodeSource
 
 	a := createTestArtefact(tc.is_shallow)
 
-	ins := craft.NewSourcecraftInspector()
+	ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 

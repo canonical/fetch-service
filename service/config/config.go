@@ -31,7 +31,9 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/canonical/fetch-service/glob"
 	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
+	crafts_cfg "github.com/canonical/fetch-service/inspectors/craft/config"
 	"github.com/canonical/fetch-service/logger"
 )
 
@@ -45,7 +47,8 @@ const (
 )
 
 const (
-	aclConfigFile = "acl.yaml"
+	aclConfigFile        = "acl.yaml"
+	inspectorsConfigFile = "inspectors.yaml"
 )
 
 func (t ACLPolicy) MarshalYAML() (interface{}, error) {
@@ -218,7 +221,22 @@ func UpdateConfig(optype string, dryRun bool, payload []byte, cfgdir string) err
 			if err := updateConfigFile(cfgdir, aclConfigFile, payload); err != nil {
 				return err
 			}
-			logger.Infof("[config] write configuration file: %s", filepath.Join(cfgdir, aclConfigFile))
+			logger.Infof("[config] write ACL configuration file: %s", filepath.Join(cfgdir, aclConfigFile))
+		}
+	case "inspectors":
+		cfg, err := decodeInspectorsConfig(r)
+		if err != nil {
+			return err
+		}
+		if !dryRun {
+			SetInspectorsConfig(cfg)
+
+			// Overwrite the configuration file only if the data is valid
+			// and we're not in a dry run.
+			if err := updateConfigFile(cfgdir, inspectorsConfigFile, payload); err != nil {
+				return err
+			}
+			logger.Infof("[config] write inspectors configuration file: %s", filepath.Join(cfgdir, inspectorsConfigFile))
 		}
 	}
 	return nil
@@ -247,11 +265,12 @@ var (
 )
 
 type InspectorsConfig struct {
-	Apt apt_cfg.AptInspectorConfig `yaml:"apt"`
+	Apt         apt_cfg.AptInspectorConfig            `yaml:"apt"`
+	Sourcecraft crafts_cfg.SourcecraftInspectorConfig `yaml:"sourcecraft"`
 }
 
 func LoadInspectorsConfig(cfgdir string) error {
-	cfgfile := filepath.Join(cfgdir, "inspectors.yaml")
+	cfgfile := filepath.Join(cfgdir, inspectorsConfigFile)
 	if _, err := os.Stat(cfgfile); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			logger.Infof("Inspectors configuration file %s does not exist", cfgfile)
@@ -267,9 +286,8 @@ func LoadInspectorsConfig(cfgdir string) error {
 	}
 	defer f.Close()
 
-	var cfg InspectorsConfig
-	dec := yaml.NewDecoder(f)
-	if err := dec.Decode(&cfg); err != nil {
+	cfg, err := decodeInspectorsConfig(f)
+	if err != nil {
 		return err
 	}
 
@@ -280,6 +298,15 @@ func LoadInspectorsConfig(cfgdir string) error {
 	logger.Info("Inspectors configuration updated")
 
 	return nil
+}
+
+func decodeInspectorsConfig(r io.Reader) (InspectorsConfig, error) {
+	var cfg InspectorsConfig
+	dec := yaml.NewDecoder(r)
+	if err := dec.Decode(&cfg); err != nil {
+		return cfg, err
+	}
+	return cfg, nil
 }
 
 func GetInspectorsConfig() InspectorsConfig {
@@ -300,6 +327,10 @@ func GetInspectorsConfig() InspectorsConfig {
 			PublicKey:  v.PublicKey,
 		}
 	}
+
+	cfg.Sourcecraft.Origins = make([]glob.Glob, len(globalInspectorsConfig.Sourcecraft.Origins))
+	copy(cfg.Sourcecraft.Origins, globalInspectorsConfig.Sourcecraft.Origins)
+
 	return cfg
 }
 
