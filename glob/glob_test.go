@@ -46,3 +46,18 @@ func (t *configSuite) TestGlobUnmarshal(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(y.Foo, DeepEquals, glob.MustCompile("*.txt"))
 }
+
+func (t *configSuite) TestGlobMatch(c *C) {
+	for _, tc := range []struct {
+		pattern string
+		s       string
+		matches bool
+	}{
+		{"b*n*a", "banana", true},
+		{"[Aa]p*le", "Apple", true},
+		{"[Aa]p*le", "Pineapple", false},
+	} {
+		g := glob.MustCompile(tc.pattern)
+		c.Check(g.Match(tc.s), Equals, tc.matches)
+	}
+}
