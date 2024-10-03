@@ -28,6 +28,7 @@ import (
 
 	"github.com/canonical/fetch-service/glob"
 	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/utils"
 )
 
 var (
@@ -40,12 +41,7 @@ type GitInspectorConfig struct {
 }
 
 func checkServerOrigin(cfg *GitInspectorConfig, u *url.URL) error {
-	var origin string
-	if u.Scheme == "https" && u.Port() == "" {
-		origin = fmt.Sprintf("%s://%s:443", u.Scheme, u.Host)
-	} else {
-		origin = fmt.Sprintf("%s://%s", u.Scheme, u.Host)
-	}
+	origin := utils.NormalizedOrigin(u)
 
 	for _, h := range cfg.Urls {
 		if h.G.Match(origin) {
