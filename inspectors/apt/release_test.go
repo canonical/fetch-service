@@ -27,10 +27,10 @@ import (
 	"strings"
 
 	"github.com/gabriel-vasile/mimetype"
-	"github.com/gobwas/glob"
 	"github.com/xi2/xz"
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/glob"
 	"github.com/canonical/fetch-service/inspectors/apt"
 	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
 	. "github.com/canonical/fetch-service/inspectors/common"
@@ -77,9 +77,9 @@ func getTestAptConfig() apt_cfg.AptInspectorConfig {
 	return apt_cfg.AptInspectorConfig{
 		Repositories: map[string]apt_cfg.AptInspectorConfigRepository{
 			"default": {
-				Urls:       []apt_cfg.Glob{{G: glob.MustCompile("http://archive.ubuntu.com/ubuntu")}},
-				Dists:      []apt_cfg.Glob{{G: glob.MustCompile("jammy")}},
-				Components: []apt_cfg.Glob{{G: glob.MustCompile("main")}},
+				Urls:       []glob.Glob{glob.MustCompile("http://archive.ubuntu.com/ubuntu")},
+				Dists:      []glob.Glob{glob.MustCompile("jammy")},
+				Components: []glob.Glob{glob.MustCompile("main")},
 				PublicKey:  publicKey,
 			},
 		},
