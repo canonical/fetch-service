@@ -1,0 +1,20 @@
+Package: 2048
+Architecture: amd64
+Version: 0.20221023.1237-1
+Priority: optional
+Section: universe/games
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 45
+Depends: libc6 (>= 2.34)
+Filename: pool/universe/2/2048/2048_0.20221023.1237-1_amd64.deb
+Size: 14936
+MD5sum: 741f7a57678af22196ee328d3359e2eb
+SHA1: 8d2333d0353a5edce5bd7f81b58e6df8d8629717
+SHA256: dbe39f124d4f4ee5c440d42805681ba5f64fe23939f460b349735956152361a1
+SHA512: 611e40842a35ad342d5c2d27b28a63cd2502f606bd8d1ae1e2837469c95941cff7e45fa2e3840f623b35519c3d384c6ac26c9d0679798b8aa7e684920d4100a7
+Homepage: https://github.com/mevdschee/2048.c
+Description: Slide and add puzzle game for text mode
+Description-md5: 2d3a24661b5ec0391d6bd1aedf7c20b7

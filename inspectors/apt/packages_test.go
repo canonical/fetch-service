@@ -22,8 +22,12 @@ package apt_test
 import (
 	"crypto/tls"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
+	"github.com/canonical/fetch-service/inspectors/apt"
+	"github.com/canonical/fetch-service/metadata/digests"
 	. "gopkg.in/check.v1"
 )
 
@@ -96,4 +100,49 @@ func (s *aptSuite) TestAptPackagesInspector(c *C) {
 			c.Check(md.Annotations["file.integrity.asserted-by"].Kind, Equals, metadata.Notice)
 			c.Check(md.Annotations["file.integrity.asserted-by"].Value, Equals, "7a0965cdce7e57af669e786379edcf45953de9bca3763342b870b3ce6d0dd777")
 	*/
+}
+
+var packagetests = []struct {
+	filename string // test file to read
+
+	sha256       string // package sha256
+	pkg          string // package name
+	architecture string // package architecture
+	version      string // package version
+	size         int64  // package size in bytes
+}{
+	{
+		"2048.package",
+		"dbe39f124d4f4ee5c440d42805681ba5f64fe23939f460b349735956152361a1",
+		"2048",
+		"amd64",
+		"0.20221023.1237-1",
+		14936,
+	},
+}
+
+func (s *aptSuite) TestPackageParsing(c *C) {
+	for _, pt := range packagetests {
+		filename := filepath.Join("tests", pt.filename)
+		reader, err := os.Open(filename)
+
+		c.Assert(err, IsNil)
+
+		entries := map[digests.Sha256Digest]apt.AptPackagesEntry{}
+
+		var num int
+		num, err = apt.ParsePackages(reader, entries)
+
+		c.Assert(num, Equals, 1)
+		c.Assert(err, IsNil)
+		c.Assert(len(entries), Equals, 1)
+
+		for sha256, entry := range entries {
+			c.Assert(sha256.String(), Equals, pt.sha256)
+			c.Assert(entry.Pkg, Equals, pt.pkg)
+			c.Assert(entry.Architecture, Equals, pt.architecture)
+			c.Assert(entry.Version, Equals, pt.version)
+			c.Assert(entry.Size, Equals, pt.size)
+		}
+	}
 }

@@ -23,6 +23,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"net/url"
 	"strconv"
 	"strings"
@@ -128,10 +129,10 @@ func AptPackagesDetector(raw []byte, limit uint32) bool {
 // aptPackagesEntry stores selected fields from each package listed in
 // each downloaded Packages.* file.
 type aptPackagesEntry struct {
-	pkg          string // package name
-	architecture string // package architecture
-	version      string // package version
-	size         int64  // package size in bytes
+	Pkg          string // package name
+	Architecture string // package architecture
+	Version      string // package version
+	Size         int64  // package size in bytes
 }
 
 // aptPackages holds information about the Packages.xz file.
@@ -244,54 +245,11 @@ func (ins *AptPackagesInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 		return err
 	}
 
-	sc := bufio.NewScanner(r)
-	sc.Split(bufio.ScanLines)
-
-	// some lines can be really long (e.g. librust-winapi-dev Provides:)
-	buf := make([]byte, 0, 64*1024)
-	sc.Buffer(buf, 1024*1024)
-
+	var num int
 	entries := map[digests.Sha256Digest]aptPackagesEntry{}
-	var e aptPackagesEntry
-
-	num := 0
-
-	for sc.Scan() {
-		line := sc.Text()
-
-		if line == "" {
-			e = aptPackagesEntry{}
-			continue
-		}
-
-		k, v, ok := strings.Cut(line, ":")
-		if !ok {
-			return fmt.Errorf("error parsing line '%s'", line)
-		}
-		v = strings.TrimSpace(v)
-
-		switch k {
-		case "Package":
-			e.pkg = v
-			num++
-		case "Version":
-			e.version = v
-		case "Architecture":
-			e.architecture = v
-		case "Size":
-			var err error
-			e.size, err = strconv.ParseInt(v, 10, 64)
-			if err != nil {
-				return fmt.Errorf("error parsing size '%s': %s", v, err)
-			}
-		case "SHA256":
-			var h digests.Sha256Digest
-			h, err = digests.NewSha256Digest(v)
-			if err != nil {
-				return fmt.Errorf("error parsing digest '%s': %s", v, err)
-			}
-			entries[h] = e
-		}
+	num, err = parsePackages(r, entries)
+	if err != nil {
+		return err
 	}
 
 	md := ArtefactMetadata{
@@ -324,6 +282,58 @@ func (ins *AptPackagesInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 	pkg.entries = entries
 
 	return nil
+}
+
+func parsePackages(r io.Reader, entries map[digests.Sha256Digest]aptPackagesEntry) (int, error) {
+	sc := bufio.NewScanner(r)
+	sc.Split(bufio.ScanLines)
+
+	// some lines can be really long (e.g. librust-winapi-dev Provides:)
+	buf := make([]byte, 0, 64*1024)
+	sc.Buffer(buf, 1024*1024)
+
+	var e aptPackagesEntry
+
+	num := 0
+
+	for sc.Scan() {
+		line := sc.Text()
+
+		if line == "" {
+			e = aptPackagesEntry{}
+			continue
+		}
+
+		k, v, ok := strings.Cut(line, ":")
+		if !ok {
+			return 0, fmt.Errorf("error parsing line '%s'", line)
+		}
+		v = strings.TrimSpace(v)
+
+		switch k {
+		case "Package":
+			e.Pkg = v
+			num++
+		case "Version":
+			e.Version = v
+		case "Architecture":
+			e.Architecture = v
+		case "Size":
+			var err error
+			e.Size, err = strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				return 0, fmt.Errorf("error parsing size '%s': %s", v, err)
+			}
+		case "SHA256":
+			h, err := digests.NewSha256Digest(v)
+			if err != nil {
+				return 0, fmt.Errorf("error parsing digest '%s': %s", v, err)
+			}
+			entries[h] = e
+		}
+	}
+
+	return num, nil
 }
 
 func (ins *AptPackagesInspector) addPackages(origin, packagesPath string, data *aptPackages) {
@@ -375,18 +385,18 @@ func (ins *AptPackagesInspector) validateDebianPackage(f ArtefactReader, a Respo
 		entry, ok := pkg.getPackagesEntry(a.Sha256())
 		if ok {
 			notes := Annotation{
-				"packages-name":         entry.pkg,           // package name in the Packages file
-				"packages-version":      entry.version,       // package version in the Packages file
-				"packages-architecture": entry.architecture,  // package architecture in the Packages file
-				"packages-size":         entry.size,          // package size in the Packages file
+				"packages-name":         entry.Pkg,           // package name in the Packages file
+				"packages-version":      entry.Version,       // package version in the Packages file
+				"packages-architecture": entry.Architecture,  // package architecture in the Packages file
+				"packages-size":         entry.Size,          // package size in the Packages file
 				"packages-file":         pkg.sha256.String(), // digest of the validating Packages file
 				"dist":                  pkg.dist,            // dist from packages file
 				"component":             info.component,      // component from URL
 			}
 
-			if a.Size() != entry.size {
+			if a.Size() != entry.Size {
 				a.SetResponseRejected(ins, "artefact size does not match Packages entry").Annotate(notes)
-			} else if info.architecture != entry.architecture {
+			} else if info.architecture != entry.Architecture {
 				a.SetResponseRejected(ins, "URL architecture does not match Packages entry").Annotate(notes)
 			} else {
 				a.SetResponseApproved(ins, "deb file matches packages entry").Annotate(notes)
