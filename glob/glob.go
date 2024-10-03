@@ -46,3 +46,7 @@ func (t *Glob) UnmarshalYAML(unmarshal func(v interface{}) error) error {
 	*t = Glob{g}
 	return nil
 }
+
+func (t *Glob) Match(s string) bool {
+	return t.G.Match(s)
+}
