@@ -25,11 +25,13 @@ import (
 	. "github.com/canonical/fetch-service/inspectors/common"
 )
 
+type AptPackagesEntry = aptPackagesEntry
 type ReleaseFile = releaseFile
 type ReleaseEntry = releaseEntry
 
 var (
 	DecodePublicKey = decodePublicKey
+	ParsePackages   = parsePackages
 )
 
 func MockCheckSignature(mock func(io.ReadSeeker, Annotation) (io.ReadSeeker, error)) (restorer func()) {
