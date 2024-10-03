@@ -1,5 +1,5 @@
 git:
-  urls:
+  origins:
     - https://git.launchpad.net:443
     - https://github.com:443
     - https://gopkg.in:443

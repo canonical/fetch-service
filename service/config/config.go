@@ -330,8 +330,8 @@ func GetInspectorsConfig() InspectorsConfig {
 		}
 	}
 
-	cfg.Git.Urls = make([]glob.Glob, len(globalInspectorsConfig.Git.Urls))
-	copy(cfg.Git.Urls, globalInspectorsConfig.Git.Urls)
+	cfg.Git.Origins = make([]glob.Glob, len(globalInspectorsConfig.Git.Origins))
+	copy(cfg.Git.Origins, globalInspectorsConfig.Git.Origins)
 
 	cfg.Crafts.Origins = make([]glob.Glob, len(globalInspectorsConfig.Crafts.Origins))
 	copy(cfg.Crafts.Origins, globalInspectorsConfig.Crafts.Origins)

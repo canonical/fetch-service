@@ -46,12 +46,12 @@ func (t *configSuite) TestGlobUnmarshal(c *C) {
 	var y testGlob
 	err := yaml.Unmarshal(data, &y)
 	c.Assert(err, IsNil)
-	c.Assert(y.Foo.G, DeepEquals, glob.MustCompile("*.txt"))
+	c.Assert(y.Foo, DeepEquals, glob.MustCompile("*.txt"))
 }
 
 func getTestGitConfig() config.GitInspectorConfig {
 	return config.GitInspectorConfig{
-		Urls: []glob.Glob{
+		Origins: []glob.Glob{
 			glob.MustCompile("https://github.com:443"),
 			glob.MustCompile("https://*.example.com:443"),
 		},

@@ -37,14 +37,14 @@ var (
 )
 
 type GitInspectorConfig struct {
-	Urls []glob.Glob `yaml:"urls"` // List of allowed URL glob patterns
+	Origins []glob.Glob `yaml:"origins"` // List of allowed URL glob patterns
 }
 
 func checkServerOrigin(cfg *GitInspectorConfig, u *url.URL) error {
 	origin := utils.NormalizedOrigin(u)
 
-	for _, h := range cfg.Urls {
-		if h.G.Match(origin) {
+	for _, h := range cfg.Origins {
+		if h.Match(origin) {
 			logger.Debugf("git url origin matches %v\n", h)
 			return nil
 		}
