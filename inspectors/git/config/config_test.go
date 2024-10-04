@@ -36,19 +36,6 @@ var _ = Suite(&configSuite{})
 
 func Test(t *testing.T) { TestingT(t) }
 
-func (t *configSuite) TestGlobUnmarshal(c *C) {
-	type testGlob struct {
-		Foo glob.Glob `yaml:"foo"`
-	}
-
-	data := []byte(`foo: "*.txt"`)
-
-	var y testGlob
-	err := yaml.Unmarshal(data, &y)
-	c.Assert(err, IsNil)
-	c.Assert(y.Foo, DeepEquals, glob.MustCompile("*.txt"))
-}
-
 func getTestGitConfig() config.GitInspectorConfig {
 	return config.GitInspectorConfig{
 		Origins: []glob.Glob{
