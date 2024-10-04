@@ -35,6 +35,7 @@ import (
 	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
 	crafts_cfg "github.com/canonical/fetch-service/inspectors/craft/config"
 	git_cfg "github.com/canonical/fetch-service/inspectors/git/config"
+	snap_cfg "github.com/canonical/fetch-service/inspectors/snap/config"
 	"github.com/canonical/fetch-service/logger"
 )
 
@@ -269,6 +270,7 @@ type InspectorsConfig struct {
 	Apt    apt_cfg.AptInspectorConfig       `yaml:"apt"`
 	Git    git_cfg.GitInspectorConfig       `yaml:"git"`
 	Crafts crafts_cfg.CraftsInspectorConfig `yaml:"crafts"`
+	Snap   snap_cfg.SnapInspectorConfig     `yaml:"snap"`
 }
 
 func LoadInspectorsConfig(cfgdir string) error {
@@ -292,6 +294,8 @@ func LoadInspectorsConfig(cfgdir string) error {
 	if err != nil {
 		return err
 	}
+
+	logger.Debugf("Inspectors configuration: %+v", cfg)
 
 	// The configuration is only updated if the configuration file
 	// is correctly parsed.
@@ -335,6 +339,16 @@ func GetInspectorsConfig() InspectorsConfig {
 
 	cfg.Crafts.Origins = make([]glob.Glob, len(globalInspectorsConfig.Crafts.Origins))
 	copy(cfg.Crafts.Origins, globalInspectorsConfig.Crafts.Origins)
+
+	cfg.Snap.SnapDeclarationFilter = make([]snap_cfg.AssertionFilter, len(globalInspectorsConfig.Snap.SnapDeclarationFilter))
+	for i, v := range globalInspectorsConfig.Snap.SnapDeclarationFilter {
+		newFilterValue := make([]string, len(v.Value))
+		copy(newFilterValue, v.Value)
+		cfg.Snap.SnapDeclarationFilter[i] = snap_cfg.AssertionFilter{
+			Name:  v.Name,
+			Value: newFilterValue,
+		}
+	}
 
 	return cfg
 }

@@ -29,6 +29,7 @@ import (
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/snap"
+	"github.com/canonical/fetch-service/inspectors/snap/config"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
@@ -39,8 +40,14 @@ var _ = Suite(&snapSuite{})
 
 func Test(t *testing.T) { TestingT(t) }
 
+func getTestSnapInspectorConfig() config.SnapInspectorConfig {
+	return config.SnapInspectorConfig{
+		SnapDeclarationFilter: []config.AssertionFilter{},
+	}
+}
+
 func (s *snapSuite) TestSnapInspectorID(c *C) {
-	ins := snap.NewSnapInspector()
+	ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
 	c.Assert(ins.ID(), Equals, "snap")
 }
 
@@ -58,7 +65,7 @@ func (s *snapSuite) TestInspectRequest(c *C) {
 		{"https://x.snapcraftcontent.com:443/subdir/foo_42.snap", false},
 		{"https://api.snapcraft.io/v2/snaps/info", false},
 	} {
-		ins := snap.NewSnapInspector()
+		ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
 		a := metadata.NewArtefact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 
@@ -74,7 +81,7 @@ func (s *snapSuite) TestInspectRequest(c *C) {
 }
 
 func (s *snapSuite) TestInspectRequestError(c *C) {
-	ins := snap.NewSnapInspector()
+	ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
 	a := metadata.NewArtefact()
 	a.CurrentDownload = metadata.Download{URL: "::"}
 
@@ -91,7 +98,7 @@ func (s *snapSuite) TestSnapArtefactInspector(c *C) {
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	ins := snap.NewSnapInspector()
+	ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
 	a.SetRequestPending(ins, "test")
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
@@ -149,7 +156,7 @@ func (s *snapSuite) TestSnapArtefactInspectorSkip(c *C) {
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	ins := snap.NewSnapInspector()
+	ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
 	a.SetRequestPending(ins, "test")
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
@@ -213,7 +220,7 @@ func (s *snapSuite) TestSnapArtefactInspectorError(c *C) {
 		c.Assert(err, IsNil)
 		defer f.Close()
 
-		ins := snap.NewSnapInspector()
+		ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
 		a.SetRequestPending(ins, "test")
 		err = ins.InspectArtefact(f, a)
 		c.Assert(err, Not(IsNil))
@@ -325,7 +332,7 @@ func (s *snapSuite) TestSnapArtefactInspectorReject(c *C) {
 		c.Assert(err, IsNil)
 		defer f.Close()
 
-		ins := snap.NewSnapInspector()
+		ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
 		a.SetRequestPending(ins, "test")
 		err = ins.InspectArtefact(f, a)
 		c.Assert(err, IsNil)
@@ -348,5 +355,69 @@ func (s *snapSuite) TestSquashFsDetector(c *C) {
 	} {
 		res := snap.SquashFsDetector(tc.buffer, uint32(len(tc.buffer)))
 		c.Assert(res, Equals, tc.result)
+	}
+}
+
+var declarationAssertion = `type: snap-declaration
+format: 1
+authority-id: canonical
+revision: 9
+series: 16
+snap-id: KtwxgRlwCAVKFw92BUdt1WloH1Va3QPo
+plugs:
+  modem-manager:
+    allow-auto-connection: true
+publisher-id: canonical
+slots:
+  modem-manager:
+    allow-connection: true
+snap-name: modem-manager
+timestamp: 2016-10-25T15:35:43.646671Z
+sign-key-sha3-384: BWDEoaqyr25nF5SNCvEv2v7QnM9QsfCc0PBMYD_i2NGSQ32EF2d4D0hqUel3m8ul
+
+AcLBUgQAAQoABgUCWA970AAABF0QAMw+M28Rrm0m/3Gm5PYesQcQWKhGwmN0j3qfYG2LsSRiM0TU
+j7K7hvCPc9v0P4sL6Ewv/CEZAkVxPYd9eUMqiyKYBRMp9QeiL7KW3RWdHok0FUN7ia7ZxcPlpKoM
+uwV7qYDKktw/TJWX9bK15W6DnghlKtU464u7IqcHVmH2YzPBbcpJBuIhLHgYC2K5oj3ZvIjHqnV/
+ELRDtwW3UTTkonycc2IUTCd10qu590z7DWzORWdts9ZARBJXfc3lohYkSd1v4wDYZHRO9RF/bJix
+LBALp3kUR6X3OnLLJQAjVhIEY70B/5kLApuhrOpmi84Uawf+Uh91Ze++Bwatrw6QGw9cwkFgoLaj
+9neiV4y6HvQh7gsgXap1XOZeOeWVMISgqaXGER78Lx6nc6/Loz8Yhjp4p9xi2Ia4j7fLpXMkWIU4
+aoGudS1hQBsbeiNQvG6I+DraMN7xypMbOkGKwqNJ7prU63D3BmZiFl17ajT3SfffEO1/H6qqRVFS
+A8X9HXVGPmI2TGst36cBgjdd9f+jj9ZqISKs8jdHfPKEpOBdH4wo1rodXO1y/GxZeP2Z710qep4t
+8ynSRPi0l3boyM15D3IfnXMjLzUoace9vC6gltOHpW8GFPZvheQwknRvtfwRpZM2VsgaSw6cuz3+
+7K/m9/Ff04A86/gvRlzduXIjEvKJ
+`
+
+func (s *snapSuite) TestSnapDeclarationFilter(c *C) {
+	for _, tc := range []struct {
+		name   string
+		value  []string
+		errMsg string
+	}{
+		{"", []string{""}, ""},
+		{"publisher-id", []string{"canonical"}, ""},
+		{"publisher-id", []string{"foo", "canonical"}, ""},
+		{"publisher-id", []string{""}, "attribute 'publisher-id' value 'canonical' is not allowed"},
+		{"publisher-id", []string{"foo", "bar"}, "attribute 'publisher-id' value 'canonical' is not allowed"},
+		{"publisher-id", []string{"foo"}, "attribute 'publisher-id' value 'canonical' is not allowed"},
+		{"color", []string{"blue"}, "attribute 'color' not found in the snap-declaration assertion"},
+	} {
+		filter := []config.AssertionFilter{}
+		if tc.name != "" {
+			filter = []config.AssertionFilter{
+				{Name: tc.name, Value: tc.value},
+			}
+		}
+
+		cfg := config.SnapInspectorConfig{SnapDeclarationFilter: filter}
+
+		a, err := snap.NewAssertion([]byte(declarationAssertion))
+		c.Assert(err, IsNil)
+
+		err = snap.CheckSnapDeclarationFilter(cfg, a)
+		if tc.errMsg == "" {
+			c.Assert(err, IsNil)
+		} else {
+			c.Assert(err, ErrorMatches, tc.errMsg)
+		}
 	}
 }
