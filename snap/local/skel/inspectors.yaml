@@ -1,3 +1,6 @@
+crafts:
+  origins:
+    - https://git.pkg.store:443
 
 apt:
   repositories:
@@ -6,7 +9,7 @@ apt:
         - http://archive.ubuntu.com/ubuntu
         - http://*.archive.ubuntu.com/ubuntu
         - http://security.ubuntu.com/ubuntu
-        - https://esm.ubuntu.com/ubuntu
+        - https://esm.ubuntu.com:443/ubuntu
       dists:
         - "*"
       components:
