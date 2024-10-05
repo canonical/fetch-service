@@ -387,7 +387,7 @@ A8X9HXVGPmI2TGst36cBgjdd9f+jj9ZqISKs8jdHfPKEpOBdH4wo1rodXO1y/GxZeP2Z710qep4t
 7K/m9/Ff04A86/gvRlzduXIjEvKJ
 `
 
-func (s *snapSuite) TestSnapDeclarationFilter(c *C) {
+func (s *snapSuite) TestCheckSnapDeclarationFilter(c *C) {
 	for _, tc := range []struct {
 		name   string
 		value  []string
@@ -418,6 +418,78 @@ func (s *snapSuite) TestSnapDeclarationFilter(c *C) {
 			c.Assert(err, IsNil)
 		} else {
 			c.Assert(err, ErrorMatches, tc.errMsg)
+		}
+	}
+}
+
+func (s *snapSuite) TestSnapDeclarationFilter(c *C) {
+	for _, tc := range []struct {
+		filter       []config.AssertionFilter
+		rejectReason string
+	}{
+
+		{
+			// no filters
+			[]config.AssertionFilter{}, "",
+		},
+		{
+			// filtering by matching publisher-id
+			[]config.AssertionFilter{
+				{Name: "publisher-id", Value: []string{"ekRMaarzOfN1Vu3sDY0Bt1aGnM8Cd4kG"}},
+			},
+			"",
+		},
+		{
+			// filtering by list including matching publisher-id
+			[]config.AssertionFilter{
+				{Name: "publisher-id", Value: []string{"canonical", "ekRMaarzOfN1Vu3sDY0Bt1aGnM8Cd4kG"}},
+			},
+			"",
+		},
+		{
+			// filtering by publisher-id and snap-name
+			[]config.AssertionFilter{
+				{Name: "publisher-id", Value: []string{"ekRMaarzOfN1Vu3sDY0Bt1aGnM8Cd4kG"}},
+				{Name: "snap-name", Value: []string{"word-salad"}},
+			},
+			"",
+		},
+		{
+			// filtering by non-matching publisher-id
+			[]config.AssertionFilter{
+				{Name: "publisher-id", Value: []string{"canonical"}},
+			},
+			"failure on snap-declaration assertion attribute check",
+		},
+		{
+			// filtering by matching publisher-id and non-maching snap-name
+			[]config.AssertionFilter{
+				{Name: "publisher-id", Value: []string{"ekRMaarzOfN1Vu3sDY0Bt1aGnM8Cd4kG"}},
+				{Name: "snap-name", Value: []string{"snorklemaster"}},
+			},
+			"failure on snap-declaration assertion attribute check",
+		},
+	} {
+		cfg := config.SnapInspectorConfig{SnapDeclarationFilter: tc.filter}
+
+		a := metadata.NewArtefact()
+		a.Metadata.Type = "application/x.squashfs"
+		a.Metadata.Size = 8192
+
+		f, err := files.OpenArtefactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
+		c.Assert(err, IsNil)
+		defer f.Close()
+
+		ins := snap.NewSnapInspector(cfg)
+		a.SetRequestPending(ins, "test")
+		err = ins.InspectArtefact(f, a)
+		c.Assert(err, IsNil)
+
+		if tc.rejectReason == "" {
+			c.Assert(a.ResponseInspection["snap"].Opinion, Equals, opinions.Approved)
+		} else {
+			c.Assert(a.ResponseInspection["snap"].Opinion, Equals, opinions.Rejected)
+			c.Assert(a.ResponseInspection["snap"].Reason, Equals, tc.rejectReason)
 		}
 	}
 }
