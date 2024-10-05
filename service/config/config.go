@@ -34,6 +34,7 @@ import (
 	"github.com/canonical/fetch-service/glob"
 	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
 	crafts_cfg "github.com/canonical/fetch-service/inspectors/craft/config"
+	git_cfg "github.com/canonical/fetch-service/inspectors/git/config"
 	"github.com/canonical/fetch-service/logger"
 )
 
@@ -266,6 +267,7 @@ var (
 
 type InspectorsConfig struct {
 	Apt    apt_cfg.AptInspectorConfig       `yaml:"apt"`
+	Git    git_cfg.GitInspectorConfig       `yaml:"git"`
 	Crafts crafts_cfg.CraftsInspectorConfig `yaml:"crafts"`
 }
 
@@ -327,6 +329,9 @@ func GetInspectorsConfig() InspectorsConfig {
 			PublicKey:  v.PublicKey,
 		}
 	}
+
+	cfg.Git.Origins = make([]glob.Glob, len(globalInspectorsConfig.Git.Origins))
+	copy(cfg.Git.Origins, globalInspectorsConfig.Git.Origins)
 
 	cfg.Crafts.Origins = make([]glob.Glob, len(globalInspectorsConfig.Crafts.Origins))
 	copy(cfg.Crafts.Origins, globalInspectorsConfig.Crafts.Origins)

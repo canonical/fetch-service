@@ -80,8 +80,8 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		apt.NewAptTranslationInspector(cfg.Apt),
 
 		// git
-		git.NewSmartQueryInspector(),
-		git.NewUploadPackInspector(),
+		git.NewSmartQueryInspector(cfg.Git),
+		git.NewUploadPackInspector(cfg.Git),
 
 		// craft
 		// must run after git

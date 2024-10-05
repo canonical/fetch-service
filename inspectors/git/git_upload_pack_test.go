@@ -29,6 +29,7 @@ import (
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/git"
+	"github.com/canonical/fetch-service/inspectors/git/config"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
@@ -45,13 +46,13 @@ func (t *uploadPackSuite) SetUpTest(c *C) {
 
 func (s *uploadPackSuite) TestUploadPackInspectorInterface(c *C) {
 	var iface Inspector
-	ins := git.NewUploadPackInspector()
+	ins := git.NewUploadPackInspector(config.GitInspectorConfig{})
 	c.Assert(ins, Implements, &iface)
 
 }
 
 func (s *uploadPackSuite) TestUploadPackInspectorID(c *C) {
-	ins := git.NewUploadPackInspector()
+	ins := git.NewUploadPackInspector(config.GitInspectorConfig{})
 	c.Assert(ins.ID(), Equals, "git.upload-pack")
 
 }
@@ -61,7 +62,6 @@ func (s *uploadPackSuite) TestInspectLsRefsRequest(c *C) {
 		url      string
 		approved bool
 	}{
-		// FIXME: using github as placeholder, final URLs will change
 		{"https://github.com:443/user/project.git/git-upload-pack", true},
 		{"https://git.launchpad.net:443/project/git-upload-pack", true},
 		{"https://git.launchpad.net:443/~user/project/+git/project/git-upload-pack", true},
@@ -74,7 +74,7 @@ func (s *uploadPackSuite) TestInspectLsRefsRequest(c *C) {
 		{"https://git.launchpad.com:443/project/git-upload-pack", false},
 		{"https://git.lpad.net:443/~user/project/+git/project/git-upload-pack", false},
 	} {
-		ins := git.NewUploadPackInspector()
+		ins := git.NewUploadPackInspector(getTestConfig())
 		a := fakeGitArtefact()
 		a.CurrentDownload.URL = tc.url
 		a.Request, _ = http.NewRequest("GET", tc.url, nil)
@@ -158,7 +158,7 @@ func (s *uploadPackSuite) TestUploadPackInspectLsRefsArtefact(c *C) {
 
 		f := strings.NewReader(tc.data)
 
-		ins := git.NewUploadPackInspector()
+		ins := git.NewUploadPackInspector(getTestConfig())
 		err := ins.InspectArtefact(f, a)
 		if tc.errmsg == "" {
 			c.Assert(err, IsNil)
@@ -172,10 +172,9 @@ func (s *uploadPackSuite) TestUploadPackInspectLsRefsArtefact(c *C) {
 }
 
 func (s *uploadPackSuite) TestInspectFetchRequest(c *C) {
-	// FIXME: using github as placeholder, final URLs will change
 	url := "https://github.com:443/user/project.git/git-upload-pack"
 
-	ins := git.NewUploadPackInspector()
+	ins := git.NewUploadPackInspector(getTestConfig())
 	a := fakeGitArtefact()
 	a.CurrentDownload.URL = url
 	a.Request, _ = http.NewRequest("GET", url, nil)
@@ -212,10 +211,9 @@ func (s *uploadPackSuite) TestInspectFetchRequest(c *C) {
 }
 
 func (s *uploadPackSuite) TestInspectFetchRequestDuplicateRef(c *C) {
-	// FIXME: using github as placeholder, final URLs will change
 	url := "https://github.com:443/user/project.git/git-upload-pack"
 
-	ins := git.NewUploadPackInspector()
+	ins := git.NewUploadPackInspector(getTestConfig())
 	a := fakeGitArtefact()
 	a.CurrentDownload.URL = url
 	a.Request, _ = http.NewRequest("GET", url, nil)
@@ -254,10 +252,9 @@ func (s *uploadPackSuite) TestInspectFetchRequestDuplicateRef(c *C) {
 }
 
 func (s *uploadPackSuite) TestInspectFetchRequestReject(c *C) {
-	// FIXME: using github as placeholder, final URLs will change
 	url := "https://github.com:443/user/project.git/git-upload-pack"
 
-	ins := git.NewUploadPackInspector()
+	ins := git.NewUploadPackInspector(getTestConfig())
 	a := fakeGitArtefact()
 	a.CurrentDownload.URL = url
 	a.Request, _ = http.NewRequest("GET", url, nil)
@@ -345,7 +342,7 @@ func (s *uploadPackSuite) TestUploadPackInspectFetchArtefact(c *C) {
 
 		f := strings.NewReader(tc.data)
 
-		ins := git.NewUploadPackInspector()
+		ins := git.NewUploadPackInspector(getTestConfig())
 		err := ins.InspectArtefact(f, a)
 		if tc.errmsg == "" {
 			c.Assert(err, IsNil)
