@@ -14,7 +14,7 @@ require (
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/klauspost/compress v1.17.10
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
-	golang.org/x/net v0.28.0
+	golang.org/x/net v0.30.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637
 	gopkg.in/yaml.v3 v3.0.1
@@ -29,7 +29,7 @@ require (
 	github.com/rasky/go-lzo v0.0.0-20200203143853-96a758eda86e // indirect
 	github.com/therootcompany/xz v1.0.1 // indirect
 	github.com/ulikunitz/xz v0.5.12 // indirect
-	golang.org/x/crypto v0.26.0 // indirect
-	golang.org/x/sys v0.23.0 // indirect
-	golang.org/x/text v0.17.0 // indirect
+	golang.org/x/crypto v0.28.0 // indirect
+	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/text v0.19.0 // indirect
 )
