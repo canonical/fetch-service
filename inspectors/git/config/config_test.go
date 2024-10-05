@@ -24,7 +24,6 @@ import (
 	"testing"
 
 	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v3"
 
 	"github.com/canonical/fetch-service/glob"
 	"github.com/canonical/fetch-service/inspectors/git/config"
