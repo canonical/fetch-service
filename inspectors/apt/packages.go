@@ -85,7 +85,7 @@ func AptPackagesDetector(raw []byte, limit uint32) bool {
 	sc := bufio.NewScanner(bytes.NewReader(buf))
 	sc.Split(bufio.ScanLines)
 
-	fields := map[string]struct{}{}
+	fields := map[string]bool{}
 
 	for sc.Scan() {
 		line := sc.Text()
@@ -102,9 +102,15 @@ func AptPackagesDetector(raw []byte, limit uint32) bool {
 			break // We have enough data to work on
 		}
 
-		fields[k] = struct{}{}
+		fields[k] = true
 	}
 
+	// Check if we have at least these fields
+	if fields["Package"] && fields["Architecture"] && fields["Version"] && fields["Built-Using"] {
+		return true
+	}
+
+	// If not, having all these is also good
 	expected_fields := []string{
 		"Package",
 		"Architecture",
@@ -245,13 +251,6 @@ func (ins *AptPackagesInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 		return err
 	}
 
-	var num int
-	entries := map[digests.Sha256Digest]aptPackagesEntry{}
-	num, err = parsePackages(r, entries)
-	if err != nil {
-		return err
-	}
-
 	md := ArtefactMetadata{
 		Type:         mimetypes.AptPackages,
 		Name:         "Packages.xz",
@@ -268,6 +267,20 @@ func (ins *AptPackagesInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 	}
 
 	a.SetArtefactMetadata(md)
+
+	var num int
+	entries := map[digests.Sha256Digest]aptPackagesEntry{}
+	num, err = parsePackages(r, entries)
+	if err != nil {
+		a.SetResponseRejected(ins, "error parsing packages file").Annotate(
+			Annotation{
+				"error-msg":     err.Error(),
+				"package-count": num,
+			},
+		)
+		return nil
+	}
+
 	a.SetResponseApproved(ins, "packages file successfully parsed").Annotate(
 		Annotation{
 			"package-count": num,

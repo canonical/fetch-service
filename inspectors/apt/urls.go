@@ -37,14 +37,15 @@ var (
 		regexp.MustCompile(`^http://archive\.ubuntu\.com$`),
 		regexp.MustCompile(`^http://[^./]\.archive\.ubuntu\.com$`),
 		regexp.MustCompile(`^http://security\.ubuntu\.com$`),
+		regexp.MustCompile(`^http://ports\.ubuntu\.com$`),
 		regexp.MustCompile(`^https://esm\.ubuntu\.com:443$`),
 		regexp.MustCompile(`^http://ftpmaster.internal$`),
 	}
 
-	reInRelease   = regexp.MustCompile(`^/ubuntu/dists/([\w-]+)/InRelease$`)
-	rePackages    = regexp.MustCompile(`^/ubuntu/dists/([\w-]+)/([\w-]+)/binary-(\w+)/by-hash/SHA256/([0-9a-f]{64})$`)
-	reTranslation = regexp.MustCompile(`^/ubuntu/dists/([\w-]+)/([\w-]+)/i18n/by-hash/SHA256/([0-9a-f]{64})$`)
-	reDebPackage  = regexp.MustCompile(`^/ubuntu/pool/([\w-]+)/.*/([^/_]+)_([^/_]+)_([^/_]+)\.deb$`)
+	reInRelease   = regexp.MustCompile(`^/ubuntu(-ports)?/dists/([\w-]+)/InRelease$`)
+	rePackages    = regexp.MustCompile(`^/ubuntu(-ports)?/dists/([\w-]+)/([\w-]+)/binary-(\w+)/by-hash/SHA256/([0-9a-f]{64})$`)
+	reTranslation = regexp.MustCompile(`^/ubuntu(-ports)?/dists/([\w-]+)/([\w-]+)/i18n/by-hash/SHA256/([0-9a-f]{64})$`)
+	reDebPackage  = regexp.MustCompile(`^/ubuntu(-ports)?/pool/([\w-]+)/.*/([^/_]+)_([^/_]+)_([^/_]+)\.deb$`)
 )
 
 func checkValidOrigin(u *url.URL) error {
@@ -69,13 +70,13 @@ func newInReleaseUrlInfo(u *url.URL) (*inReleaseUrlInfo, error) {
 	}
 
 	m := reInRelease.FindStringSubmatch(u.Path)
-	if len(m) != 2 {
+	if len(m) != 3 {
 		return nil, fmt.Errorf("%s: not a valid InRelease URL path", u.Path)
 	}
 	info := &inReleaseUrlInfo{
 		origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
-		repository: fmt.Sprintf("%s://%s/ubuntu", u.Scheme, u.Host),
-		dist:       m[1],
+		repository: fmt.Sprintf("%s://%s/ubuntu%s", u.Scheme, u.Host, m[1]),
+		dist:       m[2],
 	}
 	return info, nil
 }
@@ -95,16 +96,16 @@ func newPackagesUrlInfo(u *url.URL) (*packagesUrlInfo, error) {
 	}
 
 	m := rePackages.FindStringSubmatch(u.Path)
-	if len(m) != 5 {
+	if len(m) != 6 {
 		return nil, fmt.Errorf("%s: not a valid Packages URL path", u.Path)
 	}
 	info := &packagesUrlInfo{
 		origin:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
-		repository:   fmt.Sprintf("%s://%s/ubuntu", u.Scheme, u.Host),
-		dist:         m[1],
-		component:    m[2],
-		architecture: m[3],
-		digest:       m[4],
+		repository:   fmt.Sprintf("%s://%s/ubuntu%s", u.Scheme, u.Host, m[1]),
+		dist:         m[2],
+		component:    m[3],
+		architecture: m[4],
+		digest:       m[5],
 	}
 	return info, nil
 }
@@ -123,15 +124,15 @@ func newTranslationUrlInfo(u *url.URL) (*translationUrlInfo, error) {
 	}
 
 	m := reTranslation.FindStringSubmatch(u.Path)
-	if len(m) != 4 {
+	if len(m) != 5 {
 		return nil, fmt.Errorf("%s: not a valid translation URL path", u.Path)
 	}
 	info := &translationUrlInfo{
 		origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
-		repository: fmt.Sprintf("%s://%s/ubuntu", u.Scheme, u.Host),
-		dist:       m[1],
-		component:  m[2],
-		digest:     m[3],
+		repository: fmt.Sprintf("%s://%s/ubuntu%s", u.Scheme, u.Host, m[1]),
+		dist:       m[2],
+		component:  m[3],
+		digest:     m[4],
 	}
 	return info, nil
 }
@@ -151,16 +152,16 @@ func newDebPackageUrlInfo(u *url.URL) (*debPackageUrlInfo, error) {
 	}
 
 	m := reDebPackage.FindStringSubmatch(u.Path)
-	if len(m) != 5 {
+	if len(m) != 6 {
 		return nil, fmt.Errorf("%s: not a valid deb package URL path", u.Path)
 	}
 	info := &debPackageUrlInfo{
 		origin:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
-		repository:   fmt.Sprintf("%s://%s/ubuntu", u.Scheme, u.Host),
-		component:    m[1],
-		name:         m[2],
-		version:      m[3],
-		architecture: m[4],
+		repository:   fmt.Sprintf("%s://%s/ubuntu%s", u.Scheme, u.Host, m[1]),
+		component:    m[2],
+		name:         m[3],
+		version:      m[4],
+		architecture: m[5],
 	}
 	return info, nil
 }

@@ -32,6 +32,9 @@ type ReleaseEntry = releaseEntry
 var (
 	DecodePublicKey = decodePublicKey
 	ParsePackages   = parsePackages
+	NewAptPackages  = newAptPackages
+
+	AptPackagesInspectorAddPackages = (*AptPackagesInspector).addPackages
 )
 
 func MockCheckSignature(mock func(io.ReadSeeker, Annotation) (io.ReadSeeker, error)) (restorer func()) {

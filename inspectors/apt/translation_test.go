@@ -41,8 +41,8 @@ func (s *aptSuite) TestAptTranslationInspector(c *C) {
 		lang              string
 		translataionCount int
 	}{
-		{"tests/Translation-zh_TW.xz", true, "zh_TW", 3},
-		{"tests/Translation-zh_TW-bad.xz", false, "", 0},
+		{"testdata/Translation-zh_TW.xz", true, "zh_TW", 3},
+		{"testdata/Translation-zh_TW-bad.xz", false, "", 0},
 	} {
 		translationArtefactFile, _ := os.Open(tc.dataFile)
 		translationArtefactData := make([]byte, 1024*128)

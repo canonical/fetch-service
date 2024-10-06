@@ -153,10 +153,10 @@ func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
 		translationSize          int64
 		result                   bool
 	}{
-		{inReleaseArtefactData, "tests/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 792, true},
-		{inReleaseArtefactData, "tests/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 600, false},
-		{inReleaseArtefactData, "tests/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 792, false},
-		{inReleaseArtefactData, "tests/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 600, false},
+		{inReleaseArtefactData, "testdata/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 792, true},
+		{inReleaseArtefactData, "testdata/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 600, false},
+		{inReleaseArtefactData, "testdata/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 792, false},
+		{inReleaseArtefactData, "testdata/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 600, false},
 	} {
 		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes Annotation) (io.ReadSeeker, error) {
 			return f, nil
@@ -290,7 +290,7 @@ func (s *aptSuite) TestAptReleaseSignature(c *C) {
 	a.CurrentDownload.URL = "https://my.archive/test"
 	a.MimeType = mimetype.Lookup("text/plain")
 
-	f, err := os.Open("tests/InRelease.xz")
+	f, err := os.Open("testdata/InRelease.xz")
 	c.Assert(err, IsNil)
 	defer f.Close()
 
