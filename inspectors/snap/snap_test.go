@@ -22,6 +22,7 @@ package snap_test
 import (
 	"errors"
 	"io"
+	"os"
 	"testing"
 
 	. "gopkg.in/check.v1"
@@ -44,6 +45,33 @@ func getTestSnapInspectorConfig() config.SnapInspectorConfig {
 	return config.SnapInspectorConfig{
 		SnapDeclarationFilter: []config.AssertionFilter{},
 	}
+}
+
+func fakeAccountAssertion(signKey string) (*snap.Assertion, error) {
+	data, err := os.ReadFile("testdata/account.assert")
+	if err != nil {
+		return nil, err
+	}
+	return snap.NewAssertion(data)
+}
+
+func fakeSnapRevisionAssertion(snapSha3_384 string) (*snap.Assertion, error) {
+	data, err := os.ReadFile("testdata/snap-revision.assert")
+	if err != nil {
+		return nil, err
+	}
+	return snap.NewAssertion(data)
+}
+
+func fakeSnapDeclarationAssertion(snapSha3_384 string) (*snap.Assertion, error) {
+	data, err := os.ReadFile("testdata/snap-declaration.assert")
+	if err != nil {
+		return nil, err
+	}
+	return snap.NewAssertion(data)
+}
+
+func (s *snapSuite) Setup() {
 }
 
 func (s *snapSuite) TestSnapInspectorID(c *C) {
@@ -166,6 +194,15 @@ func (s *snapSuite) TestSnapArtefactInspectorSkip(c *C) {
 }
 
 func (s *snapSuite) TestSnapArtefactInspectorError(c *C) {
+	restore := snap.MockDownloadAccountAssertion(fakeAccountAssertion)
+	defer restore()
+
+	restore = snap.MockDownloadSnapRevisionAssertion(fakeSnapRevisionAssertion)
+	defer restore()
+
+	restore = snap.MockDownloadSnapDeclarationAssertion(fakeSnapDeclarationAssertion)
+	defer restore()
+
 	for _, tc := range []struct {
 		errorCase string
 		errorMsg  string
@@ -176,13 +213,12 @@ func (s *snapSuite) TestSnapArtefactInspectorError(c *C) {
 		{"declaration-assertion-download", "cannot retrieve snap-declaration assertion: assertion download error"},
 		{"account-assertion-download", "cannot retrieve account assertion: assertion download error"},
 	} {
-		c.Logf("error case: %s", tc.errorCase)
 
 		snap.MockComputeDigest(snap.ComputeDigestImpl)
 		snap.MockEncodeDigest(snap.EncodeDigestImpl)
-		snap.MockDownloadSnapRevisionAssertion(snap.DownloadSnapRevisionAssertionImpl)
-		snap.MockDownloadSnapDeclarationAssertion(snap.DownloadSnapDeclarationAssertionImpl)
-		snap.MockDownloadAccountAssertion(snap.DownloadAccountAssertionImpl)
+		snap.MockDownloadSnapRevisionAssertion(fakeSnapRevisionAssertion)
+		snap.MockDownloadSnapDeclarationAssertion(fakeSnapDeclarationAssertion)
+		snap.MockDownloadAccountAssertion(fakeAccountAssertion)
 
 		switch tc.errorCase {
 		case "compute-digest":
@@ -229,6 +265,15 @@ func (s *snapSuite) TestSnapArtefactInspectorError(c *C) {
 }
 
 func (s *snapSuite) TestSnapArtefactInspectorReject(c *C) {
+	restore := snap.MockDownloadAccountAssertion(fakeAccountAssertion)
+	defer restore()
+
+	restore = snap.MockDownloadSnapRevisionAssertion(fakeSnapRevisionAssertion)
+	defer restore()
+
+	restore = snap.MockDownloadSnapDeclarationAssertion(fakeSnapDeclarationAssertion)
+	defer restore()
+
 	for _, tc := range []struct {
 		rejectCase string
 		reason     string
@@ -245,9 +290,9 @@ func (s *snapSuite) TestSnapArtefactInspectorReject(c *C) {
 
 		snap.MockComputeDigest(snap.ComputeDigestImpl)
 		snap.MockEncodeDigest(snap.EncodeDigestImpl)
-		snap.MockDownloadSnapRevisionAssertion(snap.DownloadSnapRevisionAssertionImpl)
-		snap.MockDownloadSnapDeclarationAssertion(snap.DownloadSnapDeclarationAssertionImpl)
-		snap.MockDownloadAccountAssertion(snap.DownloadAccountAssertionImpl)
+		snap.MockDownloadSnapRevisionAssertion(fakeSnapRevisionAssertion)
+		snap.MockDownloadSnapDeclarationAssertion(fakeSnapDeclarationAssertion)
+		snap.MockDownloadAccountAssertion(fakeAccountAssertion)
 
 		switch tc.rejectCase {
 		case "snap-revision-signature-mismatch":
@@ -423,6 +468,15 @@ func (s *snapSuite) TestCheckSnapDeclarationFilter(c *C) {
 }
 
 func (s *snapSuite) TestSnapDeclarationFilter(c *C) {
+	restore := snap.MockDownloadAccountAssertion(fakeAccountAssertion)
+	defer restore()
+
+	restore = snap.MockDownloadSnapRevisionAssertion(fakeSnapRevisionAssertion)
+	defer restore()
+
+	restore = snap.MockDownloadSnapDeclarationAssertion(fakeSnapDeclarationAssertion)
+	defer restore()
+
 	for _, tc := range []struct {
 		filter       []config.AssertionFilter
 		rejectReason string
