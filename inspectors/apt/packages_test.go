@@ -39,7 +39,7 @@ func (s *aptSuite) TestAptPackagesInspectorID(c *C) {
 	c.Assert(ins.ID(), Equals, "apt.packages")
 }
 
-func (s *aptSuite) TestCargoInspectRequest(c *C) {
+func (s *aptSuite) TestAptPackagesInspectRequest(c *C) {
 	for _, tc := range []struct {
 		url      string
 		detected bool
