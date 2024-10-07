@@ -32,6 +32,8 @@ var (
 	DownloadSnapRevisionAssertionImpl    = downloadSnapRevisionAssertion
 	DownloadSnapDeclarationAssertionImpl = downloadSnapDeclarationAssertion
 	DownloadAccountAssertionImpl         = downloadAccountAssertion
+
+	CheckSnapDeclarationFilter = checkSnapDeclarationFilter
 )
 
 type Assertion = assertion

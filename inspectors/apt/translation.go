@@ -28,6 +28,7 @@ import (
 
 	"github.com/xi2/xz"
 
+	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/logger"
@@ -97,10 +98,11 @@ func AptTranslationDetector(raw []byte, limit uint32) bool {
 // AptTranslationInspector contains inspector-specific contextual data for stateful
 // analysis within a fetch session.
 type AptTranslationInspector struct {
+	config apt_cfg.AptInspectorConfig
 }
 
-func NewAptTranslationInspector() *AptTranslationInspector {
-	return &AptTranslationInspector{}
+func NewAptTranslationInspector(cfg apt_cfg.AptInspectorConfig) *AptTranslationInspector {
+	return &AptTranslationInspector{config: cfg}
 }
 
 func (ins *AptTranslationInspector) ID() string {
@@ -113,12 +115,12 @@ func (ins *AptTranslationInspector) InspectRequest(a RequestArtefact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	if info, err := newTranslationUrlInfo(u); err == nil {
+	if info, err := apt_cfg.NewTranslationUrlInfo(u, &ins.config); err == nil {
 		a.SetRequestPending(ins, "valid URL for Translation file").Annotate(
 			Annotation{
-				"repository": info.repository,
-				"dist":       info.dist,
-				"component":  info.component,
+				"repository": info.Repository,
+				"dist":       info.Dist,
+				"component":  info.Component,
 			},
 		)
 	}

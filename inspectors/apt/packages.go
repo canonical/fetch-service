@@ -31,10 +31,12 @@ import (
 
 	"github.com/xi2/xz"
 
+	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata/digests"
+	"github.com/canonical/fetch-service/utils"
 )
 
 // Component Packages.xz file
@@ -180,11 +182,14 @@ func (pkg *aptPackages) getPackagesEntry(digest digests.Sha256Digest) (aptPackag
 type AptPackagesInspector struct {
 	packages     map[string]map[string]*aptPackages // maps origin to Packages file data
 	packagesLock sync.Mutex
+
+	config apt_cfg.AptInspectorConfig
 }
 
-func NewAptPackagesInspector() *AptPackagesInspector {
+func NewAptPackagesInspector(cfg apt_cfg.AptInspectorConfig) *AptPackagesInspector {
 	return &AptPackagesInspector{
 		packages: make(map[string]map[string]*aptPackages),
+		config:   cfg,
 	}
 }
 
@@ -198,25 +203,25 @@ func (ins *AptPackagesInspector) InspectRequest(a RequestArtefact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	if info, err := newPackagesUrlInfo(u); err == nil {
+	if info, err := apt_cfg.NewPackagesUrlInfo(u, &ins.config); err == nil {
 		a.SetRequestPending(ins, "valid URL for Packages file").Annotate(
 			Annotation{
-				"repository":   info.repository,
-				"dist":         info.dist,
-				"component":    info.component,
-				"architecture": info.architecture,
+				"repository":   info.Repository,
+				"dist":         info.Dist,
+				"component":    info.Component,
+				"architecture": info.Architecture,
 			},
 		)
-		packages := newAptPackages(info.origin, info.dist, info.component, info.architecture)
-		ins.addPackages(info.origin, u.Path, packages)
-	} else if info, err := newDebPackageUrlInfo(u); err == nil {
+		packages := newAptPackages(info.Origin, info.Dist, info.Component, info.Architecture)
+		ins.addPackages(info.Origin, u.Path, packages)
+	} else if info, err := apt_cfg.NewDebPackageUrlInfo(u, &ins.config); err == nil {
 		a.SetRequestPending(ins, "valid URL for deb package").Annotate(
 			Annotation{
-				"repository":   info.repository,
-				"component":    info.component,
-				"name":         info.name,
-				"version":      info.version,
-				"architecture": info.architecture,
+				"repository":   info.Repository,
+				"component":    info.Component,
+				"name":         info.Name,
+				"version":      info.Version,
+				"architecture": info.Architecture,
 			},
 		)
 	}
@@ -238,10 +243,10 @@ func (ins *AptPackagesInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	origin := fmt.Sprintf("%s://%s", u.Scheme, u.Host)
+	origin := utils.NormalizedOrigin(u)
 	pkg, ok := ins.getPackages(origin, u.Path)
 	if !ok {
-		return fmt.Errorf("inconsistent package state: %q, %q", origin, u.Path)
+		return fmt.Errorf("inconsistent package state: '%s', '%s'", origin, u.Path)
 	}
 	pkg.sha256 = a.Sha256()
 
@@ -388,9 +393,9 @@ func (ins *AptPackagesInspector) validateDebianPackage(f ArtefactReader, a Respo
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
-	origin := fmt.Sprintf("%s://%s", u.Scheme, u.Host)
+	origin := utils.NormalizedOrigin(u)
 
-	info, err := newDebPackageUrlInfo(u)
+	info, err := apt_cfg.NewDebPackageUrlInfo(u, &ins.config)
 	if err != nil {
 		return fmt.Errorf("invalid deb package URL")
 	}
@@ -406,12 +411,12 @@ func (ins *AptPackagesInspector) validateDebianPackage(f ArtefactReader, a Respo
 				"packages-size":         entry.Size,          // package size in the Packages file
 				"packages-file":         pkg.sha256.String(), // digest of the validating Packages file
 				"dist":                  pkg.dist,            // dist from packages file
-				"component":             info.component,      // component from URL
+				"component":             info.Component,      // component from URL
 			}
 
 			if a.Size() != entry.Size {
 				a.SetResponseRejected(ins, "artefact size does not match Packages entry").Annotate(notes)
-			} else if info.architecture != entry.Architecture {
+			} else if info.Architecture != entry.Architecture {
 				a.SetResponseRejected(ins, "URL architecture does not match Packages entry").Annotate(notes)
 			} else {
 				a.SetResponseApproved(ins, "deb file matches packages entry").Annotate(notes)

@@ -37,7 +37,7 @@ var (
 	AptPackagesInspectorAddPackages = (*AptPackagesInspector).addPackages
 )
 
-func MockCheckSignature(mock func(io.ReadSeeker, Annotation) (io.ReadSeeker, error)) (restorer func()) {
+func MockCheckSignature(mock func(io.ReadSeeker, Annotation, string) (io.ReadSeeker, error)) (restorer func()) {
 	old := checkSignature
 	checkSignature = mock
 	return func() {
