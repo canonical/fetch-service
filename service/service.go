@@ -77,6 +77,11 @@ func New(opt *Options) (*Service, error) {
 		return nil, err
 	}
 
+	public_key := os.Getenv("FETCH_APT_RELEASE_PUBLIC_KEY")
+	if public_key == "" {
+		return nil, fmt.Errorf("FETCH_APT_RELEASE_PUBLIC_KEY env var not set")
+	}
+
 	return &Service{
 		p:        p,
 		ctl:      controlNewServer(opt.ControlPort, ch, creds),

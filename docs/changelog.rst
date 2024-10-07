@@ -2,6 +2,18 @@
 Changelog
 *********
 
+0.2.3 (2024-10-03)
+------------------
+
+- fix: don't fail parsing if line has no ':'
+- refactor: separate function to parse deb822 packages
+- fix: fail if FETCH_APT_RELEASE_PUBLIC_KEY is not set
+
+0.2.2 (2024-09-30)
+------------------
+
+- fix(i/pip): recognize pypi index version 1.2 (#234)
+
 0.2.1 (2024-09-25)
 ------------------
 
