@@ -24,6 +24,8 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/glob"
+	"github.com/canonical/fetch-service/inspectors/apt/config"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 )
@@ -37,3 +39,16 @@ func (t *aptSuite) SetUpTest(c *C) {
 var _ = Suite(&aptSuite{})
 
 func Test(t *testing.T) { TestingT(t) }
+
+func getAptInspectorConfig() config.AptInspectorConfig {
+	return config.AptInspectorConfig{
+		Repositories: map[string]config.AptInspectorConfigRepository{
+			"default": {
+				Urls:       []glob.Glob{glob.MustCompile("http://*.ubuntu.com/ubuntu")},
+				Dists:      []glob.Glob{glob.MustCompile("*")},
+				Components: []glob.Glob{glob.MustCompile("*")},
+				PublicKey:  "",
+			},
+		},
+	}
+}
