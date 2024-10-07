@@ -251,6 +251,11 @@ crafts:
   origins:
     - https://sourcecraft.test:443
 
+snap:
+  snap-declaration:
+    - name: publisher-id
+      value: [canonical]
+
 apt:
   repositories:
     default:

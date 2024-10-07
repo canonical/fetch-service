@@ -33,6 +33,7 @@ import (
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
+	"github.com/canonical/fetch-service/inspectors/snap/config"
 	"github.com/canonical/fetch-service/logger"
 )
 
@@ -44,10 +45,11 @@ func SquashFsDetector(raw []byte, limit uint32) bool {
 }
 
 type SnapInspector struct {
+	config config.SnapInspectorConfig
 }
 
-func NewSnapInspector() *SnapInspector {
-	return &SnapInspector{}
+func NewSnapInspector(cfg config.SnapInspectorConfig) *SnapInspector {
+	return &SnapInspector{cfg}
 }
 
 func (SnapInspector) ID() string {
@@ -213,6 +215,16 @@ func (ins *SnapInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) 
 		Architecture: strings.Join(data.Architectures, ","),
 	})
 
+	if err := checkSnapDeclarationFilter(ins.config, snapDeclarationAssertion); err != nil {
+		a.SetResponseRejected(ins, "failure on snap-declaration assertion attribute check").Annotate(
+			Annotation{
+				"error-msg":                         err.Error(),
+				"snap-declaration-assertion-header": snapDeclarationAssertion.Header,
+			},
+		)
+		return nil
+	}
+
 	a.SetResponseApproved(ins, "valid snap file found").Annotate(
 		Annotation{
 			"snap-revision-assertion-header":    snapRevisionAssertion.Header,
@@ -281,4 +293,31 @@ func downloadAssertion(url string) (*assertion, error) {
 	}
 
 	return assert, err
+}
+
+func checkSnapDeclarationFilter(cfg config.SnapInspectorConfig, assert *assertion) error {
+	for _, v := range cfg.SnapDeclarationFilter {
+		declared, ok := assert.Header[v.Name]
+		logger.Debugf("snap-declaration filter: (%s, %v)", v.Name, v.Value)
+		if !ok {
+			// attribute not found
+			return fmt.Errorf("attribute '%s' not found in the snap-declaration assertion", v.Name)
+		}
+
+		match := false
+		for _, allowed := range v.Value {
+			logger.Debugf("snap-declaration filter: check if %s == %s", declared, allowed)
+			if declared == allowed {
+				match = true
+				break
+			}
+		}
+
+		if !match {
+			// attribute found but value does not match
+			return fmt.Errorf("attribute '%s' value '%s' is not allowed", v.Name, declared)
+		}
+	}
+
+	return nil
 }

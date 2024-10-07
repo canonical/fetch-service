@@ -10,6 +10,11 @@ crafts:
   origins:
     - https://git.pkg.store:443
 
+snap:
+  snap-declaration:
+    - name: publisher-id
+      value: [canonical]
+
 apt:
   repositories:
     default:

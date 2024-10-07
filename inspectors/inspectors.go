@@ -62,7 +62,7 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 
 	insList := []Inspector{
 		// snap
-		snap.NewSnapInspector(),
+		snap.NewSnapInspector(cfg.Snap),
 		snap.NewSnapAssertionInspector(),
 		snap.NewSnapInfoInspector(),
 		snap.NewSnapRefreshInspector(),
