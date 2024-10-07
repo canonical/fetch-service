@@ -20,86 +20,101 @@
 package apt_test
 
 import (
-	"crypto/tls"
-	"net/http"
 	"os"
 	"path/filepath"
-	"time"
+
+	"github.com/gabriel-vasile/mimetype"
+	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/inspectors/apt"
+	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/files"
+	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/digests"
-	. "gopkg.in/check.v1"
+	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
-const (
-	packagesURL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/Packages.xz"
-)
+func (s *aptSuite) TestAptPackagesInspectorID(c *C) {
+	ins := apt.NewAptPackagesInspector()
+	c.Assert(ins.ID(), Equals, "apt.packages")
+}
 
-// XXX: This file contains minimal testing for apt file formats. Tests
-//      will be extended after the metadata format is approved.
+func (s *aptSuite) TestAptPackagesInspectRequest(c *C) {
+	for _, tc := range []struct {
+		url      string
+		detected bool
+	}{
+		{"http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/6213291a10046e8188510a0ca41a75daedfb2922940f88888ee815694ab3e7b7", true},
+		{"http://some.other.location/Packages.xz", false},
+	} {
+		ins := apt.NewAptPackagesInspector()
+		a := metadata.NewArtefact()
+		a.CurrentDownload = metadata.Download{URL: tc.url}
 
-func (s *aptSuite) TestAptPackagesInspector(c *C) {
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{
-		Transport: transport,
-		Timeout:   30 * time.Second,
-	}
-
-	req, err := http.NewRequest("GET", packagesURL, nil)
-	c.Assert(err, IsNil)
-
-	resp, err := client.Do(req)
-	c.Assert(err, IsNil)
-	c.Assert(resp.StatusCode, Equals, 200)
-
-	defer resp.Body.Close()
-
-	/*
-		tmp := c.MkDir()
-		dest, err := os.Create(filepath.Join(tmp, "0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e.data"))
+		err := ins.InspectRequest(a)
 		c.Assert(err, IsNil)
 
-		size, err := io.Copy(dest, resp.Body)
+		if tc.detected {
+			insp, ok := a.RequestInspection[ins.ID()]
+			c.Assert(ok, Equals, true)
+			c.Assert(insp.Opinion, Equals, opinions.Pending)
+		} else {
+			insp, ok := a.RequestInspection[ins.ID()]
+			if ok {
+				c.Assert(insp.Opinion, Equals, opinions.Unknown)
+			}
+		}
+	}
+}
+
+func (s *aptSuite) TestAptPackagesInspectArtefact(c *C) {
+	for _, tc := range []struct {
+		filename     string
+		digest       string
+		rejectReason string
+	}{
+		{"testdata/Packages.xz", "6213291a10046e8188510a0ca41a75daedfb2922940f88888ee815694ab3e7b7", ""},
+		{"testdata/Packages-build-using.xz", "f67db265afd9a3a352dcef711099e6ff5eed97ed3ff3f27b90ca5cbc9181ac03", ""},
+		{"testdata/InRelease.xz", "f67db265afd9a3a352dcef711099e6ff5eed97ed3ff3f27b90ca5cbc9181ac03", "error parsing packages file"},
+	} {
+		ins := apt.NewAptPackagesInspector()
+
+		// simulate InRelease entry
+		data := apt.NewAptPackages("http://myserver", "jammy", "main", "amd64")
+		apt.AptPackagesInspectorAddPackages(ins, "http://myserver", "/path/Packages.xz", data)
+
+		h, _ := digests.NewSha1Digest(tc.digest)
+		h2, _ := digests.NewSha256Digest(tc.digest)
+
+		a := metadata.NewArtefact()
+		a.CurrentDownload.URL = "http://myserver/path/Packages.xz"
+		a.Metadata.Sha1 = h
+		a.Metadata.Sha256 = h2
+		a.Metadata.Type = "application/x.apt.packages"
+		a.MimeType = mimetype.Lookup("application/x.apt.packages")
+		a.RequestInspection[ins.ID()] = &Inspection{
+			Opinion: opinions.Pending,
+			Reason:  "some reason",
+		}
+
+		f, err := files.OpenArtefactFile(tc.filename)
+		c.Assert(err, IsNil)
+		defer f.Close()
+
+		err = ins.InspectArtefact(f, a)
 		c.Assert(err, IsNil)
 
-		dest.Close()
-
-			// simulate metadata collected from InRelease
-			p := metadata.AptReleasePackages{
-				Path:   "dists/test/Packages.xz",
-				Vendor: "Acme",
-				Size:   size,
-			}
-
-			releaseHash, _ := digests.NewSha256Digest("7a0965cdce7e57af669e786379edcf45953de9bca3763342b870b3ce6d0dd777")
-			packagesHash, _ := digests.NewSha256Digest("0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e")
-			ctx := metadata.NewInspectionContext()
-			ctx.AddReleasePackages(releaseHash, packagesHash, p)
-
-			md := &metadata.Metadata{
-				Type:   "application/x-apt-packages",
-				Sha256: packagesHash,
-				Size:   size,
-			}
-			di := &metadata.Download{}
-
-			var iface metadata.Inspector
-			ins := metadata.AptPackagesInspector{}
-			c.Assert(ins, Implements, &iface)
-
-			stop, err := ins.Inspect(filepath.Join(tmp, "0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e.data"), md, di, ctx)
-			c.Assert(err, IsNil)
-			c.Assert(stop, Equals, true)
-
-			c.Check(md.Name, Equals, "dists/test/Packages.xz")
-			c.Check(md.Vendor, Equals, "Acme")
-			c.Check(md.Description, Equals, "Apt repository Packages file")
-			c.Check(md.Author, Equals, "Acme")
-			c.Check(md.Annotations["file.integrity.asserted-by"].Kind, Equals, metadata.Notice)
-			c.Check(md.Annotations["file.integrity.asserted-by"].Value, Equals, "7a0965cdce7e57af669e786379edcf45953de9bca3763342b870b3ce6d0dd777")
-	*/
+		if tc.rejectReason == "" {
+			c.Assert(a.Approved(), Equals, true)
+			c.Check(a.Metadata.Type, Equals, "application/x.apt.packages")
+			c.Check(a.Metadata.Name, Equals, "Packages.xz")
+			c.Check(a.Metadata.Version, Equals, "jammy")
+			c.Check(a.Metadata.Description, Equals, "jammy main Packages file")
+		} else {
+			c.Assert(a.Approved(), Equals, false)
+			c.Check(a.ResponseInspection[ins.ID()].Reason, Equals, tc.rejectReason)
+		}
+	}
 }
 
 var packagetests = []struct {
@@ -139,7 +154,7 @@ var packagetests = []struct {
 
 func (s *aptSuite) TestPackageParsing(c *C) {
 	for _, pt := range packagetests {
-		filename := filepath.Join("tests", pt.filename)
+		filename := filepath.Join("testdata", pt.filename)
 		reader, err := os.Open(filename)
 
 		c.Assert(err, IsNil)
