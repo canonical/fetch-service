@@ -468,6 +468,10 @@ func (t *serviceSuite) TestResponseInspection(c *C) {
 		t.ch <- msg
 		res := <-msg.Rch
 
+		// check if temporary file properly deleted
+		_, err = os.Stat(a.Tempfile)
+		c.Assert(err, ErrorMatches, "stat.*no such file or directory")
+
 		if tc.errMsg == "" {
 			c.Assert(res, Equals, nil)
 		} else {

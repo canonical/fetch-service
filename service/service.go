@@ -169,6 +169,8 @@ loop:
 				s := session.GetSession(sessionId)
 				if s == nil {
 					v.Rch <- fmt.Errorf("cannot inspect response: session %s is not active", sessionId)
+					logger.Debugf("[%s] remove stale temporary file: %s", sessionId, v.A.Tempfile)
+					os.Remove(v.A.Tempfile)
 					break
 				}
 
