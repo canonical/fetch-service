@@ -477,10 +477,14 @@ func runRequestInspection(s *session.Session, a *metadata.Artefact) error {
 		return err
 	}
 
+	return evaluateRequestInspection(s, a)
+}
+
+func evaluateRequestInspection(s *session.Session, a *metadata.Artefact) error {
 	dl := a.CurrentDownload
 	sessionId := s.Id
 
-	if a.RequestRejected() {
+	if !a.RequestPending() {
 		if s.Permissive {
 			logger.Infof("[%s] request would be rejected: %s %s", sessionId, dl.Method, dl.URL)
 		} else {
@@ -502,6 +506,10 @@ func runResponseInspection(s *session.Session, a *metadata.Artefact) error {
 		return err
 	}
 
+	return evaluateResponseInspection(s, a)
+}
+
+func evaluateResponseInspection(s *session.Session, a *metadata.Artefact) error {
 	sessionId := s.Id
 	digest := a.Metadata.Sha256
 
