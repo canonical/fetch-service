@@ -28,6 +28,11 @@ import (
 	"github.com/canonical/fetch-service/session"
 )
 
+var (
+	EvaluateRequestInspection  = evaluateRequestInspection
+	EvaluateResponseInspection = evaluateResponseInspection
+)
+
 func MockNewHttpProxy(mock func(int, string, []byte, []byte, chan interface{}) (*proxy.HttpProxy, error)) (restorer func()) {
 	old := proxyNewHttpProxy
 	proxyNewHttpProxy = mock
