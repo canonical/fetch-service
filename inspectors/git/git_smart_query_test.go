@@ -46,9 +46,9 @@ func Test(t *testing.T) { TestingT(t) }
 
 func getTestConfig() config.GitInspectorConfig {
 	return config.GitInspectorConfig{
-		Origins: []glob.Glob{
-			glob.MustCompile("https://github.com:443"),
-			glob.MustCompile("https://git.launchpad.net:443"),
+		Urls: []glob.Glob{
+			glob.MustCompile("https://github.com:443/**"),
+			glob.MustCompile("https://git.launchpad.net:443/**"),
 		},
 	}
 }

@@ -1,10 +1,10 @@
 git:
-  origins:
-    - https://git.pkg.store:443
+  urls:
+    - https://git.pkg.store:443/**
 
 crafts:
-  origins:
-    - https://git.pkg.store:443
+  urls:
+    - https://git.pkg.store:443/**
 
 snap:
   snap-declaration:

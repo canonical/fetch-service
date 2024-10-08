@@ -244,12 +244,12 @@ func ipNet(addr string) config.IPNet {
 
 var inspectorsConfig = `
 git:
-  origins:
-    - https://git.test:443
+  urls:
+    - https://git.test:443/**
 
 crafts:
-  origins:
-    - https://sourcecraft.test:443
+  urls:
+    - https://sourcecraft.test:443/**
 
 snap:
   snap-declaration:
@@ -309,11 +309,11 @@ func (t *configSuite) TestGetSetInspectorsConfig(c *C) {
 	c.Assert(err, IsNil)
 
 	cfg := config.GetInspectorsConfig()
-	c.Check(cfg.Git.Origins, HasLen, 1)
-	c.Check(cfg.Git.Origins[0], DeepEquals, glob.MustCompile("https://git.test:443"))
+	c.Check(cfg.Git.Urls, HasLen, 1)
+	c.Check(cfg.Git.Urls[0], DeepEquals, glob.MustCompile("https://git.test:443/**"))
 
-	c.Check(cfg.Crafts.Origins, HasLen, 1)
-	c.Check(cfg.Crafts.Origins[0], DeepEquals, glob.MustCompile("https://sourcecraft.test:443"))
+	c.Check(cfg.Crafts.Urls, HasLen, 1)
+	c.Check(cfg.Crafts.Urls[0], DeepEquals, glob.MustCompile("https://sourcecraft.test:443/**"))
 
 	c.Check(cfg.Apt.Repositories, DeepEquals, map[string]apt_cfg.AptInspectorConfigRepository{
 		"default": {
@@ -361,8 +361,8 @@ uOgcXny1UlwtCUzlrSaP
 	})
 
 	// Verify that loaded config is a copy
-	cfg.Git.Origins = []glob.Glob{}
-	cfg.Crafts.Origins = []glob.Glob{}
+	cfg.Git.Urls = []glob.Glob{}
+	cfg.Crafts.Urls = []glob.Glob{}
 	entry, ok := cfg.Apt.Repositories["default"]
 	c.Assert(ok, Equals, true)
 	entry.Urls = []glob.Glob{
@@ -374,8 +374,8 @@ uOgcXny1UlwtCUzlrSaP
 	cfg.Apt.Repositories["extra"] = apt_cfg.AptInspectorConfigRepository{}
 
 	cfg2 := config.GetInspectorsConfig()
-	c.Check(cfg2.Git.Origins, HasLen, 1)
-	c.Check(cfg2.Crafts.Origins, HasLen, 1)
+	c.Check(cfg2.Git.Urls, HasLen, 1)
+	c.Check(cfg2.Crafts.Urls, HasLen, 1)
 	c.Check(cfg2.Apt.Repositories, HasLen, 1)
 	c.Check(cfg2.Apt.Repositories["default"].Urls, HasLen, 2)
 
@@ -384,8 +384,8 @@ uOgcXny1UlwtCUzlrSaP
 
 	// Reload configuration
 	cfg3 := config.GetInspectorsConfig()
-	c.Check(cfg3.Git.Origins, HasLen, 0)
-	c.Check(cfg3.Crafts.Origins, HasLen, 0)
+	c.Check(cfg3.Git.Urls, HasLen, 0)
+	c.Check(cfg3.Crafts.Urls, HasLen, 0)
 	c.Check(cfg3.Apt.Repositories["default"].Urls, HasLen, 3)
 	c.Check(cfg3.Apt.Repositories["extra"].Urls, HasLen, 0)
 

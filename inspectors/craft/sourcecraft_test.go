@@ -53,9 +53,9 @@ func Test(t *testing.T) { TestingT(t) }
 
 func getTestSourcecraftConfig() config.CraftsInspectorConfig {
 	return config.CraftsInspectorConfig{
-		Origins: []glob.Glob{
-			glob.MustCompile("https://github.com:443"),
-			glob.MustCompile("https://git.launchpad.net:443"),
+		Urls: []glob.Glob{
+			glob.MustCompile("https://github.com:443/**"),
+			glob.MustCompile("https://git.launchpad.net:443/**"),
 		},
 	}
 }

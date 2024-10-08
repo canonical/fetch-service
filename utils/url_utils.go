@@ -26,7 +26,8 @@ import (
 
 // NormalizedOrigin returns the origin with the default HTTPS port number
 // if it's not specified.
-func NormalizedOrigin(u *url.URL) (origin string) {
+func NormalizedOrigin(u *url.URL) string {
+	var origin string
 	if u.Scheme == "https" && u.Port() == "" {
 		origin = fmt.Sprintf("%s://%s:443", u.Scheme, u.Host)
 	} else {

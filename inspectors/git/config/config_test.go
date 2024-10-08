@@ -37,9 +37,9 @@ func Test(t *testing.T) { TestingT(t) }
 
 func getTestGitConfig() config.GitInspectorConfig {
 	return config.GitInspectorConfig{
-		Origins: []glob.Glob{
-			glob.MustCompile("https://github.com:443"),
-			glob.MustCompile("https://*.example.com:443"),
+		Urls: []glob.Glob{
+			glob.MustCompile("https://github.com:443/**"),
+			glob.MustCompile("https://*.example.com:443/**"),
 		},
 	}
 }
@@ -53,7 +53,7 @@ func (t *configSuite) TestSmartQueryUrlInfo(c *C) {
 		{"https://github.com:443/canonical/fetch-service/info/refs?service=git-upload-pack", ""},
 		{"https://us.example.com/foo/info/refs?service=git-upload-pack", ""},
 		{"https://github.com/canonical/fetch-service/info/refs?service=x", `invalid service query "x"`},
-		{"http://github.com/canonical/fetch-service/info/refs", "invalid origin http://github.com"},
+		{"http://github.com/canonical/fetch-service/info/refs", "invalid url http://github.com/canonical/fetch-service/info/refs"},
 		{"https://github.com/canonical/fetch-service/info/refs", `invalid service query ""`},
 		{"https://github.com/canonical/fetch-service/info?service=git-upload-pack", "not a valid git smart query path"},
 	} {
@@ -83,7 +83,7 @@ func (t *configSuite) TestUploadPackUrlInfo(c *C) {
 		{"https://github.com/canonical/fetch-service/git-upload-pack", "fetch-service", ""},
 		{"https://github.com:443/canonical/fetch-service/git-upload-pack", "fetch-service", ""},
 		{"https://us.example.com/foo/git-upload-pack", "foo", ""},
-		{"http://github.com/canonical/fetch-service/git-upload-pack", "", "invalid origin http://github.com"},
+		{"http://github.com/canonical/fetch-service/git-upload-pack", "", "invalid url http://github.com/canonical/fetch-service/git-upload-pack"},
 		{"https://github.com/canonical/fetch-service", "", "not a valid git upload-pack path"},
 		{"https://github.com/canonical/fetch-service/info?service=git-upload-pack", "", "not a valid git upload-pack path"},
 	} {
