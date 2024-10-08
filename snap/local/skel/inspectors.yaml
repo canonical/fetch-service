@@ -1,9 +1,5 @@
 git:
   origins:
-    - https://git.launchpad.net:443
-    - https://github.com:443
-    - https://gopkg.in:443
-    - https://go.googlesource.com:443
     - https://git.pkg.store:443
 
 crafts:
