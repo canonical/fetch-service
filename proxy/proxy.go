@@ -161,9 +161,9 @@ func (p *HttpProxy) processRoundTrip(req *http.Request, ctx *goproxy.ProxyCtx) (
 		logger.Infof("request to %s: IP address %s", r.URL.Host, ip.String())
 		logger.Debugf("check request acls for %s", r.URL.String())
 		if acl.Allowed(ip) {
-			logger.Infof("Access to %s allowed", ip.String())
+			logger.Infof("access to %s allowed", ip.String())
 		} else {
-			logger.Infof("Access to %s blocked", ip.String())
+			logger.Infof("access to %s blocked", ip.String())
 			resp = httpResponse(r, http.StatusForbidden, []byte("Access denied"))
 		}
 		return resp, nil
@@ -236,10 +236,11 @@ func (p *HttpProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) 
 			os.Remove(a.Tempfile)
 		}
 		//a.CurrentDownload.EndTime = time.Now().UTC()
-		logger.Infof("%s: %s", a.Metadata.Sha256, err)
 		if err == common.ErrRejectedArtefact {
+			logger.Infof("[proxy] file download not authorized: %s", err)
 			return forbiddenResponse(resp.Request, "Download not authorized")
 		}
+		logger.Infof("[proxy] file download error: %s: %s", a.Tempfile, err)
 		return internalErrorResponse(resp.Request, "Cannot handle file downloads")
 	}
 
