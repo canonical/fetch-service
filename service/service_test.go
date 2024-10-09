@@ -30,8 +30,6 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/control"
-	"github.com/canonical/fetch-service/logger"
-	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/proxy"
@@ -54,7 +52,6 @@ type serviceSuite struct {
 
 func (t *serviceSuite) SetUpTest(c *C) {
 	os.Setenv("FETCH_APT_RELEASE_PUBLIC_KEY", "dummy-value")
-	testlogger.Init(logger.InfoLevel)
 }
 
 func (t *serviceSuite) TearDownTest(c *C) {
