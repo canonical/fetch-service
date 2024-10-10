@@ -1,0 +1,286 @@
+// -*- Mode: Go; indent-tabs-mode: t -*-
+
+/*
+ * Copyright 2024 Canonical Ltd.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+package craft_test
+
+import (
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	. "gopkg.in/check.v1"
+
+	"github.com/canonical/fetch-service/glob"
+	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/craft"
+	"github.com/canonical/fetch-service/inspectors/craft/config"
+	"github.com/canonical/fetch-service/inspectors/files"
+	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/logger/testlogger"
+	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/opinions"
+	"github.com/gabriel-vasile/mimetype"
+)
+
+type snapcraftSuite struct{}
+
+var _ = Suite(&snapcraftSuite{})
+
+func (t *snapcraftSuite) SetUpTest(c *C) {
+	testlogger.Init(logger.InfoLevel)
+}
+
+func SnapcraftTest(t *testing.T) { TestingT(t) }
+
+func getTestSnapcraftConfig() config.CraftsInspectorConfig {
+	return config.CraftsInspectorConfig{
+		Urls: []glob.Glob{
+			glob.MustCompile("https://github.com:443/**"),
+			glob.MustCompile("https://git.launchpad.net:443/**"),
+		},
+	}
+}
+
+func (s *snapcraftSuite) TestSnapcraftInspectorInterface(c *C) {
+	var iface Inspector
+	ins := craft.NewSnapcraftInspector(getTestSnapcraftConfig())
+	c.Assert(ins, Implements, &iface)
+
+}
+
+func (s *snapcraftSuite) TestUploadPackInspectorID(c *C) {
+	ins := craft.NewSnapcraftInspector(getTestSnapcraftConfig())
+	c.Assert(ins.ID(), Equals, "craft.snapcraft")
+
+}
+
+func createTestSnapcraftArtefact(is_shallow bool) *metadata.Artefact {
+	a := metadata.NewArtefact()
+	a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
+	a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
+	a.Request.Body = io.NopCloser(strings.NewReader("0014command=fetch\n0000"))
+	a.MimeType = mimetype.Lookup("application/octet-stream")
+	a.RequestInspection = metadata.InspectionMap{
+		"git.upload-pack": &Inspection{
+			Opinion: opinions.Pending,
+			Reason:  "valid URL for snapcraft upload-pack",
+			Annotations: Annotation{
+				"client-request": []string{
+					"command=fetch",
+					"agent=git/2.45.1",
+					"object-format=sha1",
+					"",
+					"thin-pack",
+					"no-progress",
+					"include-tag",
+					"ofs-delta",
+					"deepen 1",
+					"want 9ae13d6ca5afec49279f8515feb289a7069e5a29",
+					"done",
+				},
+				"repository": "https://github.com/lengau/uv-snap",
+				"command":    "fetch",
+				"project":    "astral-uv",
+				"protocol":   "version=2",
+				"wants": []string{
+					"9ae13d6ca5afec49279f8515feb289a7069e5a29",
+				},
+				"is-shallow": is_shallow,
+			},
+		},
+	}
+	return a
+}
+
+func loadTestSnapcraftArtefactData() (*files.ArtefactFile, error) {
+	sourcepkg_file := filepath.Join("testdata", "snapcraftpkg.raw")
+	file, err := files.OpenArtefactFile(sourcepkg_file)
+	return file, err
+}
+
+func (s *snapcraftSuite) TestInspectSnapcraftGitRequest(c *C) {
+	for _, tc := range []struct {
+		url      string
+		approved bool
+	}{
+		{"https://github.com:443/user/project.git/git-upload-pack", true},
+		{"https://git.launchpad.net:443/project/git-upload-pack", true},
+		{"https://git.launchpad.net:443/~user/project/+git/project/git-upload-pack", true},
+		{"https://github.com:443/user/project/git-upload-pack", true},
+		{"https://invalid.com:443/user/project.git/git-upload-pack", false},
+		{"http://github.com/user/project.git/git-upload-pack", false},
+		{"https://gothub.com:443/user/project.git/git-upload-pack", false},
+		{"ahttps://github.com:443/user/project.git/git-upload-pack", false},
+		{"https://github.com:443/user/project.git/git-upload-packs", false},
+		{"https://github.com:443/user/project.git/something-else", false},
+		{"https://git.launchpad.com:443/project/git-upload-pack", false},
+		{"https://git.lpad.net:443/~user/project/+git/project/git-upload-pack", false},
+	} {
+		ins := craft.NewSnapcraftInspector(getTestSnapcraftConfig())
+		a := metadata.NewArtefact()
+		a.CurrentDownload.URL = tc.url
+		a.CurrentDownload.RequestHeader = map[string][]string{
+			"Content-Type": {"application/x-git-upload-pack-request"},
+			"Accept":       {"application/x-git-upload-pack-result"},
+		}
+		a.RequestInspection["git.upload-pack"] = &Inspection{
+			Annotations: Annotation{"command": "fetch"},
+		}
+		a.Request, _ = http.NewRequest("GET", tc.url, nil)
+		a.Request.Body = io.NopCloser(strings.NewReader("0014command=ls-refs\n0000"))
+
+		err := ins.InspectRequest(a)
+		c.Assert(err, IsNil)
+
+		insp, ok := a.RequestInspection[ins.ID()]
+		c.Assert(ok, Equals, tc.approved, Commentf("Aproval status is wrong for '%s' (%t != %t)", tc.url, ok, tc.approved))
+		if tc.approved {
+			c.Assert(insp.Opinion, Equals, opinions.Pending)
+		}
+	}
+}
+
+func (s *snapcraftSuite) TestSnapcraftGitInspectArtefact(c *C) {
+	for _, tc := range []struct {
+		is_shallow bool
+		opinion    opinions.OpinionKind
+		reason     string
+	}{
+		{true, opinions.Approved, "snapcraft repository found"},
+		{false, opinions.Rejected, "snapcraft repository is not shallow"},
+	} {
+
+		a := createTestSnapcraftArtefact(tc.is_shallow)
+		f, err := loadTestSnapcraftArtefactData()
+		c.Assert(err, IsNil)
+		defer f.Close()
+
+		ins := craft.NewSnapcraftInspector(getTestSnapcraftConfig())
+		err = ins.InspectArtefact(f, a)
+		c.Assert(err, IsNil)
+
+		inspection := a.ResponseInspection["craft.snapcraft"]
+		c.Assert(inspection.Opinion, Equals, tc.opinion)
+		c.Assert(inspection.Reason, Equals, tc.reason)
+
+		if tc.opinion == opinions.Approved {
+			c.Check(a.Metadata.Type, Equals, "application/x.canonical.snapcraft")
+			c.Check(a.Metadata.Name, Equals, "astral-uv")
+			c.Check(a.Metadata.Version, Equals, "0.4.20")
+			c.Check(a.Metadata.Description, Equals, "An extremely fast Python package installer and resolver, written in Rust.")
+			// FIXME: add more fields to test data
+		}
+	}
+}
+
+func (s *snapcraftSuite) TestSnapcraftGitInspectArtefactMissingSnapcraftYaml(c *C) {
+	tc := struct {
+		is_shallow bool
+		opinion    opinions.OpinionKind
+		reason     string
+	}{
+		true,
+		opinions.Unknown,
+		"git repository does not contain a snapcraft.yaml file",
+	}
+	restorer := craft.MockOsStat(func(string) (os.FileInfo, error) {
+		return nil, os.ErrNotExist
+	})
+	defer restorer()
+
+	a := createTestSnapcraftArtefact(tc.is_shallow)
+	f, err := loadTestSnapcraftArtefactData()
+	c.Assert(err, IsNil)
+	defer f.Close()
+
+	ins := craft.NewSnapcraftInspector(getTestSnapcraftConfig())
+
+	err = ins.InspectArtefact(f, a)
+	c.Assert(err, IsNil)
+
+	inspection := a.ResponseInspection["craft.snapcraft"]
+	c.Assert(inspection.Opinion, Equals, tc.opinion)
+	c.Assert(inspection.Reason, Equals, tc.reason)
+}
+
+func (s *snapcraftSuite) TestSnapcraftGitInspectArtefactUnreadableSnapcraftYaml(c *C) {
+	tc := struct {
+		is_shallow bool
+		opinion    opinions.OpinionKind
+		reason     string
+	}{
+		true,
+		opinions.Rejected,
+		"cannot open snapcraft.yaml file",
+	}
+
+	restorer := craft.MockOsOpen(func(string) (*os.File, error) {
+		return nil, os.ErrNotExist
+	})
+	defer restorer()
+	f, err := loadTestSnapcraftArtefactData()
+	c.Assert(err, IsNil)
+	defer f.Close()
+
+	a := createTestSnapcraftArtefact(tc.is_shallow)
+
+	ins := craft.NewSnapcraftInspector(getTestSnapcraftConfig())
+	err = ins.InspectArtefact(f, a)
+	c.Assert(err, IsNil)
+
+	inspection := a.ResponseInspection["craft.snapcraft"]
+	c.Assert(inspection.Opinion, Equals, tc.opinion)
+	c.Assert(inspection.Reason, Equals, tc.reason)
+}
+
+func (s *snapcraftSuite) TestSnapcraftGitInspectArtefactUnableToDecodeSnapcraftYaml(c *C) {
+	tc := struct {
+		is_shallow bool
+		opinion    opinions.OpinionKind
+		reason     string
+	}{
+		true,
+		opinions.Rejected,
+		"cannot decode snapcraft.yaml",
+	}
+	f, err := loadTestSnapcraftArtefactData()
+	c.Assert(err, IsNil)
+	defer f.Close()
+
+	restorer := craft.MockOsOpen(func(string) (*os.File, error) {
+		temp, _ := os.CreateTemp("", "snapcraft-empty.yaml")
+		defer temp.Close()
+		defer os.Remove(temp.Name())
+		return os.Open(temp.Name())
+	})
+	defer restorer()
+
+	a := createTestSnapcraftArtefact(tc.is_shallow)
+
+	ins := craft.NewSnapcraftInspector(getTestSnapcraftConfig())
+	err = ins.InspectArtefact(f, a)
+	c.Assert(err, IsNil)
+
+	inspection := a.ResponseInspection["craft.snapcraft"]
+	c.Assert(inspection.Opinion, Equals, tc.opinion)
+	c.Assert(inspection.Reason, Equals, tc.reason)
+}

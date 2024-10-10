@@ -18,5 +18,6 @@ Reference
    pip_metadata
    rockcraft
    sdist
+   snapcraft
    sourcecraft
    wheels
