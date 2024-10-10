@@ -24,7 +24,6 @@ import (
 	"testing"
 
 	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v3"
 
 	"github.com/canonical/fetch-service/glob"
 	"github.com/canonical/fetch-service/inspectors/craft/config"
@@ -36,23 +35,10 @@ var _ = Suite(&configSuite{})
 
 func Test(t *testing.T) { TestingT(t) }
 
-func (t *configSuite) TestGlobUnmarshal(c *C) {
-	type testGlob struct {
-		Foo glob.Glob `yaml:"foo"`
-	}
-
-	data := []byte(`foo: "*.txt"`)
-
-	var y testGlob
-	err := yaml.Unmarshal(data, &y)
-	c.Assert(err, IsNil)
-	c.Assert(y.Foo, DeepEquals, glob.MustCompile("*.txt"))
-}
-
 func getTestCraftsConfig() config.CraftsInspectorConfig {
 	return config.CraftsInspectorConfig{
-		Origins: []glob.Glob{
-			glob.MustCompile("https://github.com:443"),
+		Urls: []glob.Glob{
+			glob.MustCompile("https://github.com:443/**"),
 		},
 	}
 }
@@ -65,7 +51,7 @@ func (t *configSuite) TestSourcecraftUrlInfo(c *C) {
 	}{
 		{"https://github.com/canonical/fetch-service/git-upload-pack", "fetch-service", ""},
 		{"https://github.com:443/canonical/fetch-service/git-upload-pack", "fetch-service", ""},
-		{"http://github.com/canonical/fetch-service/git-upload-pack", "", "invalid origin http://github.com"},
+		{"http://github.com/canonical/fetch-service/git-upload-pack", "", "invalid url http://github.com/canonical/fetch-service/git-upload-pack"},
 		{"https://github.com/canonical/fetch-service", "", "not a valid sourcecraft upload-pack path"},
 		{"https://github.com/canonical/fetch-service/info?service=git-upload-pack", "", "not a valid sourcecraft upload-pack path"},
 	} {

@@ -35,20 +35,20 @@ var (
 	reSourcecraft = regexp.MustCompile(`^/(.+/)*([^/]+)/git-upload-pack$`)
 )
 
-func checkServerOrigin(cfg *CraftsInspectorConfig, u *url.URL) error {
-	origin := utils.NormalizedOrigin(u)
+func checkRequestUrl(cfg *CraftsInspectorConfig, u *url.URL) error {
+	requestUrl := utils.NormalizedOrigin(u) + u.Path
 
-	for _, h := range cfg.Origins {
-		if h.Match(origin) {
-			logger.Debugf("url origin matches %v\n", h)
+	for _, h := range cfg.Urls {
+		if h.Match(requestUrl) {
+			logger.Debugf("url matches %v\n", h)
 			return nil
 		}
 	}
-	return fmt.Errorf("invalid origin %s", origin)
+	return fmt.Errorf("invalid url %s", requestUrl)
 }
 
 type CraftsInspectorConfig struct {
-	Origins []glob.Glob `yaml:"origins"` // List of allowed URL origin glob patterns
+	Urls []glob.Glob `yaml:"urls"` // List of allowed URL glob patterns
 }
 
 type SourcecraftUrlInfo struct {
@@ -56,7 +56,7 @@ type SourcecraftUrlInfo struct {
 }
 
 func NewSourcecraftUrlInfo(u *url.URL, cfg *CraftsInspectorConfig) (*SourcecraftUrlInfo, error) {
-	if err := checkServerOrigin(cfg, u); err != nil {
+	if err := checkRequestUrl(cfg, u); err != nil {
 		return nil, err
 	}
 

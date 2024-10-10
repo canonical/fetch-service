@@ -334,11 +334,11 @@ func GetInspectorsConfig() InspectorsConfig {
 		}
 	}
 
-	cfg.Git.Origins = make([]glob.Glob, len(globalInspectorsConfig.Git.Origins))
-	copy(cfg.Git.Origins, globalInspectorsConfig.Git.Origins)
+	cfg.Git.Urls = make([]glob.Glob, len(globalInspectorsConfig.Git.Urls))
+	copy(cfg.Git.Urls, globalInspectorsConfig.Git.Urls)
 
-	cfg.Crafts.Origins = make([]glob.Glob, len(globalInspectorsConfig.Crafts.Origins))
-	copy(cfg.Crafts.Origins, globalInspectorsConfig.Crafts.Origins)
+	cfg.Crafts.Urls = make([]glob.Glob, len(globalInspectorsConfig.Crafts.Urls))
+	copy(cfg.Crafts.Urls, globalInspectorsConfig.Crafts.Urls)
 
 	cfg.Snap.SnapDeclarationFilter = make([]snap_cfg.AssertionFilter, len(globalInspectorsConfig.Snap.SnapDeclarationFilter))
 	for i, v := range globalInspectorsConfig.Snap.SnapDeclarationFilter {
