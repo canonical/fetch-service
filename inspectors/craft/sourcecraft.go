@@ -29,6 +29,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/craft/config"
 	"github.com/canonical/fetch-service/inspectors/git"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/logger"
@@ -44,10 +45,11 @@ var osOpen = os.Open
 // The SourcecraftInspector handles upload-pack requests.
 // It recognizes "fetch" command from the Git v2 protocol.
 type SourcecraftInspector struct {
+	config config.CraftsInspectorConfig
 }
 
-func NewSourcecraftInspector() *SourcecraftInspector {
-	return &SourcecraftInspector{}
+func NewSourcecraftInspector(cfg config.CraftsInspectorConfig) *SourcecraftInspector {
+	return &SourcecraftInspector{cfg}
 }
 
 func (ins *SourcecraftInspector) ID() string {
@@ -87,7 +89,7 @@ func (ins *SourcecraftInspector) InspectRequest(a RequestArtefact) error {
 		return nil // we don't recognize this request
 	}
 
-	_, err = newCraftRepositoryUrlInfo(u)
+	_, err = config.NewSourcecraftUrlInfo(u, &ins.config)
 	if err != nil {
 		return nil // we don't recognize this request
 	}

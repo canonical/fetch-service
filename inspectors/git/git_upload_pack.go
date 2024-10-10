@@ -31,6 +31,7 @@ import (
 	"sync"
 
 	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/git/config"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/logger"
 )
@@ -41,13 +42,15 @@ type UploadPackInspector struct {
 	heads map[string]map[string]string // head list stored by ls-refs per repository
 	tags  map[string]map[string]string // tag list stored by ls-refs per repository
 
-	lock sync.Mutex
+	config config.GitInspectorConfig
+	lock   sync.Mutex
 }
 
-func NewUploadPackInspector() *UploadPackInspector {
+func NewUploadPackInspector(cfg config.GitInspectorConfig) *UploadPackInspector {
 	return &UploadPackInspector{
-		heads: map[string]map[string]string{},
-		tags:  map[string]map[string]string{},
+		heads:  map[string]map[string]string{},
+		tags:   map[string]map[string]string{},
+		config: cfg,
 	}
 }
 
@@ -97,9 +100,9 @@ func (ins *UploadPackInspector) InspectRequest(a RequestArtefact) error {
 	}
 
 	// FIXME: adjust according to internal git repository url format
-	info, err := newUploadPackUrlInfo(u)
+	info, err := config.NewUploadPackUrlInfo(u, &ins.config)
 	if err != nil {
-		info = &uploadPackUrlInfo{}
+		info = &config.UploadPackUrlInfo{}
 	}
 
 	// We're now sure this is a git upload pack request
@@ -110,7 +113,7 @@ func (ins *UploadPackInspector) InspectRequest(a RequestArtefact) error {
 		"server":     strings.SplitN(u.Host, ":", 2)[0],
 		"repository": repo,
 		"protocol":   proto,
-		"project":    info.project,
+		"project":    info.Project,
 	}
 
 	// Read request body and get protocol messages

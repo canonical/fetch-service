@@ -25,14 +25,16 @@ import (
 	"strings"
 
 	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/git/config"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 )
 
 type SmartQueryInspector struct {
+	config config.GitInspectorConfig
 }
 
-func NewSmartQueryInspector() *SmartQueryInspector {
-	return &SmartQueryInspector{}
+func NewSmartQueryInspector(cfg config.GitInspectorConfig) *SmartQueryInspector {
+	return &SmartQueryInspector{cfg}
 }
 
 func (SmartQueryInspector) ID() string {
@@ -50,12 +52,12 @@ func (ins *SmartQueryInspector) InspectRequest(a RequestArtefact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	if info, err := newSmartQueryUrlInfo(u); err == nil {
+	if info, err := config.NewSmartQueryUrlInfo(u, &ins.config); err == nil {
 		a.SetRequestPending(ins, "valid URL for git smart request").Annotate(
 			Annotation{
 				"server":   strings.SplitN(u.Host, ":", 2)[0],
 				"protocol": proto,
-				"service":  info.service,
+				"service":  info.Service,
 			},
 		)
 	}

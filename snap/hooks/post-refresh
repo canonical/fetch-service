@@ -1,32 +1,22 @@
 #!/bin/bash -e
 
-ACL_YAML="${SNAP_DATA}/conf/acl.yaml"
+CONF_DIR="${SNAP_DATA}/conf"
 CA_CERT_DIR="${SNAP_DATA}/certs"
 
 mkdir -p $(dirname "$ACL_YAML")
 
 # If old acl configuration exists, move it to conf/
 if [ -f "${SNAP_DATA}/acl.yaml" ]; then
-	mv "${SNAP_DATA}/acl.yaml" "$ACL_YAML"
+	mv "${SNAP_DATA}/acl.yaml" "$CONF_DIR/"
 fi
 
-mkdir -p $(dirname "$ACL_YAML")
-
-# If old acl configuration exists, move it to conf/
-if [ -f "${SNAP_DATA}/acl.yaml" ]; then
-	mv "${SNAP_DATA}/acl.yaml" "$ACL_YAML"
+# Create configuration files if they doesn't exist
+if [ ! -f "${CONF_DIR}/acl.yaml" ]; then
+	cp "${SNAP}/skel/acl.yaml" "$CONF_DIR/"
 fi
 
-# Create an acl file if it doesn't exist
-if [ ! -f "$ACL_YAML" ]; then
-	cat <<EOF >"$ACL_YAML"
-http-proxy:
-  policy: allow
-  rules:
-    - dst: [
-      ]
-      access: deny
-EOF
+if [ ! -f "${CONF_DIR}/inspectors.yaml" ]; then
+	cp "${SNAP}/skel/inspectors.yaml" "$CONF_DIR/"
 fi
 
 # Create a CA certificate if it doesn't exist

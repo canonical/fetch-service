@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -17,38 +17,47 @@
  *
  */
 
-package apt_test
+package glob_test
 
 import (
 	"testing"
 
 	. "gopkg.in/check.v1"
+	"gopkg.in/yaml.v3"
 
 	"github.com/canonical/fetch-service/glob"
-	"github.com/canonical/fetch-service/inspectors/apt/config"
-	"github.com/canonical/fetch-service/logger"
-	"github.com/canonical/fetch-service/logger/testlogger"
 )
 
-type aptSuite struct{}
+type configSuite struct{}
 
-func (t *aptSuite) SetUpTest(c *C) {
-	testlogger.Init(logger.InfoLevel)
-}
-
-var _ = Suite(&aptSuite{})
+var _ = Suite(&configSuite{})
 
 func Test(t *testing.T) { TestingT(t) }
 
-func getAptInspectorConfig() config.AptInspectorConfig {
-	return config.AptInspectorConfig{
-		Repositories: map[string]config.AptInspectorConfigRepository{
-			"default": {
-				Urls:       []glob.Glob{glob.MustCompile("http://*.ubuntu.com/ubuntu")},
-				Dists:      []glob.Glob{glob.MustCompile("*")},
-				Components: []glob.Glob{glob.MustCompile("*")},
-				PublicKey:  "",
-			},
-		},
+func (t *configSuite) TestGlobUnmarshal(c *C) {
+	type testGlob struct {
+		Foo glob.Glob `yaml:"foo"`
+	}
+
+	data := []byte(`foo: "*.txt"`)
+
+	var y testGlob
+	err := yaml.Unmarshal(data, &y)
+	c.Assert(err, IsNil)
+	c.Assert(y.Foo, DeepEquals, glob.MustCompile("*.txt"))
+}
+
+func (t *configSuite) TestGlobMatch(c *C) {
+	for _, tc := range []struct {
+		pattern string
+		s       string
+		matches bool
+	}{
+		{"b*n*a", "banana", true},
+		{"[Aa]p*le", "Apple", true},
+		{"[Aa]p*le", "Pineapple", false},
+	} {
+		g := glob.MustCompile(tc.pattern)
+		c.Check(g.Match(tc.s), Equals, tc.matches)
 	}
 }

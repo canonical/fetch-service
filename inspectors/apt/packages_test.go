@@ -35,7 +35,7 @@ import (
 )
 
 func (s *aptSuite) TestAptPackagesInspectorID(c *C) {
-	ins := apt.NewAptPackagesInspector()
+	ins := apt.NewAptPackagesInspector(getAptInspectorConfig())
 	c.Assert(ins.ID(), Equals, "apt.packages")
 }
 
@@ -47,7 +47,7 @@ func (s *aptSuite) TestAptPackagesInspectRequest(c *C) {
 		{"http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/6213291a10046e8188510a0ca41a75daedfb2922940f88888ee815694ab3e7b7", true},
 		{"http://some.other.location/Packages.xz", false},
 	} {
-		ins := apt.NewAptPackagesInspector()
+		ins := apt.NewAptPackagesInspector(getAptInspectorConfig())
 		a := metadata.NewArtefact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 
@@ -77,7 +77,7 @@ func (s *aptSuite) TestAptPackagesInspectArtefact(c *C) {
 		{"testdata/Packages-build-using.xz", "f67db265afd9a3a352dcef711099e6ff5eed97ed3ff3f27b90ca5cbc9181ac03", ""},
 		{"testdata/InRelease.xz", "f67db265afd9a3a352dcef711099e6ff5eed97ed3ff3f27b90ca5cbc9181ac03", "error parsing packages file"},
 	} {
-		ins := apt.NewAptPackagesInspector()
+		ins := apt.NewAptPackagesInspector(getAptInspectorConfig())
 
 		// simulate InRelease entry
 		data := apt.NewAptPackages("http://myserver", "jammy", "main", "amd64")
