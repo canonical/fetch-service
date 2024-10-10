@@ -16,6 +16,7 @@ Reference
    maven_jar
    maven_pom
    pip_metadata
+   rockcraft
    sdist
    sourcecraft
    wheels

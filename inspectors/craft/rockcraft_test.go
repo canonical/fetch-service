@@ -41,17 +41,17 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 )
 
-type sourcecraftSuite struct{}
+type rockcraftSuite struct{}
 
-var _ = Suite(&sourcecraftSuite{})
+var _ = Suite(&rockcraftSuite{})
 
-func (t *sourcecraftSuite) SetUpTest(c *C) {
+func (t *rockcraftSuite) SetUpTest(c *C) {
 	testlogger.Init(logger.InfoLevel)
 }
 
-func Test(t *testing.T) { TestingT(t) }
+func RockcraftTest(t *testing.T) { TestingT(t) }
 
-func getTestSourcecraftConfig() config.CraftsInspectorConfig {
+func getTestRockcraftConfig() config.CraftsInspectorConfig {
 	return config.CraftsInspectorConfig{
 		Urls: []glob.Glob{
 			glob.MustCompile("https://github.com:443/**"),
@@ -60,20 +60,20 @@ func getTestSourcecraftConfig() config.CraftsInspectorConfig {
 	}
 }
 
-func (s *sourcecraftSuite) TestSourcecraftInspectorInterface(c *C) {
+func (s *rockcraftSuite) TestRockcraftInspectorInterface(c *C) {
 	var iface Inspector
-	ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
+	ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
 	c.Assert(ins, Implements, &iface)
 
 }
 
-func (s *sourcecraftSuite) TestUploadPackInspectorID(c *C) {
-	ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
-	c.Assert(ins.ID(), Equals, "craft.sourcecraft")
+func (s *rockcraftSuite) TestUploadPackInspectorID(c *C) {
+	ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
+	c.Assert(ins.ID(), Equals, "craft.rockcraft")
 
 }
 
-func createTestSourcecraftArtefact(is_shallow bool) *metadata.Artefact {
+func createTestRockcraftArtefact(is_shallow bool) *metadata.Artefact {
 	a := metadata.NewArtefact()
 	a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
 	a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
@@ -82,11 +82,11 @@ func createTestSourcecraftArtefact(is_shallow bool) *metadata.Artefact {
 	a.RequestInspection = metadata.InspectionMap{
 		"git.upload-pack": &Inspection{
 			Opinion: opinions.Pending,
-			Reason:  "valid URL for sourcecraft upload-pack",
+			Reason:  "valid URL for rockcraft upload-pack",
 			Annotations: Annotation{
 				"client-request": []string{
 					"command=fetch",
-					"agent=git/2.34.1",
+					"agent=git/2.45.2",
 					"object-format=sha1",
 					"",
 					"thin-pack",
@@ -94,15 +94,15 @@ func createTestSourcecraftArtefact(is_shallow bool) *metadata.Artefact {
 					"include-tag",
 					"ofs-delta",
 					"deepen 1",
-					"want 10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
+					"want d9c2c0282d81a993c0011113996b541a1ef1ebc7",
 					"done",
 				},
-				"repository": "https://my.repo/foo",
+				"repository": "https://github.com:443/lengau/charmcraft-rocks",
 				"command":    "fetch",
-				"project":    "bump2version",
+				"project":    "charmcraft-core22",
 				"protocol":   "version=2",
 				"wants": []string{
-					"10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
+					"d9c2c0282d81a993c0011113996b541a1ef1ebc7",
 				},
 				"is-shallow": is_shallow,
 			},
@@ -111,13 +111,13 @@ func createTestSourcecraftArtefact(is_shallow bool) *metadata.Artefact {
 	return a
 }
 
-func loadTestSourcecraftArtefactData() (*files.ArtefactFile, error) {
-	sourcepkg_file := filepath.Join("testdata", "sourcepkg.raw")
-	file, err := files.OpenArtefactFile(sourcepkg_file)
+func loadTestRockcraftArtefactData() (*files.ArtefactFile, error) {
+	git_capture := filepath.Join("testdata", "rockcraftpkg.raw")
+	file, err := files.OpenArtefactFile(git_capture)
 	return file, err
 }
 
-func (s *sourcecraftSuite) TestInspectSourcecraftGitRequest(c *C) {
+func (s *rockcraftSuite) TestInspectRockcraftGitRequest(c *C) {
 	for _, tc := range []struct {
 		url      string
 		approved bool
@@ -135,7 +135,7 @@ func (s *sourcecraftSuite) TestInspectSourcecraftGitRequest(c *C) {
 		{"https://git.launchpad.com:443/project/git-upload-pack", false},
 		{"https://git.lpad.net:443/~user/project/+git/project/git-upload-pack", false},
 	} {
-		ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
+		ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
 		a := metadata.NewArtefact()
 		a.CurrentDownload.URL = tc.url
 		a.CurrentDownload.RequestHeader = map[string][]string{
@@ -159,40 +159,40 @@ func (s *sourcecraftSuite) TestInspectSourcecraftGitRequest(c *C) {
 	}
 }
 
-func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefact(c *C) {
+func (s *rockcraftSuite) TestRockcraftGitInspectArtefact(c *C) {
 	for _, tc := range []struct {
 		is_shallow bool
 		opinion    opinions.OpinionKind
 		reason     string
 	}{
-		{true, opinions.Approved, "sourcecraft repository found"},
-		{false, opinions.Rejected, "sourcecraft repository is not shallow"},
+		{true, opinions.Approved, "rockcraft repository found"},
+		{false, opinions.Rejected, "rockcraft repository is not shallow"},
 	} {
 
-		a := createTestSourcecraftArtefact(tc.is_shallow)
-		f, err := loadTestSourcecraftArtefactData()
+		a := createTestRockcraftArtefact(tc.is_shallow)
+		f, err := loadTestRockcraftArtefactData()
 		c.Assert(err, IsNil)
 		defer f.Close()
 
-		ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
+		ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
 		err = ins.InspectArtefact(f, a)
 		c.Assert(err, IsNil)
 
-		inspection := a.ResponseInspection["craft.sourcecraft"]
+		inspection := a.ResponseInspection["craft.rockcraft"]
 		c.Assert(inspection.Opinion, Equals, tc.opinion)
 		c.Assert(inspection.Reason, Equals, tc.reason)
 
 		if tc.opinion == opinions.Approved {
-			c.Check(a.Metadata.Type, Equals, "application/x.canonical.sourcecraft")
-			c.Check(a.Metadata.Name, Equals, "autossh")
-			c.Check(a.Metadata.Version, Equals, "git")
-			c.Check(a.Metadata.Description, Equals, "A very short one-line summary of the package.")
+			c.Check(a.Metadata.Type, Equals, "application/x.canonical.rockcraft")
+			c.Check(a.Metadata.Name, Equals, "charmcraft-core22")
+			c.Check(a.Metadata.Version, Equals, "3.1.2")
+			c.Check(a.Metadata.Description, Equals, "Pack Ubuntu 22.04 charms")
 			// FIXME: add more fields to test data
 		}
 	}
 }
 
-func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactMissingSourcecraftYaml(c *C) {
+func (s *rockcraftSuite) TestRockcraftGitInspectArtefactMissingRockcraftYaml(c *C) {
 	tc := struct {
 		is_shallow bool
 		opinion    opinions.OpinionKind
@@ -200,29 +200,29 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactMissingSourcecraftYa
 	}{
 		true,
 		opinions.Unknown,
-		"git repository does not contain a sourcecraft.yaml file",
+		"git repository does not contain a rockcraft.yaml file",
 	}
 	restorer := craft.MockOsStat(func(string) (os.FileInfo, error) {
 		return nil, os.ErrNotExist
 	})
 	defer restorer()
 
-	a := createTestSourcecraftArtefact(tc.is_shallow)
-	f, err := loadTestSourcecraftArtefactData()
+	a := createTestRockcraftArtefact(tc.is_shallow)
+	f, err := loadTestRockcraftArtefactData()
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
+	ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
 
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 
-	inspection := a.ResponseInspection["craft.sourcecraft"]
+	inspection := a.ResponseInspection["craft.rockcraft"]
 	c.Assert(inspection.Opinion, Equals, tc.opinion)
 	c.Assert(inspection.Reason, Equals, tc.reason)
 }
 
-func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactUnreadableSourcecraftYaml(c *C) {
+func (s *rockcraftSuite) TestRockcraftGitInspectArtefactUnreadableRockcraftYaml(c *C) {
 	tc := struct {
 		is_shallow bool
 		opinion    opinions.OpinionKind
@@ -230,29 +230,29 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactUnreadableSourcecraf
 	}{
 		true,
 		opinions.Rejected,
-		"cannot open sourcecraft.yaml file",
+		"cannot open rockcraft.yaml file",
 	}
 
 	restorer := craft.MockOsOpen(func(string) (*os.File, error) {
 		return nil, os.ErrNotExist
 	})
 	defer restorer()
-	f, err := loadTestSourcecraftArtefactData()
+	f, err := loadTestRockcraftArtefactData()
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	a := createTestSourcecraftArtefact(tc.is_shallow)
+	a := createTestRockcraftArtefact(tc.is_shallow)
 
-	ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
+	ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 
-	inspection := a.ResponseInspection["craft.sourcecraft"]
+	inspection := a.ResponseInspection["craft.rockcraft"]
 	c.Assert(inspection.Opinion, Equals, tc.opinion)
 	c.Assert(inspection.Reason, Equals, tc.reason)
 }
 
-func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactUnableToDecodeSourcecraftYaml(c *C) {
+func (s *rockcraftSuite) TestRockcraftGitInspectArtefactUnableToDecodeRockcraftYaml(c *C) {
 	tc := struct {
 		is_shallow bool
 		opinion    opinions.OpinionKind
@@ -260,27 +260,27 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactUnableToDecodeSource
 	}{
 		true,
 		opinions.Rejected,
-		"cannot decode sourcecraft.yaml",
+		"cannot decode rockcraft.yaml",
 	}
-	f, err := loadTestSourcecraftArtefactData()
+	f, err := loadTestRockcraftArtefactData()
 	c.Assert(err, IsNil)
 	defer f.Close()
 
 	restorer := craft.MockOsOpen(func(string) (*os.File, error) {
-		temp, _ := os.CreateTemp("", "sourcecraft-empty.yaml")
+		temp, _ := os.CreateTemp("", "rockcraft-empty.yaml")
 		defer temp.Close()
 		defer os.Remove(temp.Name())
 		return os.Open(temp.Name())
 	})
 	defer restorer()
 
-	a := createTestSourcecraftArtefact(tc.is_shallow)
+	a := createTestRockcraftArtefact(tc.is_shallow)
 
-	ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
+	ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
 	err = ins.InspectArtefact(f, a)
 	c.Assert(err, IsNil)
 
-	inspection := a.ResponseInspection["craft.sourcecraft"]
+	inspection := a.ResponseInspection["craft.rockcraft"]
 	c.Assert(inspection.Opinion, Equals, tc.opinion)
 	c.Assert(inspection.Reason, Equals, tc.reason)
 }
