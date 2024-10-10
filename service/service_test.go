@@ -287,7 +287,7 @@ func (t *serviceSuite) TestGetServiceStatus(c *C) {
 
 	opt := service.Options{
 		ProxyPort: 1337,
-		Spool:     "/my/spool",
+		Spool:     dir,
 		CertPath:  certPath,
 		KeyPath:   keyPath,
 	}
@@ -326,7 +326,7 @@ func (t *serviceSuite) TestRequestInspection(c *C) {
 
 	opt := service.Options{
 		ProxyPort: 1337,
-		Spool:     "/my/spool",
+		Spool:     dir,
 		CertPath:  certPath,
 		KeyPath:   keyPath,
 	}
@@ -391,7 +391,7 @@ func (t *serviceSuite) TestEvaluateRequestInspection(c *C) {
 		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Pending}, "bar": &Inspection{Opinion: opinions.Rejected}}, ErrRejectedRequest},
 		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Rejected}, "bar": &Inspection{Opinion: opinions.Unknown}}, ErrRejectedRequest},
 	} {
-		s := session.New("/my/policy", 0, tc.policy == "permissive")
+		s := session.New("/my/spool", 0, tc.policy == "permissive")
 		defer s.Discard()
 
 		a := metadata.NewArtefact()
@@ -466,13 +466,14 @@ func (t *serviceSuite) TestResponseInspection(c *C) {
 		res := <-msg.Rch
 
 		// check if temporary file properly deleted
+		time.Sleep(500 * time.Millisecond) // GitHub CI needs this
 		_, err = os.Stat(a.Tempfile)
-		c.Assert(err, ErrorMatches, "stat.*no such file or directory")
+		c.Assert(err, ErrorMatches, "stat.*no such file or directory", Commentf("test case: %+v", tc))
 
 		if tc.errMsg == "" {
 			c.Assert(res, Equals, nil)
 		} else {
-			c.Assert(res, ErrorMatches, tc.errMsg)
+			c.Assert(res, ErrorMatches, tc.errMsg, Commentf("test case: %+v", tc))
 		}
 
 		err = svc.Stop()
@@ -502,7 +503,7 @@ func (t *serviceSuite) TestEvaluateResponseInspection(c *C) {
 		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Approved}, "bar": &Inspection{Opinion: opinions.Rejected}}, opinions.Rejected, ErrRejectedArtefact},
 		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Rejected}, "bar": &Inspection{Opinion: opinions.Unknown}}, opinions.Rejected, ErrRejectedArtefact},
 	} {
-		s := session.New("/my/policy", 0, tc.policy == "permissive")
+		s := session.New("/my/spool", 0, tc.policy == "permissive")
 		defer s.Discard()
 
 		a := metadata.NewArtefact()
@@ -536,7 +537,7 @@ func (t *serviceSuite) TestCreateSession(c *C) {
 	} {
 		opt := service.Options{
 			ProxyPort:      1337,
-			Spool:          "/my/spool",
+			Spool:          dir,
 			PermissiveMode: tc.permissiveMode,
 			CertPath:       certPath,
 			KeyPath:        keyPath,
@@ -647,7 +648,7 @@ func (t *serviceSuite) TestRevokeToken(c *C) {
 	} {
 		opt := service.Options{
 			ProxyPort: 1337,
-			Spool:     "/my/spool",
+			Spool:     dir,
 			CertPath:  certPath,
 			KeyPath:   keyPath,
 		}
@@ -679,7 +680,7 @@ func (t *serviceSuite) TestRevokeToken(c *C) {
 
 		if tc.err == nil {
 			c.Assert(res.Err, IsNil)
-			c.Assert(res.SpoolPath, Equals, "/my/spool")
+			c.Assert(res.SpoolPath, Equals, dir)
 			c.Assert(res.SessionId, Equals, s.Id)
 		} else {
 			c.Assert(res.Err, Equals, tc.err)
