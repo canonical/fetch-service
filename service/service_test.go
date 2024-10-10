@@ -53,11 +53,9 @@ type serviceSuite struct {
 }
 
 func (t *serviceSuite) SetUpTest(c *C) {
-	os.Setenv("FETCH_APT_RELEASE_PUBLIC_KEY", "dummy-value")
 }
 
 func (t *serviceSuite) TearDownTest(c *C) {
-	os.Unsetenv("FETCH_APT_RELEASE_PUBLIC_KEY")
 }
 
 var _ = Suite(&serviceSuite{})
@@ -1011,20 +1009,6 @@ func (t *serviceSuite) TestFetchctlCreateSession(c *C) {
 		err = svc.Stop()
 		c.Assert(err, IsNil)
 	}
-}
-
-func (t *serviceSuite) TestMissingPublicKeyVar(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
-		t.proxyPort = port
-		return &proxy.HttpProxy{}, nil
-	})
-	defer restorer()
-
-	os.Setenv("FETCH_APT_RELEASE_PUBLIC_KEY", "")
-	defer os.Unsetenv("FETCH_APT_RELEASE_PUBLIC_KEY")
-	_, err := service.New(serviceOptionsFixture(c))
-	c.Assert(err, NotNil)
-	c.Assert(err, ErrorMatches, "FETCH_APT_RELEASE_PUBLIC_KEY env var not set")
 }
 
 func createCertFiles(dir string) (string, string, error) {

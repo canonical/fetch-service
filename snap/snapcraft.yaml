@@ -12,10 +12,10 @@ adopt-info: fetch
 
 apps:
   # licensecheck app here for debugging.
-#  licensecheck:
-#    command: usr/bin/licensecheck
-#    plugs:
-#      - home
+  licensecheck:
+    command: usr/bin/licensecheck
+    plugs:
+      - home
   fetchd:
     command: bin/fetch-service.sh
     daemon: simple
@@ -55,9 +55,6 @@ parts:
     plugin: dump
     source: .
     source-subdir: snap/local
-    stage-packages:
-      - gpg
-      - ubuntu-keyring
   fetchctl:
     plugin: nil
     override-prime: |
