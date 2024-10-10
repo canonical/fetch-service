@@ -2,6 +2,15 @@
 Changelog
 *********
 
+0.3.0 (2024-10-10)
+------------------
+
+- apt, snap, git, craft inspectors configurable at runtime
+- refactor: remove unnecessary local loading of apt public key (#255)
+- fix(service): reject unknown request in strict mode (#253)
+- fix(i/apt): check for built-using and allow ubuntu-ports (#251)
+- fix(deps): update module golang.org/x/net to v0.30.0 (#205)
+
 0.2.3 (2024-10-03)
 ------------------
 

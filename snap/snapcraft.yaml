@@ -48,7 +48,8 @@ parts:
     plugin: go
     source: .
     override-build: |
-      rm -f cmd/fetch/version.txt
+      rm -f version/version.txt
+      go generate ./...
       craftctl default
       craftctl set version=$(cat version/version.txt)
   service-runner:
