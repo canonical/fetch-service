@@ -48,3 +48,18 @@ func (t *urlUtilsSuite) TestNormalizedOrigin(c *C) {
 		c.Check(o, Equals, tc.origin)
 	}
 }
+
+func (t *urlUtilsSuite) TestNormalizedURL(c *C) {
+	for _, tc := range []struct {
+		url        string
+		normalized string
+	}{
+		{"Http://foo.org/bla", "http://foo.org/bla"},
+		{"https://foo.org//bla", "https://foo.org/bla"},
+		{"https://foo.org:8888/a/b/../c", "https://foo.org:8888/a/c"},
+	} {
+		u, err := url.Parse(tc.url)
+		c.Assert(err, IsNil, Commentf("test case: %+v", tc))
+		c.Check(utils.NormalizedURL(u), Equals, tc.normalized, Commentf("test case: %+v", tc))
+	}
+}

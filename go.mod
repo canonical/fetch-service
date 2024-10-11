@@ -6,6 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/CalebQ42/squashfs v1.0.2
 	github.com/ProtonMail/go-crypto v1.0.0
+	github.com/PuerkitoBio/purell v1.2.1
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
 	github.com/elazarl/goproxy v0.0.0-20221015165544-a0805db90819
 	github.com/gabriel-vasile/mimetype v1.4.5
@@ -32,4 +33,5 @@ require (
 	github.com/ulikunitz/xz v0.5.12 // indirect
 	golang.org/x/crypto v0.28.0 // indirect
 	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/text v0.19.0 // indirect
 )
