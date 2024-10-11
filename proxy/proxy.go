@@ -39,6 +39,7 @@ import (
 	"github.com/canonical/fetch-service/proxy/acl"
 	"github.com/canonical/fetch-service/proxy/auth"
 	"github.com/canonical/fetch-service/service/messages"
+	"github.com/canonical/fetch-service/utils"
 )
 
 const (
@@ -190,7 +191,7 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 	a.SessionId = req.Header.Get(sessionIdHeader)
 
 	a.CurrentDownload.StartTime = time.Now().UTC()
-	a.CurrentDownload.URL = req.URL.String()
+	a.CurrentDownload.URL = utils.NormalizedURL(req.URL)
 	a.CurrentDownload.Address = req.RemoteAddr
 	a.CurrentDownload.Method = req.Method
 	a.CurrentDownload.UserAgent = req.Header.Get("User-Agent")
