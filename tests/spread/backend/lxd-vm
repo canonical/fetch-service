@@ -24,6 +24,7 @@ allocate() {
 		"${image}" \
 		"${VM_NAME}" \
 		-c cloud-init.user-data="$(cat tests/spread/cloud-config.yaml)" \
+		-c user.user-data="$(cat tests/spread/cloud-config.yaml)" \
 		-c limits.cpu="${CPU}" \
 		-c limits.memory="${MEM}GiB" \
 		-d root,size="${DISK}GiB"

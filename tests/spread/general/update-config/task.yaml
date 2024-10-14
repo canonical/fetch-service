@@ -2,7 +2,6 @@ summary: Fetchctl update config operations
 
 prepare: |
   snap install $PROJECT_PATH/tests/fetch-service_*.snap --dangerous
-  snap install yq
 
 restore: |
   snap remove fetch-service --purge

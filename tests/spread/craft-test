@@ -15,7 +15,7 @@ prepare() {
 	case "$SPREAD_SYSTEM" in
 	fedora*)
 		dnf update
-		dnf install -y snapd yq jq
+		dnf install -y snapd jq
 		while ! snap install snapd; do
 			echo "waiting for snapd..."
 			sleep 2
@@ -27,6 +27,7 @@ prepare() {
 		;;
 	esac
 
+	snap install yq
 	snap refresh --hold
 
 	if systemctl is-enabled unattended-upgades.service; then

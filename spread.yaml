@@ -21,6 +21,12 @@ backends:
       - ubuntu-22.04:
           username: spread
           password: spread
+      - ubuntu-20.04:
+          username: spread
+          password: spread
+      #- fedora-40-cloud:
+      #    username: spread
+      #    password: spread
 
   localhost:
     type: adhoc
@@ -33,12 +39,17 @@ backends:
           username: spread
           password: spread
           workers: 1
+      - ubuntu-20.04:
+          username: spread
+          password: spread
+          workers: 1
 
 suites:
   tests/spread/general/:
     summary: General integration tests
     systems:
       - ubuntu-22.04
+      - ubuntu-20.04
     environment:
 
 exclude:
