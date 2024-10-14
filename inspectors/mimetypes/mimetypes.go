@@ -31,6 +31,7 @@ const (
 	GitUploadPackLsRef         = "application/x.git.upload-pack-result.ls-ref"
 	GitUploadPackFetch         = "application/x.git.upload-pack-result.fetch"
 	Sourcecraft                = "application/x.canonical.sourcecraft"
+	Rockcraft                  = "application/x.canonical.rockcraft"
 	GoModuleGit                = "application/x.go.module.git-repo"
 	SquashFs                   = "application/x.squashfs"
 	SnapPackage                = "application/x.canonical.snap-package"
