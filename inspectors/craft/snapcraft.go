@@ -1,0 +1,231 @@
+// -*- Mode: Go; indent-tabs-mode: t -*-
+
+/*
+ * Copyright 2024 Canonical Ltd.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+package craft
+
+import (
+	"errors"
+	"fmt"
+	"net/url"
+	"os"
+	"path/filepath"
+
+	"gopkg.in/yaml.v3"
+
+	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/craft/config"
+	"github.com/canonical/fetch-service/inspectors/git"
+	"github.com/canonical/fetch-service/inspectors/mimetypes"
+	"github.com/canonical/fetch-service/logger"
+)
+
+// The SnapcraftInspector handles upload-pack requests.
+// It recognizes "fetch" command from the Git v2 protocol.
+type SnapcraftInspector struct {
+	config config.CraftsInspectorConfig
+}
+
+func NewSnapcraftInspector(cfg config.CraftsInspectorConfig) *SnapcraftInspector {
+	return &SnapcraftInspector{cfg}
+}
+
+func (ins *SnapcraftInspector) ID() string {
+	return "craft.snapcraft"
+}
+
+type snapcraftYaml struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	Summary string `json:"summary"`
+	License string `json:"license,omitempty"`
+	Base    string `json:"base"`
+}
+
+// InspectRequest verifies whether this is a valid upload-pack request. For
+// it to succeed the following conditions must be satisfied:
+//
+//   - The "Git-Protocol" request header must be set to "version=2".
+//   - The Content-Type header must be set to "application/x-git-upload-pack-request".
+//   - The Accept header must be set to "application/x-git-upload-pack-result"
+//   - The request URL must match a valid upload-pack pattern.
+//   - The upload-pack command must be "fetch".
+//   - It must be a shallow fetch.
+func (ins *SnapcraftInspector) InspectRequest(a RequestArtefact) error {
+	u, err := url.Parse(a.DownloadURL())
+	if err != nil {
+		return fmt.Errorf("cannot parse URL: %s", err)
+	}
+
+	content_type, ok := a.RequestHeader("Content-Type")
+	if !ok || len(content_type) < 1 || content_type[0] != "application/x-git-upload-pack-request" {
+		return nil // we don't recognize this request
+	}
+
+	accept, ok := a.RequestHeader("Accept")
+	if !ok || len(accept) < 1 || accept[0] != "application/x-git-upload-pack-result" {
+		return nil // we don't recognize this request
+	}
+
+	_, err = config.NewCraftUrlInfo(u, &ins.config)
+	if err != nil {
+		return nil // we don't recognize this request
+	}
+
+	command, ok := a.RequestStringAnnotation(GitUploadPackID, "command")
+	if !ok || command != "fetch" {
+		return nil // we don't recognize this request
+	}
+
+	a.SetRequestPending(ins, "valid URL for snapcraft download")
+	return nil
+}
+
+func (ins *SnapcraftInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+	if a.ContentType() != "application/x-git-upload-pack-result" {
+		return nil
+	}
+	logger.Debugf("Inspecting snapcraft artefact")
+
+	command, ok := a.RequestStringAnnotation(GitUploadPackID, "command") // the upload-pack request command
+	if !ok {
+		// this must have been set by the git upload-pack inspector
+		return errors.New("cannot read request command annotation")
+	}
+	notes := Annotation{}
+
+	logger.Debugf("inspect git upload-pack artefact: command %q", command)
+
+	// We're only interested in the fetch command
+	if command != "fetch" {
+		return nil
+	}
+
+	if a.MimetypeIs("text/plain") {
+		return nil
+	}
+
+	// Read wants information from the git inspector annotation
+	w, has_wants := a.RequestAnnotation(GitUploadPackID, "wants")
+	wr, has_want_refs := a.RequestAnnotation(GitUploadPackID, "want-refs")
+	if !has_wants && !has_want_refs {
+		// this must have been set by the git upload-pack inspector
+		return errors.New("cannot read request want/want-ref annotation")
+	}
+
+	var wants []string
+	if has_wants {
+		var ok bool
+		wants, ok = w.([]string)
+		if !ok || len(wants) < 1 {
+			return errors.New("cannot read want annotation")
+		}
+	}
+
+	var want_refs []string
+	if has_want_refs {
+		var ok bool
+		want_refs, ok = wr.([]string)
+		if !ok || len(want_refs) < 1 {
+			return errors.New("cannot read want-ref annotation")
+		}
+	}
+
+	// Read depth information from the git inspector annotation
+	isShallow, ok := a.RequestBoolAnnotation(GitUploadPackID, "is-shallow")
+	if !ok {
+		return errors.New("cannot read is-shallow annotation")
+	}
+	// Reject if depth > 1
+	if !isShallow {
+		a.SetResponseRejected(ins, "snapcraft repository is not shallow").Annotate(notes)
+		return nil
+	}
+
+	// Unpack and checkout in temporary directory
+	// FIXME: unpack once for all inspectors
+	dir, err := os.MkdirTemp("", "fetch-")
+	if err != nil {
+		return err
+	}
+	logger.Debugf("unpack objects in %s", dir)
+
+	defer os.RemoveAll(dir)
+
+	if err = git.UnpackObjects(f, dir); err != nil {
+		return fmt.Errorf("git unpack error: %w", err)
+	}
+
+	if has_wants {
+		// check out wanted digest
+		notes.Add("checkout", wants[0])
+		err = git.Checkout(dir, wants[0])
+		if err != nil {
+			return fmt.Errorf("git checkout error: %w", err)
+		}
+	} else {
+		// check out wanted-ref
+		a.SetResponseRejected(ins,
+			"want-refs handling not implemented yet").Annotate(notes)
+		return nil
+	}
+
+	snapcraftYamlPath, found := getSnapcraftYamlPath(dir)
+	if !found {
+		a.SetResponseUnknown(ins,
+			"git repository does not contain a snapcraft.yaml file")
+		return nil
+	}
+	yamldata_filereader, err := osOpen(snapcraftYamlPath)
+	if err != nil {
+		a.SetResponseRejected(ins, "cannot open snapcraft.yaml file")
+		return nil
+	}
+	defer yamldata_filereader.Close()
+
+	var data snapcraftYaml
+	dec := yaml.NewDecoder(yamldata_filereader)
+	if err := dec.Decode(&data); err != nil {
+		a.SetResponseRejected(ins, "cannot decode snapcraft.yaml")
+		return nil
+	}
+
+	a.SetArtefactMetadata(ArtefactMetadata{
+		Type:        mimetypes.Snapcraft,
+		Name:        data.Name,
+		Version:     data.Version,
+		Description: data.Summary,
+		License:     data.License,
+	})
+	a.SetResponseApproved(ins, "snapcraft repository found").Annotate(notes)
+
+	return nil
+}
+
+func getSnapcraftYamlPath(dir string) (path string, found bool) {
+	candidates := []string{"snap/snapcraft.yaml", "snapcraft.yaml"}
+
+	for _, c := range candidates {
+		p := filepath.Join(dir, c)
+		if _, err := osStat(p); err == nil {
+			return p, true
+		}
+	}
+
+	return "", false
+}
