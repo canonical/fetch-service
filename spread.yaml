@@ -51,6 +51,10 @@ suites:
       - ubuntu-22.04
       - ubuntu-20.04
     environment:
+    prepare: $PROJECT_PATH/tests/spread/craft-test suite-prepare
+    restore: $PROJECT_PATH/tests/spread/craft-test suite-restore
+    prepare-each: $PROJECT_PATH/tests/spread/craft-test suite-prepare-each
+    restore-each: $PROJECT_PATH/tests/spread/craft-test suite-restore-each
 
 exclude:
   - .git
