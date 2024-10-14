@@ -51,20 +51,20 @@ type CraftsInspectorConfig struct {
 	Urls []glob.Glob `yaml:"urls"` // List of allowed URL glob patterns
 }
 
-type SourcecraftUrlInfo struct {
+type CraftUrlInfo struct {
 	Project string
 }
 
-func NewSourcecraftUrlInfo(u *url.URL, cfg *CraftsInspectorConfig) (*SourcecraftUrlInfo, error) {
+func NewCraftUrlInfo(u *url.URL, cfg *CraftsInspectorConfig) (*CraftUrlInfo, error) {
 	if err := checkRequestUrl(cfg, u); err != nil {
 		return nil, err
 	}
 
 	m := reSourcecraft.FindStringSubmatch(u.Path)
 	if len(m) != 3 && len(m) != 2 {
-		return nil, errors.New("not a valid sourcecraft upload-pack path")
+		return nil, errors.New("not a valid *craft upload-pack path")
 	}
-	info := &SourcecraftUrlInfo{
+	info := &CraftUrlInfo{
 		Project: m[len(m)-1], // assuming the project name is encoded in the URL
 	}
 	info.Project, _ = strings.CutSuffix(info.Project, ".git")

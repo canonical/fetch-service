@@ -43,7 +43,7 @@ func getTestCraftsConfig() config.CraftsInspectorConfig {
 	}
 }
 
-func (t *configSuite) TestSourcecraftUrlInfo(c *C) {
+func (t *configSuite) TestCraftUrlInfo(c *C) {
 	for _, tc := range []struct {
 		url     string
 		project string
@@ -52,18 +52,18 @@ func (t *configSuite) TestSourcecraftUrlInfo(c *C) {
 		{"https://github.com/canonical/fetch-service/git-upload-pack", "fetch-service", ""},
 		{"https://github.com:443/canonical/fetch-service/git-upload-pack", "fetch-service", ""},
 		{"http://github.com/canonical/fetch-service/git-upload-pack", "", "invalid url http://github.com/canonical/fetch-service/git-upload-pack"},
-		{"https://github.com/canonical/fetch-service", "", "not a valid sourcecraft upload-pack path"},
-		{"https://github.com/canonical/fetch-service/info?service=git-upload-pack", "", "not a valid sourcecraft upload-pack path"},
+		{"https://github.com/canonical/fetch-service", "", "not a valid \\*craft upload-pack path"},
+		{"https://github.com/canonical/fetch-service/info?service=git-upload-pack", "", "not a valid \\*craft upload-pack path"},
 	} {
 		u, err := url.Parse(tc.url)
 		c.Assert(err, IsNil)
 
 		cfg := getTestCraftsConfig()
-		info, err := config.NewSourcecraftUrlInfo(u, &cfg)
+		info, err := config.NewCraftUrlInfo(u, &cfg)
 
 		if tc.msg == "" {
 			c.Assert(err, IsNil)
-			c.Assert(info, DeepEquals, &config.SourcecraftUrlInfo{
+			c.Assert(info, DeepEquals, &config.CraftUrlInfo{
 				Project: tc.project,
 			})
 		} else {

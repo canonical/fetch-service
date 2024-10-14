@@ -35,21 +35,21 @@ import (
 	"github.com/canonical/fetch-service/logger"
 )
 
-// The SourcecraftInspector handles upload-pack requests.
+// The SnapcraftInspector handles upload-pack requests.
 // It recognizes "fetch" command from the Git v2 protocol.
-type SourcecraftInspector struct {
+type SnapcraftInspector struct {
 	config config.CraftsInspectorConfig
 }
 
-func NewSourcecraftInspector(cfg config.CraftsInspectorConfig) *SourcecraftInspector {
-	return &SourcecraftInspector{cfg}
+func NewSnapcraftInspector(cfg config.CraftsInspectorConfig) *SnapcraftInspector {
+	return &SnapcraftInspector{cfg}
 }
 
-func (ins *SourcecraftInspector) ID() string {
-	return "craft.sourcecraft"
+func (ins *SnapcraftInspector) ID() string {
+	return "craft.snapcraft"
 }
 
-type sourcecraftYaml struct {
+type snapcraftYaml struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
 	Summary string `json:"summary"`
@@ -66,7 +66,7 @@ type sourcecraftYaml struct {
 //   - The request URL must match a valid upload-pack pattern.
 //   - The upload-pack command must be "fetch".
 //   - It must be a shallow fetch.
-func (ins *SourcecraftInspector) InspectRequest(a RequestArtefact) error {
+func (ins *SnapcraftInspector) InspectRequest(a RequestArtefact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -92,15 +92,15 @@ func (ins *SourcecraftInspector) InspectRequest(a RequestArtefact) error {
 		return nil // we don't recognize this request
 	}
 
-	a.SetRequestPending(ins, "valid URL for sourcecraft download")
+	a.SetRequestPending(ins, "valid URL for snapcraft download")
 	return nil
 }
 
-func (ins *SourcecraftInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+func (ins *SnapcraftInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
 	if a.ContentType() != "application/x-git-upload-pack-result" {
 		return nil
 	}
-	logger.Debugf("Inspecting source artefact")
+	logger.Debugf("Inspecting snapcraft artefact")
 
 	command, ok := a.RequestStringAnnotation(GitUploadPackID, "command") // the upload-pack request command
 	if !ok {
@@ -153,7 +153,7 @@ func (ins *SourcecraftInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 	}
 	// Reject if depth > 1
 	if !isShallow {
-		a.SetResponseRejected(ins, "sourcecraft repository is not shallow").Annotate(notes)
+		a.SetResponseRejected(ins, "snapcraft repository is not shallow").Annotate(notes)
 		return nil
 	}
 
@@ -185,34 +185,47 @@ func (ins *SourcecraftInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 		return nil
 	}
 
-	sourcecraftYamlPath := filepath.Join(dir, "sourcecraft.yaml")
-	if _, err := osStat(sourcecraftYamlPath); err != nil {
+	snapcraftYamlPath, found := getSnapcraftYamlPath(dir)
+	if !found {
 		a.SetResponseUnknown(ins,
-			"git repository does not contain a sourcecraft.yaml file")
+			"git repository does not contain a snapcraft.yaml file")
 		return nil
 	}
-	yamldata_filereader, err := osOpen(sourcecraftYamlPath)
+	yamldata_filereader, err := osOpen(snapcraftYamlPath)
 	if err != nil {
-		a.SetResponseRejected(ins, "cannot open sourcecraft.yaml file")
+		a.SetResponseRejected(ins, "cannot open snapcraft.yaml file")
 		return nil
 	}
 	defer yamldata_filereader.Close()
 
-	var data sourcecraftYaml
+	var data snapcraftYaml
 	dec := yaml.NewDecoder(yamldata_filereader)
 	if err := dec.Decode(&data); err != nil {
-		a.SetResponseRejected(ins, "cannot decode sourcecraft.yaml")
+		a.SetResponseRejected(ins, "cannot decode snapcraft.yaml")
 		return nil
 	}
 
 	a.SetArtefactMetadata(ArtefactMetadata{
-		Type:        mimetypes.Sourcecraft,
+		Type:        mimetypes.Snapcraft,
 		Name:        data.Name,
 		Version:     data.Version,
 		Description: data.Summary,
 		License:     data.License,
 	})
-	a.SetResponseApproved(ins, "sourcecraft repository found").Annotate(notes)
+	a.SetResponseApproved(ins, "snapcraft repository found").Annotate(notes)
 
 	return nil
+}
+
+func getSnapcraftYamlPath(dir string) (path string, found bool) {
+	candidates := []string{"snap/snapcraft.yaml", "snapcraft.yaml"}
+
+	for _, c := range candidates {
+		p := filepath.Join(dir, c)
+		if _, err := osStat(p); err == nil {
+			return p, true
+		}
+	}
+
+	return "", false
 }
