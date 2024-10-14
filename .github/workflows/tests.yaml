@@ -61,9 +61,13 @@ jobs:
   spread-tests:
     needs:
       - snap-build
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Install spread # XXX: spread to be bundled with snapcraft
+      - name: Set up Go  # XXX to build spread
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Install spread  # XXX: spread to be bundled with snapcraft
         run: |
           git clone --depth 1 -b master --single-branch https://github.com/canonical/spread
           cd spread
@@ -77,4 +81,4 @@ jobs:
       - name: Copy snap to tests dir
         run: cp *.snap tests/
       - name: Run spread tests
-        run: ~/go/bin/spread -v localhost:ubuntu-22.04:tests/spread/
+        run: ~/go/bin/spread -v localhost

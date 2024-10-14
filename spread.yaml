@@ -35,11 +35,7 @@ backends:
     discard: |
       tests/spread/craft-test discard
     systems:
-      - ubuntu-22.04:
-          username: spread
-          password: spread
-          workers: 1
-      - ubuntu-20.04:
+      - local:
           username: spread
           password: spread
           workers: 1
