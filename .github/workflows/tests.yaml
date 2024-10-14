@@ -59,6 +59,9 @@ jobs:
           name: snap
           path: ${{ steps.snap.outputs.snap }}
   spread-tests:
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04]
     needs:
       - snap-build
     runs-on: ${{ matrix.os }}
@@ -81,4 +84,4 @@ jobs:
       - name: Copy snap to tests dir
         run: cp *.snap tests/
       - name: Run spread tests
-        run: ~/go/bin/spread -v localhost
+        run: ~/go/bin/spread -v localhost:${{ matrix.os }}
