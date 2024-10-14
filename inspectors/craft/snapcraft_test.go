@@ -284,3 +284,44 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtefactUnableToDecodeSnapcraftY
 	c.Assert(inspection.Opinion, Equals, tc.opinion)
 	c.Assert(inspection.Reason, Equals, tc.reason)
 }
+
+func (s *snapcraftSuite) TestGetSnapcraftYaml(c *C) {
+	for _, tc := range []struct {
+		path        string
+		should_find bool
+	}{
+		{"snap/snapcraft.yaml", true},
+		{"snapcraft.yaml", true},
+		{"build-aux/snapcraft.yaml", false},
+		{"fakecraft.yaml", false},
+	} {
+		dir, err := os.MkdirTemp("", "TestGetSnapcraftYaml")
+		if err != nil {
+			c.Fatal(err)
+		}
+		defer os.RemoveAll(dir)
+
+		full := filepath.Join(dir, tc.path)
+		dirs, _ := filepath.Split(full)
+		if err = os.MkdirAll(dirs, 0755); err != nil {
+			c.Fatal(err)
+		}
+
+		fo, err := os.Create(full)
+		if err != nil {
+			c.Fatal(err)
+		}
+		defer fo.Close()
+		if _, err := fo.WriteString("name: my-project"); err != nil {
+			c.Fatal(err)
+		}
+
+		snapcraft_path, found := craft.GetSnapcraftYamlPath(dir)
+
+		c.Assert(found, Equals, tc.should_find)
+		if found {
+			c.Assert(snapcraft_path, Equals, full)
+		}
+	}
+
+}

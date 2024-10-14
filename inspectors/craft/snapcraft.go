@@ -185,8 +185,8 @@ func (ins *SnapcraftInspector) InspectArtefact(f ArtefactReader, a ResponseArtef
 		return nil
 	}
 
-	snapcraftYamlPath := filepath.Join(dir, "snap", "snapcraft.yaml")
-	if _, err := osStat(snapcraftYamlPath); err != nil {
+	snapcraftYamlPath, found := getSnapcraftYamlPath(dir)
+	if !found {
 		a.SetResponseUnknown(ins,
 			"git repository does not contain a snapcraft.yaml file")
 		return nil
@@ -215,4 +215,17 @@ func (ins *SnapcraftInspector) InspectArtefact(f ArtefactReader, a ResponseArtef
 	a.SetResponseApproved(ins, "snapcraft repository found").Annotate(notes)
 
 	return nil
+}
+
+func getSnapcraftYamlPath(dir string) (path string, found bool) {
+	candidates := []string{"snap/snapcraft.yaml", "snapcraft.yaml"}
+
+	for _, c := range candidates {
+		p := filepath.Join(dir, c)
+		if _, err := osStat(p); err == nil {
+			return p, true
+		}
+	}
+
+	return "", false
 }

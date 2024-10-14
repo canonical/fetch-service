@@ -38,3 +38,5 @@ func MockOsOpen(mock func(string) (*os.File, error)) (restorer func()) {
 		osOpen = old
 	}
 }
+
+var GetSnapcraftYamlPath = getSnapcraftYamlPath
