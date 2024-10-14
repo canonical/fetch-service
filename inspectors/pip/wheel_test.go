@@ -77,18 +77,21 @@ func (s *wheelSuite) TestInspectRequest(c *C) {
 		{"https://files.pythonhosted.org:443/packages/0f9a0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab/foobar-1.0.0.whl", false},
 		{"https://pypi.org:443/packages/0f/9a/0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab/foobar-1.0.0.whl", false},
 		{"ahttps://files.pythonhosted.org:443/packages/0f/9a/0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab/foobar-1.0.0.whl", false},
+		{"https://files.pythonhosted.org:443/packages/81/d4/fd74714ed30a1dedd0b82427c02fa4deec64f173831ec716da11c51a50aa/MarkupSafe-2.1.5-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", true},
+		{"https://files.pythonhosted.org:443/packages/2d/0a/679461c511447ffaf176567d5c496d1de27cbe34a87df6677d7171b2fbd4/importlib_metadata-7.1.0-py3-none-any.whl", true},
+		{"https://files.pythonhosted.org:443/packages/7f/66/b15ce62552d84bbfcec9a4873ab79d993a1dd4edb922cbfccae192bd5b5f/jaraco.classes-3.4.0-py3-none-any.whl", true},
 	} {
 		ins := pip.NewWheelInspector()
 		a := metadata.NewArtefact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 
 		err := ins.InspectRequest(a)
-		c.Assert(err, IsNil)
+		c.Assert(err, IsNil, Commentf("test case: %+v", tc))
 
 		insp, ok := a.RequestInspection[ins.ID()]
-		c.Assert(ok, Equals, tc.approved)
+		c.Assert(ok, Equals, tc.approved, Commentf("test case: %+v", tc))
 		if tc.approved {
-			c.Assert(insp.Opinion, Equals, opinions.Pending)
+			c.Assert(insp.Opinion, Equals, opinions.Pending, Commentf("test case: %+v", tc))
 		}
 	}
 }

@@ -22,6 +22,8 @@ package utils
 import (
 	"fmt"
 	"net/url"
+
+	"github.com/PuerkitoBio/purell"
 )
 
 // NormalizedOrigin returns the origin with the default HTTPS port number
@@ -34,4 +36,13 @@ func NormalizedOrigin(u *url.URL) string {
 		origin = fmt.Sprintf("%s://%s", u.Scheme, u.Host)
 	}
 	return origin
+}
+
+// NormalizedURL applies basic normalization rules to URL u.
+func NormalizedURL(u *url.URL) string {
+	return purell.NormalizeURL(u,
+		purell.FlagLowercaseScheme| // HTTP://host -> http://host
+			purell.FlagRemoveDuplicateSlashes| // http://host/path//a///b -> http://host/path/a/b
+			purell.FlagRemoveDotSegments, // http://host/path/./a/b/../c -> http://host/path/a/c
+	)
 }

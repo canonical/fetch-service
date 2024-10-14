@@ -6,6 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/CalebQ42/squashfs v1.0.2
 	github.com/ProtonMail/go-crypto v1.0.0
+	github.com/PuerkitoBio/purell v1.2.1
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
 	github.com/elazarl/goproxy v0.0.0-20221015165544-a0805db90819
 	github.com/gabriel-vasile/mimetype v1.4.5
@@ -13,7 +14,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/jessevdk/go-flags v1.6.1
-	github.com/klauspost/compress v1.17.10
+	github.com/klauspost/compress v1.17.11
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
 	golang.org/x/net v0.30.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
@@ -32,4 +33,5 @@ require (
 	github.com/ulikunitz/xz v0.5.12 // indirect
 	golang.org/x/crypto v0.28.0 // indirect
 	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/text v0.19.0 // indirect
 )
