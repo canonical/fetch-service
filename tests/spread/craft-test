@@ -58,7 +58,7 @@ restore_each() {
 set -e
 DIR=$(dirname "$0")
 
-while getopts ":s:p:" o; do
+while getopts "" o; do
 	case "${o}" in
 	*)
 		usage
