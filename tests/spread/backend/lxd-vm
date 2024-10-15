@@ -7,12 +7,12 @@ exec 3>&1
 exec 1>&2
 
 allocate() {
-	name=$(echo "$SPREAD_SYSTEM" | tr [:punct:] -)
+	name=$(echo "$SPREAD_SYSTEM" | tr '[:punct:]' -)
 	system=$(echo "$SPREAD_SYSTEM" | tr / -)
 	if [[ "$system" =~ ^ubuntu- ]]; then
 		image="ubuntu:${system#ubuntu-}"
 	else
-		image="images:$(echo $system | tr - /)"
+		image="images:$(echo "$system" | tr - /)"
 	fi
 
 	VM_NAME="${VM_NAME:-spread-$name-${RANDOM}}"
@@ -39,8 +39,8 @@ allocate() {
 }
 
 discard() {
-	instance_name="$(lxc ls -f csv | grep $SPREAD_SYSTEM_ADDRESS | cut -f1 -d",")"
-	lxc delete -f $instance_name
+	instance_name="$(lxc ls -f csv | grep "$SPREAD_SYSTEM_ADDRESS" | cut -f1 -d",")"
+	lxc delete -f "$instance_name"
 }
 
 case "$CMD" in

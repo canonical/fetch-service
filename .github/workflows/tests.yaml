@@ -18,7 +18,7 @@ jobs:
         run: |
           set -x
           sudo apt update
-          sudo apt install -y cpanminus gcc make
+          sudo apt install -y cpanminus gcc make shellcheck
           sudo cpanm --notest https://cpan.metacpan.org/authors/id/J/JO/JONASS/Regexp-Pattern-License-v3.9.3.tar.gz  # 3.11.1 doesn't work!
           sudo cpanm --notest https://cpan.metacpan.org/authors/id/P/PE/PEVANS/Syntax-Keyword-Try-0.27.tar.gz
           sudo cpanm --notest https://cpan.metacpan.org/authors/id/J/JO/JONASS/App-Licensecheck-v3.3.9.tar.gz
@@ -37,6 +37,11 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
+      - name: Run shellcheck
+        run: |
+          shellcheck tests/spread/craft-test tests/spread/backend/*
+          tests/tools/spread-shellcheck.py -v spread.yaml
+          find tests/spread -name task.yaml | xargs tests/tools/spread-shellcheck.py -v
       - name: Build code
         run: |
           go build ./cmd/fetch

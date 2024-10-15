@@ -8,7 +8,7 @@ restore: |
 
 execute: |
   # install package from develoment environment
-  snap install $PROJECT_PATH/tests/fetch-service_*.snap --dangerous
+  snap install "$PROJECT_PATH"/tests/fetch-service_*.snap --dangerous
 
   echo "Testing that default values of config options get set..."
 
