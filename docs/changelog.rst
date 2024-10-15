@@ -2,6 +2,15 @@
 Changelog
 *********
 
+0.4.0 (2024-10-14)
+------------------
+
+- feat(inspectors): add snapcraft inspector (#264)
+- feat(inspectors): Rockcraft inspector (#262)
+- fix(proxy): normalize request urls (#266)
+- fix(inspectors/pip): adjust wheel url pattern (#265)
+- fix(deps): update module github.com/klauspost/compress to v1.17.11 (#267)
+
 0.3.0 (2024-10-10)
 ------------------
 
