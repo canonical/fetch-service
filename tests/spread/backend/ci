@@ -7,6 +7,10 @@ exec 3>&1
 exec 1>&2
 
 allocate() {
+	if [ -z "$CI" ]; then
+		echo "This backend is intended to be used only in CI systems."
+		exit 1
+	fi
 	sudo sed -i "s|#PasswordAuthentication yes|PasswordAuthentication yes|g" /etc/ssh/sshd_config
 	sudo sed -i "s|KbdInteractiveAuthentication no|KbdInteractiveAuthentication yes|g" /etc/ssh/sshd_config
 	sudo rm -f /etc/ssh/sshd_config.d/60-cloudimg-settings.conf

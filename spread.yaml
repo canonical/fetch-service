@@ -28,7 +28,7 @@ backends:
       #    username: spread
       #    password: spread
 
-  localhost:
+  ci:
     type: adhoc
     allocate: |
       ADDRESS "$(tests/spread/craft-test allocate)"

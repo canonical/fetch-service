@@ -89,4 +89,4 @@ jobs:
       - name: Copy snap to tests dir
         run: cp *.snap tests/
       - name: Run spread tests
-        run: ~/go/bin/spread -v localhost:${{ matrix.os }}
+        run: ~/go/bin/spread -v ci:${{ matrix.os }}
