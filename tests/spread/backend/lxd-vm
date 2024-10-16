@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 CMD="$1"
 
 exec 3>&1
@@ -15,7 +15,7 @@ allocate() {
 		image="images:$(echo "$system" | tr - /)"
 	fi
 
-	VM_NAME="${VM_NAME:-spread-$name-${RANDOM}}"
+	VM_NAME="${VM_NAME:-spread-${name}-${RANDOM}}"
 	DISK="${DISK:-20}"
 	CPU="${CPU:-4}"
 	MEM="${MEM:-8}"
@@ -29,13 +29,16 @@ allocate() {
 		-c limits.memory="${MEM}GiB" \
 		-d root,size="${DISK}GiB"
 
+	lxc exec "${VM_NAME}" -- cloud-init status --long --wait || :
+
 	# Wait for the spread user
 	while ! lxc exec "${VM_NAME}" -- id -u spread &>/dev/null; do sleep 0.5; done
-	lxc exec "${VM_NAME}" -- cloud-init status --wait
 	lxc exec "${VM_NAME}" -- rm -f /etc/ssh/sshd_config.d/60-cloudimg-settings.conf
 
 	# Print the instance address to stdout
-	{ lxc ls -f csv | grep "${VM_NAME}" | cut -d"," -f3 | cut -d" " -f1; } 1>&3
+	ADDR=""
+	while [ -z "$ADDR" ]; do ADDR=$(lxc ls -f csv | grep "^${VM_NAME}" | cut -d"," -f3 | cut -d" " -f1); done
+	echo "$ADDR" 1>&3
 }
 
 discard() {

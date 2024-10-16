@@ -18,13 +18,16 @@ backends:
     discard: |
       tests/spread/craft-test discard
     systems:
+      - ubuntu-24.04:
+          username: spread
+          password: spread
       - ubuntu-22.04:
           username: spread
           password: spread
       - ubuntu-20.04:
           username: spread
           password: spread
-      #- fedora-40-cloud:
+        #- fedora-40-cloud:   # XXX: fetchctl not running on fedora, must investigate and fix
       #    username: spread
       #    password: spread
 
@@ -35,6 +38,10 @@ backends:
     discard: |
       tests/spread/craft-test discard
     systems:
+      - ubuntu-24.04:
+          username: spread
+          password: spread
+          workers: 1
       - ubuntu-22.04:
           username: spread
           password: spread
@@ -48,6 +55,7 @@ suites:
   tests/spread/general/:
     summary: General integration tests
     systems:
+      - ubuntu-24.04
       - ubuntu-22.04
       - ubuntu-20.04
     environment:

@@ -7,6 +7,22 @@ on:
       - main
 
 jobs:
+  linters:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run Linters
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+      - name: Run shellcheck
+        run: |
+          shellcheck tests/spread/craft-test tests/spread/backend/*
+          tests/tools/spread-shellcheck.py -v spread.yaml
+          find tests/spread -name task.yaml | xargs tests/tools/spread-shellcheck.py -v
   tests:
     strategy:
       matrix:
@@ -33,15 +49,6 @@ jobs:
       - name: Generate version
         run: |
           go generate ./version
-      - name: Run Linters
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-      - name: Run shellcheck
-        run: |
-          shellcheck tests/spread/craft-test tests/spread/backend/*
-          tests/tools/spread-shellcheck.py -v spread.yaml
-          find tests/spread -name task.yaml | xargs tests/tools/spread-shellcheck.py -v
       - name: Build code
         run: |
           go build ./cmd/fetch
@@ -66,7 +73,7 @@ jobs:
   spread-tests:
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04]
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
     needs:
       - snap-build
     runs-on: ${{ matrix.os }}
