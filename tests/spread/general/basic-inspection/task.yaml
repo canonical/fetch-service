@@ -6,14 +6,14 @@ environment:
 
 prepare: |
   snap install "$PROJECT_PATH"/tests/fetch-service_*.snap --dangerous
+  snap set fetch-service permissive=true
+  snap set fetch-service control.auth=craft:craft
 
 restore: |
   snap remove fetch-service --purge
   rm -f ./*.json
 
 execute: |
-  snap set fetch-service permissive=true
-  snap set fetch-service control.auth=craft:craft
   snap start fetch-service
   sleep 5  # give some time for the service to start
   fetch-service.fetchctl version
