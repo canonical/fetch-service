@@ -1,0 +1,86 @@
+project: craft-test
+
+environment:
+  # important to ensure adhoc and linode/qemu behave the same
+  SUDO_USER: ""
+  SUDO_UID: ""
+  
+  LANG: "C.UTF-8"
+  LANGUAGE: "en"
+
+  PROJECT_PATH: /home/spread/proj
+
+backends:
+  lxd-vm:
+    type: adhoc
+    allocate: |
+      ADDRESS "$(tests/spread/craft-test allocate)"
+    discard: |
+      tests/spread/craft-test discard
+    systems:
+      - ubuntu-24.04:
+          username: spread
+          password: spread
+      - ubuntu-22.04:
+          username: spread
+          password: spread
+      - ubuntu-20.04:
+          username: spread
+          password: spread
+        #- fedora-40-cloud:   # XXX: fetchctl not running on fedora, must investigate and fix
+      #    username: spread
+      #    password: spread
+
+  ci:
+    type: adhoc
+    allocate: |
+      ADDRESS "$(tests/spread/craft-test allocate)"
+    discard: |
+      tests/spread/craft-test discard
+    systems:
+      - ubuntu-24.04:
+          username: spread
+          password: spread
+          workers: 1
+      - ubuntu-22.04:
+          username: spread
+          password: spread
+          workers: 1
+      - ubuntu-20.04:
+          username: spread
+          password: spread
+          workers: 1
+
+suites:
+  tests/spread/general/:
+    summary: General integration tests
+    systems:
+      - ubuntu-24.04
+      - ubuntu-22.04
+      - ubuntu-20.04
+    environment:
+    prepare: |
+      "$PROJECT_PATH"/tests/spread/craft-test suite-prepare
+    restore: |
+      "$PROJECT_PATH"/tests/spread/craft-test suite-restore
+    prepare-each: |
+      "$PROJECT_PATH"/tests/spread/craft-test suite-prepare-each
+    restore-each: |
+      "$PROJECT_PATH"/tests/spread/craft-test suite-restore-each
+
+exclude:
+  - .git
+  - .tox
+
+path: /home/spread/proj
+
+prepare: ¨|
+  "$PROJECT_PATH"/tests/spread/craft-test prepare
+restore: |
+  "$PROJECT_PATH"/tests/spread/craft-test restore
+prepare-each: |
+  "$PROJECT_PATH"/tests/spread/craft-test prepare-each
+restore-each: |
+  "$PROJECT_PATH"/tests/spread/craft-test restore-each
+
+kill-timeout: 1h

@@ -7,6 +7,26 @@ on:
       - main
 
 jobs:
+  linters:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: true
+      - name: Generate version
+        run: |
+          go generate ./version
+      - name: Run Linters
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+      - name: Run shellcheck
+        run: |
+          shellcheck tests/spread/craft-test tests/spread/backend/*
+          tests/tools/utils/spread-shellcheck -v spread.yaml
+          find tests/spread -name task.yaml | xargs tests/tools/utils/spread-shellcheck -v
   tests:
     strategy:
       matrix:
@@ -18,7 +38,7 @@ jobs:
         run: |
           set -x
           sudo apt update
-          sudo apt install -y cpanminus gcc make
+          sudo apt install -y cpanminus gcc make shellcheck
           sudo cpanm --notest https://cpan.metacpan.org/authors/id/J/JO/JONASS/Regexp-Pattern-License-v3.9.3.tar.gz  # 3.11.1 doesn't work!
           sudo cpanm --notest https://cpan.metacpan.org/authors/id/P/PE/PEVANS/Syntax-Keyword-Try-0.27.tar.gz
           sudo cpanm --notest https://cpan.metacpan.org/authors/id/J/JO/JONASS/App-Licensecheck-v3.3.9.tar.gz
@@ -33,10 +53,6 @@ jobs:
       - name: Generate version
         run: |
           go generate ./version
-      - name: Run Linters
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
       - name: Build code
         run: |
           go build ./cmd/fetch
@@ -58,18 +74,30 @@ jobs:
         with:
           name: snap
           path: ${{ steps.snap.outputs.snap }}
-  snap-tests:
+  spread-tests:
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
     needs:
       - snap-build
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     steps:
+      - name: Set up Go  # XXX to build spread
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Install spread  # XXX: spread to be bundled with snapcraft
+        run: |
+          git clone --depth 1 -b master --single-branch https://github.com/canonical/spread
+          cd spread
+          go install ./cmd/spread
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Download snap artifact
         uses: actions/download-artifact@v4
         with:
           name: snap
-      - name: Install snap
-        run: sudo snap install --dangerous *.snap
-      - name: Run snap tests
-        run: sudo testdata/snap-test.sh
+      - name: Copy snap to tests dir
+        run: cp *.snap tests/
+      - name: Run spread tests
+        run: ~/go/bin/spread -v ci:${{ matrix.os }}

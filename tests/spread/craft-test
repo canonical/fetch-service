@@ -1,0 +1,132 @@
+#!/bin/bash
+
+usage() {
+	echo "usage: $(basename "$0") [command]"
+	echo "valid commands:"
+	echo "    allocate            Create an instance to run tests on"
+	echo "    discard             Destroy an instance used to run tests"
+	echo "    prepare             Set up the system to run tests"
+	echo "    restore             Restore the system after the tests ran"
+	echo "    prepare-each        Preparation to run before each test"
+	echo "    restore-each        Restore the system after each test run"
+	echo "    suite-prepare       Set up the system to run a test suite"
+	echo "    suite-restore       Restore the system after the test suite ran"
+	echo "    suite-prepare-each  Preparation to run before each test in a suite"
+	echo "    suite-restore-each  Restore the system after each test in a suite"
+}
+
+prepare() {
+	case "$SPREAD_SYSTEM" in
+	fedora*)
+		dnf update
+		dnf install -y snapd jq
+		while ! snap install snapd; do
+			echo "waiting for snapd..."
+			sleep 2
+		done
+		;;
+	ubuntu* | debian*)
+		apt update
+		apt install -y jq
+		;;
+	esac
+
+	snap install yq
+	snap refresh --hold
+
+	if systemctl is-enabled unattended-upgades.service; then
+		systemctl stop unattended-upgrades.service
+		systemctl mask unattended-upgrades.service
+	fi
+}
+
+restore() {
+	case "$SPREAD_SYSTEM" in
+	ubuntu* | debian*)
+		apt autoremove -y --purge
+		;;
+	esac
+
+	rm -Rf "$PROJECT_PATH"
+	mkdir -p "$PROJECT_PATH"
+}
+
+prepare_each() {
+	true
+}
+
+restore_each() {
+	true
+}
+
+suite_prepare() {
+	true
+}
+
+suite_restore() {
+	true
+}
+
+suite_prepare_each() {
+	true
+}
+
+suite_restore_each() {
+	true
+}
+
+set -e
+DIR=$(dirname "$0")
+
+while getopts "" o; do
+	case "${o}" in
+	*)
+		usage
+		exit 1
+		;;
+	esac
+done
+shift $((OPTIND - 1))
+
+CMD="$1"
+
+if [ -z "$CMD" ]; then
+	usage
+	exit 0
+fi
+
+case "$CMD" in
+allocate)
+	"$DIR/backend/$SPREAD_BACKEND" allocate
+	;;
+discard)
+	"$DIR/backend/$SPREAD_BACKEND" discard
+	;;
+prepare)
+	prepare
+	;;
+restore)
+	restore
+	;;
+prepare-each)
+	prepare_each
+	;;
+restore-each)
+	restore_each
+	;;
+suite-prepare)
+	suite_prepare
+	;;
+suite-restore)
+	suite_restore
+	;;
+suite-prepare-each)
+	suite_prepare_each
+	;;
+suite-restore-each)
+	suite_restore_each
+	;;
+*)
+	echo "unknown command $CMD" >&2
+	;;
+esac

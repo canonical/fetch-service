@@ -1,0 +1,77 @@
+summary: Snap configuration
+
+prepare: |
+  snap remove fetch-service --purge
+
+restore: |
+  snap remove fetch-service --purge
+
+execute: |
+  # install package from develoment environment
+  snap install "$PROJECT_PATH"/tests/fetch-service_*.snap --dangerous
+
+  echo "Testing that default values of config options get set..."
+
+  echo " - proxy.port"
+  snap unset fetch-service proxy.port
+  test "$(snap get fetch-service proxy.port)" = "9988"
+
+  echo " - verbosity"
+  snap unset fetch-service verbosity
+  test "$(snap get fetch-service verbosity)" = "debug"
+
+  echo " - permissive"
+  snap unset fetch-service permissive
+  test "$(snap get fetch-service permissive)" = "false"
+  
+  echo "Testing config coercion"
+
+  echo " - verbosity (lower case)"
+  snap set fetch-service verbosity="DEBUG"
+  test "$(snap get fetch-service verbosity)" = "debug"
+
+  echo " - permissive (boolean)"
+  echo "   (TRUE -> true)"
+  snap set fetch-service permissive="TRUE"
+  test "$(snap get fetch-service permissive)" = "true"
+  echo "   (0 -> false)"
+  snap set fetch-service permissive="0"
+  test "$(snap get fetch-service permissive)" = "false"
+  
+  echo "Testing creation of spool directory"
+  test -d /var/snap/fetch-service/common/spool/
+  
+  echo "Testing that service starts and stops correctly"
+  snap stop fetch-service.fetchd
+  snap services fetch-service.fetchd | grep -q '\binactive\b'
+  snap start fetch-service.fetchd
+  snap services fetch-service.fetchd | grep -q '\bactive\b'
+  snap stop fetch-service.fetchd
+  snap services fetch-service.fetchd | grep -q '\binactive\b'
+  
+  echo "Testing fetch service logging to file"
+  snap stop fetch-service.fetchd
+  log_file_name="$(date -Is).log"
+  old_log_file="$(snap get fetch-service log.file || true)"
+  snap set fetch-service "log.file=${log_file_name}"
+  snap restart fetch-service.fetchd
+  sleep 2 # Give it a moment to start
+  test -f "/var/snap/fetch-service/current/${log_file_name}" || (
+  	echo "Log file not created"
+  	exit 1
+  )
+
+  echo "Testing fetch service starts without log file"
+  snap stop fetch-service.fetchd
+  snap unset fetch-service log.file
+  snap start fetch-service.fetchd
+  sleep 2
+  systemctl status snap.fetch-service.fetchd.service || (
+  	echo "Fetch service did not start"
+  	exit 1
+  )
+  if [[ -z "${old_log_file}" ]]; then
+  	snap unset fetch-service log.file
+  else
+  	snap set fetch-service "log.file=${old_log_file}"
+  fi
