@@ -19,6 +19,7 @@ apps:
   fetchd:
     command: bin/fetch-service.sh
     daemon: simple
+    refresh-mode: endure
     plugs:
       - network-bind
     install-mode: disable
