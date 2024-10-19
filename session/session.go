@@ -39,6 +39,7 @@ import (
 	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/service/config"
 	"github.com/canonical/fetch-service/utils"
+	"github.com/canonical/fetch-service/version"
 )
 
 const (
@@ -130,6 +131,7 @@ func (s *Session) Metadata() *metadata.SessionMetadata {
 	}
 
 	return &metadata.SessionMetadata{
+		Generator:  fmt.Sprintf("fetch-service %s", version.Version),
 		Policy:     policy,
 		Comment:    "Metadata format is unstable and may change without prior notice.",
 		SessionId:  s.Id,

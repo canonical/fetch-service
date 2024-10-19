@@ -22,6 +22,7 @@ package session_test
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -33,6 +34,7 @@ import (
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/session"
+	"github.com/canonical/fetch-service/version"
 )
 
 const (
@@ -305,6 +307,7 @@ func (t *sessionSuite) TestSessionMetadata(c *C) {
 		defer s.Discard()
 
 		m := s.Metadata()
+		c.Check(m.Generator, Equals, fmt.Sprintf("fetch-service %s", version.Version))
 		c.Check(m.Comment, Equals, "Metadata format is unstable and may change without prior notice.")
 		c.Check(m.Policy, Equals, tc.policy)
 		c.Check(m.SessionId, Equals, s.Id)
