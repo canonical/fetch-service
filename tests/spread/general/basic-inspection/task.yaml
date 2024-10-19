@@ -8,10 +8,11 @@ prepare: |
   snap install "$PROJECT_PATH"/tests/fetch-service_*.snap --dangerous
   snap set fetch-service permissive=true
   snap set fetch-service control.auth=craft:craft
+  rm -f ./*.deb
 
 restore: |
   snap remove fetch-service --purge
-  rm -f ./*.json
+  rm -f ./*.json ./*.deb
 
 execute: |
   snap start fetch-service
@@ -30,8 +31,22 @@ execute: |
   export http_proxy="http://${session_id}:${token}@localhost:9988"
   export https_proxy="http://${session_id}:${token}@localhost:9988"
 
-  curl -s --insecure -O http://archive.ubuntu.com/ubuntu/pool/main/h/hello/hello_2.10-3build2_amd64.deb
-  stat hello_2.10-3build2_amd64.deb
+  wget --no-check-certificate http://archive.ubuntu.com/ubuntu/pool/main/h/hello/hello_2.10-3build2_amd64.deb ||:
+  if [ "$POLICY" == "permissive" ]; then
+      test -f hello_2.10-3build2_amd64.deb
+  else
+      test ! -f hello_2.10-3build2_amd64.deb
+  fi
+
+  # download it again
+
+  rm -f hello_2.10-3build2_amd64.deb
+  wget --no-check-certificate http://archive.ubuntu.com/ubuntu/pool/main/h/hello/hello_2.10-3build2_amd64.deb ||:
+  if [ "$POLICY" == "permissive" ]; then
+      test -f hello_2.10-3build2_amd64.deb
+  else
+      test ! -f hello_2.10-3build2_amd64.deb
+  fi
 
   unset http_proxy
   unset https_proxy

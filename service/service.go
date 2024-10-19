@@ -181,10 +181,14 @@ loop:
 				logger.Infof("[%s] %s %s: %s (%s)", sessionId, dl.Method, dl.URL, dl.Status, dl.ContentType)
 
 				if s.HasArtefact(digest) {
-					logger.Infof("artefact %s already downloaded", digest)
+					logger.Infof("[%s] artefact %s already downloaded", s.Id, digest)
 					s.AddDownload(v.A.CurrentDownload)
 					os.Remove(v.A.Tempfile)
-					v.Rch <- nil
+					if !s.Permissive && s.ArtefactResult(digest) == opinions.Rejected {
+						v.Rch <- ErrRejectedArtefact
+					} else {
+						v.Rch <- nil
+					}
 					break
 				}
 

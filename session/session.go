@@ -37,6 +37,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/digests"
+	"github.com/canonical/fetch-service/metadata/opinions"
 	"github.com/canonical/fetch-service/service/config"
 	"github.com/canonical/fetch-service/utils"
 )
@@ -236,6 +237,16 @@ func (s *Session) AddArtefact(a *metadata.Artefact) {
 func (s *Session) HasArtefact(sha1 digests.Sha256Digest) bool {
 	_, ok := s.A[sha1]
 	return ok
+}
+
+// ArtefactResult obtains the result from a previous HasArtefact
+// inspection, or Rejected if it was not previously inspected.
+func (s *Session) ArtefactResult(sha1 digests.Sha256Digest) opinions.OpinionKind {
+	a, ok := s.A[sha1]
+	if !ok {
+		return opinions.Rejected
+	}
+	return a.Result
 }
 
 // AddDownload adds the given download information to the

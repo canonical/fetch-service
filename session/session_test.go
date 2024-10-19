@@ -32,6 +32,7 @@ import (
 
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/digests"
+	"github.com/canonical/fetch-service/metadata/opinions"
 	"github.com/canonical/fetch-service/session"
 )
 
@@ -134,6 +135,57 @@ func (t *sessionSuite) TestSessionTimeoutCancel(c *C) {
 	s.Discard()
 	s = session.GetSession(s.Id)
 	c.Assert(s, IsNil)
+}
+
+func (t *sessionSuite) TestHasArtefact(c *C) {
+	for _, tc := range []struct {
+		addToSession bool
+	}{
+		{true},
+		{false},
+	} {
+		s := session.New("", 0, true)
+		defer s.Discard()
+
+		digest, err := digests.NewSha256Digest(MySha256)
+		c.Assert(err, IsNil)
+
+		a := metadata.NewArtefact()
+		a.Metadata.Sha256 = digest
+		if tc.addToSession {
+			s.AddArtefact(a)
+		}
+
+		hasArtefact := tc.addToSession
+
+		c.Assert(s.HasArtefact(digest), Equals, hasArtefact)
+	}
+}
+
+func (t *sessionSuite) TestArtefactResult(c *C) {
+	for _, tc := range []struct {
+		addToSession bool
+		result       opinions.OpinionKind
+	}{
+		{true, opinions.Approved},
+		{true, opinions.Rejected},
+		{false, opinions.Rejected},
+	} {
+		s := session.New("", 0, true)
+		defer s.Discard()
+
+		digest, err := digests.NewSha256Digest(MySha256)
+		c.Assert(err, IsNil)
+
+		a := metadata.NewArtefact()
+		a.Metadata.Sha256 = digest
+		a.Result = tc.result
+		if tc.addToSession {
+			s.AddArtefact(a)
+		}
+
+		c.Assert(s.ArtefactResult(digest), Equals, tc.result)
+	}
 }
 
 func (t *sessionSuite) TestCheckAuth(c *C) {
