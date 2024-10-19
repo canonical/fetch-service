@@ -218,7 +218,11 @@ func (ins *SnapcraftInspector) InspectArtefact(f ArtefactReader, a ResponseArtef
 }
 
 func getSnapcraftYamlPath(dir string) (path string, found bool) {
-	candidates := []string{"snap/snapcraft.yaml", "snapcraft.yaml"}
+	candidates := []string{
+		"snap/snapcraft.yaml",
+		"snapcraft.yaml",
+		"build-aux/snap/snapcraft.yaml",
+	}
 
 	for _, c := range candidates {
 		p := filepath.Join(dir, c)

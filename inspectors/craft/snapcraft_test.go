@@ -292,6 +292,7 @@ func (s *snapcraftSuite) TestGetSnapcraftYaml(c *C) {
 	}{
 		{"snap/snapcraft.yaml", true},
 		{"snapcraft.yaml", true},
+		{"build-aux/snap/snapcraft.yaml", true},
 		{"build-aux/snapcraft.yaml", false},
 		{"fakecraft.yaml", false},
 	} {
