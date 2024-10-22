@@ -35,17 +35,17 @@ import (
 	"github.com/blakesmith/ar"
 	"github.com/klauspost/compress/zstd"
 
-	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
+	"github.com/canonical/fetch-service/inspectors/apt/config"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/utils"
 )
 
 type DebInspector struct {
-	config apt_cfg.AptInspectorConfig
+	config config.AptInspectorConfig
 }
 
-func NewDebInspector(cfg apt_cfg.AptInspectorConfig) *DebInspector {
+func NewDebInspector(cfg config.AptInspectorConfig) *DebInspector {
 	return &DebInspector{config: cfg}
 }
 
@@ -59,7 +59,7 @@ func (ins *DebInspector) InspectRequest(a RequestArtefact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	if info, err := apt_cfg.NewDebPackageUrlInfo(u, &ins.config); err == nil {
+	if info, err := config.NewDebPackageUrlInfo(u, &ins.config); err == nil {
 		a.SetRequestPending(ins, "valid URL for deb package").Annotate(
 			Annotation{
 				"repository":   info.Repository,
