@@ -2,6 +2,16 @@
 Changelog
 *********
 
+0.4.1 (2024-10-22)
+------------------
+
+- feat: add fetch-service version to session metadata (#272)
+- fix(service): apply same rules if artefact already downloaded (#275)
+- fix(deps): update module github.com/gabriel-vasile/mimetype to v1.4.6 (#270)
+- fix: add build-aux location for snapcraft project (#274)
+- tests: add initial spread testing (#269)
+
+
 0.4.0 (2024-10-14)
 ------------------
 
