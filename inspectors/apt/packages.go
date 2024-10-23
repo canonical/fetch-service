@@ -78,7 +78,7 @@ func AptPackagesDetector(raw []byte, limit uint32) bool {
 
 	buf := make([]byte, 4096)
 	n, err := r.Read(buf)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return false
 	}
 
