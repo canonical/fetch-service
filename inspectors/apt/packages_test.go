@@ -39,12 +39,31 @@ func (s *aptSuite) TestAptPackagesInspectorID(c *C) {
 	c.Assert(ins.ID(), Equals, "apt.packages")
 }
 
+func (s *aptSuite) TestAptPackagesDetector(c *C) {
+	for _, tc := range []struct {
+		filename string
+		detected bool
+	}{
+		{"testdata/Packages.xz", true},
+		{"testdata/Packages-build-using.xz", true},
+		{"testdata/Packages-ppc64el.xz", true},
+		{"testdata/InRelease.xz", false},
+	} {
+		data, err := os.ReadFile(tc.filename)
+		c.Assert(err, IsNil)
+
+		res := apt.AptPackagesDetector(data, uint32(len(data)))
+		c.Assert(res, Equals, tc.detected, Commentf("test case: %+v", tc))
+	}
+}
+
 func (s *aptSuite) TestAptPackagesInspectRequest(c *C) {
 	for _, tc := range []struct {
 		url      string
 		detected bool
 	}{
 		{"http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/6213291a10046e8188510a0ca41a75daedfb2922940f88888ee815694ab3e7b7", true},
+		{"http://archive.ubuntu.com/ubuntu/dists/noble-security/multiverse/binary-ppc64el/by-hash/SHA256/281bdf2a82cbefaa5779127091495e3fb99eccaf05d393d02097896682f198a0", true},
 		{"http://some.other.location/Packages.xz", false},
 	} {
 		ins := apt.NewAptPackagesInspector(getAptInspectorConfig())
@@ -75,6 +94,7 @@ func (s *aptSuite) TestAptPackagesInspectArtefact(c *C) {
 	}{
 		{"testdata/Packages.xz", "6213291a10046e8188510a0ca41a75daedfb2922940f88888ee815694ab3e7b7", ""},
 		{"testdata/Packages-build-using.xz", "f67db265afd9a3a352dcef711099e6ff5eed97ed3ff3f27b90ca5cbc9181ac03", ""},
+		{"testdata/Packages-ppc64el.xz", "281bdf2a82cbefaa5779127091495e3fb99eccaf05d393d02097896682f198a0", ""},
 		{"testdata/InRelease.xz", "f67db265afd9a3a352dcef711099e6ff5eed97ed3ff3f27b90ca5cbc9181ac03", "error parsing packages file"},
 	} {
 		ins := apt.NewAptPackagesInspector(getAptInspectorConfig())
