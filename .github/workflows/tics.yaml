@@ -40,6 +40,7 @@ jobs:
 
       - name: Build code
         run: |
+          go generate ./...
           go build ./cmd/fetch
 
       - name: Run unit tests
