@@ -95,7 +95,7 @@ func readPack(f io.Reader, w io.Writer) error {
 		if err != nil {
 			return err
 		}
-		logger.Debugf("git pack size %#x", size)
+		//logger.Debugf("git pack size %#x", size)
 
 		if size <= 5 {
 			break

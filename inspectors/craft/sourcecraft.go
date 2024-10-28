@@ -105,7 +105,8 @@ func (ins *SourcecraftInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 	command, ok := a.RequestStringAnnotation(GitUploadPackID, "command") // the upload-pack request command
 	if !ok {
 		// this must have been set by the git upload-pack inspector
-		return errors.New("cannot read request command annotation")
+		a.SetResponseUnknown(ins, "command not set during request inspection")
+		return nil
 	}
 	notes := Annotation{}
 
@@ -168,7 +169,8 @@ func (ins *SourcecraftInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 	defer os.RemoveAll(dir)
 
 	if err = git.UnpackObjects(f, dir); err != nil {
-		return fmt.Errorf("git unpack error: %w", err)
+		a.SetResponseRejected(ins, "cannot unpack git objects").Annotate(Annotation{"error-msg": err.Error()})
+		return nil
 	}
 
 	if has_wants {
