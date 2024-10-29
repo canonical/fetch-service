@@ -2,6 +2,11 @@
 Changelog
 *********
 
+0.4.3 (2024-10-29)
+------------------
+
+- fix(inspectors/git): handle absence of proto and command (#283)
+
 0.4.2 (2024-10-23)
 ------------------
 
