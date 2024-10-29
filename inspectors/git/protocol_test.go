@@ -106,3 +106,38 @@ func fakeGitArtefact() *metadata.Artefact {
 
 	return a
 }
+
+func fakeGitArtefactUnsuportedProtocol() *metadata.Artefact {
+	a := metadata.NewArtefact()
+	a.CurrentDownload.RequestHeader = map[string][]string{
+		"Accept":          []string{"application/x-git-upload-pack-result"},
+		"Accept-Encoding": []string{"deflate, gzip, br, zstd"},
+		"Content-Length":  []string{"175"},
+		"Content-Type":    []string{"application/x-git-upload-pack-request"},
+		"Git-Protocol":    []string{"version=1"},
+		"User-Agent":      []string{"git/2.34.1"},
+	}
+	a.CurrentDownload.ResponseHeader = map[string][]string{
+		"Content-Type": []string{"application/x-git-upload-pack-advertisement"},
+	}
+	a.MimeType = mimetype.Lookup("text/plain")
+
+	return a
+}
+
+func fakeGitArtefactNoProtocolVersion() *metadata.Artefact {
+	a := metadata.NewArtefact()
+	a.CurrentDownload.RequestHeader = map[string][]string{
+		"Accept":          []string{"application/x-git-upload-pack-result"},
+		"Accept-Encoding": []string{"deflate, gzip, br, zstd"},
+		"Content-Length":  []string{"175"},
+		"Content-Type":    []string{"application/x-git-upload-pack-request"},
+		"User-Agent":      []string{"git/2.34.1"},
+	}
+	a.CurrentDownload.ResponseHeader = map[string][]string{
+		"Content-Type": []string{"application/x-git-upload-pack-advertisement"},
+	}
+	a.MimeType = mimetype.Lookup("text/plain")
+
+	return a
+}

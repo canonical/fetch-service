@@ -210,6 +210,39 @@ func (s *uploadPackSuite) TestInspectFetchRequest(c *C) {
 	c.Assert(a.RequestRejected(), Equals, false)
 }
 
+func (s *uploadPackSuite) TestInspectFetchRequestUnsupportedProtocolVersions(c *C) {
+	for _, tc := range []struct {
+		a     *metadata.Artefact
+		proto string
+	}{
+		{fakeGitArtefactUnsuportedProtocol(), "version=1"},
+		{fakeGitArtefactNoProtocolVersion(), ""},
+	} {
+		url := "https://github.com:443/user/project.git/git-upload-pack"
+
+		ins := git.NewUploadPackInspector(getTestConfig())
+		a := tc.a
+		a.CurrentDownload.URL = url
+		a.Request, _ = http.NewRequest("GET", url, nil)
+		a.Request.Body = io.NopCloser(strings.NewReader(
+			"0012command=fetch\n" +
+				"000ddeepen 1\n" +
+				"0032want 6b99254b1c5c823d054bc0ae1ebccfa070380fce\n" +
+				"0000",
+		))
+
+		err := ins.InspectRequest(a)
+		c.Assert(err, IsNil)
+		c.Assert(a.RequestInspection["git.upload-pack"], DeepEquals, &Inspection{
+			Opinion:     opinions.Unknown,
+			Reason:      "unsupported git protocol version",
+			Annotations: Annotation{"proto": tc.proto},
+		})
+		c.Assert(a.RequestPending(), Equals, false)
+		c.Assert(a.RequestRejected(), Equals, false)
+	}
+}
+
 func (s *uploadPackSuite) TestInspectFetchRequestDuplicateRef(c *C) {
 	url := "https://github.com:443/user/project.git/git-upload-pack"
 

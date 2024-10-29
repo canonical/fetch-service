@@ -22,7 +22,6 @@ package git
 import (
 	"bytes"
 	"compress/gzip"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -68,11 +67,6 @@ func (ins *UploadPackInspector) ID() string {
 //   - The upload-pack command must be "ls-refs" or "fetch".
 //   - If command is "fetch", it must want a single shallow ref.
 func (ins *UploadPackInspector) InspectRequest(a RequestArtefact) error {
-	proto := getGitProtocol(a)
-	if proto != "version=2" {
-		return nil
-	}
-
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -99,7 +93,6 @@ func (ins *UploadPackInspector) InspectRequest(a RequestArtefact) error {
 		return nil // we don't recognize this request
 	}
 
-	// FIXME: adjust according to internal git repository url format
 	info, err := config.NewUploadPackUrlInfo(u, &ins.config)
 	if err != nil {
 		info = &config.UploadPackUrlInfo{}
@@ -109,11 +102,17 @@ func (ins *UploadPackInspector) InspectRequest(a RequestArtefact) error {
 
 	// Set body to a new reader that inspects the git protocol so we can
 	// examine the request body.
+	proto := getGitProtocol(a)
 	notes := Annotation{
 		"server":     strings.SplitN(u.Host, ":", 2)[0],
 		"repository": repo,
 		"protocol":   proto,
 		"project":    info.Project,
+	}
+
+	if proto != "version=2" {
+		a.SetRequestUnknown(ins, "unsupported git protocol version").Annotate(Annotation{"proto": proto})
+		return nil
 	}
 
 	// Read request body and get protocol messages
@@ -205,16 +204,18 @@ func (ins *UploadPackInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 	command, ok := a.RequestAnnotation(ins.ID(), "command") // the upload-pack request command
 	if !ok {
 		// this must have been set by the request inspector
-		return errors.New("cannot read request command annotation")
+		a.SetResponseRejected(ins, "command not set during request inspection")
+		return nil
 	}
 	notes := Annotation{}
 
 	logger.Debugf("inspect git upload-pack artefact: command %q", command)
 
-	repo, ok := a.RequestStringAnnotation(ins.ID(), "repository") // the upload-pack request command
+	repo, ok := a.RequestStringAnnotation(ins.ID(), "repository") // the upload-pack request repository
 	if !ok {
 		// this must have been set by the request inspector
-		return errors.New("cannot read repository annotation")
+		a.SetResponseRejected(ins, "repository not set during request inspection")
+		return nil
 	}
 	ins.Lock()
 	if _, ok := ins.heads[repo]; !ok {
@@ -244,6 +245,7 @@ func (ins *UploadPackInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 
 		msgs, err := decodeGitProtocol(f)
 		if err != nil {
+			a.SetResponseRejected(ins, "cannot decode git protocol").Annotate(Annotation{"error-msg": err.Error()})
 			return err
 		}
 
@@ -307,17 +309,24 @@ func (ins *UploadPackInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 
 		server_msgs := []string{}
 		isShallow := false
+		unshallow := false
 		for _, msg := range msgs {
 			if strings.HasPrefix(msg, "shallow ") {
 				isShallow = true
+			} else if strings.HasPrefix(msg, "unshallow ") {
+				unshallow = true
 			}
 			server_msgs = append(server_msgs, strings.TrimSpace(msg))
 		}
 		notes.Add("server-response", server_msgs)
 
 		if !isShallow {
-			a.SetResponseRejected(ins,
-				"fetch is only allowed with depth 1").Annotate(notes)
+			a.SetResponseRejected(ins, "fetch is only allowed with depth 1").Annotate(notes)
+			return nil
+		}
+
+		if unshallow {
+			a.SetResponseRejected(ins, "unshallow is not supported").Annotate(notes)
 			return nil
 		}
 
