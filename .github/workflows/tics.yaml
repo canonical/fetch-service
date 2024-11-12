@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: |
           echo "::group::golang"
-          sudo snap install go --channel 1.22 --classic --no-wait
+          sudo snap install go --channel 1.22 --classic
           echo "::endgroup::"
           echo "::group::apt-get update"
           sudo apt-get update
