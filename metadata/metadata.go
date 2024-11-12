@@ -60,6 +60,7 @@ type Download struct {
 
 // SessionMetadata holds information about each session.
 type SessionMetadata struct {
+	Generator  string    `json:"generator"`         // The name of the generator of this metadata
 	Comment    string    `json:"comment,omitempty"` // Free-form comment text
 	SessionId  string    `json:"session-id"`        // The unique session ID
 	StartTime  time.Time `json:"start-time"`        // When the session started (UTC)

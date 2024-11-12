@@ -1,0 +1,104 @@
+// -*- Mode: Go; indent-tabs-mode: t -*-
+
+/*
+ * Copyright 2024 Canonical Ltd.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+package proxy_test
+
+import (
+	"os"
+	"path/filepath"
+	"slices"
+
+	. "gopkg.in/check.v1"
+
+	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/logger/testlogger"
+	"github.com/canonical/fetch-service/proxy"
+	"github.com/canonical/fetch-service/testutils"
+)
+
+type certSuite struct{}
+
+func (t *certSuite) SetUpTest(c *C) {
+	testlogger.Init(logger.InfoLevel)
+}
+
+var _ = Suite(&certSuite{})
+
+func (t *certSuite) TestSetProxyCA(c *C) {
+	ca, err := proxy.CreateProxyCA(testutils.ProxyCert, testutils.ProxyKey)
+	c.Assert(err, IsNil)
+
+	err = proxy.SetProxyCA(ca)
+	c.Assert(err, IsNil)
+}
+
+func (t *certSuite) TestLoadCertificate(c *C) {
+	dir := c.MkDir()
+	certPath := filepath.Join(dir, "cert.txt")
+	keyPath := filepath.Join(dir, "key.txt")
+
+	err := os.WriteFile(certPath, []byte("cert data"), 0644)
+	c.Assert(err, IsNil)
+
+	err = os.WriteFile(keyPath, []byte("key data"), 0644)
+	c.Assert(err, IsNil)
+
+	certData, keyData, err := proxy.LoadCertificate(certPath, keyPath)
+	c.Assert(err, IsNil)
+	c.Check(string(certData), Equals, "cert data")
+	c.Check(string(keyData), Equals, "key data")
+}
+
+func (t *certSuite) TestUpdateCertFiles(c *C) {
+	dir := c.MkDir()
+	certPath := filepath.Join(dir, "cert.txt")
+	keyPath := filepath.Join(dir, "key.txt")
+	err := proxy.UpdateCertFiles(certPath, keyPath, testutils.ProxyCert, testutils.ProxyKey)
+	c.Assert(err, IsNil)
+
+	certData, err := os.ReadFile(certPath)
+	c.Assert(err, IsNil)
+	c.Check(slices.Compare(certData, testutils.ProxyCert), Equals, 0)
+
+	keyData, err := os.ReadFile(keyPath)
+	c.Assert(err, IsNil)
+	c.Check(slices.Compare(keyData, testutils.ProxyKey), Equals, 0)
+}
+
+func (t *certSuite) TestSplitCertKey(c *C) {
+	for _, tc := range []struct {
+		data   []byte
+		cert   []byte
+		key    []byte
+		errMsg string
+	}{
+		{[]byte("block1\nblock1\n\nblock2\nblock2"), []byte("block1\nblock1"), []byte("block2\nblock2"), ""},
+		{[]byte("block1\nblock1"), []byte{}, []byte{}, "cannot parse certificate and key"},
+		{[]byte("block1\n\nblock2\n\nblock3"), []byte("block1"), []byte("block2\n\nblock3"), ""},
+	} {
+		cert, key, err := proxy.SplitCertKey(tc.data)
+		if tc.errMsg == "" {
+			c.Assert(err, IsNil)
+			c.Check(slices.Compare(cert, tc.cert), Equals, 0)
+			c.Check(slices.Compare(key, tc.key), Equals, 0)
+		} else {
+			c.Assert(err, ErrorMatches, tc.errMsg)
+		}
+	}
+}

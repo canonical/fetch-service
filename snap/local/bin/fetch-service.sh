@@ -21,10 +21,8 @@ control_auth="$(snapctl get control.auth)"
 
 log_file="$(snapctl get log.file || true)"
 
-keyring="S{SNAP}/usr/share/keyrings/ubuntu-archive-keyring.gpg"
-key="F6ECB3762474EDA9D21B7022871920D1991BC93C"
-export FETCH_APT_RELEASE_PUBLIC_KEY=$(gpg --export --armor --no-default-keyring --keyring "$keyring" "$key")
-export FETCH_SERVICE_AUTH="$control_auth"
+FETCH_SERVICE_AUTH="$control_auth"
+export FETCH_SERVICE_AUTH
 
 if [[ -z "${log_file}" ]]; then
 	exec "${SNAP}/bin/fetch" \

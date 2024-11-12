@@ -22,6 +22,8 @@ package service
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"gopkg.in/tomb.v2"
@@ -33,19 +35,22 @@ import (
 	"github.com/canonical/fetch-service/metadata/opinions"
 	"github.com/canonical/fetch-service/proxy"
 	"github.com/canonical/fetch-service/service/config"
+	"github.com/canonical/fetch-service/service/fetchctl"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
+	"github.com/canonical/fetch-service/utils"
+	"github.com/canonical/fetch-service/version"
 )
 
 // Service implements the fetch service main loop.
 type Service struct {
-	p     *proxy.HttpProxy // proxy instance
-	ctl   *control.Server  // control server
-	cfg   *config.Server   // configuration server
-	ch    chan interface{} // channel to get feedback from handlers
-	start time.Time        // service start time (UTC)
-	opt   *Options         // configuration options
-	tomb  tomb.Tomb        // service dispatcher loop reaper
+	p        *proxy.HttpProxy // proxy instance
+	ctl      *control.Server  // control server
+	fetchctl *fetchctl.Server // configuration server
+	ch       chan interface{} // channel to get feedback from handlers
+	start    time.Time        // service start time (UTC)
+	opt      *Options         // configuration options
+	tomb     tomb.Tomb        // service dispatcher loop reaper
 
 	totalSessions uint64 // number of created sessions
 }
@@ -53,24 +58,33 @@ type Service struct {
 var (
 	proxyNewHttpProxy = proxy.NewHttpProxy
 	controlNewServer  = control.NewServer
-	configNewServer   = config.NewServer
+	fetchctlNewServer = fetchctl.NewServer
+	sessionNewWithId  = session.NewWithId
 )
 
 func New(opt *Options) (*Service, error) {
 	// obtain authentication credentials from the environment
 	creds := os.Getenv("FETCH_SERVICE_AUTH")
 
+	cert, key, err := proxy.LoadCertificate(opt.CertPath, opt.KeyPath)
+	if err != nil {
+		return nil, fmt.Errorf("Cannot load certificates: %s", err)
+	}
+
 	ch := make(chan interface{})
-	p, err := proxyNewHttpProxy(opt.ProxyPort, opt.Spool, opt.Cert, opt.Key, ch)
+	p, err := proxyNewHttpProxy(opt.ProxyPort, opt.Spool, cert, key, ch)
 	if err != nil {
 		return nil, err
 	}
 
-	cfg := configNewServer()
-	ctl := controlNewServer(opt.ControlPort, ch, creds)
-	start := time.Now().UTC()
-
-	return &Service{p: p, ctl: ctl, cfg: cfg, opt: opt, ch: ch, start: start}, nil
+	return &Service{
+		p:        p,
+		ctl:      controlNewServer(opt.ControlPort, ch, creds),
+		fetchctl: fetchctlNewServer(ch),
+		opt:      opt,
+		ch:       ch,
+		start:    time.Now().UTC(),
+	}, nil
 }
 
 // Start runs the fetch service dispatcher.
@@ -80,233 +94,356 @@ func (svc *Service) Start() error {
 		return fmt.Errorf("cannot load proxy rules: %s", err)
 	}
 
+	err = config.LoadInspectorsConfig(svc.opt.Config)
+	if err != nil {
+		return fmt.Errorf("cannot load inspectors configuration: %s", err)
+	}
+
 	logger.Info("Starting service...")
 
 	if err := svc.p.Start(); err != nil {
 		return err
 	}
 
-	if err := svc.cfg.Start(); err != nil {
+	if err := svc.fetchctl.Start(); err != nil {
 		return err
 	}
 
 	svc.ctl.Start()
 
-	svc.tomb.Go(func() error {
-		// Set up idle auto-shutdown
-		idleTimer := time.NewTimer(time.Duration(svc.opt.IdleShutdown) * time.Second)
-		if svc.opt.IdleShutdown == 0 {
-			if !idleTimer.Stop() {
-				<-idleTimer.C
-			}
+	svc.tomb.Go(svc.dispatcher)
+
+	return nil
+}
+
+var (
+	configUpdateConfig = config.UpdateConfig
+	proxyUpdateCert    = proxy.UpdateCert
+)
+
+func (svc *Service) dispatcher() error {
+	// Set up idle auto-shutdown
+	idleTimer := time.NewTimer(time.Duration(svc.opt.IdleShutdown) * time.Second)
+	if svc.opt.IdleShutdown == 0 {
+		if !idleTimer.Stop() {
+			<-idleTimer.C
 		}
+	}
 
-		for {
-			select {
-			case msg := <-svc.ch:
-				if svc.opt.IdleShutdown > 0 {
-					idleTimer.Reset(time.Duration(svc.opt.IdleShutdown) * time.Second)
-				}
-				switch v := msg.(type) {
-				case messages.GetServiceStatus:
-					v.Rch <- messages.ServiceStatus{
-						Uptime:         uint64(time.Since(svc.start).Seconds()),
-						StartTime:      svc.start,
-						SessionCount:   svc.totalSessions,
-						ActiveSessions: session.SessionInfos(),
-					}
+loop:
+	for {
+		select {
+		case msg := <-svc.ch:
+			if svc.opt.IdleShutdown > 0 {
+				idleTimer.Reset(time.Duration(svc.opt.IdleShutdown) * time.Second)
+			}
+			logger.Infof("[service] received message: %T", msg)
 
-				case messages.RequestInspection:
-					sessionId := v.A.SessionId
-
-					s := session.GetSession(sessionId)
-					if s == nil {
-						v.Rch <- fmt.Errorf("cannot inspect request: session %s is not active", sessionId)
-						break
-					}
-
-					// Run request inspectors
-					go func(s *session.Session, a *metadata.Artefact) {
-						v.Rch <- runRequestInspection(s, a)
-					}(s, v.A)
-
-				case messages.ResponseInspection:
-					sessionId := v.A.SessionId
-					digest := v.A.Metadata.Sha256
-
-					s := session.GetSession(sessionId)
-					if s == nil {
-						v.Rch <- fmt.Errorf("cannot inspect response: session %s is not active", sessionId)
-						break
-					}
-
-					v.A.CurrentDownload.EndTime = time.Now().UTC()
-
-					// Add download info to artefact metadata
-					dl := v.A.CurrentDownload
-					logger.Infof("[%s] %s %s: %s (%s)", sessionId, dl.Method, dl.URL, dl.Status, dl.ContentType)
-
-					if s.HasArtefact(digest) {
-						logger.Infof("artefact %s already downloaded", digest)
-						s.AddDownload(v.A.CurrentDownload)
-						os.Remove(v.A.Tempfile)
-						v.Rch <- nil
-						break
-					}
-
-					// Add metadata to session
-					s.AddArtefact(v.A)
-					if err := s.SaveData(digest); err != nil {
-						v.Rch <- err
-						break
-					}
-
-					s.AddDownload(v.A.CurrentDownload)
-
-					// Run response inspectors
-					go func(s *session.Session, a *metadata.Artefact) {
-						v.Rch <- runResponseInspection(s, a)
-					}(s, v.A)
-
-				case messages.CreateSession:
-					permissive := false
-					if v.Policy == "permissive" {
-						if svc.opt.PermissiveMode {
-							permissive = true
-						} else {
-							v.Rch <- messages.SessionCredentials{
-								Err: session.ErrInvalidSessionPolicy,
-							}
-							break
-						}
-					}
-
-					timeout := time.Duration(v.Timeout * uint64(time.Second))
-					s := session.New(svc.opt.Spool, timeout, permissive)
-					svc.totalSessions++
-					v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Token}
-
-				case messages.RevokeToken:
-					sessionId := v.Id
-					s := session.GetSession(sessionId)
-					if s == nil {
-						v.Rch <- messages.RevokeTokenResult{
-							Err: messages.ErrSessionNotFound,
-						}
-						break
-					}
-
-					if !s.Revoke(v.Token) {
-						v.Rch <- messages.RevokeTokenResult{
-							Err: messages.ErrInvalidSessionToken,
-						}
-						break
-					}
-
-					v.Rch <- messages.RevokeTokenResult{
-						SessionId: s.Id,
-						StartTime: s.Start.String(),
-						EndTime:   s.End.String(),
-						SpoolPath: svc.opt.Spool,
-					}
-
-				case messages.SessionReport:
-					sessionId := v.Id
-					s := session.GetSession(sessionId)
-					if s == nil {
-						v.Rch <- messages.SessionReportResult{
-							SessionMetadata: &metadata.SessionMetadata{Err: messages.ErrSessionNotFound},
-							Artefacts:       []*metadata.Artefact{},
-							Err:             messages.ErrSessionNotFound,
-						}
-						break
-					}
-
-					if !s.IsRevoked() {
-						err := fmt.Errorf("cannot get session report: session %s token was not revoked", sessionId)
-						v.Rch <- messages.SessionReportResult{
-							SessionMetadata: &metadata.SessionMetadata{Err: err},
-							Artefacts:       []*metadata.Artefact{},
-							Err:             messages.ErrSessionActive,
-						}
-						break
-					}
-
-					v.Rch <- messages.SessionReportResult{
-						SessionMetadata: s.Metadata(),
-						Artefacts:       s.Artefacts(),
-					}
-
-				case messages.EndSession:
-					sessionId := v.Id
-					s := session.GetSession(sessionId)
-					if s == nil {
-						v.Rch <- messages.ErrSessionNotFound
-						break
-					}
-
-					v.Rch <- s.Finish()
-
-				case messages.DeleteResources:
-					sessionId := v.Id
-					s := session.GetSession(sessionId)
-					if s != nil {
-						v.Rch <- messages.ErrSessionNotFinished
-						break
-					}
-
-					// Delete session resources
-					go func(spoolDir, sessionId string) {
-						v.Rch <- session.RemoveResources(spoolDir, sessionId)
-					}(svc.opt.Spool, sessionId)
-
-				case messages.ProxyAuth:
-					v.Rch <- session.CheckAuth(v.Id, v.Pw)
-
-				default:
-					logger.Warningf("[service] unknown message type %T", v)
+			switch v := msg.(type) {
+			case messages.GetServiceStatus:
+				v.Rch <- messages.ServiceStatus{
+					Uptime:         uint64(time.Since(svc.start).Seconds()),
+					StartTime:      svc.start,
+					SessionCount:   svc.totalSessions,
+					ActiveSessions: session.SessionInfos(),
 				}
 
-			case sessionId := <-session.ExpiredSessionId:
-				logger.Infof("[%s] session expired", sessionId)
+			case messages.RequestInspection:
+				sessionId := v.A.SessionId
+
 				s := session.GetSession(sessionId)
 				if s == nil {
-					logger.Warningf("[service] session %s does not exist", sessionId)
+					v.Rch <- fmt.Errorf("cannot inspect request: session %s is not active", sessionId)
 					break
 				}
-				if err := s.Finish(); err != nil {
-					logger.Errorf("[%s] cannot finish session: %s", sessionId, err)
+
+				// Run request inspectors
+				go func(s *session.Session, a *metadata.Artefact) {
+					v.Rch <- runRequestInspection(s, a)
+				}(s, v.A)
+
+			case messages.ResponseInspection:
+				sessionId := v.A.SessionId
+				digest := v.A.Metadata.Sha256
+
+				s := session.GetSession(sessionId)
+				if s == nil {
+					v.Rch <- fmt.Errorf("cannot inspect response: session %s is not active", sessionId)
+					logger.Debugf("[%s] remove stale temporary file: %s", sessionId, v.A.Tempfile)
+					os.Remove(v.A.Tempfile)
+					break
 				}
-				if err := session.RemoveResources(svc.opt.Spool, sessionId); err != nil {
-					logger.Errorf("[%s] cannot remove session resources: %s", sessionId, err)
+
+				v.A.CurrentDownload.EndTime = time.Now().UTC()
+
+				// Add download info to artefact metadata
+				dl := v.A.CurrentDownload
+				logger.Infof("[%s] %s %s: %s (%s)", sessionId, dl.Method, dl.URL, dl.Status, dl.ContentType)
+
+				if s.HasArtefact(digest) {
+					logger.Infof("[%s] artefact %s already downloaded", s.Id, digest)
+					s.AddDownload(v.A.CurrentDownload)
+					os.Remove(v.A.Tempfile)
+					if !s.Permissive && s.ArtefactResult(digest) == opinions.Rejected {
+						v.Rch <- ErrRejectedArtefact
+					} else {
+						v.Rch <- nil
+					}
+					break
 				}
-				if svc.opt.IdleShutdown > 0 {
-					idleTimer.Reset(time.Duration(svc.opt.IdleShutdown) * time.Second)
+
+				// Add metadata to session
+				s.AddArtefact(v.A)
+				if err := s.SaveData(digest); err != nil {
+					v.Rch <- err
+					break
 				}
 
-			case <-svc.tomb.Dying():
-				return nil
+				s.AddDownload(v.A.CurrentDownload)
 
-			case <-svc.ctl.Dying():
-				return nil
+				// Run response inspectors
+				go func(s *session.Session, a *metadata.Artefact) {
+					v.Rch <- runResponseInspection(s, a)
+				}(s, v.A)
 
-			case <-svc.cfg.Dying():
-				return nil
-
-			case <-svc.p.Dying():
-				return nil
-
-			case <-idleTimer.C:
-				n := session.NumSessions()
-				if n < 1 {
-					logger.Infof("auto-shutdown after being idle for %d seconds", svc.opt.IdleShutdown)
-					return nil
-				} else {
-					logger.Infof("number of active sessions: %d", n)
+			case messages.CreateSession:
+				permissive := false
+				if v.Policy == "permissive" {
+					if svc.opt.PermissiveMode {
+						permissive = true
+					} else {
+						v.Rch <- messages.SessionCredentials{
+							Err: session.ErrInvalidSessionPolicy,
+						}
+						break
+					}
 				}
+
+				timeout := time.Duration(v.Timeout * uint64(time.Second))
+				s := session.New(svc.opt.Spool, timeout, permissive)
+				svc.totalSessions++
+				v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Token}
+
+			case messages.RevokeToken:
+				sessionId := v.Id
+				s := session.GetSession(sessionId)
+				if s == nil {
+					v.Rch <- messages.RevokeTokenResult{
+						Err: messages.ErrSessionNotFound,
+					}
+					break
+				}
+
+				if !s.Revoke(v.Token) {
+					v.Rch <- messages.RevokeTokenResult{
+						Err: messages.ErrInvalidSessionToken,
+					}
+					break
+				}
+
+				v.Rch <- messages.RevokeTokenResult{
+					SessionId: s.Id,
+					StartTime: s.Start.String(),
+					EndTime:   s.End.String(),
+					SpoolPath: svc.opt.Spool,
+				}
+
+			case messages.SessionReport:
+				sessionId := v.Id
+				s := session.GetSession(sessionId)
+				if s == nil {
+					v.Rch <- messages.SessionReportResult{
+						SessionMetadata: &metadata.SessionMetadata{Err: messages.ErrSessionNotFound},
+						Artefacts:       []*metadata.Artefact{},
+						Err:             messages.ErrSessionNotFound,
+					}
+					break
+				}
+
+				if !s.IsRevoked() {
+					err := fmt.Errorf("cannot get session report: session %s token was not revoked", sessionId)
+					v.Rch <- messages.SessionReportResult{
+						SessionMetadata: &metadata.SessionMetadata{Err: err},
+						Artefacts:       []*metadata.Artefact{},
+						Err:             messages.ErrSessionActive,
+					}
+					break
+				}
+
+				v.Rch <- messages.SessionReportResult{
+					SessionMetadata: s.Metadata(),
+					Artefacts:       s.Artefacts(),
+				}
+
+			case messages.EndSession:
+				sessionId := v.Id
+				s := session.GetSession(sessionId)
+				if s == nil {
+					v.Rch <- messages.ErrSessionNotFound
+					break
+				}
+
+				v.Rch <- s.Finish()
+
+			case messages.DeleteResources:
+				sessionId := v.Id
+				s := session.GetSession(sessionId)
+				if s != nil {
+					v.Rch <- messages.ErrSessionNotFinished
+					break
+				}
+
+				// Delete session resources
+				go func(spoolDir, sessionId string) {
+					v.Rch <- session.RemoveResources(spoolDir, sessionId)
+				}(svc.opt.Spool, sessionId)
+
+			case messages.ProxyAuth:
+				v.Rch <- session.CheckAuth(v.Id, v.Pw)
+
+			case messages.FetchCtl:
+				logger.Infof("[service] fetchctl operation: %s", v.Operation)
+				var reply messages.FetchCtlResult
+				switch v.Operation {
+				case "version":
+					reply = messages.FetchCtlResult{
+						Status:  "ok",
+						Message: version.Version,
+					}
+				case "update-config":
+					err := configUpdateConfig(v.Type, v.ValidateOnly, v.Payload, svc.opt.Config)
+					if err != nil {
+						reply = messages.FetchCtlResult{
+							Status:  "error",
+							Message: fmt.Sprintf("%s configuration update error", v.Type),
+						}
+						logger.Warningf("[service] %s update error: %s", v.Type, err.Error())
+					} else if v.ValidateOnly {
+						reply = messages.FetchCtlResult{
+							Status:  "ok",
+							Message: "configuration validated",
+						}
+						logger.Infof("[service] %s configuration validated", v.Type)
+					} else {
+						reply = messages.FetchCtlResult{
+							Status:  "ok",
+							Message: "configuration updated",
+						}
+						logger.Infof("[service] %s configuration updated", v.Type)
+					}
+				case "update-cert":
+					err := proxyUpdateCert(v.ValidateOnly, v.Payload, svc.opt.CertPath, svc.opt.KeyPath)
+					if err != nil {
+						reply = messages.FetchCtlResult{
+							Status:  "error",
+							Message: "certificate update error",
+						}
+						logger.Warningf("[service] certificate update error: %s", err.Error())
+					} else if v.ValidateOnly {
+						reply = messages.FetchCtlResult{
+							Status:  "ok",
+							Message: "certificate validated",
+						}
+						logger.Info("[service] proxy certificate updated")
+					} else {
+						reply = messages.FetchCtlResult{
+							Status:  "ok",
+							Message: "proxy certificate updated",
+						}
+						logger.Info("[service] certificate updated")
+					}
+				case "create-session":
+					parms := strings.Split(string(v.Payload), ":")
+					if len(parms) != 4 {
+						reply = messages.FetchCtlResult{Status: "error", Message: "malformed payload"}
+						break
+					}
+					permissive := svc.opt.PermissiveMode && parms[3] == "permissive"
+
+					t, err := strconv.Atoi(parms[2])
+					if err != nil {
+						reply = messages.FetchCtlResult{Status: "error", Message: "cannot parse timeout"}
+						break
+					}
+
+					timeout := time.Duration(t) * time.Second
+					s := sessionNewWithId(parms[0], parms[1], svc.opt.Spool, timeout, permissive)
+
+					reply = messages.FetchCtlResult{
+						Status:  "ok",
+						Message: fmt.Sprintf("session %s:%s created (%s)", s.Id, s.Token, s.Metadata().Policy),
+					}
+					logger.Infof("[service] session %s created", s.Id)
+					svc.totalSessions++
+
+				case "list-artefacts":
+					sessionId := string(v.Payload)
+					s := session.GetSession(sessionId)
+					if s == nil {
+						reply = messages.FetchCtlResult{Status: "error", Message: "session does not exist"}
+						break
+					}
+					j, err := utils.JSONMarshalIndentNoHTMLEscape(s.Artefacts(), "", "   ")
+					if err != nil {
+						reply = messages.FetchCtlResult{Status: "error", Message: err.Error()}
+						break
+					}
+					reply = messages.FetchCtlResult{
+						Status:  "ok",
+						Message: string(j),
+					}
+
+				default:
+					reply = messages.FetchCtlResult{
+						Status:  "error",
+						Message: "unsupported operation",
+					}
+				}
+				v.Rch <- reply
+
+			default:
+				logger.Warningf("[service] unknown message type %T", v)
+			}
+
+		case sessionId := <-session.ExpiredSessionId:
+			logger.Infof("[%s] session expired", sessionId)
+			s := session.GetSession(sessionId)
+			if s == nil {
+				logger.Warningf("[service] session %s does not exist", sessionId)
+				break
+			}
+			if err := s.Finish(); err != nil {
+				logger.Errorf("[%s] cannot finish session: %s", sessionId, err)
+			}
+			if err := session.RemoveResources(svc.opt.Spool, sessionId); err != nil {
+				logger.Errorf("[%s] cannot remove session resources: %s", sessionId, err)
+			}
+			if svc.opt.IdleShutdown > 0 {
+				idleTimer.Reset(time.Duration(svc.opt.IdleShutdown) * time.Second)
+			}
+
+		case <-svc.tomb.Dying():
+			return svc.tomb.Err()
+
+		case <-svc.ctl.Dying():
+			return svc.ctl.Err()
+
+		case <-svc.fetchctl.Dying():
+			return svc.fetchctl.Err()
+
+		case <-svc.p.Dying():
+			return svc.p.Err()
+
+		case <-idleTimer.C:
+			n := session.NumSessions()
+			if n < 1 {
+				logger.Infof("auto-shutdown after being idle for %d seconds", svc.opt.IdleShutdown)
+				break loop
+			} else {
+				logger.Infof("number of active sessions: %d", n)
 			}
 		}
-	})
+	}
 
 	return nil
 }
@@ -316,25 +453,18 @@ func (svc *Service) Stop() error {
 	session.FinishAll()
 
 	if err := svc.p.Stop(); err != nil {
-		logger.Warningf("Cannot shut down the HTTP server: %s", err)
-		return err
+		return fmt.Errorf("cannot shut down the HTTP server: %w", err)
 	}
 
-	if err := svc.cfg.Stop(); err != nil {
-		logger.Warningf("Cannot shut down the configuration socket: %s", err)
-		return err
+	if err := svc.fetchctl.Stop(); err != nil {
+		return fmt.Errorf("cannot shut down the fetchctl socket: %w", err)
 	}
 
 	if err := svc.ctl.Stop(); err != nil {
-		logger.Warningf("Cannot shut down the control API server: %s", err)
-		return err
+		return fmt.Errorf("cannot shut down the control API server: %w", err)
 	}
 
 	svc.tomb.Kill(nil)
-	if err := svc.tomb.Wait(); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -353,10 +483,14 @@ func runRequestInspection(s *session.Session, a *metadata.Artefact) error {
 		return err
 	}
 
+	return evaluateRequestInspection(s, a)
+}
+
+func evaluateRequestInspection(s *session.Session, a *metadata.Artefact) error {
 	dl := a.CurrentDownload
 	sessionId := s.Id
 
-	if a.RequestRejected() {
+	if !a.RequestPending() {
 		if s.Permissive {
 			logger.Infof("[%s] request would be rejected: %s %s", sessionId, dl.Method, dl.URL)
 		} else {
@@ -378,6 +512,10 @@ func runResponseInspection(s *session.Session, a *metadata.Artefact) error {
 		return err
 	}
 
+	return evaluateResponseInspection(s, a)
+}
+
+func evaluateResponseInspection(s *session.Session, a *metadata.Artefact) error {
 	sessionId := s.Id
 	digest := a.Metadata.Sha256
 

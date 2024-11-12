@@ -1,0 +1,48 @@
+summary: Fetchctl update config operations
+
+prepare: |
+  snap install "$PROJECT_PATH"/tests/fetch-service_*.snap --dangerous
+
+restore: |
+  snap remove fetch-service --purge
+  rm -f i.yaml i2.yaml a.yaml a2.yaml
+
+execute: |
+  snap start fetch-service
+  sleep 5  # give some time for the service to start
+  fetch-service.fetchctl version
+
+  INSP_CONF="/var/snap/fetch-service/current/conf/inspectors.yaml"
+  ACL_CONF="/var/snap/fetch-service/current/conf/acl.yaml"
+
+  # ----- Update inspectors configuration -----
+  
+  cp "$INSP_CONF" i.yaml
+
+  entry=$(yq .apt.repositories.default.urls[0] i.yaml)
+  [ "$entry" = "http://archive.ubuntu.com/ubuntu" ]
+
+  yq -e -i '.apt.repositories.default.urls = ["http://replace.com/ubuntu"]' i.yaml
+  fetch-service.fetchctl update-config --type=inspectors i.yaml
+
+  cp "$INSP_CONF" i2.yaml
+  entry=$(yq .apt.repositories.default.urls i2.yaml)
+  [ "$entry" = "- http://replace.com/ubuntu" ]
+
+  # ----- Update acl configuration -----
+
+  cp "$ACL_CONF" a.yaml
+  entry=$(yq .http-proxy.policy a.yaml)
+  [ "$entry" = "allow" ]
+
+  yq -e -i '.http-proxy.policy = "invalid"' a.yaml
+  fetch-service.fetchctl update-config --type=acl --validate-only a.yaml && exit 1
+
+  yq -e -i '.http-proxy.policy = "deny"' a.yaml
+  fetch-service.fetchctl update-config --type=acl --validate-only a.yaml
+
+  fetch-service.fetchctl update-config --type=acl a.yaml
+
+  cp "$ACL_CONF" a2.yaml
+  entry=$(yq .http-proxy.policy a.yaml)
+  [ "$entry" = "deny" ]

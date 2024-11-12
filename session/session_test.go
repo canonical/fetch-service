@@ -22,6 +22,7 @@ package session_test
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -32,7 +33,9 @@ import (
 
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/digests"
+	"github.com/canonical/fetch-service/metadata/opinions"
 	"github.com/canonical/fetch-service/session"
+	"github.com/canonical/fetch-service/version"
 )
 
 const (
@@ -69,6 +72,25 @@ func (t *sessionSuite) TestNewSession(c *C) {
 	c.Assert(s.Start.Before(after) || s.Start.Equal(after), Equals, true)
 	c.Assert(s.End.Equal(time.Time{}), Equals, true)
 	c.Assert(s, Equals, session.GetSession(s.Id))
+}
+
+func (t *sessionSuite) TestNewWithId(c *C) {
+	restorer := session.MockMakeSessionId(func() string {
+		return "6ba7b8109dad11d180b400c04fd430c8"
+	})
+	defer restorer()
+
+	tmp := c.MkDir()
+	s := session.NewWithId("known-session-id", "known-token", tmp, 0, true)
+	defer s.Discard()
+	c.Assert(s.Id, Equals, "known-session-id")
+	c.Assert(s.Token, Equals, "known-token")
+
+	// Re-create session with same ID
+	s = session.NewWithId("known-session-id", "known-token", tmp, 0, true)
+	defer s.Discard()
+	c.Assert(s.Id, Equals, "6ba7b8109dad11d180b400c04fd430c8")
+	c.Assert(s.Token, Equals, "known-token")
 }
 
 func (t *sessionSuite) TestRandomString(c *C) {
@@ -115,6 +137,57 @@ func (t *sessionSuite) TestSessionTimeoutCancel(c *C) {
 	s.Discard()
 	s = session.GetSession(s.Id)
 	c.Assert(s, IsNil)
+}
+
+func (t *sessionSuite) TestHasArtefact(c *C) {
+	for _, tc := range []struct {
+		addToSession bool
+	}{
+		{true},
+		{false},
+	} {
+		s := session.New("", 0, true)
+		defer s.Discard()
+
+		digest, err := digests.NewSha256Digest(MySha256)
+		c.Assert(err, IsNil)
+
+		a := metadata.NewArtefact()
+		a.Metadata.Sha256 = digest
+		if tc.addToSession {
+			s.AddArtefact(a)
+		}
+
+		hasArtefact := tc.addToSession
+
+		c.Assert(s.HasArtefact(digest), Equals, hasArtefact)
+	}
+}
+
+func (t *sessionSuite) TestArtefactResult(c *C) {
+	for _, tc := range []struct {
+		addToSession bool
+		result       opinions.OpinionKind
+	}{
+		{true, opinions.Approved},
+		{true, opinions.Rejected},
+		{false, opinions.Rejected},
+	} {
+		s := session.New("", 0, true)
+		defer s.Discard()
+
+		digest, err := digests.NewSha256Digest(MySha256)
+		c.Assert(err, IsNil)
+
+		a := metadata.NewArtefact()
+		a.Metadata.Sha256 = digest
+		a.Result = tc.result
+		if tc.addToSession {
+			s.AddArtefact(a)
+		}
+
+		c.Assert(s.ArtefactResult(digest), Equals, tc.result)
+	}
 }
 
 func (t *sessionSuite) TestCheckAuth(c *C) {
@@ -286,6 +359,7 @@ func (t *sessionSuite) TestSessionMetadata(c *C) {
 		defer s.Discard()
 
 		m := s.Metadata()
+		c.Check(m.Generator, Equals, fmt.Sprintf("fetch-service %s", version.Version))
 		c.Check(m.Comment, Equals, "Metadata format is unstable and may change without prior notice.")
 		c.Check(m.Policy, Equals, tc.policy)
 		c.Check(m.SessionId, Equals, s.Id)

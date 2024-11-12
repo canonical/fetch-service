@@ -29,6 +29,7 @@ import (
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/git"
+	"github.com/canonical/fetch-service/inspectors/git/config"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
@@ -45,13 +46,13 @@ func (t *uploadPackSuite) SetUpTest(c *C) {
 
 func (s *uploadPackSuite) TestUploadPackInspectorInterface(c *C) {
 	var iface Inspector
-	ins := git.NewUploadPackInspector()
+	ins := git.NewUploadPackInspector(config.GitInspectorConfig{})
 	c.Assert(ins, Implements, &iface)
 
 }
 
 func (s *uploadPackSuite) TestUploadPackInspectorID(c *C) {
-	ins := git.NewUploadPackInspector()
+	ins := git.NewUploadPackInspector(config.GitInspectorConfig{})
 	c.Assert(ins.ID(), Equals, "git.upload-pack")
 
 }
@@ -61,16 +62,19 @@ func (s *uploadPackSuite) TestInspectLsRefsRequest(c *C) {
 		url      string
 		approved bool
 	}{
-		// FIXME: using github as placeholder, final URLs will change
 		{"https://github.com:443/user/project.git/git-upload-pack", true},
+		{"https://git.launchpad.net:443/project/git-upload-pack", true},
+		{"https://git.launchpad.net:443/~user/project/+git/project/git-upload-pack", true},
 		{"https://invalid.com:443/user/project.git/git-upload-pack", false},
 		{"http://github.com/user/project.git/git-upload-pack", false},
 		{"https://gothub.com:443/user/project.git/git-upload-pack", false},
 		{"ahttps://github.com:443/user/project.git/git-upload-pack", false},
 		{"https://github.com:443/user/project.git/git-upload-packs", false},
 		{"https://github.com:443/user/project.git/something-else", false},
+		{"https://git.launchpad.com:443/project/git-upload-pack", false},
+		{"https://git.lpad.net:443/~user/project/+git/project/git-upload-pack", false},
 	} {
-		ins := git.NewUploadPackInspector()
+		ins := git.NewUploadPackInspector(getTestConfig())
 		a := fakeGitArtefact()
 		a.CurrentDownload.URL = tc.url
 		a.Request, _ = http.NewRequest("GET", tc.url, nil)
@@ -79,8 +83,7 @@ func (s *uploadPackSuite) TestInspectLsRefsRequest(c *C) {
 		err := ins.InspectRequest(a)
 		c.Assert(err, IsNil)
 
-		insp, ok := a.RequestInspection[ins.ID()]
-		c.Assert(ok, Equals, tc.approved)
+		insp := a.RequestInspection[ins.ID()]
 		if tc.approved {
 			c.Assert(insp.Opinion, Equals, opinions.Pending)
 		}
@@ -155,7 +158,7 @@ func (s *uploadPackSuite) TestUploadPackInspectLsRefsArtefact(c *C) {
 
 		f := strings.NewReader(tc.data)
 
-		ins := git.NewUploadPackInspector()
+		ins := git.NewUploadPackInspector(getTestConfig())
 		err := ins.InspectArtefact(f, a)
 		if tc.errmsg == "" {
 			c.Assert(err, IsNil)
@@ -169,10 +172,9 @@ func (s *uploadPackSuite) TestUploadPackInspectLsRefsArtefact(c *C) {
 }
 
 func (s *uploadPackSuite) TestInspectFetchRequest(c *C) {
-	// FIXME: using github as placeholder, final URLs will change
 	url := "https://github.com:443/user/project.git/git-upload-pack"
 
-	ins := git.NewUploadPackInspector()
+	ins := git.NewUploadPackInspector(getTestConfig())
 	a := fakeGitArtefact()
 	a.CurrentDownload.URL = url
 	a.Request, _ = http.NewRequest("GET", url, nil)
@@ -208,11 +210,43 @@ func (s *uploadPackSuite) TestInspectFetchRequest(c *C) {
 	c.Assert(a.RequestRejected(), Equals, false)
 }
 
+func (s *uploadPackSuite) TestInspectFetchRequestUnsupportedProtocolVersions(c *C) {
+	for _, tc := range []struct {
+		a     *metadata.Artefact
+		proto string
+	}{
+		{fakeGitArtefactUnsuportedProtocol(), "version=1"},
+		{fakeGitArtefactNoProtocolVersion(), ""},
+	} {
+		url := "https://github.com:443/user/project.git/git-upload-pack"
+
+		ins := git.NewUploadPackInspector(getTestConfig())
+		a := tc.a
+		a.CurrentDownload.URL = url
+		a.Request, _ = http.NewRequest("GET", url, nil)
+		a.Request.Body = io.NopCloser(strings.NewReader(
+			"0012command=fetch\n" +
+				"000ddeepen 1\n" +
+				"0032want 6b99254b1c5c823d054bc0ae1ebccfa070380fce\n" +
+				"0000",
+		))
+
+		err := ins.InspectRequest(a)
+		c.Assert(err, IsNil)
+		c.Assert(a.RequestInspection["git.upload-pack"], DeepEquals, &Inspection{
+			Opinion:     opinions.Unknown,
+			Reason:      "unsupported git protocol version",
+			Annotations: Annotation{"proto": tc.proto},
+		})
+		c.Assert(a.RequestPending(), Equals, false)
+		c.Assert(a.RequestRejected(), Equals, false)
+	}
+}
+
 func (s *uploadPackSuite) TestInspectFetchRequestDuplicateRef(c *C) {
-	// FIXME: using github as placeholder, final URLs will change
 	url := "https://github.com:443/user/project.git/git-upload-pack"
 
-	ins := git.NewUploadPackInspector()
+	ins := git.NewUploadPackInspector(getTestConfig())
 	a := fakeGitArtefact()
 	a.CurrentDownload.URL = url
 	a.Request, _ = http.NewRequest("GET", url, nil)
@@ -251,10 +285,9 @@ func (s *uploadPackSuite) TestInspectFetchRequestDuplicateRef(c *C) {
 }
 
 func (s *uploadPackSuite) TestInspectFetchRequestReject(c *C) {
-	// FIXME: using github as placeholder, final URLs will change
 	url := "https://github.com:443/user/project.git/git-upload-pack"
 
-	ins := git.NewUploadPackInspector()
+	ins := git.NewUploadPackInspector(getTestConfig())
 	a := fakeGitArtefact()
 	a.CurrentDownload.URL = url
 	a.Request, _ = http.NewRequest("GET", url, nil)
@@ -342,7 +375,7 @@ func (s *uploadPackSuite) TestUploadPackInspectFetchArtefact(c *C) {
 
 		f := strings.NewReader(tc.data)
 
-		ins := git.NewUploadPackInspector()
+		ins := git.NewUploadPackInspector(getTestConfig())
 		err := ins.InspectArtefact(f, a)
 		if tc.errmsg == "" {
 			c.Assert(err, IsNil)

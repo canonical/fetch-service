@@ -1,0 +1,36 @@
+summary: Snap update and revert
+
+prepare: |
+  snap remove fetch-service --purge
+  snap install yq
+
+restore: |
+  snap remove fetch-service --purge
+  rm -f i1.yaml i2.yaml
+
+execute: |
+  CONF="/var/snap/fetch-service/current/conf/inspectors.yaml"
+
+  # install published revision
+  snap install fetch-service --candidate
+
+  # check default configuration file
+  cat "$CONF"
+  cp "$CONF" i1.yaml  # yq from snap can't access the original location
+  entry=$(yq .apt.repositories.default.urls[0] i1.yaml)
+  [ "$entry" = "http://archive.ubuntu.com/ubuntu" ]
+
+  # update configuration
+  yq -e -i '.apt.repositories.default.urls = ["http://replace.com/ubuntu"]' i1.yaml
+  cp i1.yaml "$CONF"
+
+  # install package from develoment environment
+  snap install "$PROJECT_PATH"/tests/fetch-service_*.snap --dangerous
+
+  # check if configuration is kept
+  cp "$CONF" i2.yaml  # yq from snap can't access the original location
+  entry=$(yq .apt.repositories.default.urls i2.yaml)
+  [ "$entry" = "- http://replace.com/ubuntu" ]
+
+  # revert to previous revison
+  snap revert fetch-service

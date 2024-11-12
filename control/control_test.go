@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gorilla/mux"
 	. "gopkg.in/check.v1"
@@ -56,6 +57,36 @@ func (t *controlSuite) TestStartStop(c *C) {
 	c.Assert(err, IsNil)
 
 	c.Assert(ctl.Alive(), Equals, false)
+}
+
+func (t *controlSuite) TestServerError(c *C) {
+	ch := make(chan any, 1)
+	ctl := control.NewServer(18111, ch, "user:password")
+	ctl.Start()
+
+	c.Assert(ctl.Alive(), Equals, true)
+
+	err := errors.New("an error")
+	ctl.ForceError(err)
+	c.Assert(ctl.Err(), Equals, err)
+
+	c.Assert(ctl.Alive(), Equals, false)
+}
+
+func (t *controlSuite) TestServerListening(c *C) {
+	ch := make(chan any, 1)
+	ctl := control.NewServer(18111, ch, "user:password")
+	ctl.Start()
+
+	c.Assert(ctl.Alive(), Equals, true)
+
+	ctl2 := control.NewServer(18111, ch, "user:password")
+	ctl2.Start()
+
+	time.Sleep(500 * time.Millisecond)
+
+	c.Assert(ctl2.Err(), ErrorMatches, ".* bind: address already in use")
+	c.Assert(ctl2.Alive(), Equals, false)
 }
 
 func (t *controlSuite) TestCreateSession(c *C) {

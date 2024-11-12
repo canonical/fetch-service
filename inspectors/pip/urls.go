@@ -35,9 +35,9 @@ var (
 	}
 
 	// FIXME: using PyPI URLs as placeholders
-	reWheel    = regexp.MustCompile(`^/packages/[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{60}/\w+-[a-zA-Z0-9\.-]+\.whl$`)
-	reSdist    = regexp.MustCompile(`^/packages/[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{60}/\w+-[a-zA-Z0-9\.-]+\.tar\.gz$`)
-	reMetadata = regexp.MustCompile(`^/packages/[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{60}/\w+-[a-zA-Z0-9\.-]+\.metadata$`)
+	reWheel    = regexp.MustCompile(`^/packages/[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{60}/.+-[_a-zA-Z0-9\.-]+\.whl$`)
+	reSdist    = regexp.MustCompile(`^/packages/[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{60}/.+-[_a-zA-Z0-9\.-]+\.tar\.gz$`)
+	reMetadata = regexp.MustCompile(`^/packages/[0-9a-f]{2}/[0-9a-f]{2}/[0-9a-f]{60}/.+-[_a-zA-Z0-9\.-]+\.metadata$`)
 )
 
 func checkValidOrigin(u *url.URL) error {

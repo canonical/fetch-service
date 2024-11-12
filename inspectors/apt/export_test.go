@@ -25,14 +25,19 @@ import (
 	. "github.com/canonical/fetch-service/inspectors/common"
 )
 
+type AptPackagesEntry = aptPackagesEntry
 type ReleaseFile = releaseFile
 type ReleaseEntry = releaseEntry
 
 var (
 	DecodePublicKey = decodePublicKey
+	ParsePackages   = parsePackages
+	NewAptPackages  = newAptPackages
+
+	AptPackagesInspectorAddPackages = (*AptPackagesInspector).addPackages
 )
 
-func MockCheckSignature(mock func(io.ReadSeeker, Annotation) (io.ReadSeeker, error)) (restorer func()) {
+func MockCheckSignature(mock func(io.ReadSeeker, Annotation, string) (io.ReadSeeker, error)) (restorer func()) {
 	old := checkSignature
 	checkSignature = mock
 	return func() {

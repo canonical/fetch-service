@@ -28,6 +28,8 @@ import (
 	. "gopkg.in/check.v1"
 	"gopkg.in/yaml.v3"
 
+	"github.com/canonical/fetch-service/glob"
+	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/service/config"
@@ -238,4 +240,153 @@ func ipNet(addr string) config.IPNet {
 		panic(err)
 	}
 	return config.IPNet{IPNet: *ipnet}
+}
+
+var inspectorsConfig = `
+git:
+  urls:
+    - https://git.test:443/**
+
+crafts:
+  urls:
+    - https://sourcecraft.test:443/**
+
+snap:
+  snap-declaration:
+    - name: publisher-id
+      value: [canonical]
+
+apt:
+  repositories:
+    default:
+      urls:
+        - http://archive.ubuntu.com/ubuntu
+        - http://*.archive.ubuntu.com/ubuntu
+      dists:
+        - "*"
+      components:
+        - "*"
+      public-key: |
+        -----BEGIN PGP PUBLIC KEY BLOCK-----
+
+        mQINBFufwdoBEADv/Gxytx/LcSXYuM0MwKojbBye81s0G1nEx+lz6VAUpIUZnbkq
+        dXBHC+dwrGS/CeeLuAjPRLU8AoxE/jjvZVp8xFGEWHYdklqXGZ/gJfP5d3fIUBtZ
+        HZEJl8B8m9pMHf/AQQdsC+YzizSG5t5Mhnotw044LXtdEEkx2t6Jz0OGrh+5Ioxq
+        X7pZiq6Cv19BohaUioKMdp7ES6RYfN7ol6HSLFlrMXtVfh/ijpN9j3ZhVGVeRC8k
+        KHQsJ5PkIbmvxBiUh7SJmfZUx0IQhNMaDHXfdZAGNtnhzzNReb1FqNLSVkrS/Pns
+        AQzMhG1BDm2VOSF64jebKXffFqM5LXRQTeqTLsjUbbrqR6s/GCO8UF7jfUj6I7ta
+        LygmsHO/JD4jpKRC0gbpUBfaiJyLvuepx3kWoqL3sN0LhlMI80+fA7GTvoOx4tpq
+        VlzlE6TajYu+jfW3QpOFS5ewEMdL26hzxsZg/geZvTbArcP+OsJKRmhv4kNo6Ayd
+        yHQ/3ZV/f3X9mT3/SPLbJaumkgp3Yzd6t5PeBu+ZQk/mN5WNNuaihNEV7llb1Zhv
+        Y0Fxu9BVd/BNl0rzuxp3rIinB2TX2SCg7wE5xXkwXuQ/2eTDE0v0HlGntkuZjGow
+        DZkxHZQSxZVOzdZCRVaX/WEFLpKa2AQpw5RJrQ4oZ/OfifXyJzP27o03wQARAQAB
+        tEJVYnVudHUgQXJjaGl2ZSBBdXRvbWF0aWMgU2lnbmluZyBLZXkgKDIwMTgpIDxm
+        dHBtYXN0ZXJAdWJ1bnR1LmNvbT6JAjgEEwEKACIFAlufwdoCGwMGCwkIBwMCBhUI
+        AgkKCwQWAgMBAh4BAheAAAoJEIcZINGZG8k8LHMQAKS2cnxz/5WaoCOWArf5g6UH
+        beOCgc5DBm0hCuFDZWWv427aGei3CPuLw0DGLCXZdyc5dqE8mvjMlOmmAKKlj1uG
+        g3TYCbQWjWPeMnBPZbkFgkZoXJ7/6CB7bWRht1sHzpt1LTZ+SYDwOwJ68QRp7DRa
+        Zl9Y6QiUbeuhq2DUcTofVbBxbhrckN4ZteLvm+/nG9m/ciopc66LwRdkxqfJ32Cy
+        q+1TS5VaIJDG7DWziG+Kbu6qCDM4QNlg3LH7p14CrRxAbc4lvohRgsV4eQqsIcdF
+        kuVY5HPPj2K8TqpY6STe8Gh0aprG1RV8ZKay3KSMpnyV1fAKn4fM9byiLzQAovC0
+        LZ9MMMsrAS/45AvC3IEKSShjLFn1X1dRCiO6/7jmZEoZtAp53hkf8SMBsi78hVNr
+        BumZwfIdBA1v22+LY4xQK8q4XCoRcA9G+pvzU9YVW7cRnDZZGl0uwOw7z9PkQBF5
+        KFKjWDz4fCk+K6+YtGpovGKekGBb8I7EA6UpvPgqA/QdI0t1IBP0N06RQcs1fUaA
+        QEtz6DGy5zkRhR4pGSZn+dFET7PdAjEK84y7BdY4t+U1jcSIvBj0F2B7LwRL7xGp
+        SpIKi/ekAXLs117bvFHaCvmUYN7JVp1GMmVFxhIdx6CFm3fxG8QjNb5tere/YqK+
+        uOgcXny1UlwtCUzlrSaP
+        =9AdM
+        -----END PGP PUBLIC KEY BLOCK-----
+`
+
+func (t *configSuite) TestGetSetInspectorsConfig(c *C) {
+	dir := c.MkDir()
+	cfgFile := filepath.Join(dir, "inspectors.yaml")
+	err := os.WriteFile(cfgFile, []byte(inspectorsConfig), 0644)
+	c.Assert(err, IsNil)
+
+	// Load rules from file
+	err = config.LoadInspectorsConfig(dir)
+	c.Assert(err, IsNil)
+
+	cfg := config.GetInspectorsConfig()
+	c.Check(cfg.Git.Urls, HasLen, 1)
+	c.Check(cfg.Git.Urls[0], DeepEquals, glob.MustCompile("https://git.test:443/**"))
+
+	c.Check(cfg.Crafts.Urls, HasLen, 1)
+	c.Check(cfg.Crafts.Urls[0], DeepEquals, glob.MustCompile("https://sourcecraft.test:443/**"))
+
+	c.Check(cfg.Apt.Repositories, DeepEquals, map[string]apt_cfg.AptInspectorConfigRepository{
+		"default": {
+			Urls: []glob.Glob{
+				glob.MustCompile("http://archive.ubuntu.com/ubuntu"),
+				glob.MustCompile("http://*.archive.ubuntu.com/ubuntu"),
+			},
+			Dists: []glob.Glob{
+				glob.MustCompile("*"),
+			},
+			Components: []glob.Glob{
+				glob.MustCompile("*"),
+			},
+			PublicKey: `-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+mQINBFufwdoBEADv/Gxytx/LcSXYuM0MwKojbBye81s0G1nEx+lz6VAUpIUZnbkq
+dXBHC+dwrGS/CeeLuAjPRLU8AoxE/jjvZVp8xFGEWHYdklqXGZ/gJfP5d3fIUBtZ
+HZEJl8B8m9pMHf/AQQdsC+YzizSG5t5Mhnotw044LXtdEEkx2t6Jz0OGrh+5Ioxq
+X7pZiq6Cv19BohaUioKMdp7ES6RYfN7ol6HSLFlrMXtVfh/ijpN9j3ZhVGVeRC8k
+KHQsJ5PkIbmvxBiUh7SJmfZUx0IQhNMaDHXfdZAGNtnhzzNReb1FqNLSVkrS/Pns
+AQzMhG1BDm2VOSF64jebKXffFqM5LXRQTeqTLsjUbbrqR6s/GCO8UF7jfUj6I7ta
+LygmsHO/JD4jpKRC0gbpUBfaiJyLvuepx3kWoqL3sN0LhlMI80+fA7GTvoOx4tpq
+VlzlE6TajYu+jfW3QpOFS5ewEMdL26hzxsZg/geZvTbArcP+OsJKRmhv4kNo6Ayd
+yHQ/3ZV/f3X9mT3/SPLbJaumkgp3Yzd6t5PeBu+ZQk/mN5WNNuaihNEV7llb1Zhv
+Y0Fxu9BVd/BNl0rzuxp3rIinB2TX2SCg7wE5xXkwXuQ/2eTDE0v0HlGntkuZjGow
+DZkxHZQSxZVOzdZCRVaX/WEFLpKa2AQpw5RJrQ4oZ/OfifXyJzP27o03wQARAQAB
+tEJVYnVudHUgQXJjaGl2ZSBBdXRvbWF0aWMgU2lnbmluZyBLZXkgKDIwMTgpIDxm
+dHBtYXN0ZXJAdWJ1bnR1LmNvbT6JAjgEEwEKACIFAlufwdoCGwMGCwkIBwMCBhUI
+AgkKCwQWAgMBAh4BAheAAAoJEIcZINGZG8k8LHMQAKS2cnxz/5WaoCOWArf5g6UH
+beOCgc5DBm0hCuFDZWWv427aGei3CPuLw0DGLCXZdyc5dqE8mvjMlOmmAKKlj1uG
+g3TYCbQWjWPeMnBPZbkFgkZoXJ7/6CB7bWRht1sHzpt1LTZ+SYDwOwJ68QRp7DRa
+Zl9Y6QiUbeuhq2DUcTofVbBxbhrckN4ZteLvm+/nG9m/ciopc66LwRdkxqfJ32Cy
+q+1TS5VaIJDG7DWziG+Kbu6qCDM4QNlg3LH7p14CrRxAbc4lvohRgsV4eQqsIcdF
+kuVY5HPPj2K8TqpY6STe8Gh0aprG1RV8ZKay3KSMpnyV1fAKn4fM9byiLzQAovC0
+LZ9MMMsrAS/45AvC3IEKSShjLFn1X1dRCiO6/7jmZEoZtAp53hkf8SMBsi78hVNr
+BumZwfIdBA1v22+LY4xQK8q4XCoRcA9G+pvzU9YVW7cRnDZZGl0uwOw7z9PkQBF5
+KFKjWDz4fCk+K6+YtGpovGKekGBb8I7EA6UpvPgqA/QdI0t1IBP0N06RQcs1fUaA
+QEtz6DGy5zkRhR4pGSZn+dFET7PdAjEK84y7BdY4t+U1jcSIvBj0F2B7LwRL7xGp
+SpIKi/ekAXLs117bvFHaCvmUYN7JVp1GMmVFxhIdx6CFm3fxG8QjNb5tere/YqK+
+uOgcXny1UlwtCUzlrSaP
+=9AdM
+-----END PGP PUBLIC KEY BLOCK-----
+`,
+		},
+	})
+
+	// Verify that loaded config is a copy
+	cfg.Git.Urls = []glob.Glob{}
+	cfg.Crafts.Urls = []glob.Glob{}
+	entry, ok := cfg.Apt.Repositories["default"]
+	c.Assert(ok, Equals, true)
+	entry.Urls = []glob.Glob{
+		glob.MustCompile("a"),
+		glob.MustCompile("b"),
+		glob.MustCompile("c"),
+	}
+	cfg.Apt.Repositories["default"] = entry
+	cfg.Apt.Repositories["extra"] = apt_cfg.AptInspectorConfigRepository{}
+
+	cfg2 := config.GetInspectorsConfig()
+	c.Check(cfg2.Git.Urls, HasLen, 1)
+	c.Check(cfg2.Crafts.Urls, HasLen, 1)
+	c.Check(cfg2.Apt.Repositories, HasLen, 1)
+	c.Check(cfg2.Apt.Repositories["default"].Urls, HasLen, 2)
+
+	// Store the modified configuration
+	config.SetInspectorsConfig(cfg)
+
+	// Reload configuration
+	cfg3 := config.GetInspectorsConfig()
+	c.Check(cfg3.Git.Urls, HasLen, 0)
+	c.Check(cfg3.Crafts.Urls, HasLen, 0)
+	c.Check(cfg3.Apt.Repositories["default"].Urls, HasLen, 3)
+	c.Check(cfg3.Apt.Repositories["extra"].Urls, HasLen, 0)
+
 }

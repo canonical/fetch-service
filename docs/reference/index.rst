@@ -13,6 +13,11 @@ Reference
    control-api
    git_smart_query
    git_upload_pack
+   maven_jar
+   maven_pom
    pip_metadata
+   rockcraft
    sdist
+   snapcraft
+   sourcecraft
    wheels

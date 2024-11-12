@@ -20,9 +20,17 @@
 package service
 
 import (
+	"time"
+
 	"github.com/canonical/fetch-service/control"
 	"github.com/canonical/fetch-service/proxy"
-	"github.com/canonical/fetch-service/service/config"
+	"github.com/canonical/fetch-service/service/fetchctl"
+	"github.com/canonical/fetch-service/session"
+)
+
+var (
+	EvaluateRequestInspection  = evaluateRequestInspection
+	EvaluateResponseInspection = evaluateResponseInspection
 )
 
 func MockNewHttpProxy(mock func(int, string, []byte, []byte, chan interface{}) (*proxy.HttpProxy, error)) (restorer func()) {
@@ -41,10 +49,34 @@ func MockNewControlServer(mock func(port int, ch chan interface{}, creds string)
 	}
 }
 
-func MockNewConfigServer(mock func() *config.Server) (restorer func()) {
-	old := configNewServer
-	configNewServer = mock
+func MockNewFetchctlServer(mock func(chan interface{}) *fetchctl.Server) (restorer func()) {
+	old := fetchctlNewServer
+	fetchctlNewServer = mock
 	return func() {
-		configNewServer = old
+		fetchctlNewServer = old
+	}
+}
+
+func MockConfigUpdateConfig(mock func(string, bool, []byte, string) error) (restorer func()) {
+	old := configUpdateConfig
+	configUpdateConfig = mock
+	return func() {
+		configUpdateConfig = old
+	}
+}
+
+func MockProxyUpdateCert(mock func(bool, []byte, string, string) error) (restorer func()) {
+	old := proxyUpdateCert
+	proxyUpdateCert = mock
+	return func() {
+		proxyUpdateCert = old
+	}
+}
+
+func MockSessionNewWithId(mock func(string, string, string, time.Duration, bool) *session.Session) (restorer func()) {
+	old := sessionNewWithId
+	sessionNewWithId = mock
+	return func() {
+		sessionNewWithId = old
 	}
 }

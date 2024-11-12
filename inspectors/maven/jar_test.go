@@ -44,7 +44,7 @@ var urltests = []struct {
 
 	// expected output
 	group_id    string
-	artifact_id string
+	artefact_id string
 	version     string
 }{
 	{"/joda-time/joda-time/2.2/joda-time-2.2.jar", "joda-time", "joda-time", "2.2"},
@@ -65,7 +65,7 @@ func (s *mavenSuite) TestJarInspectRequest(c *C) {
 		c.Assert(insp.Opinion, Equals, opinions.Pending)
 
 		c.Check(a.RequestInspection[ins.ID()].Annotations["group-id"], Equals, jt.group_id)
-		c.Check(a.RequestInspection[ins.ID()].Annotations["artifact-id"], Equals, jt.artifact_id)
+		c.Check(a.RequestInspection[ins.ID()].Annotations["artefact-id"], Equals, jt.artefact_id)
 		c.Check(a.RequestInspection[ins.ID()].Annotations["version"], Equals, jt.version)
 	}
 }
@@ -74,7 +74,7 @@ var jartests = []struct {
 	filename    string
 	slug        string
 	group_id    string
-	artifact_id string
+	artefact_id string
 	version     string
 
 	description string
@@ -114,7 +114,7 @@ func (s *mavenSuite) TestJarInspectArtefact(c *C) {
 		a.RequestInspection[ins.ID()] = &Inspection{
 			Opinion:     opinions.Pending,
 			Reason:      "some reason",
-			Annotations: Annotation{"group-id": jt.group_id, "artifact-id": jt.artifact_id, "version": jt.version},
+			Annotations: Annotation{"group-id": jt.group_id, "artefact-id": jt.artefact_id, "version": jt.version},
 		}
 
 		f, err := files.OpenArtefactFile(filename)
@@ -127,7 +127,7 @@ func (s *mavenSuite) TestJarInspectArtefact(c *C) {
 		c.Assert(a.Approved(), Equals, true)
 
 		c.Check(a.Metadata.Type, Equals, "application/jar")
-		c.Check(a.Metadata.Name, Equals, jt.artifact_id)
+		c.Check(a.Metadata.Name, Equals, jt.artefact_id)
 		c.Check(a.Metadata.Version, Equals, jt.version)
 		c.Check(a.Metadata.Description, Equals, jt.description)
 		c.Check(a.Metadata.Author, Equals, jt.author)

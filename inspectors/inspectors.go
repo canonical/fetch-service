@@ -29,6 +29,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/apt"
 	"github.com/canonical/fetch-service/inspectors/cargo"
 	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/craft"
 	"github.com/canonical/fetch-service/inspectors/deb"
 	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/git"
@@ -40,6 +41,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
+	"github.com/canonical/fetch-service/service/config"
 )
 
 func init() {
@@ -56,11 +58,11 @@ type Inspectors struct {
 	permissive bool
 }
 
-func New(permissive bool) Inspectors {
+func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 
 	insList := []Inspector{
 		// snap
-		snap.NewSnapInspector(),
+		snap.NewSnapInspector(cfg.Snap),
 		snap.NewSnapAssertionInspector(),
 		snap.NewSnapInfoInspector(),
 		snap.NewSnapRefreshInspector(),
@@ -72,14 +74,20 @@ func New(permissive bool) Inspectors {
 		pip.NewMetadataInspector(),
 
 		// deb packages
-		deb.NewDebInspector(),
-		apt.NewAptReleaseInspector(),
-		apt.NewAptPackagesInspector(),
-		apt.NewAptTranslationInspector(),
+		deb.NewDebInspector(cfg.Apt),
+		apt.NewAptReleaseInspector(cfg.Apt),
+		apt.NewAptPackagesInspector(cfg.Apt),
+		apt.NewAptTranslationInspector(cfg.Apt),
 
 		// git
-		git.NewSmartQueryInspector(),
-		git.NewUploadPackInspector(),
+		git.NewSmartQueryInspector(cfg.Git),
+		git.NewUploadPackInspector(cfg.Git),
+
+		// craft
+		// must run after git
+		craft.NewSourcecraftInspector(cfg.Crafts),
+		craft.NewRockcraftInspector(cfg.Crafts),
+		craft.NewSnapcraftInspector(cfg.Crafts),
 
 		// go
 		// must run after git
@@ -91,6 +99,7 @@ func New(permissive bool) Inspectors {
 
 		// maven
 		maven.NewJarInspector(),
+		maven.NewPomInspector(),
 
 		// default inspector
 		// must be the last inspector to run

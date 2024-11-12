@@ -28,3 +28,7 @@ var (
 	ServerGetSessionReport   = (*Server).getSessionReport
 	ServerDeleteResources    = (*Server).deleteResources
 )
+
+func (c *Server) ForceError(err error) {
+	c.tomb.Kill(err)
+}

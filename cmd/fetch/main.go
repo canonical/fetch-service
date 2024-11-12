@@ -28,10 +28,11 @@ import (
 
 	"github.com/jessevdk/go-flags"
 
-	"github.com/canonical/fetch-service/cmd/fetchcfg"
+	"github.com/canonical/fetch-service/cmd/fetchctl"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/profile"
 	"github.com/canonical/fetch-service/service"
+	"github.com/canonical/fetch-service/version"
 )
 
 var (
@@ -89,7 +90,7 @@ func Run() int {
 	}
 
 	if opts.Version {
-		printf("fetch %s\n", Version)
+		printf("fetch %s\n", version.Version)
 		return 0
 	}
 
@@ -100,18 +101,13 @@ func Run() int {
 	logger.Init(lv)
 	defer logger.Close()
 
-	logger.Infof("Version %s", Version)
+	logger.Infof("Version %s", version.Version)
 	logger.Debug("Running in debug mode")
 
 	// Start continuous profiling server
 	pp := profile.NewProfiler(opts.ProfilePort)
 	if opts.Profile {
 		pp.Start()
-	}
-
-	cert, key, err := loadCertificate(opts.CertPath, opts.KeyPath)
-	if err != nil {
-		logger.Fatalf("Cannot load certificates: %s", err)
 	}
 
 	// Start the fetch service
@@ -121,8 +117,8 @@ func Run() int {
 		Config:         opts.Config,
 		Spool:          opts.Spool,
 		PermissiveMode: opts.PermissiveMode,
-		Cert:           cert,
-		Key:            key,
+		CertPath:       opts.CertPath,
+		KeyPath:        opts.KeyPath,
 		IdleShutdown:   opts.IdleShutdown,
 	}
 
@@ -178,33 +174,10 @@ func parser() *flags.Parser {
 	return p
 }
 
-// loadCertificate loads the proxy MITM certificates from the file system.
-func loadCertificate(certPath, keyPath string) ([]byte, []byte, error) {
-	if certPath == "" {
-		return nil, nil, fmt.Errorf("HTTPS proxy certificate path not specified")
-	}
-	logger.Infof("Loading certificate from %s", certPath)
-	cert, err := os.ReadFile(certPath)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if keyPath == "" {
-		return nil, nil, fmt.Errorf("HTTPS proxy key path not specified")
-	}
-	logger.Infof("Loading key from %s", keyPath)
-	key, err := os.ReadFile(keyPath)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return cert, key, nil
-}
-
 func main() {
 	cmd := filepath.Base(os.Args[0])
-	if cmd == "fetchcfg" || cmd == "fetch-service.fetchcfg" {
-		os.Exit(fetchcfg.Run())
+	if cmd == "fetchctl" || cmd == "fetch-service.fetchctl" {
+		os.Exit(fetchctl.Run())
 	}
 
 	os.Exit(Run())

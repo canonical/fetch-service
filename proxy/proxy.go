@@ -22,7 +22,6 @@ package proxy
 import (
 	"bytes"
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"io"
 	"net"
@@ -40,6 +39,7 @@ import (
 	"github.com/canonical/fetch-service/proxy/acl"
 	"github.com/canonical/fetch-service/proxy/auth"
 	"github.com/canonical/fetch-service/service/messages"
+	"github.com/canonical/fetch-service/utils"
 )
 
 const (
@@ -63,7 +63,11 @@ type HttpProxy struct {
 }
 
 func NewHttpProxy(port int, spool string, cert, key []byte, ch chan interface{}) (*HttpProxy, error) {
-	if err := setProxyCertificate(cert, key); err != nil {
+	ca, err := CreateProxyCA(cert, key)
+	if err != nil {
+		return nil, err
+	}
+	if err = SetProxyCA(ca); err != nil {
 		return nil, err
 	}
 
@@ -133,6 +137,10 @@ func (p *HttpProxy) Dying() <-chan struct{} {
 	return p.tomb.Dying()
 }
 
+func (p *HttpProxy) Err() error {
+	return p.tomb.Err()
+}
+
 // processRoundTrip gets destination connection information to check ACLs.
 func (p *HttpProxy) processRoundTrip(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
 	host, _, err := net.SplitHostPort(req.URL.Host)
@@ -154,9 +162,9 @@ func (p *HttpProxy) processRoundTrip(req *http.Request, ctx *goproxy.ProxyCtx) (
 		logger.Infof("request to %s: IP address %s", r.URL.Host, ip.String())
 		logger.Debugf("check request acls for %s", r.URL.String())
 		if acl.Allowed(ip) {
-			logger.Infof("Access to %s allowed", ip.String())
+			logger.Infof("access to %s allowed", ip.String())
 		} else {
-			logger.Infof("Access to %s blocked", ip.String())
+			logger.Infof("access to %s blocked", ip.String())
 			resp = httpResponse(r, http.StatusForbidden, []byte("Access denied"))
 		}
 		return resp, nil
@@ -183,7 +191,7 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 	a.SessionId = req.Header.Get(sessionIdHeader)
 
 	a.CurrentDownload.StartTime = time.Now().UTC()
-	a.CurrentDownload.URL = req.URL.String()
+	a.CurrentDownload.URL = utils.NormalizedURL(req.URL)
 	a.CurrentDownload.Address = req.RemoteAddr
 	a.CurrentDownload.Method = req.Method
 	a.CurrentDownload.UserAgent = req.Header.Get("User-Agent")
@@ -229,10 +237,11 @@ func (p *HttpProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) 
 			os.Remove(a.Tempfile)
 		}
 		//a.CurrentDownload.EndTime = time.Now().UTC()
-		logger.Infof("%s: %s", a.Metadata.Sha256, err)
 		if err == common.ErrRejectedArtefact {
+			logger.Infof("[proxy] file download not authorized: %s", err)
 			return forbiddenResponse(resp.Request, "Download not authorized")
 		}
+		logger.Infof("[proxy] file download error: %s: %s", a.Tempfile, err)
 		return internalErrorResponse(resp.Request, "Cannot handle file downloads")
 	}
 
@@ -295,36 +304,4 @@ func copyHeader(data map[string][]string) map[string][]string {
 		c[k] = vv
 	}
 	return c
-}
-
-// setProxyCertificate enables the HTTPS proxy MITM certificate
-func setProxyCertificate(cert, key []byte) error {
-	logger.Info("Setting proxy CA certificate")
-
-	goproxyCa, err := tls.X509KeyPair(cert, key)
-	if err != nil {
-		return err
-	}
-	if goproxyCa.Leaf, err = x509.ParseCertificate(goproxyCa.Certificate[0]); err != nil {
-		return err
-	}
-	goproxy.GoproxyCa = goproxyCa
-	goproxy.OkConnect = &goproxy.ConnectAction{
-		Action:    goproxy.ConnectAccept,
-		TLSConfig: goproxy.TLSConfigFromCA(&goproxyCa),
-	}
-	goproxy.MitmConnect = &goproxy.ConnectAction{
-		Action:    goproxy.ConnectMitm,
-		TLSConfig: goproxy.TLSConfigFromCA(&goproxyCa),
-	}
-	goproxy.HTTPMitmConnect = &goproxy.ConnectAction{
-		Action:    goproxy.ConnectHTTPMitm,
-		TLSConfig: goproxy.TLSConfigFromCA(&goproxyCa),
-	}
-	goproxy.RejectConnect = &goproxy.ConnectAction{
-		Action:    goproxy.ConnectReject,
-		TLSConfig: goproxy.TLSConfigFromCA(&goproxyCa),
-	}
-
-	return nil
 }

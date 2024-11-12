@@ -1,0 +1,6 @@
+http-proxy:
+  policy: allow
+  rules:
+    - dst: [
+      ]
+      access: deny

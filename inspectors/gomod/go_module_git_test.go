@@ -68,6 +68,8 @@ func (s *goModuleGitSuite) TestInspectGoModuleGitRequest(c *C) {
 		// FIXME: using github as placeholder, final URLs will change
 		{"https://github.com:443/user/project.git/git-upload-pack", true},
 		{"https://github.com:443/user/project/git-upload-pack", true},
+		{"https://git.launchpad.net:443/project/git-upload-pack", true},
+		{"https://git.launchpad.net:443/~user/project/+git/project/git-upload-pack", true},
 		{"https://gopkg.in:443/project.v2/git-upload-pack", true},
 		{"https://invalid.com:443/user/project.git/git-upload-pack", false},
 		{"http://github.com/user/project.git/git-upload-pack", false},
@@ -75,13 +77,15 @@ func (s *goModuleGitSuite) TestInspectGoModuleGitRequest(c *C) {
 		{"ahttps://github.com:443/user/project.git/git-upload-pack", false},
 		{"https://github.com:443/user/project.git/git-upload-packs", false},
 		{"https://github.com:443/user/project.git/something-else", false},
+		{"https://git.launchpad.com:443/project/git-upload-pack", false},
+		{"https://git.lpad.net:443/~user/project/+git/project/git-upload-pack", false},
 	} {
 		ins := gomod.NewGoModuleGitInspector()
 		a := metadata.NewArtefact()
 		a.CurrentDownload.URL = tc.url
 		a.CurrentDownload.RequestHeader = map[string][]string{
-			"Content-Type": []string{"application/x-git-upload-pack-request"},
-			"Accept":       []string{"application/x-git-upload-pack-result"},
+			"Content-Type": {"application/x-git-upload-pack-request"},
+			"Accept":       {"application/x-git-upload-pack-result"},
 		}
 		a.RequestInspection["git.upload-pack"] = &Inspection{
 			Annotations: Annotation{"command": "fetch"},
@@ -93,7 +97,7 @@ func (s *goModuleGitSuite) TestInspectGoModuleGitRequest(c *C) {
 		c.Assert(err, IsNil)
 
 		insp, ok := a.RequestInspection[ins.ID()]
-		c.Assert(ok, Equals, tc.approved)
+		c.Assert(ok, Equals, tc.approved, Commentf("Aproval status is wrong for '%s' (%t != %t)", tc.url, ok, tc.approved))
 		if tc.approved {
 			c.Assert(insp.Opinion, Equals, opinions.Pending)
 		}

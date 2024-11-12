@@ -29,9 +29,7 @@ import (
 	. "gopkg.in/check.v1"
 )
 
-// XXX: This file contains minimal testing for apt file formats. Tests
-//
-//	will be extended after the metadata format is approved.
+// FIXME: Add more tests
 
 func (s *aptSuite) TestAptTranslationInspector(c *C) {
 
@@ -41,16 +39,15 @@ func (s *aptSuite) TestAptTranslationInspector(c *C) {
 		lang              string
 		translataionCount int
 	}{
-		{"tests/Translation-zh_TW.xz", true, "zh_TW", 3},
-		{"tests/Translation-zh_TW-bad.xz", false, "", 0},
+		{"testdata/Translation-zh_TW.xz", true, "zh_TW", 3},
+		{"testdata/Translation-zh_TW-bad.xz", false, "", 0},
 	} {
 		translationArtefactFile, _ := os.Open(tc.dataFile)
 		translationArtefactData := make([]byte, 1024*128)
 		_, err := translationArtefactFile.Read(translationArtefactData)
-
 		c.Assert(err, IsNil)
 
-		ins := apt.NewAptTranslationInspector()
+		ins := apt.NewAptTranslationInspector(getTestAptConfig())
 		t := metadata.NewArtefact()
 		t.SetRequestPending(ins, "test")
 		t.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/devel/main/i18n/by-hash/SHA256/4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed"

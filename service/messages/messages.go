@@ -179,3 +179,28 @@ func NewDeleteResources(sessionId string) DeleteResources {
 		Id:  sessionId,
 	}
 }
+
+// Fetchctl messages
+
+type FetchCtl struct {
+	Rch          chan FetchCtlResult
+	Operation    string
+	Type         string
+	ValidateOnly bool
+	Payload      []byte
+}
+
+func NewFetchCtl(operation, optype string, validateOnly bool, payload []byte) FetchCtl {
+	return FetchCtl{
+		Operation:    operation,
+		Type:         optype,
+		ValidateOnly: validateOnly,
+		Payload:      payload,
+		Rch:          make(chan FetchCtlResult, 1),
+	}
+}
+
+type FetchCtlResult struct {
+	Status  string
+	Message string
+}

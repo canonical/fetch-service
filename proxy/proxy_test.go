@@ -21,6 +21,7 @@ package proxy_test
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -44,15 +45,21 @@ func Test(t *testing.T) { TestingT(t) }
 
 type proxySuite struct{}
 
+var _ = Suite(&proxySuite{})
+
 func (t *proxySuite) SetUpTest(c *C) {
 	testlogger.Init(logger.InfoLevel)
 }
 
-var _ = Suite(&proxySuite{})
-
-func (t *proxySuite) TestSetProxyCertificate(c *C) {
-	err := proxy.SetProxyCertificate(testutils.ProxyCert, testutils.ProxyKey)
+func (t *proxySuite) TestServerError(c *C) {
+	ch := make(chan interface{}, 1)
+	spool := c.MkDir()
+	p, err := proxy.NewHttpProxy(5566, spool, testutils.ProxyCert, testutils.ProxyKey, ch)
 	c.Assert(err, IsNil)
+
+	err = errors.New("an error")
+	p.ForceError(err)
+	c.Assert(p.Err(), Equals, err)
 }
 
 // Test file transfer using the proxy.

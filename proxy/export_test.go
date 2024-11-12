@@ -20,6 +20,10 @@
 package proxy
 
 var (
-	CopyHeader          = copyHeader
-	SetProxyCertificate = setProxyCertificate
+	CopyHeader   = copyHeader
+	SplitCertKey = splitCertKey
 )
+
+func (p *HttpProxy) ForceError(err error) {
+	p.tomb.Kill(err)
+}

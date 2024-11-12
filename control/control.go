@@ -116,6 +116,10 @@ func (c *Server) Dying() <-chan struct{} {
 	return c.tomb.Dying()
 }
 
+func (c *Server) Err() error {
+	return c.tomb.Err()
+}
+
 func (c *Server) getServiceStatus(w http.ResponseWriter, r *http.Request) {
 	logger.Debugf("get service status")
 

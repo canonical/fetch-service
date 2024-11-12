@@ -12,13 +12,14 @@ adopt-info: fetch
 
 apps:
   # licensecheck app here for debugging.
-#  licensecheck:
-#    command: usr/bin/licensecheck
-#    plugs:
-#      - home
+  licensecheck:
+    command: usr/bin/licensecheck
+    plugs:
+      - home
   fetchd:
     command: bin/fetch-service.sh
     daemon: simple
+    refresh-mode: endure
     plugs:
       - network-bind
     install-mode: disable
@@ -27,8 +28,8 @@ apps:
     plugs:
       - network-bind
       - home
-  fetchcfg:  # Fetch service configuration tool
-    command: bin/fetchcfg
+  fetchctl:  # Fetch service configuration tool
+    command: bin/fetchctl
     plugs:
       - home
 
@@ -48,18 +49,16 @@ parts:
     plugin: go
     source: .
     override-build: |
-      rm -f cmd/fetch*/version.txt
+      rm -f version/version.txt
+      go generate ./...
       craftctl default
-      craftctl set version=$(cat cmd/fetch/version.txt)
+      craftctl set version=$(cat version/version.txt)
   service-runner:
     plugin: dump
     source: .
     source-subdir: snap/local
-    stage-packages:
-      - gpg
-      - ubuntu-keyring
-  fetchcfg:
+  fetchctl:
     plugin: nil
     override-prime: |
       craftctl default
-      ln -s fetch bin/fetchcfg
+      ln -s fetch bin/fetchctl

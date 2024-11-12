@@ -1,0 +1,24 @@
+Package: python3-grpcio
+Architecture: arm64
+Version: 1.16.1-1ubuntu5
+Priority: optional
+Section: universe/python
+Source: grpc
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Laszlo Boszormenyi (GCS) <gcs@debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 2486
+Provides: python3.8-grpcio
+Depends: python3 (<< 3.9), python3 (>= 3.8~), python3-six (>= 1.5.2), python3:any, libc-ares2 (>= 1.11.0~rc1), libc6 (>= 2.29), libssl1.1 (>= 1.1.0), libstdc++6 (>= 4.1.1), zlib1g (>= 1:1.1
+.4)
+Filename: pool/universe/g/grpc/python3-grpcio_1.16.1-1ubuntu5_arm64.deb
+Size: 747272
+MD5sum: 8b04b8cb660109790a038f1f8e4a6724
+SHA1: 89e0ffcf13ab1c7f58e7558660fa6f3c1eb03ea7
+SHA256: e29b93360482e909d7545335b99fca8aa2f59594d7096a8c99478e9dc7b85631
+Homepage: http://www.grpc.io/
+Description: GRPC system (Python 3)
+Python-Version:
+ 3.8
+Description-md5: 75cb8347218d07aad16058ccf058b2c9

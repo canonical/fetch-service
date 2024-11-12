@@ -77,6 +77,12 @@ func decodeGitProtocol(f io.Reader) ([]string, error) {
 			line = line[:l-1]
 		}
 
+		l = len(line)
+		// remove carriage return (HTTP/1.1)
+		if l > 0 && line[l-1] == '\r' {
+			line = line[:l-1]
+		}
+
 		msgs = append(msgs, string(line))
 
 		// stop decoding if packfile found

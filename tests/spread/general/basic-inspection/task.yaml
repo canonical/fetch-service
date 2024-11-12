@@ -1,0 +1,75 @@
+summary: Artefact inspection
+
+environment:
+  POLICY/strict: strict
+  POLICY/permissive: permissive
+
+prepare: |
+  snap install "$PROJECT_PATH"/tests/fetch-service_*.snap --dangerous
+  snap set fetch-service permissive=true
+  snap set fetch-service control.auth=craft:craft
+  rm -f ./*.deb
+
+restore: |
+  snap remove fetch-service --purge
+  rm -f ./*.json ./*.deb
+
+execute: |
+  snap start fetch-service
+  sleep 5  # give some time for the service to start
+  fetch-service.fetchctl version
+
+  # check if service is up and running
+  curl -sf http://localhost:9999/status
+
+  # create permissive session
+  curl -sf -X POST -d '{"policy": "'"$POLICY"'"}' http://craft:craft@localhost:9999/session | tee session.json
+  session_id=$(jq -r .id session.json)
+  token=$(jq -r .token session.json)
+
+  # set up proxy and download a file
+  export http_proxy="http://${session_id}:${token}@localhost:9988"
+  export https_proxy="http://${session_id}:${token}@localhost:9988"
+
+  wget --no-check-certificate http://archive.ubuntu.com/ubuntu/pool/main/h/hello/hello_2.10-3build2_amd64.deb ||:
+  if [ "$POLICY" == "permissive" ]; then
+      test -f hello_2.10-3build2_amd64.deb
+  else
+      test ! -f hello_2.10-3build2_amd64.deb
+  fi
+
+  # download it again
+
+  rm -f hello_2.10-3build2_amd64.deb
+  wget --no-check-certificate http://archive.ubuntu.com/ubuntu/pool/main/h/hello/hello_2.10-3build2_amd64.deb ||:
+  if [ "$POLICY" == "permissive" ]; then
+      test -f hello_2.10-3build2_amd64.deb
+  else
+      test ! -f hello_2.10-3build2_amd64.deb
+  fi
+
+  unset http_proxy
+  unset https_proxy
+
+  # revoke token, get report, and end session
+  curl -sf -X DELETE -d "{\"token\": \"${token}\"}" "http://localhost:9999/session/${session_id}/token" | tee delete_token.json
+  spool_path=$(jq -r '."spool-path"' delete_token.json)
+  [ -d "$spool_path" ]
+
+  curl -sf "http://craft:craft@localhost:9999/session/${session_id}" | tee session_report.json
+
+  jq -r '."spool-path"' session_report.json | MATCH "$spool_path"
+  jq -r .policy session_report.json | MATCH "$POLICY"
+  jq -r '(.artefacts[].metadata | select(.name=="hello")).type' session_report.json | MATCH "application/vnd.debian.binary-package"
+  jq -r '(.artefacts[].metadata | select(.name=="hello")).sha256' session_report.json | MATCH "24e6cc07c34cb53fedce7e1e82a501111e5da2a7f8e3125a7e7b32ad18db00f7"
+  jq -r '(.artefacts[] | select(.metadata.name=="hello")).result' session_report.json | MATCH "Rejected"
+
+  curl -sf -X DELETE "http://craft:craft@localhost:9999/session/${session_id}"
+
+  # check if resources present
+  [ -f "$spool_path/$session_id/assets/24e6cc07c34cb53fedce7e1e82a501111e5da2a7f8e3125a7e7b32ad18db00f7.json" ]
+  [ -f "$spool_path/$session_id/assets/24e6cc07c34cb53fedce7e1e82a501111e5da2a7f8e3125a7e7b32ad18db00f7.data" ]
+
+  # remove session resources
+  curl -sf -X DELETE "http://craft:craft@localhost:9999/resources/${session_id}"
+  [ ! -d "$spool_path/$session_id" ]

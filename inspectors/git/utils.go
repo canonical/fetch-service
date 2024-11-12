@@ -11,6 +11,14 @@ import (
 	"github.com/canonical/fetch-service/logger"
 )
 
+type GitPackfileSideband int8
+
+const (
+	PackfileData GitPackfileSideband = iota + 1
+	PackfileProgress
+	PackfileErrors
+)
+
 // UnpackObjects creates a work tree in dir from a file containing
 // packed objects.
 func UnpackObjects(f io.ReadSeeker, dir string) error {
@@ -87,20 +95,26 @@ func readPack(f io.Reader, w io.Writer) error {
 		if err != nil {
 			return err
 		}
-		logger.Debugf("git pack size %#x", size)
+		//logger.Debugf("git pack size %#x", size)
 
 		if size <= 5 {
 			break
 		}
 
-		x := make([]byte, 1)
-		if _, err = f.Read(x); err != nil {
+		git_sideband_byte := make([]byte, 1)
+
+		if _, err := f.Read(git_sideband_byte); err != nil {
 			return err
 		}
 
 		databuf := make([]byte, size-5)
 		if _, err = f.Read(databuf); err != nil {
 			return err
+		}
+
+		if GitPackfileSideband(git_sideband_byte[0]) != PackfileData {
+			logger.Debugf("Non-package data, skipping...")
+			continue
 		}
 
 		if _, err = w.Write(databuf); err != nil {

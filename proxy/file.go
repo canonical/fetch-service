@@ -71,11 +71,9 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artefact, spool str
 	select {
 	case err := <-respIns.Rch:
 		if err != nil {
-			// TODO: if in strict mode, end this session
 			return nil, err
 		}
 	case <-time.After(insTimeout):
-		// TODO: if in strict mode, end this session
 		return nil, fmt.Errorf("inspection of artefact %s timed out", a.Metadata.Sha256)
 	}
 
