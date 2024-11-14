@@ -163,8 +163,10 @@ func (s *goModuleGitSuite) TestGoModuleGitInspectArtefact(c *C) {
 	} {
 		f := bytes.NewReader(tc.data)
 		checkoutPath := c.MkDir()
-		c.Assert(git.UnpackObjects(f, checkoutPath), IsNil)
-		c.Assert(git.Checkout(checkoutPath, "467ef24fabbcce4a3bda7af3918fb970ee970c8b"), IsNil)
+		err := git.UnpackObjects(f, checkoutPath)
+		c.Assert(err, IsNil)
+		err = git.Checkout(checkoutPath, "467ef24fabbcce4a3bda7af3918fb970ee970c8b")
+		c.Assert(err, IsNil)
 
 		a := metadata.NewArtefact()
 		a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
@@ -219,7 +221,7 @@ func (s *goModuleGitSuite) TestGoModuleGitInspectArtefact(c *C) {
 		f = bytes.NewReader(tc.data)
 
 		ins := gomod.NewGoModuleGitInspector()
-		err := ins.InspectArtefact(f, a)
+		err = ins.InspectArtefact(f, a)
 		c.Assert(err, IsNil)
 
 		inspection := a.ResponseInspection["go.module.git"]
