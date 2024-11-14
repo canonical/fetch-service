@@ -30,6 +30,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/git"
 	"github.com/canonical/fetch-service/inspectors/gomod"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
@@ -153,15 +154,18 @@ var goModuleGitFetch = []byte{
 func (s *goModuleGitSuite) TestGoModuleGitInspectArtefact(c *C) {
 	for _, tc := range []struct {
 		data        []byte
-		is_shallow  bool
 		has_version bool
 		opinion     opinions.OpinionKind
 		reason      string
 	}{
-		{goModuleGitFetch, true, true, opinions.Approved, "go module found"},
-		{goModuleGitFetch, false, true, opinions.Rejected, "go module found but repository is not shallow"},
-		{goModuleGitFetch, true, false, opinions.Rejected, "cannot find go module version tag"},
+		{goModuleGitFetch, true, opinions.Approved, "go module found"},
+		{goModuleGitFetch, false, opinions.Rejected, "cannot find go module version tag"},
 	} {
+		f := bytes.NewReader(tc.data)
+		checkoutPath := c.MkDir()
+		c.Assert(git.UnpackObjects(f, checkoutPath), IsNil)
+		c.Assert(git.Checkout(checkoutPath, "467ef24fabbcce4a3bda7af3918fb970ee970c8b"), IsNil)
+
 		a := metadata.NewArtefact()
 		a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
 		a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
@@ -192,25 +196,27 @@ func (s *goModuleGitSuite) TestGoModuleGitInspectArtefact(c *C) {
 					"wants": []string{
 						"467ef24fabbcce4a3bda7af3918fb970ee970c8b",
 					},
-					"is-shallow": tc.is_shallow,
+					"is-shallow": true,
 				},
 			},
 		}
+		annotations := Annotation{
+			"git-checkout-path": checkoutPath,
+		}
 		if tc.has_version {
-			a.ResponseInspection = metadata.InspectionMap{
-				"git.upload-pack": &Inspection{
-					Opinion: opinions.Unknown,
-					Reason:  "",
-					Annotations: Annotation{
-						"tags": map[string]string{
-							"v1.0": "467ef24fabbcce4a3bda7af3918fb970ee970c8b",
-						},
-					},
-				},
-			}
+			annotations.Add("tags", map[string]string{
+				"v1.0": "467ef24fabbcce4a3bda7af3918fb970ee970c8b",
+			})
+		}
+		a.ResponseInspection = metadata.InspectionMap{
+			"git.upload-pack": &Inspection{
+				Opinion:     opinions.Unknown,
+				Reason:      "",
+				Annotations: annotations,
+			},
 		}
 
-		f := bytes.NewReader(tc.data)
+		f = bytes.NewReader(tc.data)
 
 		ins := gomod.NewGoModuleGitInspector()
 		err := ins.InspectArtefact(f, a)

@@ -22,10 +22,12 @@ package git
 import (
 	"bytes"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 
@@ -337,6 +339,52 @@ func (ins *UploadPackInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 		}
 
 		notes.Add("server-response", server_msgs)
+
+		// Valid fetch command; unpack it and checkout the wanted ref so that git-based inspectors
+		// can inspect its contents.
+		// Read "wants" information from the request annotation
+		w, has_wants := a.RequestAnnotation(ins.ID(), "wants")
+		wr, has_want_refs := a.RequestAnnotation(ins.ID(), "want-refs")
+		if !has_wants && !has_want_refs {
+			// this must have been set by the request inspection
+			return errors.New("cannot read request want/want-ref annotation")
+		}
+		if !has_wants {
+			// check out wanted-ref
+			a.SetResponseRejected(ins,
+				"want-refs handling not implemented yet").Annotate(notes)
+			return nil
+		}
+
+		var wants []string
+		if has_wants {
+			var ok bool
+			wants, ok = w.([]string)
+			if !ok || len(wants) < 1 {
+				return errors.New("cannot read want annotation")
+			}
+		}
+
+		var want_refs []string
+		if has_want_refs {
+			var ok bool
+			want_refs, ok = wr.([]string)
+			if !ok || len(want_refs) < 1 {
+				return errors.New("cannot read want-ref annotation")
+			}
+		}
+
+		// Unpack & checkout the contents into a shared location
+		path, err := unpackAndCheckout(f, wants[0], a.CacheDir())
+		if err != nil {
+			a.SetResponseRejected(ins, "cannot unpack git objects").Annotate(Annotation{"error-msg": err.Error()})
+			return nil
+		}
+
+		// At this point the git inspection was successful; annotate the path to the checked-out
+		// files so that git-based inspectors can look into them.
+		notes.Add("git-checkout-path", path)
+
 		a.SetResponseUnknown(ins, "git fetch response is valid but content is unknown").Annotate(notes)
 
 	default:
@@ -410,4 +458,28 @@ func (h *uploadPackRequestHandler) Read(b []byte) (n int, err error) {
 // Close finalizes the request.
 func (h *uploadPackRequestHandler) Close() error {
 	return h.body.Close()
+}
+
+func unpackAndCheckout(f ArtefactReader, ref string, cacheDir string) (string, error) {
+	// Unpack and checkout in temporary directory
+	if err := os.MkdirAll(cacheDir, 0700); err != nil {
+		return "", err
+	}
+
+	dir, err := os.MkdirTemp(cacheDir, "git-")
+	if err != nil {
+		return "", err
+	}
+
+	logger.Debugf("unpack objects in %s", dir)
+	if err := UnpackObjects(f, dir); err != nil {
+		return "", err
+	}
+
+	logger.Debugf("checkout ref %s in %s", ref, dir)
+	if err := Checkout(dir, ref); err != nil {
+		return "", err
+	}
+
+	return dir, nil
 }

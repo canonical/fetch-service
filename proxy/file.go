@@ -53,6 +53,7 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artefact, spool str
 	sessionId := r.Header.Get(sessionIdHeader)
 	insTimeout := 60 * time.Second // XXX: make this a configurable parameter
 	assetDir := filepath.Join(spool, sessionId, "assets")
+	cacheDir := filepath.Join(spool, sessionId, "cache")
 
 	tempfile, err := os.CreateTemp("", "artefact-")
 	if err != nil {
@@ -61,6 +62,7 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artefact, spool str
 
 	a.Tempfile = tempfile.Name()
 	a.AssetDir = assetDir
+	a.SessionCacheDir = cacheDir
 
 	if err = localDownload(resp, a, tempfile); err != nil {
 		return nil, err
