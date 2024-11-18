@@ -66,7 +66,7 @@ jobs:
         run: |
           go test -race ./...
   snap-build:
-    runs-on: ubuntu-latest
+    runs-on: [noble, amd64]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
