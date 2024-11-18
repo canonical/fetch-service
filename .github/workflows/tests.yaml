@@ -34,9 +34,9 @@ jobs:
   tests:
     strategy:
       matrix:
-        os:  # Don't care about architecture here
-          - [jammy]
-          - [noble]
+        os:
+          - [jammy, amd64]
+          - [noble, amd64]
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -83,7 +83,7 @@ jobs:
   spread-tests:
     strategy:
       matrix:
-        os:  # Run on amd64 because our runners are much faster.
+        os:
           - ubuntu-20.04  # Run on GitHub as we don't have self-hosted focal runners
           - [jammy, amd64]
           - [noble, amd64]
