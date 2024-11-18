@@ -8,7 +8,7 @@ on:
 
 jobs:
   linters:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux]  # Pretty much any self-hosted Linux runner, base independent
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -30,7 +30,9 @@ jobs:
   tests:
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        os:  # Don't care about architecture here
+          - [jammy]
+          - [noble]
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -77,7 +79,10 @@ jobs:
   spread-tests:
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        os:  # Run on amd64 because our runners are much faster.
+          - ubuntu-20.04  # Run on GitHub as we don't have self-hosted focal runners
+          - [jammy, amd64]
+          - [noble, amd64]
     needs:
       - snap-build
     runs-on: ${{ matrix.os }}
