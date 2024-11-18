@@ -54,6 +54,7 @@ type Artefact struct {
 	AssetDir           string               `json:"-"`                         // Location to store files and metadata
 	Tempfile           string               `json:"-"`                         // Path to temporary file containing downloaded data
 	SessionId          string               `json:"-"`                         // The current session ID
+	SessionCacheDir    string               `json:"-"`                         // Location to store files and metadata
 	MimeType           *mimetype.MIME       `json:"-"`                         // The artefact MIME type
 	Request            *http.Request        `json:"-"`                         // request handle for body content inspection
 
@@ -307,4 +308,8 @@ func (a *Artefact) Approved() bool {
 // Rejected returns the opposite of Approved.
 func (a *Artefact) Rejected() bool {
 	return !a.Approved()
+}
+
+func (a *Artefact) CacheDir() string {
+	return a.SessionCacheDir
 }

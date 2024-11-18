@@ -89,6 +89,9 @@ type ResponseArtefact interface {
 	ContentType() string
 	DownloadURL() string
 
+	// Helpers to use during inspection
+	CacheDir() string
+
 	// Fill metadata fields
 	SetArtefactMetadata(ArtefactMetadata)
 }

@@ -20,17 +20,14 @@
 package craft
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
-	"os"
 	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/craft/config"
-	"github.com/canonical/fetch-service/inspectors/git"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/logger"
 )
@@ -102,92 +99,16 @@ func (ins *SourcecraftInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 	}
 	logger.Debugf("Inspecting source artefact")
 
-	command, ok := a.RequestStringAnnotation(GitUploadPackID, "command") // the upload-pack request command
+	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
 		// this must have been set by the git upload-pack inspector
-		a.SetResponseUnknown(ins, "command not set during request inspection")
-		return nil
-	}
-	notes := Annotation{}
-
-	logger.Debugf("inspect git upload-pack artefact: command %q", command)
-
-	// We're only interested in the fetch command
-	if command != "fetch" {
+		a.SetResponseUnknown(ins, "no git checkout found")
 		return nil
 	}
 
-	if a.MimetypeIs("text/plain") {
-		return nil
-	}
+	logger.Debugf("inspect git upload-pack artefact: checkout at %q", checkoutPath)
 
-	// Read wants information from the git inspector annotation
-	w, has_wants := a.RequestAnnotation(GitUploadPackID, "wants")
-	wr, has_want_refs := a.RequestAnnotation(GitUploadPackID, "want-refs")
-	if !has_wants && !has_want_refs {
-		// this must have been set by the git upload-pack inspector
-		return errors.New("cannot read request want/want-ref annotation")
-	}
-
-	var wants []string
-	if has_wants {
-		var ok bool
-		wants, ok = w.([]string)
-		if !ok || len(wants) < 1 {
-			return errors.New("cannot read want annotation")
-		}
-	}
-
-	var want_refs []string
-	if has_want_refs {
-		var ok bool
-		want_refs, ok = wr.([]string)
-		if !ok || len(want_refs) < 1 {
-			return errors.New("cannot read want-ref annotation")
-		}
-	}
-
-	// Read depth information from the git inspector annotation
-	isShallow, ok := a.RequestBoolAnnotation(GitUploadPackID, "is-shallow")
-	if !ok {
-		return errors.New("cannot read is-shallow annotation")
-	}
-	// Reject if depth > 1
-	if !isShallow {
-		a.SetResponseRejected(ins, "sourcecraft repository is not shallow").Annotate(notes)
-		return nil
-	}
-
-	// Unpack and checkout in temporary directory
-	// FIXME: unpack once for all inspectors
-	dir, err := os.MkdirTemp("", "fetch-")
-	if err != nil {
-		return err
-	}
-	logger.Debugf("unpack objects in %s", dir)
-
-	defer os.RemoveAll(dir)
-
-	if err = git.UnpackObjects(f, dir); err != nil {
-		a.SetResponseRejected(ins, "cannot unpack git objects").Annotate(Annotation{"error-msg": err.Error()})
-		return nil
-	}
-
-	if has_wants {
-		// check out wanted digest
-		notes.Add("checkout", wants[0])
-		err = git.Checkout(dir, wants[0])
-		if err != nil {
-			return fmt.Errorf("git checkout error: %w", err)
-		}
-	} else {
-		// check out wanted-ref
-		a.SetResponseRejected(ins,
-			"want-refs handling not implemented yet").Annotate(notes)
-		return nil
-	}
-
-	sourcecraftYamlPath := filepath.Join(dir, "sourcecraft.yaml")
+	sourcecraftYamlPath := filepath.Join(checkoutPath, "sourcecraft.yaml")
 	if _, err := osStat(sourcecraftYamlPath); err != nil {
 		a.SetResponseUnknown(ins,
 			"git repository does not contain a sourcecraft.yaml file")
@@ -214,7 +135,6 @@ func (ins *SourcecraftInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 		Description: data.Summary,
 		License:     data.License,
 	})
-	a.SetResponseApproved(ins, "sourcecraft repository found").Annotate(notes)
-
+	a.SetResponseApproved(ins, "sourcecraft repository found")
 	return nil
 }

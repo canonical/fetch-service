@@ -54,9 +54,10 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	body := io.NopCloser(bytes.NewBufferString("Request body"))
 	req, err := http.NewRequest("GET", "http://foo/bar", body)
 	req.Header.Set("User-Agent", "test/1.0")
+	req.Header.Set("X-Fetch-Session-Id", "1234")
 	c.Assert(err, IsNil)
 
-	dir := c.MkDir()
+	spoolDir := c.MkDir()
 
 	// download the file
 	resp := &http.Response{
@@ -74,12 +75,14 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 
 	go func() {
 		var err error
-		_, err = proxy.NewFileDownloadHandler(resp, a, dir, ch)
+		_, err = proxy.NewFileDownloadHandler(resp, a, spoolDir, ch)
 		c.Assert(err, IsNil)
 	}()
 
 	msg := <-ch
 	v := msg.(messages.ResponseInspection)
+
+	c.Assert(a.CacheDir(), Equals, filepath.Join(spoolDir, "1234", "cache"))
 
 	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
 	err = os.MkdirAll(filepath.Dir(dest), 0755)
@@ -123,7 +126,7 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	a.CurrentDownload.Method = req.Method
 
 	go func() {
-		_, err = proxy.NewFileDownloadHandler(resp, a, dir, ch)
+		_, err = proxy.NewFileDownloadHandler(resp, a, spoolDir, ch)
 		c.Assert(err, IsNil)
 	}()
 
