@@ -108,4 +108,6 @@ jobs:
       - name: Copy snap to tests dir
         run: cp *.snap tests/
       - name: Run spread tests
-        run: ~/go/bin/spread -v ci:${{ matrix.os }}
+        run: |
+          source /etc/os-release
+          ~/go/bin/spread -v "ci:${ID}-${VERSION_ID}"
