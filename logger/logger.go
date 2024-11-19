@@ -43,22 +43,43 @@ type Level int
 
 var (
 	logLevel Level
+	logFile  *os.File
 )
 
-// Init sets up the logging system with screen output.
-func Init(lv Level) {
+// Init sets up the logging system.
+// If "logFilepath" is empty, logging is done to standard out.
+func Init(lv Level, logFilepath string) error {
 	logLevel = lv
 	log.SetFlags(log.Ldate | log.Lmicroseconds)
-	log.SetOutput(os.Stdout)
+	if logFilepath != "" {
+		return SetLogFile(logFilepath)
+	} else {
+		log.SetOutput(os.Stdout)
+	}
+	return nil
 }
 
 // Close finalizes the logging system.
 func Close() {
+	if logFile != nil {
+		log.SetOutput(os.Stdout)
+		logFile.Close()
+	}
 }
 
 // SetLevel updates the current logging level.
 func SetLevel(lv Level) {
 	logLevel = lv
+}
+
+func SetLogFile(logPath string) error {
+	var err error
+	logFile, err = os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
+	if err != nil {
+		return err
+	}
+	log.SetOutput(logFile)
+	return nil
 }
 
 // Info logs informational messages.
