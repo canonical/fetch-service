@@ -187,3 +187,8 @@ func (s *logSuite) TestLogToFile(c *C) {
 	c.Assert(strings.Contains(lines[1], "INFO : Info message"), Equals, true)
 	c.Assert(strings.Contains(lines[2], "WARN : Warning message"), Equals, true)
 }
+
+func (s *logSuite) TestLogToFileError(c *C) {
+	err := logger.Init(logger.DebugLevel, "/invalid/path/log.txt")
+	c.Assert(err, ErrorMatches, "set log file:.* /invalid/path/log.txt: no such file or directory.*")
+}

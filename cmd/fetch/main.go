@@ -79,6 +79,7 @@ var opts struct {
 	// Auto-shutdown the service when idle
 	IdleShutdown int `long:"idle-shutdown" description:"Time in seconds to auto-shutdown if idle"`
 
+	// Specify the path to the log file
 	LogFile string `long:"log-file" description:"Log to this file instead of standard out"`
 }
 

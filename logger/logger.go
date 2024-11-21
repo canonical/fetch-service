@@ -53,9 +53,8 @@ func Init(lv Level, logFilepath string) error {
 	log.SetFlags(log.Ldate | log.Lmicroseconds)
 	if logFilepath != "" {
 		return SetLogFile(logFilepath)
-	} else {
-		log.SetOutput(os.Stdout)
 	}
+	log.SetOutput(os.Stdout)
 	return nil
 }
 
@@ -64,6 +63,7 @@ func Close() {
 	if logFile != nil {
 		log.SetOutput(os.Stdout)
 		logFile.Close()
+		logFile = nil
 	}
 }
 
@@ -74,9 +74,9 @@ func SetLevel(lv Level) {
 
 func SetLogFile(logPath string) error {
 	var err error
-	logFile, err = os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
+	logFile, err = os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
-		return err
+		return fmt.Errorf("set log file: %w", err)
 	}
 	log.SetOutput(logFile)
 	return nil
