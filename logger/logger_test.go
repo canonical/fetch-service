@@ -20,6 +20,9 @@
 package logger_test
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	. "gopkg.in/check.v1"
@@ -161,4 +164,31 @@ func (s *logSuite) TestDebugLevel(c *C) {
 		c.Check(testlogger.Contains("DEBUG: string\n"), Equals, t.res)
 		c.Check(testlogger.Contains("DEBUG: formatted\n"), Equals, t.res)
 	}
+}
+
+func (s *logSuite) TestLogToFile(c *C) {
+	logDir := c.MkDir()
+	logPath := filepath.Join(logDir, "testfile.log")
+
+	err := logger.Init(logger.DebugLevel, logPath)
+	c.Assert(err, IsNil)
+
+	logger.Debug("Debug message")
+	logger.Info("Info message")
+	logger.Warning("Warning message")
+	logger.Close()
+
+	buf, err := os.ReadFile(logPath)
+	c.Assert(err, IsNil)
+
+	contents := string(buf)
+	lines := strings.Split(contents, "\n")
+	c.Assert(strings.Contains(lines[0], "DEBUG: Debug message"), Equals, true)
+	c.Assert(strings.Contains(lines[1], "INFO : Info message"), Equals, true)
+	c.Assert(strings.Contains(lines[2], "WARN : Warning message"), Equals, true)
+}
+
+func (s *logSuite) TestLogToFileError(c *C) {
+	err := logger.Init(logger.DebugLevel, "/invalid/path/log.txt")
+	c.Assert(err, ErrorMatches, "set log file:.* /invalid/path/log.txt: no such file or directory.*")
 }
