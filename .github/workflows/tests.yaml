@@ -24,9 +24,9 @@ jobs:
           version: latest
       - name: Run shellcheck
         run: |
-          shellcheck tests/spread/craft-test tests/spread/backend/*
-          tests/tools/utils/spread-shellcheck -v spread.yaml
-          find tests/spread -name task.yaml | xargs tests/tools/utils/spread-shellcheck -v
+          shellcheck spread/.extension
+          spread/tools/utils/spread-shellcheck -v spread.yaml
+          find spread -name task.yaml | xargs spread/tools/utils/spread-shellcheck -v
   tests:
     strategy:
       matrix:
@@ -98,6 +98,6 @@ jobs:
         with:
           name: snap
       - name: Copy snap to tests dir
-        run: cp *.snap tests/
+        run: cp *.snap spread/
       - name: Run spread tests
         run: ~/go/bin/spread -v ci:${{ matrix.os }}
