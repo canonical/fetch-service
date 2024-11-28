@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 
 	"github.com/gabriel-vasile/mimetype"
 
@@ -77,6 +78,13 @@ func NewArtefact() *Artefact {
 func (a *Artefact) RequestHeader(key string) ([]string, bool) {
 	val, ok := a.CurrentDownload.RequestHeader[key]
 	return val, ok
+}
+
+// RequestHeaderContains returns true if the request header h contains
+// string s.
+func (a *Artefact) RequestHeaderContains(h, s string) bool {
+	value, ok := a.RequestHeader(h)
+	return ok && len(value) >= 1 && slices.Contains(value, s)
 }
 
 func (a *Artefact) ContentType() string {

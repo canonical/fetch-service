@@ -147,6 +147,30 @@ func (t *metadataSuite) TestRequestHeader(c *C) {
 	}
 }
 
+func (t *metadataSuite) TestRequestHeaderContains(c *C) {
+	for _, tc := range []struct {
+		entry    string
+		haystack []string
+		needle   string
+		exists   bool
+	}{
+		{"foo", []string{"foo1", "foo2"}, "foo1", true},
+		{"foo", []string{"foo1", "foo2"}, "foo2", true},
+		{"foo", []string{"foo1", "foo2"}, "foo3", false},
+		{"foo", []string{}, "foo1", false},
+	} {
+		a := metadata.NewArtefact()
+		a.CurrentDownload.RequestHeader = http.Header{}
+		a.CurrentDownload.RequestHeader[tc.entry] = tc.haystack
+
+		res := a.RequestHeaderContains("foo", tc.needle)
+		c.Assert(res, Equals, tc.exists, Commentf("test case: %+v", tc))
+
+		res = a.RequestHeaderContains("bar", tc.needle)
+		c.Assert(res, Equals, false, Commentf("test case: %+v", tc))
+	}
+}
+
 func (t *metadataSuite) TestContentType(c *C) {
 	a := metadata.NewArtefact()
 	a.CurrentDownload.ContentType = "application/test"

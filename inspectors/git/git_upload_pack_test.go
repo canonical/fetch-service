@@ -162,10 +162,13 @@ func (s *uploadPackSuite) TestUploadPackInspectLsRefsArtefact(c *C) {
 
 		ins := git.NewUploadPackInspector(getTestConfig())
 		err := ins.InspectArtefact(f, a)
+		c.Assert(err, IsNil)
+
 		if tc.errmsg == "" {
-			c.Assert(err, IsNil)
+			c.Assert(a.Approved(), Equals, true)
 		} else {
-			c.Assert(err.Error(), Equals, tc.errmsg)
+			c.Assert(a.Rejected(), Equals, true)
+			c.Assert(a.ResponseInspection[ins.ID()].Annotations["error-msg"], Equals, tc.errmsg, Commentf("test case: +%v"))
 		}
 
 		c.Check(a.Metadata.Type, Equals, "application/x.git.upload-pack-result.ls-ref")
@@ -337,7 +340,7 @@ func (s *uploadPackSuite) TestUploadPackInspectFetchArtefact(c *C) {
 		errmsg   string
 	}{
 		{"testdata/sourcepkg.raw", ""},
-		{"testdata/bad-data.raw", `error decoding git protocol: strconv.ParseUint: parsing "not-": invalid syntax`},
+		{"testdata/bad-data.raw", `strconv.ParseUint: parsing "not-": invalid syntax`},
 	} {
 		a := fakeGitArtefact()
 		a.Request, _ = http.NewRequest("GET", "https://github.com:443/user/project.git/git-upload-pack", nil)
@@ -379,8 +382,9 @@ func (s *uploadPackSuite) TestUploadPackInspectFetchArtefact(c *C) {
 
 		ins := git.NewUploadPackInspector(getTestConfig())
 		err = ins.InspectArtefact(f, a)
+		c.Assert(err, IsNil)
+
 		if tc.errmsg == "" {
-			c.Assert(err, IsNil)
 			c.Assert(a.ResponseInspection[ins.ID()].Opinion, Equals, opinions.Unknown)
 
 			// Check that the git repo was unpacked and checked-out in the cache dir
@@ -392,8 +396,8 @@ func (s *uploadPackSuite) TestUploadPackInspectFetchArtefact(c *C) {
 			c.Assert(err, IsNil)
 			c.Assert(stat.IsDir(), Equals, true)
 		} else {
-			c.Assert(err.Error(), Equals, tc.errmsg)
 			c.Assert(a.Rejected(), Equals, true)
+			c.Assert(a.ResponseInspection[ins.ID()].Annotations["error-msg"], Equals, tc.errmsg, Commentf("test case: +%v", tc))
 		}
 
 		c.Check(a.Metadata.Type, Equals, "application/x.git.upload-pack-result.fetch")

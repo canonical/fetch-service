@@ -127,6 +127,6 @@ func (s *smartQuerySuite) TestSmartQueryInspectArtefact(c *C) {
 
 		c.Check(a.Metadata.Type, Equals, "application/x.git.upload-pack-advertisement")
 		c.Check(a.Metadata.Name, Equals, "git upload-pack advertisement")
-		c.Assert(a.Approved(), Equals, tc.result)
+		c.Assert(a.Approved(), Equals, tc.result, Commentf("test case: %+v", tc))
 	}
 }
