@@ -58,6 +58,7 @@ type RequestArtefact interface {
 	// Get request fields
 	DownloadURL() string
 	RequestHeader(string) ([]string, bool)
+	RequestHeaderContains(string, string) bool
 	HTTPRequest() *http.Request
 
 	// Save request for inspection

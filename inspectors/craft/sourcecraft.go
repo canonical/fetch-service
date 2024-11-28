@@ -69,13 +69,7 @@ func (ins *SourcecraftInspector) InspectRequest(a RequestArtefact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	content_type, ok := a.RequestHeader("Content-Type")
-	if !ok || len(content_type) < 1 || content_type[0] != "application/x-git-upload-pack-request" {
-		return nil // we don't recognize this request
-	}
-
-	accept, ok := a.RequestHeader("Accept")
-	if !ok || len(accept) < 1 || accept[0] != "application/x-git-upload-pack-result" {
+	if !checkGitRequestHeaders(a) {
 		return nil // we don't recognize this request
 	}
 

@@ -22,7 +22,6 @@ package git
 import (
 	"bytes"
 	"compress/gzip"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -76,23 +75,14 @@ func (ins *UploadPackInspector) InspectRequest(a RequestArtefact) error {
 
 	repo := fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, u.Path)
 	repo, _ = strings.CutSuffix(repo, "/git-upload-pack")
-	ins.Lock()
-	if _, ok := ins.heads[repo]; !ok {
-		ins.heads[repo] = map[string]string{}
-	}
-	if _, ok := ins.tags[repo]; !ok {
-		ins.tags[repo] = map[string]string{}
-	}
-	ins.Unlock()
+	ins.initRepoState(repo)
 
-	content_type, ok := a.RequestHeader("Content-Type")
-	if !ok || len(content_type) < 1 || content_type[0] != "application/x-git-upload-pack-request" {
-		return nil // we don't recognize this request
+	if !a.RequestHeaderContains("Content-Type", "application/x-git-upload-pack-request") {
+		return nil
 	}
 
-	accept, ok := a.RequestHeader("Accept")
-	if !ok || len(accept) < 1 || accept[0] != "application/x-git-upload-pack-result" {
-		return nil // we don't recognize this request
+	if !a.RequestHeaderContains("Accept", "application/x-git-upload-pack-result") {
+		return nil
 	}
 
 	info, err := config.NewUploadPackUrlInfo(u, &ins.config)
@@ -125,6 +115,24 @@ func (ins *UploadPackInspector) InspectRequest(a RequestArtefact) error {
 	}
 	a.SetRequestBody(body)
 
+	ins.inspectRequestCommand(a, client_msgs, notes)
+
+	return nil
+}
+
+func (ins *UploadPackInspector) initRepoState(repo string) {
+	ins.Lock()
+	defer ins.Unlock()
+
+	if _, ok := ins.heads[repo]; !ok {
+		ins.heads[repo] = map[string]string{}
+	}
+	if _, ok := ins.tags[repo]; !ok {
+		ins.tags[repo] = map[string]string{}
+	}
+}
+
+func (ins *UploadPackInspector) inspectRequestCommand(a RequestArtefact, client_msgs []string, notes Annotation) {
 	// Obtain the upload-pack command from the protocol messages
 	command := ""
 	notes.Add("client-request", client_msgs)
@@ -136,11 +144,9 @@ func (ins *UploadPackInspector) InspectRequest(a RequestArtefact) error {
 	notes.Add("command", command)
 	logger.Debugf("git-upload-pack request command %s", command)
 
-	// Special actions for commands
 	switch command {
 	case "ls-refs":
-		// do nothing
-
+		a.SetRequestPending(ins, "valid URL for git upload-pack").Annotate(notes)
 	case "fetch":
 		// allow fetch only if shallow and single ref
 		isShallow := false
@@ -173,18 +179,17 @@ func (ins *UploadPackInspector) InspectRequest(a RequestArtefact) error {
 
 		if !isShallow {
 			a.SetRequestRejected(ins, "fetch is only allowed with depth 1").Annotate(notes)
-			return nil
+			return
 		} else if len(wants) > 1 {
 			a.SetRequestRejected(ins, "fetch is only allowed on a single ref").Annotate(notes)
-			return nil
+			return
 		}
+
+		a.SetRequestPending(ins, "valid URL for git upload-pack").Annotate(notes)
 	default:
 		a.SetRequestRejected(ins, "only ls-refs and fetch commands are allowed").Annotate(notes)
-		return nil
 	}
 
-	a.SetRequestPending(ins, "valid URL for git upload-pack").Annotate(notes)
-	return nil
 }
 
 // InspectArtefact rejects upload-pack responses not conforming to the expected
@@ -203,195 +208,224 @@ func (ins *UploadPackInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 		return nil
 	}
 
-	command, ok := a.RequestAnnotation(ins.ID(), "command") // the upload-pack request command
-	if !ok {
-		// this must have been set by the request inspector
-		a.SetResponseRejected(ins, "command not set during request inspection")
-		return nil
-	}
-	notes := Annotation{}
-
-	logger.Debugf("inspect git upload-pack artefact: command %q", command)
-
 	repo, ok := a.RequestStringAnnotation(ins.ID(), "repository") // the upload-pack request repository
 	if !ok {
 		// this must have been set by the request inspector
 		a.SetResponseRejected(ins, "repository not set during request inspection")
 		return nil
 	}
-	ins.Lock()
-	if _, ok := ins.heads[repo]; !ok {
-		ins.heads[repo] = map[string]string{}
-	}
-	if _, ok := ins.tags[repo]; !ok {
-		ins.tags[repo] = map[string]string{}
-	}
-	ins.Unlock()
+
+	ins.initRepoState(repo)
 
 	vendor, _ := a.RequestStringAnnotation(ins.ID(), "server")
 
+	return ins.inspectResponseCommand(f, a, repo, vendor)
+}
+
+func (ins *UploadPackInspector) inspectResponseCommand(f ArtefactReader, a ResponseArtefact, repo, vendor string) error {
+	command, ok := a.RequestAnnotation(ins.ID(), "command") // the upload-pack request command
+	if !ok {
+		// this must have been set by the request inspector
+		a.SetResponseRejected(ins, "command not set during request inspection")
+		return nil
+	}
+
+	notes := Annotation{}
+
+	logger.Debugf("inspect git upload-pack artefact: command %q", command)
 	// Supported upload-pack commands are 'ls-refs' and 'fetch'
 	switch command {
 	case "ls-refs":
-		if !a.MimetypeIs("text/plain") {
-			a.SetResponseRejected(ins, "bad data type for ls-refs response")
-			return nil
-		}
-
-		a.SetArtefactMetadata(ArtefactMetadata{
-			Type:        mimetypes.GitUploadPackLsRef,
-			Name:        "git ls-refs response",
-			Description: "Response to the git 'ls-refs' command",
-			Vendor:      vendor,
-		})
-
-		msgs, err := decodeGitProtocol(f)
-		if err != nil {
-			a.SetResponseRejected(ins, "cannot decode git protocol").Annotate(Annotation{"error-msg": err.Error()})
+		if err := ins.inspectLsRefsResponse(f, a, repo, vendor, notes); err != nil {
 			return err
 		}
-
-		refs := []string{}
-		for _, msg := range msgs {
-			refs = append(refs, strings.TrimSpace(msg))
-		}
-		notes.Add("server-response", refs)
-
-		// store heads and tags in the inspector state for this repository
-		for _, ref := range refs {
-			p := strings.Split(ref, " ")
-			if len(p) < 2 {
-				continue
-			}
-
-			if tag, ok := strings.CutPrefix(p[1], "refs/tags/"); ok {
-				ins.Lock()
-				ins.tags[repo][tag] = p[0]
-				ins.Unlock()
-			} else if head, ok := strings.CutPrefix(p[1], "refs/heads/"); ok {
-				ins.Lock()
-				ins.heads[repo][head] = p[0]
-				ins.Unlock()
-			}
-		}
-
-		a.SetResponseApproved(ins, "git ls-refs response decoded").Annotate(notes)
 
 	case "fetch":
-		if !a.MimetypeIs("application/octet-stream") && !a.MimetypeIs("text/plain") {
-			a.SetResponseRejected(ins, "bad data type for fetch response")
-			return nil
-		}
-
-		a.SetArtefactMetadata(ArtefactMetadata{
-			Type:        mimetypes.GitUploadPackFetch,
-			Name:        "git fetch response",
-			Description: "Response to the git 'fetch' command",
-			Vendor:      vendor,
-		})
-
-		if numWants, ok := a.RequestAnnotation(ins.ID(), "num-wants"); !ok || numWants != 1 {
-			notes.Add("num-wants", numWants)
-			a.SetResponseRejected(ins, "fetch is allowed only on a single ref").Annotate(notes)
-			return nil
-		}
-		ins.Lock()
-		notes.Add("heads", ins.heads[repo])
-		notes.Add("tags", ins.tags[repo])
-		ins.Unlock()
-
-		msgs, err := decodeGitProtocol(f)
-		if err != nil {
-			return fmt.Errorf("error decoding git protocol: %w", err)
-		}
-
-		if _, err := f.Seek(0, io.SeekStart); err != nil {
+		if err := ins.inspectFetchResponse(f, a, repo, vendor, notes); err != nil {
 			return err
 		}
-
-		server_msgs := []string{}
-		isShallow := false
-		unshallow := false
-		for _, msg := range msgs {
-			if strings.HasPrefix(msg, "shallow ") {
-				isShallow = true
-			} else if strings.HasPrefix(msg, "unshallow ") {
-				unshallow = true
-			}
-			server_msgs = append(server_msgs, strings.TrimSpace(msg))
-		}
-		notes.Add("server-response", server_msgs)
-
-		if !isShallow {
-			a.SetResponseRejected(ins, "fetch is only allowed with depth 1").Annotate(notes)
-			return nil
-		}
-
-		if unshallow {
-			a.SetResponseRejected(ins, "unshallow is not supported").Annotate(notes)
-			return nil
-		}
-
-		if numWants, ok := a.RequestAnnotation(ins.ID(), "num-wants"); !ok || numWants != 1 {
-			notes.Add("num-wants", numWants)
-			a.SetResponseRejected(ins, "fetch is allowed only on a single ref").Annotate(notes)
-			return nil
-		}
-
-		notes.Add("server-response", server_msgs)
-
-		// Valid fetch command; unpack it and checkout the wanted ref so that git-based inspectors
-		// can inspect its contents.
-		// Read "wants" information from the request annotation
-		w, has_wants := a.RequestAnnotation(ins.ID(), "wants")
-		wr, has_want_refs := a.RequestAnnotation(ins.ID(), "want-refs")
-		if !has_wants && !has_want_refs {
-			// this must have been set by the request inspection
-			return errors.New("cannot read request want/want-ref annotation")
-		}
-		if !has_wants {
-			// check out wanted-ref
-			a.SetResponseRejected(ins,
-				"want-refs handling not implemented yet").Annotate(notes)
-			return nil
-		}
-
-		var wants []string
-		if has_wants {
-			var ok bool
-			wants, ok = w.([]string)
-			if !ok || len(wants) < 1 {
-				return errors.New("cannot read want annotation")
-			}
-		}
-
-		var want_refs []string
-		if has_want_refs {
-			var ok bool
-			want_refs, ok = wr.([]string)
-			if !ok || len(want_refs) < 1 {
-				return errors.New("cannot read want-ref annotation")
-			}
-		}
-
-		// Unpack & checkout the contents into a shared location
-		path, err := unpackAndCheckout(f, wants[0], a.CacheDir())
-		if err != nil {
-			a.SetResponseRejected(ins, "cannot unpack git objects").Annotate(Annotation{"error-msg": err.Error()})
-			return nil
-		}
-
-		// At this point the git inspection was successful; annotate the path to the checked-out
-		// files so that git-based inspectors can look into them.
-		notes.Add("git-checkout-path", path)
-
-		a.SetResponseUnknown(ins, "git fetch response is valid but content is unknown").Annotate(notes)
 
 	default:
 		a.SetResponseRejected(ins, "only ls-refs and fetch commands are supported").Annotate(notes)
 	}
 
 	return nil
+}
+
+func (ins *UploadPackInspector) inspectLsRefsResponse(f ArtefactReader, a ResponseArtefact, repo, vendor string, notes Annotation) error {
+	if !a.MimetypeIs("text/plain") {
+		a.SetResponseRejected(ins, "bad data type for ls-refs response")
+		return nil
+	}
+
+	a.SetArtefactMetadata(ArtefactMetadata{
+		Type:        mimetypes.GitUploadPackLsRef,
+		Name:        "git ls-refs response",
+		Description: "Response to the git 'ls-refs' command",
+		Vendor:      vendor,
+	})
+
+	msgs, err := decodeGitProtocol(f)
+	if err != nil {
+		a.SetResponseRejected(ins, "cannot decode git protocol").Annotate(Annotation{"error-msg": err.Error()})
+		return nil
+	}
+
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
+
+	refs := []string{}
+	for _, msg := range msgs {
+		refs = append(refs, strings.TrimSpace(msg))
+	}
+	notes.Add("server-response", refs)
+
+	// store heads and tags in the inspector state for this repository
+	for _, ref := range refs {
+		p := strings.Split(ref, " ")
+		if len(p) < 2 {
+			continue
+		}
+
+		if tag, ok := strings.CutPrefix(p[1], "refs/tags/"); ok {
+			ins.Lock()
+			ins.tags[repo][tag] = p[0]
+			ins.Unlock()
+		} else if head, ok := strings.CutPrefix(p[1], "refs/heads/"); ok {
+			ins.Lock()
+			ins.heads[repo][head] = p[0]
+			ins.Unlock()
+		}
+	}
+
+	a.SetResponseApproved(ins, "git ls-refs response decoded").Annotate(notes)
+	return nil
+}
+
+func (ins *UploadPackInspector) inspectFetchResponse(f ArtefactReader, a ResponseArtefact, repo, vendor string, notes Annotation) error {
+	if !a.MimetypeIs("application/octet-stream") && !a.MimetypeIs("text/plain") {
+		a.SetResponseRejected(ins, "bad data type for fetch response")
+		return nil
+	}
+
+	a.SetArtefactMetadata(ArtefactMetadata{
+		Type:        mimetypes.GitUploadPackFetch,
+		Name:        "git fetch response",
+		Description: "Response to the git 'fetch' command",
+		Vendor:      vendor,
+	})
+
+	if numWants, ok := a.RequestAnnotation(ins.ID(), "num-wants"); !ok || numWants != 1 {
+		notes.Add("num-wants", numWants)
+		a.SetResponseRejected(ins, "fetch is allowed only on a single ref").Annotate(notes)
+		return nil
+	}
+
+	ins.Lock()
+	notes.Add("heads", ins.heads[repo])
+	notes.Add("tags", ins.tags[repo])
+	ins.Unlock()
+
+	msgs, err := decodeGitProtocol(f)
+	if err != nil {
+		a.SetResponseRejected(ins, "cannot decode git protocol").Annotate(Annotation{"error-msg": err.Error()})
+		return nil
+	}
+
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
+
+	if !ins.fetchResponseIsShallow(a, msgs, notes) {
+		return nil
+	}
+
+	// Valid fetch command; unpack it and checkout the wanted ref so that git-based inspectors
+	// can inspect its contents.
+	ref := ins.getRefFromWants(a, notes)
+	if ref == "" {
+		return nil
+	}
+
+	// Unpack & checkout the contents into a shared location
+	path, err := unpackAndCheckout(f, ref, a.CacheDir())
+	if err != nil {
+		a.SetResponseRejected(ins, "cannot unpack git objects").Annotate(Annotation{"error-msg": err.Error()})
+		return nil
+	}
+
+	// At this point the git inspection was successful; annotate the path to the checked-out
+	// files so that git-based inspectors can look into them.
+	notes.Add("git-checkout-path", path)
+
+	a.SetResponseUnknown(ins, "git fetch response is valid but content is unknown").Annotate(notes)
+	return nil
+}
+
+func (ins *UploadPackInspector) fetchResponseIsShallow(a ResponseArtefact, msgs []string, notes Annotation) bool {
+	server_msgs := []string{}
+	isShallow := false
+	unshallow := false
+
+	for _, msg := range msgs {
+		if strings.HasPrefix(msg, "shallow ") {
+			isShallow = true
+		} else if strings.HasPrefix(msg, "unshallow ") {
+			unshallow = true
+		}
+		server_msgs = append(server_msgs, strings.TrimSpace(msg))
+	}
+	notes.Add("server-response", server_msgs)
+
+	if !isShallow {
+		a.SetResponseRejected(ins, "fetch is only allowed with depth 1").Annotate(notes)
+		return false
+	}
+
+	if unshallow {
+		a.SetResponseRejected(ins, "unshallow is not supported").Annotate(notes)
+		return false
+	}
+
+	return true
+}
+
+func (ins *UploadPackInspector) getRefFromWants(a ResponseArtefact, notes Annotation) string {
+	// Read "wants" information from the request annotation
+	w, has_wants := a.RequestAnnotation(ins.ID(), "wants")
+	wr, has_want_refs := a.RequestAnnotation(ins.ID(), "want-refs")
+	if !has_wants && !has_want_refs {
+		// this must have been set by the request inspection
+		a.SetResponseRejected(ins, "cannot read request want/want-ref annotation").Annotate(notes)
+		return ""
+	}
+	if !has_wants {
+		// check out wanted-ref
+		a.SetResponseRejected(ins, "want-refs handling not implemented yet").Annotate(notes)
+		return ""
+	}
+	var wants []string
+	if has_wants {
+		var ok bool
+		wants, ok = w.([]string)
+		if !ok || len(wants) < 1 {
+			a.SetResponseRejected(ins, "cannot read want annotation").Annotate(notes)
+			return ""
+		}
+	}
+
+	var want_refs []string
+	if has_want_refs {
+		var ok bool
+		want_refs, ok = wr.([]string)
+		if !ok || len(want_refs) < 1 {
+			a.SetResponseRejected(ins, "cannot read want-ref annotation").Annotate(notes)
+			return ""
+		}
+	}
+
+	return wants[0]
 }
 
 func (ins *UploadPackInspector) Lock() {

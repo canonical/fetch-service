@@ -84,25 +84,9 @@ func (ins *SmartQueryInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 		Vendor:      vendor,
 	})
 
-	msgs, err := decodeGitProtocol(f)
+	msgs, err := ins.decodeGitProtocol(f, a)
 	if err != nil {
-		a.SetResponseRejected(ins, "cannot decode git V2 protocol").Annotate(
-			Annotation{
-				"error-msg": err.Error(),
-			})
 		return nil
-	}
-
-	if len(msgs) == 1 && msgs[0] == "# service=git-upload-pack" {
-		var err error
-		msgs, err = decodeGitProtocol(f) // skip previous size+content
-		if err != nil {
-			a.SetResponseRejected(ins, "cannot decode pack advertisement").Annotate(
-				Annotation{
-					"error-msg": err.Error(),
-				})
-			return nil
-		}
 	}
 
 	version := "2"
@@ -125,4 +109,22 @@ func (ins *SmartQueryInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 		Annotation{"version": version, "server-response": server_msgs},
 	)
 	return nil
+}
+
+func (ins *SmartQueryInspector) decodeGitProtocol(f ArtefactReader, a ResponseArtefact) ([]string, error) {
+	msgs, err := decodeGitProtocol(f)
+	if err != nil {
+		a.SetResponseRejected(ins, "cannot decode git protocol").Annotate(
+			Annotation{"error-msg": err.Error()},
+		)
+	} else if len(msgs) == 1 && msgs[0] == "# service=git-upload-pack" {
+		msgs, err = decodeGitProtocol(f) // skip previous size+content
+		if err != nil {
+			a.SetResponseRejected(ins, "cannot decode pack advertisement").Annotate(
+				Annotation{"error-msg": err.Error()},
+			)
+		}
+	}
+
+	return msgs, err
 }
