@@ -22,12 +22,14 @@ package git_test
 import (
 	"io"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gabriel-vasile/mimetype"
 	. "gopkg.in/check.v1"
 
 	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/git"
 	"github.com/canonical/fetch-service/inspectors/git/config"
 	"github.com/canonical/fetch-service/logger"
@@ -329,17 +331,13 @@ func (s *uploadPackSuite) TestInspectFetchRequestReject(c *C) {
 	c.Assert(a.RequestPending(), Equals, false)
 }
 
-var uploadPackFetchArtefactData = `0011shallow-info
-0034shallow 6b99254b1c5c823d054bc0ae1ebccfa070380fce0001000dpackfile
-...packed-object-data...`
-
 func (s *uploadPackSuite) TestUploadPackInspectFetchArtefact(c *C) {
 	for _, tc := range []struct {
-		data   string
-		errmsg string
+		filename string
+		errmsg   string
 	}{
-		{uploadPackFetchArtefactData, ""},
-		{uploadPackFetchArtefactData[1:], `error decoding git protocol: strconv.ParseUint: parsing "011s": invalid syntax`},
+		{"testdata/sourcepkg.raw", ""},
+		{"testdata/bad-data.raw", `error decoding git protocol: strconv.ParseUint: parsing "not-": invalid syntax`},
 	} {
 		a := fakeGitArtefact()
 		a.Request, _ = http.NewRequest("GET", "https://github.com:443/user/project.git/git-upload-pack", nil)
@@ -361,7 +359,7 @@ func (s *uploadPackSuite) TestUploadPackInspectFetchArtefact(c *C) {
 						"include-tag",
 						"ofs-delta",
 						"deepen 1",
-						"want 6b99254b1c5c823d054bc0ae1ebccfa070380fce",
+						"want 10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
 						"done",
 					},
 					"repository": "https://my.repo/foo",
@@ -369,17 +367,30 @@ func (s *uploadPackSuite) TestUploadPackInspectFetchArtefact(c *C) {
 					"project":    "bump2version",
 					"protocol":   "version=2",
 					"num-wants":  1,
+					"wants":      []string{"10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad"},
 				},
 			},
 		}
 
-		f := strings.NewReader(tc.data)
+		a.SessionCacheDir = c.MkDir()
+
+		f, err := files.OpenArtefactFile(tc.filename)
+		c.Assert(err, IsNil)
 
 		ins := git.NewUploadPackInspector(getTestConfig())
-		err := ins.InspectArtefact(f, a)
+		err = ins.InspectArtefact(f, a)
 		if tc.errmsg == "" {
 			c.Assert(err, IsNil)
 			c.Assert(a.ResponseInspection[ins.ID()].Opinion, Equals, opinions.Unknown)
+
+			// Check that the git repo was unpacked and checked-out in the cache dir
+			checkoutPath, found := a.ResponseStringAnnotation(ins.ID(), "git-checkout-path")
+			c.Assert(found, Equals, true)
+			prefix := a.SessionCacheDir + "/git-"
+			c.Assert(strings.HasPrefix(checkoutPath, prefix), Equals, true)
+			stat, err := os.Stat(checkoutPath)
+			c.Assert(err, IsNil)
+			c.Assert(stat.IsDir(), Equals, true)
 		} else {
 			c.Assert(err.Error(), Equals, tc.errmsg)
 			c.Assert(a.Rejected(), Equals, true)

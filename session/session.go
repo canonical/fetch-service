@@ -63,6 +63,7 @@ type Session struct {
 	A             map[digests.Sha256Digest]*metadata.Artefact
 	Permissive    bool          // whether this is a permissive session
 	SessionDir    string        // the session path including spool
+	CacheDir      string        // location of session-specific cache
 	Timeout       time.Duration // maximum time allowed for a session
 	InspectorsCfg config.InspectorsConfig
 
@@ -104,6 +105,7 @@ func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permiss
 		A:             map[digests.Sha256Digest]*metadata.Artefact{},
 		Permissive:    permissive,
 		SessionDir:    filepath.Join(spoolDir, sessionId),
+		CacheDir:      filepath.Join(spoolDir, sessionId, "cache"),
 		Timeout:       timeout,
 		InspectorsCfg: config.GetInspectorsConfig(),
 	}
@@ -159,6 +161,13 @@ func (s *Session) Finish() error {
 
 	if err := s.SaveSessionMetadata(sm); err != nil {
 		return err
+	}
+
+	// cleanup cache dir, if it exists, as its contents can no longer be used
+	if stat, err := os.Stat(s.CacheDir); err == nil && stat.IsDir() {
+		if removeErr := os.RemoveAll(s.CacheDir); removeErr != nil {
+			return removeErr
+		}
 	}
 
 	s.Discard()

@@ -29,7 +29,6 @@ import (
 	"strings"
 
 	. "github.com/canonical/fetch-service/inspectors/common"
-	"github.com/canonical/fetch-service/inspectors/git"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/utils"
@@ -99,98 +98,17 @@ func (ins *GoModuleGitInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 		return nil
 	}
 
-	command, ok := a.RequestStringAnnotation(GitUploadPackID, "command") // the upload-pack request command
+	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
 		// this must have been set by the git upload-pack inspector
-		a.SetResponseUnknown(ins, "command not set during request inspection")
+		a.SetResponseUnknown(ins, "no git checkout found")
 		return nil
 	}
 	notes := Annotation{}
 
-	logger.Debugf("inspect git upload-pack artefact: command %q", command)
+	logger.Debugf("inspect git upload-pack artefact: checkout at %q", checkoutPath)
 
-	// We're only interested in the fetch command
-	if command != "fetch" {
-		return nil
-	}
-
-	if a.MimetypeIs("text/plain") {
-		return nil
-	}
-
-	if !a.MimetypeIs("application/octet-stream") {
-		a.SetResponseRejected(ins, "bad data type for go module")
-		return nil
-	}
-
-	// Read wants information from the git inspector annotation
-	w, has_wants := a.RequestAnnotation(GitUploadPackID, "wants")
-	wr, has_want_refs := a.RequestAnnotation(GitUploadPackID, "want-refs")
-	if !has_wants && !has_want_refs {
-		// this must have been set by the git upload-pack inspector
-		return errors.New("cannot read request want/want-ref annotation")
-	}
-
-	var wants []string
-	if has_wants {
-		var ok bool
-		wants, ok = w.([]string)
-		if !ok || len(wants) < 1 {
-			return errors.New("cannot read want annotation")
-		}
-	}
-
-	var want_refs []string
-	if has_want_refs {
-		var ok bool
-		want_refs, ok = wr.([]string)
-		if !ok || len(want_refs) < 1 {
-			return errors.New("cannot read want-ref annotation")
-		}
-	}
-
-	// Read depth information from the git inspector annotation
-	isShallow, ok := a.RequestBoolAnnotation(GitUploadPackID, "is-shallow")
-	if !ok {
-		return errors.New("cannot read is-shallow annotation")
-	}
-
-	// Unpack and checkout in temporary directory
-	dir, err := os.MkdirTemp("", "fetch-")
-	if err != nil {
-		return err
-	}
-	logger.Debugf("unpack objects in %s", dir)
-
-	defer os.RemoveAll(dir)
-
-	// Unshallow is unsupported
-	unshallow, ok := a.ResponseBoolAnnotation(GitUploadPackID, "unshallow")
-	if ok && unshallow {
-		a.SetResponseUnknown(ins, "unshallow is not supported").Annotate(notes)
-		return nil
-	}
-
-	if err = git.UnpackObjects(f, dir); err != nil {
-		a.SetResponseRejected(ins, "cannot unpack git objects").Annotate(Annotation{"error-msg": err.Error()})
-		return nil
-	}
-
-	if has_wants {
-		// check out wanted digest
-		notes.Add("checkout", wants[0])
-		err = git.Checkout(dir, wants[0])
-		if err != nil {
-			return fmt.Errorf("git checkout error: %w", err)
-		}
-	} else {
-		// check out wanted-ref
-		a.SetResponseRejected(ins,
-			"want-refs handling not implemented yet").Annotate(notes)
-		return nil
-	}
-
-	goModPath := filepath.Join(dir, "go.mod")
+	goModPath := filepath.Join(checkoutPath, "go.mod")
 	if _, err := os.Stat(goModPath); err != nil {
 		a.SetResponseUnknown(ins,
 			"git repository does not contain a go.mod file")
@@ -215,6 +133,22 @@ func (ins *GoModuleGitInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 		md.Name = mod.Name
 	}
 
+	// Read wants information from the git inspector annotation
+	w, has_wants := a.RequestAnnotation(GitUploadPackID, "wants")
+	if !has_wants {
+		// this must have been set by the git upload-pack inspector
+		return errors.New("cannot read request want annotation")
+	}
+
+	var wants []string
+	if has_wants {
+		var ok bool
+		wants, ok = w.([]string)
+		if !ok || len(wants) < 1 {
+			return errors.New("cannot read want annotation")
+		}
+	}
+
 	tags, ok := a.ResponseAnnotation(GitUploadPackID, "tags")
 	if ok {
 		md.Version = getVersionTag(tags.(map[string]string), wants[0])
@@ -222,10 +156,10 @@ func (ins *GoModuleGitInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 
 	license, _ := utils.CheckLicenseFiles(
 		[]string{
-			filepath.Join(dir, "LICENSE"),
-			filepath.Join(dir, "COPYING"),
-			filepath.Join(dir, "License"),
-			filepath.Join(dir, "Copying"),
+			filepath.Join(checkoutPath, "LICENSE"),
+			filepath.Join(checkoutPath, "COPYING"),
+			filepath.Join(checkoutPath, "License"),
+			filepath.Join(checkoutPath, "Copying"),
 		},
 	)
 	md.License = license
@@ -236,18 +170,6 @@ func (ins *GoModuleGitInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 	}
 
 	a.SetArtefactMetadata(md)
-
-	// Reject if depth > 1
-	if !isShallow {
-		a.SetResponseRejected(ins, "go module found but repository is not shallow").Annotate(notes)
-		return nil
-	}
-
-	// Reject if multiple wants
-	if len(wants)+len(want_refs) > 1 {
-		a.SetResponseRejected(ins, "go module found with multiple refs").Annotate(notes)
-		return nil
-	}
 
 	// Reject if version not found
 	if md.Version == "" {

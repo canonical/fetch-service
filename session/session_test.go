@@ -376,9 +376,15 @@ func (t *sessionSuite) TestFinish(c *C) {
 
 	sessionDir := filepath.Join(spool, s.Id)
 	assetDir := filepath.Join(sessionDir, "assets")
+	cacheDir := filepath.Join(sessionDir, "cache")
+
 	s.SessionDir = sessionDir
+	s.CacheDir = cacheDir
 
 	err := os.MkdirAll(assetDir, 0755)
+	c.Assert(err, IsNil)
+
+	err = os.MkdirAll(cacheDir, 0755)
 	c.Assert(err, IsNil)
 
 	for _, tc := range []struct {
@@ -426,6 +432,9 @@ func (t *sessionSuite) TestFinish(c *C) {
 		}
 
 	}
+
+	_, statErr := os.Stat(s.CacheDir)
+	c.Assert(os.IsNotExist(statErr), Equals, true)
 }
 
 func (t *sessionSuite) TestRevokeToken(c *C) {

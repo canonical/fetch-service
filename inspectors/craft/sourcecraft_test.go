@@ -34,6 +34,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/craft"
 	"github.com/canonical/fetch-service/inspectors/craft/config"
 	"github.com/canonical/fetch-service/inspectors/files"
+	"github.com/canonical/fetch-service/inspectors/git"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
@@ -73,7 +74,7 @@ func (s *sourcecraftSuite) TestUploadPackInspectorID(c *C) {
 
 }
 
-func createTestSourcecraftArtefact(is_shallow bool) *metadata.Artefact {
+func createTestSourcecraftArtefact(checkoutPath string) *metadata.Artefact {
 	a := metadata.NewArtefact()
 	a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
 	a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
@@ -104,7 +105,16 @@ func createTestSourcecraftArtefact(is_shallow bool) *metadata.Artefact {
 				"wants": []string{
 					"10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
 				},
-				"is-shallow": is_shallow,
+				"is-shallow": true,
+			},
+		},
+	}
+	a.ResponseInspection = metadata.InspectionMap{
+		"git.upload-pack": &Inspection{
+			Opinion: opinions.Unknown,
+			Reason:  "",
+			Annotations: Annotation{
+				"git-checkout-path": checkoutPath,
 			},
 		},
 	}
@@ -161,16 +171,25 @@ func (s *sourcecraftSuite) TestInspectSourcecraftGitRequest(c *C) {
 
 func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefact(c *C) {
 	for _, tc := range []struct {
-		is_shallow bool
-		opinion    opinions.OpinionKind
-		reason     string
+		opinion opinions.OpinionKind
+		reason  string
 	}{
-		{true, opinions.Approved, "sourcecraft repository found"},
-		{false, opinions.Rejected, "sourcecraft repository is not shallow"},
+		{opinions.Approved, "sourcecraft repository found"},
 	} {
 
-		a := createTestSourcecraftArtefact(tc.is_shallow)
 		f, err := loadTestSourcecraftArtefactData()
+		c.Assert(err, IsNil)
+		defer f.Close()
+
+		checkoutPath := c.MkDir()
+		err = git.UnpackObjects(f, checkoutPath)
+		c.Assert(err, IsNil)
+		err = git.Checkout(checkoutPath, "10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad")
+		c.Assert(err, IsNil)
+
+		a := createTestRockcraftArtefact(checkoutPath)
+
+		f, err = loadTestSourcecraftArtefactData()
 		c.Assert(err, IsNil)
 		defer f.Close()
 
@@ -194,11 +213,9 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefact(c *C) {
 
 func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactMissingSourcecraftYaml(c *C) {
 	tc := struct {
-		is_shallow bool
-		opinion    opinions.OpinionKind
-		reason     string
+		opinion opinions.OpinionKind
+		reason  string
 	}{
-		true,
 		opinions.Unknown,
 		"git repository does not contain a sourcecraft.yaml file",
 	}
@@ -207,7 +224,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactMissingSourcecraftYa
 	})
 	defer restorer()
 
-	a := createTestSourcecraftArtefact(tc.is_shallow)
+	a := createTestSourcecraftArtefact(c.MkDir())
 	f, err := loadTestSourcecraftArtefactData()
 	c.Assert(err, IsNil)
 	defer f.Close()
@@ -224,24 +241,26 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactMissingSourcecraftYa
 
 func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactUnreadableSourcecraftYaml(c *C) {
 	tc := struct {
-		is_shallow bool
-		opinion    opinions.OpinionKind
-		reason     string
+		opinion opinions.OpinionKind
+		reason  string
 	}{
-		true,
 		opinions.Rejected,
 		"cannot open sourcecraft.yaml file",
 	}
+
+	f, err := loadTestSourcecraftArtefactData()
+	c.Assert(err, IsNil)
+	defer f.Close()
 
 	restorer := craft.MockOsOpen(func(string) (*os.File, error) {
 		return nil, os.ErrNotExist
 	})
 	defer restorer()
-	f, err := loadTestSourcecraftArtefactData()
-	c.Assert(err, IsNil)
-	defer f.Close()
 
-	a := createTestSourcecraftArtefact(tc.is_shallow)
+	checkoutPath := c.MkDir()
+	_, err = os.Create(filepath.Join(checkoutPath, "sourcecraft.yaml"))
+	c.Assert(err, IsNil)
+	a := createTestSnapcraftArtefact(checkoutPath)
 
 	ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
 	err = ins.InspectArtefact(f, a)
@@ -254,11 +273,9 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactUnreadableSourcecraf
 
 func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactUnableToDecodeSourcecraftYaml(c *C) {
 	tc := struct {
-		is_shallow bool
-		opinion    opinions.OpinionKind
-		reason     string
+		opinion opinions.OpinionKind
+		reason  string
 	}{
-		true,
 		opinions.Rejected,
 		"cannot decode sourcecraft.yaml",
 	}
@@ -274,7 +291,11 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactUnableToDecodeSource
 	})
 	defer restorer()
 
-	a := createTestSourcecraftArtefact(tc.is_shallow)
+	checkoutPath := c.MkDir()
+	_, err = os.Create(filepath.Join(checkoutPath, "sourcecraft.yaml"))
+	c.Assert(err, IsNil)
+
+	a := createTestRockcraftArtefact(checkoutPath)
 
 	ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
 	err = ins.InspectArtefact(f, a)

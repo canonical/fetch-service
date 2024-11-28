@@ -78,6 +78,9 @@ var opts struct {
 
 	// Auto-shutdown the service when idle
 	IdleShutdown int `long:"idle-shutdown" description:"Time in seconds to auto-shutdown if idle"`
+
+	// Specify the path to the log file
+	LogFile string `long:"log-file" description:"Log to this file instead of standard out"`
 }
 
 func Run() int {
@@ -98,7 +101,11 @@ func Run() int {
 	if opts.Verbosity == "debug" {
 		lv = logger.DebugLevel
 	}
-	logger.Init(lv)
+	err = logger.Init(lv, opts.LogFile)
+	if err != nil {
+		printf("error: %v", err)
+		return 1
+	}
 	defer logger.Close()
 
 	logger.Infof("Version %s", version.Version)

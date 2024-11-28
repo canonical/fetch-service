@@ -34,6 +34,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/craft"
 	"github.com/canonical/fetch-service/inspectors/craft/config"
 	"github.com/canonical/fetch-service/inspectors/files"
+	"github.com/canonical/fetch-service/inspectors/git"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
@@ -73,7 +74,7 @@ func (s *snapcraftSuite) TestUploadPackInspectorID(c *C) {
 
 }
 
-func createTestSnapcraftArtefact(is_shallow bool) *metadata.Artefact {
+func createTestSnapcraftArtefact(checkoutPath string) *metadata.Artefact {
 	a := metadata.NewArtefact()
 	a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
 	a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
@@ -104,7 +105,16 @@ func createTestSnapcraftArtefact(is_shallow bool) *metadata.Artefact {
 				"wants": []string{
 					"9ae13d6ca5afec49279f8515feb289a7069e5a29",
 				},
-				"is-shallow": is_shallow,
+				"is-shallow": true,
+			},
+		},
+	}
+	a.ResponseInspection = metadata.InspectionMap{
+		"git.upload-pack": &Inspection{
+			Opinion: opinions.Unknown,
+			Reason:  "",
+			Annotations: Annotation{
+				"git-checkout-path": checkoutPath,
 			},
 		},
 	}
@@ -161,16 +171,25 @@ func (s *snapcraftSuite) TestInspectSnapcraftGitRequest(c *C) {
 
 func (s *snapcraftSuite) TestSnapcraftGitInspectArtefact(c *C) {
 	for _, tc := range []struct {
-		is_shallow bool
-		opinion    opinions.OpinionKind
-		reason     string
+		opinion opinions.OpinionKind
+		reason  string
 	}{
-		{true, opinions.Approved, "snapcraft repository found"},
-		{false, opinions.Rejected, "snapcraft repository is not shallow"},
+		{opinions.Approved, "snapcraft repository found"},
 	} {
-
-		a := createTestSnapcraftArtefact(tc.is_shallow)
 		f, err := loadTestSnapcraftArtefactData()
+		c.Assert(err, IsNil)
+		defer f.Close()
+
+		checkoutPath := c.MkDir()
+		err = git.UnpackObjects(f, checkoutPath)
+		c.Assert(err, IsNil)
+		err = git.Checkout(checkoutPath, "9ae13d6ca5afec49279f8515feb289a7069e5a29")
+		c.Assert(err, IsNil)
+
+		a := createTestSnapcraftArtefact(checkoutPath)
+		c.Assert(err, IsNil)
+
+		f, err = loadTestSnapcraftArtefactData()
 		c.Assert(err, IsNil)
 		defer f.Close()
 
@@ -194,20 +213,14 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtefact(c *C) {
 
 func (s *snapcraftSuite) TestSnapcraftGitInspectArtefactMissingSnapcraftYaml(c *C) {
 	tc := struct {
-		is_shallow bool
-		opinion    opinions.OpinionKind
-		reason     string
+		opinion opinions.OpinionKind
+		reason  string
 	}{
-		true,
 		opinions.Unknown,
 		"git repository does not contain a snapcraft.yaml file",
 	}
-	restorer := craft.MockOsStat(func(string) (os.FileInfo, error) {
-		return nil, os.ErrNotExist
-	})
-	defer restorer()
 
-	a := createTestSnapcraftArtefact(tc.is_shallow)
+	a := createTestSnapcraftArtefact(c.MkDir())
 	f, err := loadTestSnapcraftArtefactData()
 	c.Assert(err, IsNil)
 	defer f.Close()
@@ -224,24 +237,26 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtefactMissingSnapcraftYaml(c *
 
 func (s *snapcraftSuite) TestSnapcraftGitInspectArtefactUnreadableSnapcraftYaml(c *C) {
 	tc := struct {
-		is_shallow bool
-		opinion    opinions.OpinionKind
-		reason     string
+		opinion opinions.OpinionKind
+		reason  string
 	}{
-		true,
 		opinions.Rejected,
 		"cannot open snapcraft.yaml file",
 	}
+
+	f, err := loadTestSnapcraftArtefactData()
+	c.Assert(err, IsNil)
+	defer f.Close()
 
 	restorer := craft.MockOsOpen(func(string) (*os.File, error) {
 		return nil, os.ErrNotExist
 	})
 	defer restorer()
-	f, err := loadTestSnapcraftArtefactData()
-	c.Assert(err, IsNil)
-	defer f.Close()
 
-	a := createTestSnapcraftArtefact(tc.is_shallow)
+	checkoutPath := c.MkDir()
+	_, err = os.Create(filepath.Join(checkoutPath, "snapcraft.yaml"))
+	c.Assert(err, IsNil)
+	a := createTestSnapcraftArtefact(checkoutPath)
 
 	ins := craft.NewSnapcraftInspector(getTestSnapcraftConfig())
 	err = ins.InspectArtefact(f, a)
@@ -254,11 +269,9 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtefactUnreadableSnapcraftYaml(
 
 func (s *snapcraftSuite) TestSnapcraftGitInspectArtefactUnableToDecodeSnapcraftYaml(c *C) {
 	tc := struct {
-		is_shallow bool
-		opinion    opinions.OpinionKind
-		reason     string
+		opinion opinions.OpinionKind
+		reason  string
 	}{
-		true,
 		opinions.Rejected,
 		"cannot decode snapcraft.yaml",
 	}
@@ -274,7 +287,10 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtefactUnableToDecodeSnapcraftY
 	})
 	defer restorer()
 
-	a := createTestSnapcraftArtefact(tc.is_shallow)
+	checkoutPath := c.MkDir()
+	_, err = os.Create(filepath.Join(checkoutPath, "snapcraft.yaml"))
+	c.Assert(err, IsNil)
+	a := createTestSnapcraftArtefact(checkoutPath)
 
 	ins := craft.NewSnapcraftInspector(getTestSnapcraftConfig())
 	err = ins.InspectArtefact(f, a)
