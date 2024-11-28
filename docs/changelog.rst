@@ -2,6 +2,14 @@
 Changelog
 *********
 
+0.5.0 (2024-11-27)
+------------------
+
+- feat: allow logging to a file (#294)
+- refactor: only unpack git repos once (#290)
+- chore(deps): update dependency canonical-sphinx to v0.2.0 (#235)
+- fix(snap): set the service to endure mode (#273)
+
 0.4.3 (2024-10-29)
 ------------------
 
