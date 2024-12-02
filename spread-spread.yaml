@@ -1,0 +1,59 @@
+project: craft-test
+environment:
+  SUDO_USER: ''
+  SUDO_UID: ''
+  LANG: C.UTF-8
+  LANGUAGE: en
+  PROJECT_PATH: /home/spread/proj
+backends:
+  craft:
+    type: adhoc
+    allocate: ADDRESS $(./.extension allocate lxd-vm)
+    discard: ./.extension discard lxd-vm
+    systems:
+    - ubuntu-24.04:
+        username: spread
+        password: spread
+        workers: 1
+    - ubuntu-22.04:
+        username: spread
+        password: spread
+        workers: 1
+    - ubuntu-20.04:
+        username: spread
+        password: spread
+        workers: 1
+    prepare: '"$PROJECT_PATH"/.extension backend-prepare lxd-vm'
+    restore: '"$PROJECT_PATH"/.extension backend-restore lxd-vm'
+    prepare-each: '"$PROJECT_PATH"/.extension backend-prepare-each lxd-vm'
+    restore-each: '"$PROJECT_PATH"/.extension backend-restore-each lxd-vm'
+suites:
+  general/:
+    summary: General integration tests
+    systems:
+    - ubuntu-24.04
+    - ubuntu-22.04
+    - ubuntu-20.04
+    environment:
+      PATH: $PATH:$PROJECT_PATH/tools/tools
+    prepare: |
+      tests.pkgs install curl jq
+      snap install "$PROJECT_PATH"/fetch-service_*.snap --dangerous
+      snap set fetch-service permissive=true
+      snap set fetch-service control.auth=craft:craft
+  install/:
+    summary: Snap install and upgrade tests
+    systems:
+    - ubuntu-24.04
+    - ubuntu-22.04
+    - ubuntu-20.04
+    prepare: |
+      snap install yq
+    restore: |
+      snap remove fetch-service --purge
+    prepare-each: |
+      snap remove fetch-service --purge
+exclude:
+- .git
+path: /home/spread/proj
+kill-timeout: 1h

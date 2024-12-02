@@ -5,13 +5,9 @@ environment:
   POLICY/permissive: permissive
 
 prepare: |
-  snap install "$PROJECT_PATH"/tests/fetch-service_*.snap --dangerous
-  snap set fetch-service permissive=true
-  snap set fetch-service control.auth=craft:craft
-  rm -f ./*.deb
+  rm -f ./*.json ./*.deb
 
 restore: |
-  snap remove fetch-service --purge
   rm -f ./*.json ./*.deb
 
 execute: |
