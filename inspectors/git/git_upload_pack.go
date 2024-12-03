@@ -366,13 +366,13 @@ func (ins *UploadPackInspector) inspectFetchResponse(f ArtefactReader, a Respons
 func (ins *UploadPackInspector) fetchResponseIsShallow(a ResponseArtefact, msgs []string, notes Annotation) bool {
 	serverMsgs := []string{}
 	isShallow := false
-	unshallow := false
+	isUnshallow := false
 
 	for _, msg := range msgs {
 		if strings.HasPrefix(msg, "shallow ") {
 			isShallow = true
 		} else if strings.HasPrefix(msg, "unshallow ") {
-			unshallow = true
+			isUnshallow = true
 		}
 		serverMsgs = append(serverMsgs, strings.TrimSpace(msg))
 	}
@@ -383,7 +383,7 @@ func (ins *UploadPackInspector) fetchResponseIsShallow(a ResponseArtefact, msgs 
 		return false
 	}
 
-	if unshallow {
+	if isUnshallow {
 		a.SetResponseRejected(ins, "unshallow is not supported").Annotate(notes)
 		return false
 	}
@@ -405,6 +405,7 @@ func (ins *UploadPackInspector) getRefFromWants(a ResponseArtefact, notes Annota
 		a.SetResponseRejected(ins, "want-refs handling not implemented yet").Annotate(notes)
 		return ""
 	}
+
 	var wants []string
 	if hasWants {
 		var ok bool
