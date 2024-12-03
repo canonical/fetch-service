@@ -21,6 +21,8 @@ package craft
 
 import (
 	"os"
+
+	. "github.com/canonical/fetch-service/inspectors/common"
 )
 
 const (
@@ -29,3 +31,8 @@ const (
 
 var osStat = os.Stat
 var osOpen = os.Open
+
+func checkGitRequestHeaders(a RequestArtefact) bool {
+	return a.RequestHeaderContains("Content-Type", "application/x-git-upload-pack-request") &&
+		a.RequestHeaderContains("Accept", "application/x-git-upload-pack-result")
+}

@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"slices"
 	"strings"
 
 	. "github.com/canonical/fetch-service/inspectors/common"
@@ -61,8 +60,7 @@ func (SnapAssertionInspector) ID() string {
 
 // InspectRequest verifies if the request complies with policy.
 func (ins *SnapAssertionInspector) InspectRequest(a RequestArtefact) error {
-	accept, ok := a.RequestHeader("Accept")
-	if !ok || accept == nil || !slices.Contains(accept, "application/x.ubuntu.assertion") {
+	if !a.RequestHeaderContains("Accept", "application/x.ubuntu.assertion") {
 		return nil
 	}
 
