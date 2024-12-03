@@ -33,13 +33,6 @@ var osStat = os.Stat
 var osOpen = os.Open
 
 func checkGitRequestHeaders(a RequestArtefact) bool {
-	if !a.RequestHeaderContains("Content-Type", "application/x-git-upload-pack-request") {
-		return false // we don't recognize this request
-	}
-
-	if !a.RequestHeaderContains("Accept", "application/x-git-upload-pack-result") {
-		return false // we don't recognize this request
-	}
-
-	return true
+	return a.RequestHeaderContains("Content-Type", "application/x-git-upload-pack-request") &&
+		a.RequestHeaderContains("Accept", "application/x-git-upload-pack-result")
 }
