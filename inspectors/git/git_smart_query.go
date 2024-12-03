@@ -84,7 +84,7 @@ func (ins *SmartQueryInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 		Vendor:      vendor,
 	})
 
-	msgs, err := ins.decodeGitProtocol(f, a)
+	msgs, err := ins.decodeProtocol(f, a)
 	if err != nil {
 		return nil
 	}
@@ -111,7 +111,7 @@ func (ins *SmartQueryInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 	return nil
 }
 
-func (ins *SmartQueryInspector) decodeGitProtocol(f ArtefactReader, a ResponseArtefact) ([]string, error) {
+func (ins *SmartQueryInspector) decodeProtocol(f ArtefactReader, a ResponseArtefact) ([]string, error) {
 	msgs, err := decodeGitProtocol(f)
 	if err != nil {
 		a.SetResponseRejected(ins, "cannot decode git protocol").Annotate(
