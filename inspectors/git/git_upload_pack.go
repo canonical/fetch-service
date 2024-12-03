@@ -108,14 +108,14 @@ func (ins *UploadPackInspector) InspectRequest(a RequestArtefact) error {
 	}
 
 	// Read request body and get protocol messages
-	var client_msgs []string
-	body, err := newUploadPackRequestHandler(ins.ID(), a.HTTPRequest(), &client_msgs)
+	var clientMsgs []string
+	body, err := newUploadPackRequestHandler(ins.ID(), a.HTTPRequest(), &clientMsgs)
 	if err != nil {
 		return fmt.Errorf("cannot handle upload-pack request: %w", err)
 	}
 	a.SetRequestBody(body)
 
-	ins.inspectRequestCommand(a, client_msgs, notes)
+	ins.inspectRequestCommand(a, clientMsgs, notes)
 
 	return nil
 }
@@ -132,11 +132,11 @@ func (ins *UploadPackInspector) initRepoState(repo string) {
 	}
 }
 
-func (ins *UploadPackInspector) inspectRequestCommand(a RequestArtefact, client_msgs []string, notes Annotation) {
+func (ins *UploadPackInspector) inspectRequestCommand(a RequestArtefact, clientMsgs []string, notes Annotation) {
 	// Obtain the upload-pack command from the protocol messages
 	command := ""
-	notes.Add("client-request", client_msgs)
-	for _, msg := range client_msgs {
+	notes.Add("client-request", clientMsgs)
+	for _, msg := range clientMsgs {
 		if strings.HasPrefix(msg, "command=") {
 			command = msg[8:]
 		}
@@ -152,9 +152,9 @@ func (ins *UploadPackInspector) inspectRequestCommand(a RequestArtefact, client_
 		isShallow := false
 		wantmap := map[string]struct{}{}
 		wants := []string{}
-		want_refs := []string{}
+		wantRefs := []string{}
 
-		for _, msg := range client_msgs {
+		for _, msg := range clientMsgs {
 			if strings.HasPrefix(msg, "deepen ") {
 				isShallow = (msg == "deepen 1")
 			} else if strings.HasPrefix(msg, "want ") {
@@ -164,17 +164,17 @@ func (ins *UploadPackInspector) inspectRequestCommand(a RequestArtefact, client_
 					wants = append(wants, ref)
 				}
 			} else if strings.HasPrefix(msg, "want-ref ") {
-				want_refs = append(want_refs, msg[9:])
+				wantRefs = append(wantRefs, msg[9:])
 			}
 		}
 
 		notes.Add("is-shallow", isShallow)
-		notes.Add("num-wants", len(wants)+len(want_refs))
+		notes.Add("num-wants", len(wants)+len(wantRefs))
 		if len(wants) > 0 {
 			notes.Add("wants", wants)
 		}
-		if len(want_refs) > 0 {
-			notes.Add("want-refs", want_refs)
+		if len(wantRefs) > 0 {
+			notes.Add("want-refs", wantRefs)
 		}
 
 		if !isShallow {
@@ -364,7 +364,7 @@ func (ins *UploadPackInspector) inspectFetchResponse(f ArtefactReader, a Respons
 }
 
 func (ins *UploadPackInspector) fetchResponseIsShallow(a ResponseArtefact, msgs []string, notes Annotation) bool {
-	server_msgs := []string{}
+	serverMsgs := []string{}
 	isShallow := false
 	unshallow := false
 
@@ -374,9 +374,9 @@ func (ins *UploadPackInspector) fetchResponseIsShallow(a ResponseArtefact, msgs 
 		} else if strings.HasPrefix(msg, "unshallow ") {
 			unshallow = true
 		}
-		server_msgs = append(server_msgs, strings.TrimSpace(msg))
+		serverMsgs = append(serverMsgs, strings.TrimSpace(msg))
 	}
-	notes.Add("server-response", server_msgs)
+	notes.Add("server-response", serverMsgs)
 
 	if !isShallow {
 		a.SetResponseRejected(ins, "fetch is only allowed with depth 1").Annotate(notes)
@@ -393,20 +393,20 @@ func (ins *UploadPackInspector) fetchResponseIsShallow(a ResponseArtefact, msgs 
 
 func (ins *UploadPackInspector) getRefFromWants(a ResponseArtefact, notes Annotation) string {
 	// Read "wants" information from the request annotation
-	w, has_wants := a.RequestAnnotation(ins.ID(), "wants")
-	wr, has_want_refs := a.RequestAnnotation(ins.ID(), "want-refs")
-	if !has_wants && !has_want_refs {
+	w, hasWants := a.RequestAnnotation(ins.ID(), "wants")
+	wr, hasWantRefs := a.RequestAnnotation(ins.ID(), "want-refs")
+	if !hasWants && !hasWantRefs {
 		// this must have been set by the request inspection
 		a.SetResponseRejected(ins, "cannot read request want/want-ref annotation").Annotate(notes)
 		return ""
 	}
-	if !has_wants {
+	if !hasWants {
 		// check out wanted-ref
 		a.SetResponseRejected(ins, "want-refs handling not implemented yet").Annotate(notes)
 		return ""
 	}
 	var wants []string
-	if has_wants {
+	if hasWants {
 		var ok bool
 		wants, ok = w.([]string)
 		if !ok || len(wants) < 1 {
@@ -415,11 +415,11 @@ func (ins *UploadPackInspector) getRefFromWants(a ResponseArtefact, notes Annota
 		}
 	}
 
-	var want_refs []string
-	if has_want_refs {
+	var wantRefs []string
+	if hasWantRefs {
 		var ok bool
-		want_refs, ok = wr.([]string)
-		if !ok || len(want_refs) < 1 {
+		wantRefs, ok = wr.([]string)
+		if !ok || len(wantRefs) < 1 {
 			a.SetResponseRejected(ins, "cannot read want-ref annotation").Annotate(notes)
 			return ""
 		}
@@ -442,7 +442,7 @@ type uploadPackRequestHandler struct {
 	body io.ReadCloser // request body
 }
 
-func newUploadPackRequestHandler(id string, req *http.Request, client_msgs *[]string) (*uploadPackRequestHandler, error) {
+func newUploadPackRequestHandler(id string, req *http.Request, clientMsgs *[]string) (*uploadPackRequestHandler, error) {
 	isGzipped := req.Header.Get("Content-Encoding") == "gzip"
 
 	// Handle gzip encoding
@@ -474,7 +474,7 @@ func newUploadPackRequestHandler(id string, req *http.Request, client_msgs *[]st
 	// Remove line breaks from protocol messages
 	for _, msg := range msgs {
 		msg = strings.TrimSpace(msg)
-		*client_msgs = append(*client_msgs, msg)
+		*clientMsgs = append(*clientMsgs, msg)
 	}
 
 	h := &uploadPackRequestHandler{
