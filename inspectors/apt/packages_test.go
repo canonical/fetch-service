@@ -67,7 +67,7 @@ func (s *aptSuite) TestAptPackagesInspectRequest(c *C) {
 		{"http://some.other.location/Packages.xz", false},
 	} {
 		ins := apt.NewAptPackagesInspector(getAptInspectorConfig())
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 
 		err := ins.InspectRequest(a)
@@ -86,7 +86,7 @@ func (s *aptSuite) TestAptPackagesInspectRequest(c *C) {
 	}
 }
 
-func (s *aptSuite) TestAptPackagesInspectArtefact(c *C) {
+func (s *aptSuite) TestAptPackagesInspectArtifact(c *C) {
 	for _, tc := range []struct {
 		filename     string
 		digest       string
@@ -106,7 +106,7 @@ func (s *aptSuite) TestAptPackagesInspectArtefact(c *C) {
 		h, _ := digests.NewSha1Digest(tc.digest)
 		h2, _ := digests.NewSha256Digest(tc.digest)
 
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.CurrentDownload.URL = "http://myserver/path/Packages.xz"
 		a.Metadata.Sha1 = h
 		a.Metadata.Sha256 = h2
@@ -117,11 +117,11 @@ func (s *aptSuite) TestAptPackagesInspectArtefact(c *C) {
 			Reason:  "some reason",
 		}
 
-		f, err := files.OpenArtefactFile(tc.filename)
+		f, err := files.OpenArtifactFile(tc.filename)
 		c.Assert(err, IsNil)
 		defer f.Close()
 
-		err = ins.InspectArtefact(f, a)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
 		if tc.rejectReason == "" {

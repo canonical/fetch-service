@@ -47,7 +47,7 @@ func (s *snapSuite) TestInspectRefreshRequest(c *C) {
 		{"http://api.snapcraft.io/v2/snaps/refresh", false},
 	} {
 		ins := snap.NewSnapRefreshInspector()
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 
 		err := ins.InspectRequest(a)
@@ -61,18 +61,18 @@ func (s *snapSuite) TestInspectRefreshRequest(c *C) {
 	}
 }
 
-func (s *snapSuite) TestSnapRefreshArtefactInspector(c *C) {
-	a := metadata.NewArtefact()
+func (s *snapSuite) TestSnapRefreshArtifactInspector(c *C) {
+	a := metadata.NewArtifact()
 	a.Metadata.Type = "application/json"
 	a.Metadata.Size = 3330
 
-	f, err := files.OpenArtefactFile("testdata/refresh.json")
+	f, err := files.OpenArtifactFile("testdata/refresh.json")
 	c.Assert(err, IsNil)
 	defer f.Close()
 
 	ins := snap.NewSnapRefreshInspector()
 	a.SetRequestPending(ins, "test")
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
 	c.Check(a.Metadata.Type, Equals, "application/x.canonical.snap-refresh")
@@ -87,30 +87,30 @@ func (s *snapSuite) TestSnapRefreshArtefactInspector(c *C) {
 	})
 }
 
-func (s *snapSuite) TestSnapRefreshArtefactBadType(c *C) {
-	a := metadata.NewArtefact()
+func (s *snapSuite) TestSnapRefreshArtifactBadType(c *C) {
+	a := metadata.NewArtifact()
 	a.Metadata.Type = "text/plain"
 	a.Metadata.Size = 3330
 
-	f, err := files.OpenArtefactFile("testdata/refresh.json")
+	f, err := files.OpenArtifactFile("testdata/refresh.json")
 	c.Assert(err, IsNil)
 	defer f.Close()
 
 	ins := snap.NewSnapRefreshInspector()
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, false)
 }
 
-func (s *snapSuite) TestSnapRefreshArtefactBadContent(c *C) {
-	a := metadata.NewArtefact()
+func (s *snapSuite) TestSnapRefreshArtifactBadContent(c *C) {
+	a := metadata.NewArtifact()
 	a.Metadata.Type = "text/plain"
 	a.Metadata.Size = 3330
 
 	f := strings.NewReader(`{"content": "bad"}`)
 
 	ins := snap.NewSnapRefreshInspector()
-	err := ins.InspectArtefact(f, a)
+	err := ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, false)
 }

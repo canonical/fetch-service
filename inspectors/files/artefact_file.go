@@ -23,58 +23,58 @@ import (
 	"os"
 )
 
-// ArtefactFile is an implementation of ArtefactReader.
-type ArtefactFile struct {
+// ArtifactFile is an implementation of ArtifactReader.
+type ArtifactFile struct {
 	f    *os.File
 	size int64
 }
 
-// NewArtefactFile creates an ArtefactFile from os.File.
-func NewArtefactFile(f *os.File) (*ArtefactFile, error) {
+// NewArtifactFile creates an ArtifactFile from os.File.
+func NewArtifactFile(f *os.File) (*ArtifactFile, error) {
 	st, err := f.Stat()
 	if err != nil {
 		return nil, err
 	}
-	return &ArtefactFile{
+	return &ArtifactFile{
 		f:    f,
 		size: st.Size(),
 	}, nil
 }
 
-// OpenArtefactFile opens a downloaded artefact file for reading.
-func OpenArtefactFile(filename string) (*ArtefactFile, error) {
+// OpenArtifactFile opens a downloaded artifact file for reading.
+func OpenArtifactFile(filename string) (*ArtifactFile, error) {
 	f, err := os.Open(filename)
 	if err != nil {
 		return nil, err
 	}
-	return NewArtefactFile(f)
+	return NewArtifactFile(f)
 }
 
-// Read reads up to len(b) bytes from the ArtefactFile and stores them
+// Read reads up to len(b) bytes from the ArtifactFile and stores them
 // in b. It returns the numeber of read bytes and any error encountered.
-func (f *ArtefactFile) Read(b []byte) (int, error) {
+func (f *ArtifactFile) Read(b []byte) (int, error) {
 	return f.f.Read(b)
 }
 
-// ReadAt reads len(b) bytes from the ArtefactFile starting at byte
+// ReadAt reads len(b) bytes from the ArtifactFile starting at byte
 // offset off. It returns the number of bytes read and the error, if any.
-func (f *ArtefactFile) ReadAt(b []byte, off int64) (int, error) {
+func (f *ArtifactFile) ReadAt(b []byte, off int64) (int, error) {
 	return f.f.ReadAt(b, off)
 }
 
 // Seek sets the offset for the next Read or Write on file to offset,
 // interpreted according to whence. It returns the new offset and
 // an error, if any.
-func (f *ArtefactFile) Seek(off int64, whence int) (int64, error) {
+func (f *ArtifactFile) Seek(off int64, whence int) (int64, error) {
 	return f.f.Seek(off, whence)
 }
 
-// Len returns the size of the ArtefactFile.
-func (f *ArtefactFile) Len() int {
+// Len returns the size of the ArtifactFile.
+func (f *ArtifactFile) Len() int {
 	return int(f.size)
 }
 
-// Close closes the ArtefactFile, rendering it unusable for I/O.
-func (f *ArtefactFile) Close() error {
+// Close closes the ArtifactFile, rendering it unusable for I/O.
+func (f *ArtifactFile) Close() error {
 	return f.f.Close()
 }

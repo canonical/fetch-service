@@ -44,7 +44,7 @@ func (s *cargoSuite) TestIndexInspectorID(c *C) {
 
 func (s *cargoSuite) TestIndexInspectRequestBadOrigin(c *C) {
 	ins := cargo.NewIndexInspector()
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.CurrentDownload = metadata.Download{URL: "https://bad.index.io:443/config.json"}
 
 	err := ins.InspectRequest(a)
@@ -56,7 +56,7 @@ func (s *cargoSuite) TestIndexInspectRequestBadOrigin(c *C) {
 
 func (s *cargoSuite) TestIndexInspectRequestBadSlug(c *C) {
 	ins := cargo.NewIndexInspector()
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.CurrentDownload = metadata.Download{URL: "https://index.crates.io:443/bad/package/name"}
 
 	err := ins.InspectRequest(a)
@@ -68,7 +68,7 @@ func (s *cargoSuite) TestIndexInspectRequestBadSlug(c *C) {
 
 func (s *cargoSuite) TestIndexInspectRequestConfig(c *C) {
 	ins := cargo.NewIndexInspector()
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.CurrentDownload = metadata.Download{URL: config_url}
 
 	err := ins.InspectRequest(a)
@@ -84,7 +84,7 @@ func (s *cargoSuite) TestIndexInspectRequestConfig(c *C) {
 
 func (s *cargoSuite) TestIndexInspectRequestCrate(c *C) {
 	ins := cargo.NewIndexInspector()
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.CurrentDownload = metadata.Download{URL: crate_url}
 
 	err := ins.InspectRequest(a)
@@ -98,7 +98,7 @@ func (s *cargoSuite) TestIndexInspectRequestCrate(c *C) {
 	c.Assert(a.RequestInspection[ins.ID()].Annotations["crate-name"], Equals, "time")
 }
 
-func (s *cargoSuite) TestIndexInspectArtefactConfig(c *C) {
+func (s *cargoSuite) TestIndexInspectArtifactConfig(c *C) {
 	tmp := c.MkDir()
 	filename := filepath.Join(tmp, "config.json")
 	contents := "{\n" +
@@ -113,7 +113,7 @@ func (s *cargoSuite) TestIndexInspectArtefactConfig(c *C) {
 	ins := cargo.NewIndexInspector()
 	h, _ := digests.NewSha1Digest("85fc2d2a3764089191e57cd552601278a5985c46")
 
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.Metadata.Type = "application/json"
 	a.Metadata.Sha1 = h
 	a.MimeType = mimetype.Lookup("application/json")
@@ -124,11 +124,11 @@ func (s *cargoSuite) TestIndexInspectArtefactConfig(c *C) {
 		Annotations: Annotation{"is-config": true, "crate-name": ""},
 	}
 
-	f, err := files.OpenArtefactFile(filename)
+	f, err := files.OpenArtifactFile(filename)
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
 
@@ -142,13 +142,13 @@ func (s *cargoSuite) TestIndexInspectArtefactConfig(c *C) {
 	c.Assert(a.Approved(), Equals, true)
 }
 
-func (s *cargoSuite) TestIndexInspectArtefactCrate(c *C) {
+func (s *cargoSuite) TestIndexInspectArtifactCrate(c *C) {
 	filename := filepath.Join("testdata", "time.ndjson")
 
 	ins := cargo.NewIndexInspector()
 	h, _ := digests.NewSha1Digest("85fc2d2a3764089191e57cd552601278a5985c46")
 
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.Metadata.Type = "application/x-ndjson"
 	a.Metadata.Sha1 = h
 	a.MimeType = mimetype.Lookup("application/x-ndjson")
@@ -159,11 +159,11 @@ func (s *cargoSuite) TestIndexInspectArtefactCrate(c *C) {
 		Annotations: Annotation{"is-config": false, "crate-name": "time"},
 	}
 
-	f, err := files.OpenArtefactFile(filename)
+	f, err := files.OpenArtifactFile(filename)
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
 

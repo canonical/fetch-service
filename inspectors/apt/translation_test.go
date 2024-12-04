@@ -42,21 +42,21 @@ func (s *aptSuite) TestAptTranslationInspector(c *C) {
 		{"testdata/Translation-zh_TW.xz", true, "zh_TW", 3},
 		{"testdata/Translation-zh_TW-bad.xz", false, "", 0},
 	} {
-		translationArtefactFile, _ := os.Open(tc.dataFile)
-		translationArtefactData := make([]byte, 1024*128)
-		_, err := translationArtefactFile.Read(translationArtefactData)
+		translationArtifactFile, _ := os.Open(tc.dataFile)
+		translationArtifactData := make([]byte, 1024*128)
+		_, err := translationArtifactFile.Read(translationArtifactData)
 		c.Assert(err, IsNil)
 
 		ins := apt.NewAptTranslationInspector(getTestAptConfig())
-		t := metadata.NewArtefact()
+		t := metadata.NewArtifact()
 		t.SetRequestPending(ins, "test")
 		t.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/devel/main/i18n/by-hash/SHA256/4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed"
 		t.Metadata.Type = "application/x.apt.translation"
 		t.Metadata.Sha256, _ = digests.NewSha256Digest("4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed")
 
-		f := bytes.NewReader(translationArtefactData)
+		f := bytes.NewReader(translationArtifactData)
 
-		err = ins.InspectArtefact(f, t)
+		err = ins.InspectArtifact(f, t)
 
 		c.Assert(err, IsNil)
 		c.Assert(t.Approved(), Equals, tc.result)

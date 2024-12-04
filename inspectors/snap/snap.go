@@ -57,7 +57,7 @@ func (SnapInspector) ID() string {
 }
 
 // InspectRequest verifies if the request complies with policy.
-func (ins *SnapInspector) InspectRequest(a RequestArtefact) error {
+func (ins *SnapInspector) InspectRequest(a RequestArtifact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -85,8 +85,8 @@ type snapYaml struct {
 	Base          string   `json:"base"`
 }
 
-// InspectArtefact extracts metadata from a known artefact file format.
-func (ins *SnapInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+// InspectArtifact extracts metadata from a known artifact file format.
+func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if !a.MimetypeIs(mimetypes.SquashFs) { // Snaps are SquashFS filesystem images
 		return nil
 	}
@@ -205,7 +205,7 @@ func (ins *SnapInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) 
 		return nil
 	}
 
-	a.SetArtefactMetadata(ArtefactMetadata{
+	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:         mimetypes.SnapPackage,
 		Name:         snapDeclarationAssertion.SnapName(),
 		Version:      snapRevisionAssertion.SnapRevision(),

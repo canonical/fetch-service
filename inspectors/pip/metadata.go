@@ -42,7 +42,7 @@ func (MetadataInspector) ID() string {
 }
 
 // InspectRequest verifies if the request complies with policy.
-func (ins *MetadataInspector) InspectRequest(a RequestArtefact) error {
+func (ins *MetadataInspector) InspectRequest(a RequestArtifact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -55,21 +55,21 @@ func (ins *MetadataInspector) InspectRequest(a RequestArtefact) error {
 	return nil // we don't recognize this request
 }
 
-// InspectArtefact extracts metadata from a known artefact file format.
-func (ins *MetadataInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+// InspectArtifact extracts metadata from a known artifact file format.
+func (ins *MetadataInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if !a.MimetypeIs("text/plain") {
 		return nil
 	}
 
 	if err := ins.parseMetadataFile(f, a); err != nil {
-		return nil // we don't recognize this artefact
+		return nil // we don't recognize this artifact
 	}
 
 	return nil
 }
 
-// parseMetadataFile reads metadata entries from the downloaded artefact.
-func (ins *MetadataInspector) parseMetadataFile(f io.Reader, a ResponseArtefact) error {
+// parseMetadataFile reads metadata entries from the downloaded artifact.
+func (ins *MetadataInspector) parseMetadataFile(f io.Reader, a ResponseArtifact) error {
 	sc := bufio.NewScanner(f)
 	sc.Split(bufio.ScanLines)
 
@@ -114,7 +114,7 @@ func (ins *MetadataInspector) parseMetadataFile(f io.Reader, a ResponseArtefact)
 		vendor = maintainer
 	}
 
-	a.SetArtefactMetadata(ArtefactMetadata{
+	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:        mimetypes.PythonMetadata,
 		Name:        name,
 		Version:     version,

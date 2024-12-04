@@ -53,7 +53,7 @@ func (DebInspector) ID() string {
 	return "deb"
 }
 
-func (ins *DebInspector) InspectRequest(a RequestArtefact) error {
+func (ins *DebInspector) InspectRequest(a RequestArtifact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -74,18 +74,18 @@ func (ins *DebInspector) InspectRequest(a RequestArtefact) error {
 	return nil
 }
 
-func (ins *DebInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+func (ins *DebInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if !a.MimetypeIs(mimetypes.DebianBinaryPackage) {
 		return nil
 	}
 
-	var md ArtefactMetadata
+	var md ArtifactMetadata
 
 	if err := ins.readDebMetadata(f, &md); err != nil {
-		a.SetArtefactMetadata(md)
+		a.SetArtifactMetadata(md)
 		a.SetResponseRejected(ins, err.Error())
 	} else {
-		a.SetArtefactMetadata(md)
+		a.SetArtifactMetadata(md)
 		a.SetResponseApproved(ins, "deb package successfully parsed")
 	}
 
@@ -93,7 +93,7 @@ func (ins *DebInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) e
 }
 
 // readDebMetadata reads metadata from the deb control file.
-func (ins *DebInspector) readDebMetadata(f io.Reader, md *ArtefactMetadata) error {
+func (ins *DebInspector) readDebMetadata(f io.Reader, md *ArtifactMetadata) error {
 	af := ar.NewReader(f)
 
 	for {
@@ -149,7 +149,7 @@ func (ins DebInspector) getDebianBinaryVersion(af io.Reader) string {
 	return strings.TrimSpace(sc.Text())
 }
 
-func (ins DebInspector) parseControlTar(zf io.Reader, md *ArtefactMetadata) error {
+func (ins DebInspector) parseControlTar(zf io.Reader, md *ArtifactMetadata) error {
 	tf := tar.NewReader(zf)
 	for {
 		h, err := tf.Next()
@@ -171,7 +171,7 @@ func (ins DebInspector) parseControlTar(zf io.Reader, md *ArtefactMetadata) erro
 	return nil
 }
 
-func (ins DebInspector) parseControl(tf io.Reader, md *ArtefactMetadata) error {
+func (ins DebInspector) parseControl(tf io.Reader, md *ArtifactMetadata) error {
 	sc := bufio.NewScanner(tf)
 	sc.Split(bufio.ScanLines)
 
@@ -216,7 +216,7 @@ func (ins DebInspector) parseControl(tf io.Reader, md *ArtefactMetadata) error {
 	return nil
 }
 
-func (ins DebInspector) parseDataTar(zf io.Reader, md *ArtefactMetadata) error {
+func (ins DebInspector) parseDataTar(zf io.Reader, md *ArtifactMetadata) error {
 	copyright := regexp.MustCompile(`^\./usr/share/doc/[^/]+/copyright$`)
 
 	tf := tar.NewReader(zf)
@@ -240,7 +240,7 @@ func (ins DebInspector) parseDataTar(zf io.Reader, md *ArtefactMetadata) error {
 	return nil
 }
 
-func (ins DebInspector) parseCopyright(tf io.Reader, md *ArtefactMetadata) error {
+func (ins DebInspector) parseCopyright(tf io.Reader, md *ArtifactMetadata) error {
 	sc := bufio.NewScanner(tf)
 	sc.Split(bufio.ScanLines)
 

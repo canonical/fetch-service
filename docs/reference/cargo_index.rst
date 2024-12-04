@@ -41,9 +41,9 @@ The acceptance criteria depends on the type of request:
 Rejection reasons
 -----------------
 
-* The ``/config.json`` response artefact will be rejected if it's not a valid
+* The ``/config.json`` response artifact will be rejected if it's not a valid
   JSON file.
-* The artefact for the index of a specific crate will be rejected if it's not
+* The artifact for the index of a specific crate will be rejected if it's not
   a valid ndjson file, or if the first line of the file does not have a
   ``name`` key that matches the requested crate's name.
 

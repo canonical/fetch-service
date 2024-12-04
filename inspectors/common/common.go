@@ -30,19 +30,19 @@ import (
 
 var (
 	ErrRejectedRequest  = errors.New("request rejected by inspectors")
-	ErrRejectedArtefact = errors.New("artefact rejected by inspectors")
+	ErrRejectedArtifact = errors.New("artifact rejected by inspectors")
 )
 
-// ArtefactReader represents the downloaded artefact file.
-type ArtefactReader interface {
+// ArtifactReader represents the downloaded artifact file.
+type ArtifactReader interface {
 	io.ReadSeeker
 	io.ReaderAt
 	Len() int
 }
 
-// RequestArtefact is an interface with methods to be used on the
-// artefact metadata during the request inspection.
-type RequestArtefact interface {
+// RequestArtifact is an interface with methods to be used on the
+// artifact metadata during the request inspection.
+type RequestArtifact interface {
 	// Inspector opinions
 	SetRequestPending(Inspector, string, ...any) *Inspection
 	SetRequestRejected(Inspector, string, ...any) *Inspection
@@ -65,9 +65,9 @@ type RequestArtefact interface {
 	SetRequestBody(io.ReadCloser)
 }
 
-// ResponseArtefact is an interface with methods to be used on the
-// artefact metadata during the response inspection.
-type ResponseArtefact interface {
+// ResponseArtifact is an interface with methods to be used on the
+// artifact metadata during the response inspection.
+type ResponseArtifact interface {
 	// Inspector opinions
 	SetResponseApproved(Inspector, string, ...any) *Inspection
 	SetResponseRejected(Inspector, string, ...any) *Inspection
@@ -83,7 +83,7 @@ type ResponseArtefact interface {
 	ResponseStringAnnotation(string, string) (string, bool)
 	ResponseBoolAnnotation(string, string) (bool, bool)
 
-	// Get downloaded artefact fields
+	// Get downloaded artifact fields
 	MimetypeIs(string) bool
 	Size() int64
 	Sha256() digests.Sha256Digest
@@ -94,20 +94,20 @@ type ResponseArtefact interface {
 	CacheDir() string
 
 	// Fill metadata fields
-	SetArtefactMetadata(ArtefactMetadata)
+	SetArtifactMetadata(ArtifactMetadata)
 }
 
-// Inspector is the interface implemented by artefact metadata extractors.
+// Inspector is the interface implemented by artifact metadata extractors.
 type Inspector interface {
 	ID() string
 
-	InspectRequest(RequestArtefact) error
+	InspectRequest(RequestArtifact) error
 
-	// Inspect extracts metadata from the given artefact and
+	// Inspect extracts metadata from the given artifact and
 	// populates the metadata structure, returning whether
-	// the artefact was identified and no further examination
+	// the artifact was identified and no further examination
 	// by other inspectors is required.
-	InspectArtefact(ArtefactReader, ResponseArtefact) error
+	InspectArtifact(ArtifactReader, ResponseArtifact) error
 }
 
 // Annotation is a registry of free-form entries defined by the
@@ -126,7 +126,7 @@ func (ann Annotation) Append(more Annotation) {
 	}
 }
 
-// Inspection contains an opinion about the artefact set by an
+// Inspection contains an opinion about the artifact set by an
 // inspector. The inspector can also provide a free-form reason
 // explaining its decision and annotations containing additional
 // information.
@@ -136,7 +136,7 @@ type Inspection struct {
 	Annotations Annotation           `json:"annotations,omitempty"`
 }
 
-// Annotate adds an annotation to the artefact's inspection.
+// Annotate adds an annotation to the artifact's inspection.
 func (in *Inspection) Annotate(a Annotation) {
 	if in.Annotations == nil {
 		in.Annotations = make(map[string]any, len(a))
@@ -146,17 +146,17 @@ func (in *Inspection) Annotate(a Annotation) {
 	}
 }
 
-// ArtefactMetadata contains essential metadata information
-// about the artefact being inspected.
-type ArtefactMetadata struct {
-	Type         string // The type of the artefact file
-	Name         string // The artefact designation, given by its author
-	Version      string // The artefact version, as published by the upstream
-	Vendor       string // The artefact vendor
-	Description  string // A free-form description of the artefact
-	Author       string // The artefact author name
-	AuthorEmail  string // The artefact author email address
-	Architecture string // The architecture, if the artefact contains binary code
-	License      string // The license the artefact is published under
+// ArtifactMetadata contains essential metadata information
+// about the artifact being inspected.
+type ArtifactMetadata struct {
+	Type         string // The type of the artifact file
+	Name         string // The artifact designation, given by its author
+	Version      string // The artifact version, as published by the upstream
+	Vendor       string // The artifact vendor
+	Description  string // A free-form description of the artifact
+	Author       string // The artifact author name
+	AuthorEmail  string // The artifact author email address
+	Architecture string // The architecture, if the artifact contains binary code
+	License      string // The license the artifact is published under
 	Copyright    string // The copyright line, if available
 }

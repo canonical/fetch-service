@@ -197,7 +197,7 @@ func (ins *AptPackagesInspector) ID() string {
 	return "apt.packages"
 }
 
-func (ins *AptPackagesInspector) InspectRequest(a RequestArtefact) error {
+func (ins *AptPackagesInspector) InspectRequest(a RequestArtifact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -229,7 +229,7 @@ func (ins *AptPackagesInspector) InspectRequest(a RequestArtefact) error {
 	return nil
 }
 
-func (ins *AptPackagesInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if a.MimetypeIs(mimetypes.DebianBinaryPackage) {
 		return ins.validateDebianPackage(f, a)
 	}
@@ -256,7 +256,7 @@ func (ins *AptPackagesInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 		return err
 	}
 
-	md := ArtefactMetadata{
+	md := ArtifactMetadata{
 		Type:         mimetypes.AptPackages,
 		Name:         "Packages.xz",
 		Version:      pkg.dist,
@@ -271,7 +271,7 @@ func (ins *AptPackagesInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 		md.Vendor = vendor
 	}
 
-	a.SetArtefactMetadata(md)
+	a.SetArtifactMetadata(md)
 
 	var num int
 	entries := map[digests.Sha256Digest]aptPackagesEntry{}
@@ -388,7 +388,7 @@ func (ins *AptPackagesInspector) getPackages(origin, packagesPath string) (*aptP
 
 // validateDebianPackage verifies if the deb package is listed in the
 // Packages.xz file. The package downloaded from the package pool.
-func (ins *AptPackagesInspector) validateDebianPackage(f ArtefactReader, a ResponseArtefact) error {
+func (ins *AptPackagesInspector) validateDebianPackage(f ArtifactReader, a ResponseArtifact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -415,7 +415,7 @@ func (ins *AptPackagesInspector) validateDebianPackage(f ArtefactReader, a Respo
 			}
 
 			if a.Size() != entry.Size {
-				a.SetResponseRejected(ins, "artefact size does not match Packages entry").Annotate(notes)
+				a.SetResponseRejected(ins, "artifact size does not match Packages entry").Annotate(notes)
 			} else if info.Architecture != entry.Architecture {
 				a.SetResponseRejected(ins, "URL architecture does not match Packages entry").Annotate(notes)
 			} else {

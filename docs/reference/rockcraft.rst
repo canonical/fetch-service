@@ -52,7 +52,7 @@ following criteria:
 Acceptance criteria
 -------------------
 
-A repository is approved if the processed artefact meets all of the following criteria:
+A repository is approved if the processed artifact meets all of the following criteria:
 
 * The response's `Content-Type <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type>`_
   HTTP header is ``application/x-git-upload-pack-result``.

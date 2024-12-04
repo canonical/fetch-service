@@ -123,7 +123,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 	v := msg.(messages.RequestInspection)
 	v.Rch <- nil // no errors
 
-	// artefact downloaded
+	// artifact downloaded
 	msg = <-ch
 	u := msg.(messages.ResponseInspection)
 

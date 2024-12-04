@@ -26,11 +26,11 @@ import (
 	"github.com/canonical/fetch-service/service/fetchctl"
 )
 
-type ListArtefactsCmd struct {
-	SessionId string `long:"session-id" required:"true" description:"ID of the session holding the artefacts to list"`
+type ListArtifactsCmd struct {
+	SessionId string `long:"session-id" required:"true" description:"ID of the session holding the artifacts to list"`
 }
 
-func (cmd *ListArtefactsCmd) Execute(args []string) error {
+func (cmd *ListArtifactsCmd) Execute(args []string) error {
 	socket := fetchctlSocketPath()
 
 	if err := checkSocket(socket); err != nil {
@@ -44,7 +44,7 @@ func (cmd *ListArtefactsCmd) Execute(args []string) error {
 	defer conn.Close()
 
 	request := fetchctl.OperationRequest{
-		Operation: "list-artefacts",
+		Operation: "list-artifacts",
 		Payload:   cmd.SessionId,
 	}
 	err = send(conn, request)
@@ -66,8 +66,8 @@ func (cmd *ListArtefactsCmd) Execute(args []string) error {
 	return nil
 }
 
-var listArtefactsCmd ListArtefactsCmd
+var listArtifactsCmd ListArtifactsCmd
 
 func init() {
-	_, _ = parser.AddCommand("list-artefacts", "list the session artefacts", "", &listArtefactsCmd)
+	_, _ = parser.AddCommand("list-artifacts", "list the session artifacts", "", &listArtifactsCmd)
 }

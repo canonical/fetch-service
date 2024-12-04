@@ -59,7 +59,7 @@ func (SnapAssertionInspector) ID() string {
 }
 
 // InspectRequest verifies if the request complies with policy.
-func (ins *SnapAssertionInspector) InspectRequest(a RequestArtefact) error {
+func (ins *SnapAssertionInspector) InspectRequest(a RequestArtifact) error {
 	if !a.RequestHeaderContains("Accept", "application/x.ubuntu.assertion") {
 		return nil
 	}
@@ -97,8 +97,8 @@ func (ins *SnapAssertionInspector) InspectRequest(a RequestArtefact) error {
 	return nil
 }
 
-// InspectArtefact extracts metadata from a known artefact file format.
-func (ins *SnapAssertionInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+// InspectArtifact extracts metadata from a known artifact file format.
+func (ins *SnapAssertionInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if a.ContentType() != "application/x.ubuntu.assertion" {
 		return nil
 	}
@@ -142,7 +142,7 @@ func (ins *SnapAssertionInspector) InspectArtefact(f ArtefactReader, a ResponseA
 		mtype = mimetypes.AccountKeyAssertion
 	}
 
-	a.SetArtefactMetadata(ArtefactMetadata{
+	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:        mtype,
 		Name:        "assertion",
 		Description: fmt.Sprintf("%s assertion file", assert.Header["type"]),

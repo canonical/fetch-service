@@ -60,7 +60,7 @@ type Session struct {
 	Start         time.Time // session start time
 	End           time.Time // session end time
 	Insps         inspectors.Inspectors
-	A             map[digests.Sha256Digest]*metadata.Artefact
+	A             map[digests.Sha256Digest]*metadata.Artifact
 	Permissive    bool          // whether this is a permissive session
 	SessionDir    string        // the session path including spool
 	CacheDir      string        // location of session-specific cache
@@ -76,7 +76,7 @@ var (
 	randomString  = randomStringImpl
 )
 
-// New creates a session that stores artefact data and metadata under
+// New creates a session that stores artifact data and metadata under
 // spoolDir. The session is automatically finished if it times out.
 func New(spoolDir string, timeout time.Duration, permissive bool) *Session {
 	sessionId := makeSessionId()
@@ -102,7 +102,7 @@ func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permiss
 		Id:            sessionId,
 		Token:         token,
 		Start:         time.Now().UTC(),
-		A:             map[digests.Sha256Digest]*metadata.Artefact{},
+		A:             map[digests.Sha256Digest]*metadata.Artifact{},
 		Permissive:    permissive,
 		SessionDir:    filepath.Join(spoolDir, sessionId),
 		CacheDir:      filepath.Join(spoolDir, sessionId, "cache"),
@@ -153,7 +153,7 @@ func (s *Session) Finish() error {
 	sm := s.Metadata()
 
 	for k := range s.A {
-		logger.Infof("[%s] save metadata for artefact %s", s.Id, k)
+		logger.Infof("[%s] save metadata for artifact %s", s.Id, k)
 		if err := s.SaveMetadata(k); err != nil {
 			return err
 		}
@@ -224,8 +224,8 @@ func (s *Session) Discard() {
 	logger.Infof("[%s] session discarded", s.Id)
 }
 
-func (s *Session) Artefacts() []*metadata.Artefact {
-	a := make([]*metadata.Artefact, len(s.A))
+func (s *Session) Artifacts() []*metadata.Artifact {
+	a := make([]*metadata.Artifact, len(s.A))
 	i := 0
 	for _, v := range s.A {
 		a[i] = v
@@ -234,25 +234,25 @@ func (s *Session) Artefacts() []*metadata.Artefact {
 	return a
 }
 
-// AddArtefact adds downloaded artefact metadata to the current
+// AddArtifact adds downloaded artifact metadata to the current
 // session.
-func (s *Session) AddArtefact(a *metadata.Artefact) {
+func (s *Session) AddArtifact(a *metadata.Artifact) {
 	digest := a.Metadata.Sha256
 	if _, ok := s.A[digest]; !ok {
 		s.A[digest] = a
 	}
 }
 
-// HasArtefact verifies whether the given digest corresponds
-// to an artefact downloaded in this session.
-func (s *Session) HasArtefact(sha1 digests.Sha256Digest) bool {
+// HasArtifact verifies whether the given digest corresponds
+// to an artifact downloaded in this session.
+func (s *Session) HasArtifact(sha1 digests.Sha256Digest) bool {
 	_, ok := s.A[sha1]
 	return ok
 }
 
-// ArtefactResult obtains the result from a previous HasArtefact
+// ArtifactResult obtains the result from a previous HasArtifact
 // inspection, or Rejected if it was not previously inspected.
-func (s *Session) ArtefactResult(sha1 digests.Sha256Digest) opinions.OpinionKind {
+func (s *Session) ArtifactResult(sha1 digests.Sha256Digest) opinions.OpinionKind {
 	a, ok := s.A[sha1]
 	if !ok {
 		return opinions.Rejected
@@ -261,21 +261,21 @@ func (s *Session) ArtefactResult(sha1 digests.Sha256Digest) opinions.OpinionKind
 }
 
 // AddDownload adds the given download information to the
-// corresponding artefact metadata.
+// corresponding artifact metadata.
 func (s *Session) AddDownload(di metadata.Download) {
-	if s.HasArtefact(di.Sha256) {
+	if s.HasArtifact(di.Sha256) {
 		s.A[di.Sha256].Downloads = append(s.A[di.Sha256].Downloads, di)
 	}
 }
 
 var osMkdirAll = os.MkdirAll
 
-// SaveData writes the artefact data corresponding to the given
+// SaveData writes the artifact data corresponding to the given
 // digest to the asset spool.
 func (s *Session) SaveData(digest digests.Sha256Digest) error {
 	a, ok := s.A[digest]
 	if !ok {
-		return fmt.Errorf("metadata for artefact %s not available", digest)
+		return fmt.Errorf("metadata for artifact %s not available", digest)
 	}
 
 	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
@@ -304,12 +304,12 @@ func (s *Session) SaveData(digest digests.Sha256Digest) error {
 	return nil
 }
 
-// SaveMetadata writes the artefact metadata corresponding to the
+// SaveMetadata writes the artifact metadata corresponding to the
 // given digest to the asset spool.
 func (s *Session) SaveMetadata(digest digests.Sha256Digest) error {
 	a, ok := s.A[digest]
 	if !ok {
-		return fmt.Errorf("metadata for artefact %s not available", digest)
+		return fmt.Errorf("metadata for artifact %s not available", digest)
 	}
 
 	j, err := utils.JSONMarshalIndentNoHTMLEscape(a, "", "\t")
