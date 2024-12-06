@@ -176,7 +176,8 @@ func (s *logSuite) TestLogToFile(c *C) {
 	logger.Debug("Debug message")
 	logger.Info("Info message")
 	logger.Warning("Warning message")
-	logger.Close()
+	err = logger.Close()
+	c.Assert(err, IsNil)
 
 	buf, err := os.ReadFile(logPath)
 	c.Assert(err, IsNil)

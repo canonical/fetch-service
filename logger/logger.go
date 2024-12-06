@@ -59,12 +59,15 @@ func Init(lv Level, logFilepath string) error {
 }
 
 // Close finalizes the logging system.
-func Close() {
+func Close() error {
 	if logFile != nil {
 		log.SetOutput(os.Stdout)
-		logFile.Close()
+		if err := logFile.Close(); err != nil {
+			return err
+		}
 		logFile = nil
 	}
+	return nil
 }
 
 // SetLevel updates the current logging level.
