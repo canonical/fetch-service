@@ -106,7 +106,9 @@ func (cs *Server) Start() error {
 			if err != nil {
 				logger.Errorf("[fetchctl] cannot write fetchtl reply: %s", err)
 			}
-			fd.Close()
+			if err := fd.Close(); err != nil {
+				logger.Errorf("[fetchctl] cannot close connection: %s", err)
+			}
 		}
 
 	})
