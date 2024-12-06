@@ -24,7 +24,7 @@ Changelog
 ------------------
 
 - feat: add fetch-service version to session metadata (#272)
-- fix(service): apply same rules if artifact already downloaded (#275)
+- fix(service): apply same rules if artefact already downloaded (#275)
 - fix(deps): update module github.com/gabriel-vasile/mimetype to v1.4.6 (#270)
 - fix: add build-aux location for snapcraft project (#274)
 - tests: add initial spread testing (#269)
@@ -81,22 +81,22 @@ Changelog
 
 - fix(snap): update config dir in post-refresh hook (#171)
 - fix(control): don't escape HTML  in session report (#167)
-- fix(inspectors/git): make artifact verification less strict (#166)
+- fix(inspectors/git): make artefact verification less strict (#166)
 
 0.1.3 (2024-07-25)
 ------------------
 
-- fix(metadata): don't overwrite existing artifact type (#162)
+- fix(metadata): don't overwrite existing artefact type (#162)
 - metadata,inspectors: fix inspection result and add tests (#158)
 - inspectors/snap: add additional inspector tests (#150)
 - control: fix error handling and add tests (#151)
 - session: fill policy field in metadata (#142)
 - feat: add cargo inspectors (#144)
 - inspectors/snap: fix snap refresh inspector (#145)
-- inspectors: reorganize artifact file interface (#143)
+- inspectors: reorganize artefact file interface (#143)
 - inspectors/git: deduplicate wanted refs (#141)
 - inspectors: don't mmap files for mime type detection (#139)
-- many: limit inspector access to artifact metadata (#140)
+- many: limit inspector access to artefact metadata (#140)
 - inspectors/pip: add metadata file inspector (#137)
 - inspectors/pip: add sdist inspector (#113)
 - service: move configuration files to subdirectory (#122)
