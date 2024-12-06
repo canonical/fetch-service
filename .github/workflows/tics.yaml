@@ -23,9 +23,6 @@ jobs:
 
       - name: Install dependencies
         run: |
-          #echo "::group::golang"
-          #sudo snap install go --channel 1.22 --classic
-          #echo "::endgroup::"
           echo "::group::apt-get update"
           sudo apt-get update
           echo "::endgroup::"
@@ -37,7 +34,6 @@ jobs:
           sudo cpanm --notest https://cpan.metacpan.org/authors/id/P/PE/PEVANS/Syntax-Keyword-Try-0.27.tar.gz
           sudo cpanm --notest https://cpan.metacpan.org/authors/id/J/JO/JONASS/App-Licensecheck-v3.3.9.tar.gz
           echo "::endgroup::"
-          #sudo snap watch --last=install
           echo "::group::staticcheck"
           go install honnef.co/go/tools/cmd/staticcheck@latest
           echo "::endgroup::"

@@ -84,7 +84,7 @@ func (ins *SmartQueryInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 		Vendor:      vendor,
 	})
 
-	msgs, err := ins.decodeGitProtocol(f, a)
+	msgs, err := ins.decodeProtocol(f, a)
 	if err != nil {
 		return nil
 	}
@@ -96,9 +96,9 @@ func (ins *SmartQueryInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 		// return nil
 	}
 
-	var server_msgs []string
+	var serverMsgs []string
 	for _, msg := range msgs {
-		server_msgs = append(server_msgs, strings.TrimSpace(msg))
+		serverMsgs = append(serverMsgs, strings.TrimSpace(msg))
 	}
 
 	// A server which decides to communicate (based on a request from a client)
@@ -106,12 +106,12 @@ func (ins *SmartQueryInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 	// in its initial response followed by an advertisement of its capabilities.
 	// Each capability is a key with an optional value.
 	a.SetResponseApproved(ins, "upload pack advertisement received").Annotate(
-		Annotation{"version": version, "server-response": server_msgs},
+		Annotation{"version": version, "server-response": serverMsgs},
 	)
 	return nil
 }
 
-func (ins *SmartQueryInspector) decodeGitProtocol(f ArtefactReader, a ResponseArtefact) ([]string, error) {
+func (ins *SmartQueryInspector) decodeProtocol(f ArtefactReader, a ResponseArtefact) ([]string, error) {
 	msgs, err := decodeGitProtocol(f)
 	if err != nil {
 		a.SetResponseRejected(ins, "cannot decode git protocol").Annotate(

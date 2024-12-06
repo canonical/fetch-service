@@ -1,7 +1,7 @@
 summary: Fetchctl update config operations
 
 prepare: |
-  snap install "$PROJECT_PATH"/tests/fetch-service_*.snap --dangerous
+  snap install "$PROJECT_PATH"/spread/fetch-service_*.snap --dangerous
 
 restore: |
   snap remove fetch-service --purge
@@ -44,5 +44,5 @@ execute: |
   fetch-service.fetchctl update-config --type=acl a.yaml
 
   cp "$ACL_CONF" a2.yaml
-  entry=$(yq .http-proxy.policy a.yaml)
+  entry=$(yq .http-proxy.policy a2.yaml)
   [ "$entry" = "deny" ]

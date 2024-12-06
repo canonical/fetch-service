@@ -53,9 +53,10 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	ch := make(chan interface{}, 1)
 	body := io.NopCloser(bytes.NewBufferString("Request body"))
 	req, err := http.NewRequest("GET", "http://foo/bar", body)
+	c.Assert(err, IsNil)
+
 	req.Header.Set("User-Agent", "test/1.0")
 	req.Header.Set("X-Fetch-Session-Id", "1234")
-	c.Assert(err, IsNil)
 
 	spoolDir := c.MkDir()
 
@@ -73,7 +74,12 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	a.CurrentDownload.Address = req.RemoteAddr
 	a.CurrentDownload.Method = req.Method
 
+	testSync := make(chan struct{})
+
 	go func() {
+		defer func() {
+			testSync <- struct{}{}
+		}()
 		var err error
 		_, err = proxy.NewFileDownloadHandler(resp, a, spoolDir, ch)
 		c.Assert(err, IsNil)
@@ -83,14 +89,6 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	v := msg.(messages.ResponseInspection)
 
 	c.Assert(a.CacheDir(), Equals, filepath.Join(spoolDir, "1234", "cache"))
-
-	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
-	err = os.MkdirAll(filepath.Dir(dest), 0755)
-	c.Assert(err, IsNil)
-
-	err = utils.MoveFile(v.A.Tempfile, dest)
-	c.Assert(err, IsNil)
-	os.Remove(a.Tempfile)
 
 	// check file metadata
 	c.Assert(v.A.Metadata.Sha1.String(), Equals, "176070ca20a7563bed4cef2212a9be37af09f14a")
@@ -107,11 +105,28 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	c.Assert(dl.ResponseHeader["Content-Type"][0], Equals, "application/x-test")
 	c.Assert(dl.Sha256.String(), Equals, "f736153d1508e544b6c5ea19e3c2b7448d9af33608d195195e748cb54965e61b")
 
+	// We're the service dispatcher, so we need to rename the temporary file
+	assetsDir := filepath.Join(spoolDir, "1234", "assets")
+	err = os.MkdirAll(assetsDir, 0755)
+	c.Assert(err, IsNil)
+
+	assetName := filepath.Join(assetsDir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
+	err = utils.MoveFile(a.Tempfile, assetName)
+	c.Assert(err, IsNil)
+
+	// Send fake inspection result to the response channel. The file download handler
+	// will open the downloaded file for further processing.
 	v.Rch <- nil
+
+	// Wait for the goroutine to finish before deleting spoolDir.
+	<-testSync
 
 	// download it again
 	req, err = http.NewRequest("POST", "http://different/url", body)
 	c.Assert(err, IsNil)
+
+	req.Header.Set("User-Agent", "test/1.0")
+	req.Header.Set("X-Fetch-Session-Id", "1234")
 
 	resp = &http.Response{
 		StatusCode: 200,
@@ -126,6 +141,10 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	a.CurrentDownload.Method = req.Method
 
 	go func() {
+		defer func() {
+			testSync <- struct{}{}
+		}()
+		var err error
 		_, err = proxy.NewFileDownloadHandler(resp, a, spoolDir, ch)
 		c.Assert(err, IsNil)
 	}()
@@ -140,5 +159,10 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	c.Assert(dl.Method, Equals, "POST")
 	c.Assert(dl.URL, Equals, "http://different/url")
 
+	// Send fake inspection result to the response channel. The file download handler
+	// will open the downloaded file for further processing.
 	v.Rch <- nil
+
+	// Wait for the goroutine to finish before deleting spoolDir.
+	<-testSync
 }

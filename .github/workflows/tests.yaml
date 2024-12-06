@@ -8,8 +8,12 @@ on:
 
 jobs:
   linters:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux]  # Pretty much any self-hosted Linux runner, base independent
     steps:
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -24,13 +28,15 @@ jobs:
           version: latest
       - name: Run shellcheck
         run: |
-          shellcheck tests/spread/craft-test tests/spread/backend/*
-          tests/tools/utils/spread-shellcheck -v spread.yaml
-          find tests/spread -name task.yaml | xargs tests/tools/utils/spread-shellcheck -v
+          shellcheck spread/.extension
+          spread/tools/utils/spread-shellcheck -v spread.yaml
+          find spread -name task.yaml | xargs spread/tools/utils/spread-shellcheck -v
   tests:
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        os:
+          - [jammy, amd64]
+          - [noble, amd64]
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -60,7 +66,7 @@ jobs:
         run: |
           go test -race ./...
   snap-build:
-    runs-on: ubuntu-latest
+    runs-on: [noble, amd64]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -77,7 +83,9 @@ jobs:
   spread-tests:
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
+        os:
+          - [jammy, amd64]
+          - [noble, amd64]
     needs:
       - snap-build
     runs-on: ${{ matrix.os }}
@@ -98,6 +106,8 @@ jobs:
         with:
           name: snap
       - name: Copy snap to tests dir
-        run: cp *.snap tests/
+        run: cp *.snap spread/
       - name: Run spread tests
-        run: ~/go/bin/spread -v ci:${{ matrix.os }}
+        run: |
+          source /etc/os-release
+          ~/go/bin/spread -v "ci:${ID}-${VERSION_ID}"

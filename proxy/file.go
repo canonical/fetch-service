@@ -82,7 +82,7 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artefact, spool str
 	filename := fmt.Sprintf("%s.data", a.Metadata.Sha256)
 	buffer, err := os.Open(filepath.Join(assetDir, filename))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot open asset file: %w", err)
 	}
 
 	h := &FileDownloadHandler{

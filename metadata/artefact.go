@@ -84,7 +84,7 @@ func (a *Artefact) RequestHeader(key string) ([]string, bool) {
 // string s.
 func (a *Artefact) RequestHeaderContains(h, s string) bool {
 	value, ok := a.RequestHeader(h)
-	return ok && len(value) >= 1 && slices.Contains(value, s)
+	return ok && slices.Contains(value, s)
 }
 
 func (a *Artefact) ContentType() string {
