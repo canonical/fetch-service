@@ -140,7 +140,8 @@ func (ins *AptTranslationInspector) InspectArtefact(f ArtefactReader, a Response
 
 	r, err := xz.NewReader(f, 0)
 	if err != nil {
-		return err
+		a.SetResponseRejected(ins, "cannot read xz file")
+		return nil
 	}
 
 	sc := bufio.NewScanner(r)
@@ -162,24 +163,21 @@ func (ins *AptTranslationInspector) InspectArtefact(f ArtefactReader, a Response
 
 		if strings.HasPrefix(line, "Package: ") {
 			if state_package {
-				a.SetResponseRejected(ins,
-					"misplaced Package fields in Translation file")
+				a.SetResponseRejected(ins, "misplaced Package fields in Translation file")
 				return nil
 			}
 			state_package = true
 			continue
 		} else if strings.HasPrefix(line, "Description-md5: ") {
 			if !state_package {
-				a.SetResponseRejected(ins,
-					"description-md5 field without Package field")
+				a.SetResponseRejected(ins, "description-md5 field without Package field")
 				return nil
 			}
 			state_md5sum = true
 			continue
 		} else if strings.HasPrefix(line, "Description-") {
 			if !state_md5sum || !state_package {
-				a.SetResponseRejected(ins,
-					"description field without Package or Description-md5 field")
+				a.SetResponseRejected(ins, "description field without Package or Description-md5 field")
 				return nil
 			}
 			state_description = true
@@ -192,8 +190,7 @@ func (ins *AptTranslationInspector) InspectArtefact(f ArtefactReader, a Response
 			continue
 		} else if strings.HasPrefix(line, " ") { // Description field continuation with leading space
 			if !state_description {
-				a.SetResponseRejected(ins,
-					"description field without Package or Description-md5 field")
+				a.SetResponseRejected(ins, "description field without Package or Description-md5 field")
 				return nil
 			}
 			continue
@@ -211,18 +208,16 @@ func (ins *AptTranslationInspector) InspectArtefact(f ArtefactReader, a Response
 	if item_count > 0 {
 		if state_package {
 			if !state_md5sum {
-				a.SetResponseRejected(ins,
-					"description-md5 field missing for the last Package")
+				a.SetResponseRejected(ins, "description-md5 field missing for the last Package")
 				return nil
 			}
 			if !state_description {
-				a.SetResponseRejected(ins,
-					"description field missing for the last Package")
+				a.SetResponseRejected(ins, "description field missing for the last Package")
 				return nil
 			}
 		}
 	} else {
-		a.SetResponseRejected(ins, "not a valid Translation file")
+		a.SetResponseRejected(ins, "not a valid translation file")
 		return nil
 	}
 
