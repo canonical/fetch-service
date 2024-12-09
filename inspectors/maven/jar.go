@@ -30,7 +30,7 @@ import (
 var (
 	// Location of the maven repo (will be configurable)
 	jarRequestOrigin = regexp.MustCompile(`^https://repo.maven.apache.org:443`)
-	// Download urls have the form /maven2/<org components separated by />/<artefact-id>/<version>/<jar file>
+	// Download urls have the form /maven2/<org components separated by />/<artifact-id>/<version>/<jar file>
 	jarRequestSlug = regexp.MustCompile(`/maven2/((?:\w|\-|/)+).*/((?:\w|\-)+)/(.*)/.*.jar$`)
 )
 
@@ -46,18 +46,18 @@ func (MavenJarInspector) ID() string {
 	return "maven.jar"
 }
 
-func (ins *MavenJarInspector) InspectRequest(a RequestArtefact) error {
+func (ins *MavenJarInspector) InspectRequest(a RequestArtifact) error {
 	url := a.DownloadURL()
 	m := jarRequestOrigin.FindStringSubmatch(url)
 	if len(m) == 0 {
 		return nil
 	}
-	if artefactUrl := parseUrl(jarRequestSlug, url); artefactUrl != nil {
+	if artifactUrl := parseUrl(jarRequestSlug, url); artifactUrl != nil {
 		a.SetRequestPending(ins, "request matches valid URL").Annotate(
 			Annotation{
-				"group-id":    artefactUrl.GroupId,
-				"artefact-id": artefactUrl.ArtefactId,
-				"version":     artefactUrl.Version,
+				"group-id":    artifactUrl.GroupId,
+				"artifact-id": artifactUrl.ArtifactId,
+				"version":     artifactUrl.Version,
 			},
 		)
 		return nil
@@ -65,7 +65,7 @@ func (ins *MavenJarInspector) InspectRequest(a RequestArtefact) error {
 	return nil
 }
 
-func (ins *MavenJarInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+func (ins *MavenJarInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if !a.MimetypeIs("application/jar") {
 		return nil
 	}
@@ -76,7 +76,7 @@ func (ins *MavenJarInspector) InspectArtefact(f ArtefactReader, a ResponseArtefa
 		return nil
 	}
 
-	artefact_id, ok := a.RequestStringAnnotation(ins.ID(), "artefact-id")
+	artifact_id, ok := a.RequestStringAnnotation(ins.ID(), "artifact-id")
 	if !ok {
 		return nil
 	}
@@ -86,7 +86,7 @@ func (ins *MavenJarInspector) InspectArtefact(f ArtefactReader, a ResponseArtefa
 		return nil
 	}
 
-	pom_xml := fmt.Sprintf(`META-INF/maven/%s/%s/pom.xml`, group_id, artefact_id)
+	pom_xml := fmt.Sprintf(`META-INF/maven/%s/%s/pom.xml`, group_id, artifact_id)
 
 	zf, err := zip.NewReader(f, int64(f.Len()))
 	if err != nil {
@@ -105,8 +105,8 @@ func (ins *MavenJarInspector) InspectArtefact(f ArtefactReader, a ResponseArtefa
 				return err
 			}
 
-			if md.Name == artefact_id && md.Version == version {
-				a.SetArtefactMetadata(*md)
+			if md.Name == artifact_id && md.Version == version {
+				a.SetArtifactMetadata(*md)
 				a.SetResponseApproved(ins, "Maven pom successfully parsed and validated")
 			}
 			break

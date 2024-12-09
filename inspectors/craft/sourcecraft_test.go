@@ -74,8 +74,8 @@ func (s *sourcecraftSuite) TestUploadPackInspectorID(c *C) {
 
 }
 
-func createTestSourcecraftArtefact(checkoutPath string) *metadata.Artefact {
-	a := metadata.NewArtefact()
+func createTestSourcecraftArtifact(checkoutPath string) *metadata.Artifact {
+	a := metadata.NewArtifact()
 	a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
 	a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
 	a.Request.Body = io.NopCloser(strings.NewReader("0014command=fetch\n0000"))
@@ -121,9 +121,9 @@ func createTestSourcecraftArtefact(checkoutPath string) *metadata.Artefact {
 	return a
 }
 
-func loadTestSourcecraftArtefactData() (*files.ArtefactFile, error) {
+func loadTestSourcecraftArtifactData() (*files.ArtifactFile, error) {
 	sourcepkg_file := filepath.Join("testdata", "sourcepkg.raw")
-	file, err := files.OpenArtefactFile(sourcepkg_file)
+	file, err := files.OpenArtifactFile(sourcepkg_file)
 	return file, err
 }
 
@@ -146,7 +146,7 @@ func (s *sourcecraftSuite) TestInspectSourcecraftGitRequest(c *C) {
 		{"https://git.lpad.net:443/~user/project/+git/project/git-upload-pack", false},
 	} {
 		ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.CurrentDownload.URL = tc.url
 		a.CurrentDownload.RequestHeader = map[string][]string{
 			"Content-Type": {"application/x-git-upload-pack-request"},
@@ -169,7 +169,7 @@ func (s *sourcecraftSuite) TestInspectSourcecraftGitRequest(c *C) {
 	}
 }
 
-func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefact(c *C) {
+func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifact(c *C) {
 	for _, tc := range []struct {
 		opinion opinions.OpinionKind
 		reason  string
@@ -177,7 +177,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefact(c *C) {
 		{opinions.Approved, "sourcecraft repository found"},
 	} {
 
-		f, err := loadTestSourcecraftArtefactData()
+		f, err := loadTestSourcecraftArtifactData()
 		c.Assert(err, IsNil)
 		defer f.Close()
 
@@ -187,14 +187,14 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefact(c *C) {
 		err = git.Checkout(checkoutPath, "10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad")
 		c.Assert(err, IsNil)
 
-		a := createTestRockcraftArtefact(checkoutPath)
+		a := createTestRockcraftArtifact(checkoutPath)
 
-		f, err = loadTestSourcecraftArtefactData()
+		f, err = loadTestSourcecraftArtifactData()
 		c.Assert(err, IsNil)
 		defer f.Close()
 
 		ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
-		err = ins.InspectArtefact(f, a)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
 		inspection := a.ResponseInspection["craft.sourcecraft"]
@@ -211,7 +211,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefact(c *C) {
 	}
 }
 
-func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactMissingSourcecraftYaml(c *C) {
+func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifactMissingSourcecraftYaml(c *C) {
 	tc := struct {
 		opinion opinions.OpinionKind
 		reason  string
@@ -224,14 +224,14 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactMissingSourcecraftYa
 	})
 	defer restorer()
 
-	a := createTestSourcecraftArtefact(c.MkDir())
-	f, err := loadTestSourcecraftArtefactData()
+	a := createTestSourcecraftArtifact(c.MkDir())
+	f, err := loadTestSourcecraftArtifactData()
 	c.Assert(err, IsNil)
 	defer f.Close()
 
 	ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
 
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 
 	inspection := a.ResponseInspection["craft.sourcecraft"]
@@ -239,7 +239,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactMissingSourcecraftYa
 	c.Assert(inspection.Reason, Equals, tc.reason)
 }
 
-func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactUnreadableSourcecraftYaml(c *C) {
+func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifactUnreadableSourcecraftYaml(c *C) {
 	tc := struct {
 		opinion opinions.OpinionKind
 		reason  string
@@ -248,7 +248,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactUnreadableSourcecraf
 		"cannot open sourcecraft.yaml file",
 	}
 
-	f, err := loadTestSourcecraftArtefactData()
+	f, err := loadTestSourcecraftArtifactData()
 	c.Assert(err, IsNil)
 	defer f.Close()
 
@@ -260,10 +260,10 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactUnreadableSourcecraf
 	checkoutPath := c.MkDir()
 	_, err = os.Create(filepath.Join(checkoutPath, "sourcecraft.yaml"))
 	c.Assert(err, IsNil)
-	a := createTestSnapcraftArtefact(checkoutPath)
+	a := createTestSnapcraftArtifact(checkoutPath)
 
 	ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 
 	inspection := a.ResponseInspection["craft.sourcecraft"]
@@ -271,7 +271,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactUnreadableSourcecraf
 	c.Assert(inspection.Reason, Equals, tc.reason)
 }
 
-func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactUnableToDecodeSourcecraftYaml(c *C) {
+func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifactUnableToDecodeSourcecraftYaml(c *C) {
 	tc := struct {
 		opinion opinions.OpinionKind
 		reason  string
@@ -279,7 +279,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactUnableToDecodeSource
 		opinions.Rejected,
 		"cannot decode sourcecraft.yaml",
 	}
-	f, err := loadTestSourcecraftArtefactData()
+	f, err := loadTestSourcecraftArtifactData()
 	c.Assert(err, IsNil)
 	defer f.Close()
 
@@ -295,10 +295,10 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtefactUnableToDecodeSource
 	_, err = os.Create(filepath.Join(checkoutPath, "sourcecraft.yaml"))
 	c.Assert(err, IsNil)
 
-	a := createTestRockcraftArtefact(checkoutPath)
+	a := createTestRockcraftArtifact(checkoutPath)
 
 	ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 
 	inspection := a.ResponseInspection["craft.sourcecraft"]

@@ -65,7 +65,7 @@ var opts struct {
 	Verbosity string `long:"verbosity" description:"Verbosity level" choice:"debug"`
 
 	// Enable permissive mode
-	PermissiveMode bool `long:"permissive-mode" description:"Allow sessions to accept rejected artefacts"`
+	PermissiveMode bool `long:"permissive-mode" description:"Allow sessions to accept rejected artifacts"`
 
 	// Show version
 	Version bool `long:"version" description:"Display the program version and exit"`

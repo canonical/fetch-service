@@ -67,7 +67,7 @@ func (ins *UploadPackInspector) ID() string {
 //   - The request URL must match a valid upload-pack pattern.
 //   - The upload-pack command must be "ls-refs" or "fetch".
 //   - If command is "fetch", it must want a single shallow ref.
-func (ins *UploadPackInspector) InspectRequest(a RequestArtefact) error {
+func (ins *UploadPackInspector) InspectRequest(a RequestArtifact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -132,7 +132,7 @@ func (ins *UploadPackInspector) initRepoState(repo string) {
 	}
 }
 
-func (ins *UploadPackInspector) inspectRequestCommand(a RequestArtefact, clientMsgs []string, notes Annotation) {
+func (ins *UploadPackInspector) inspectRequestCommand(a RequestArtifact, clientMsgs []string, notes Annotation) {
 	// Obtain the upload-pack command from the protocol messages
 	command := ""
 	notes.Add("client-request", clientMsgs)
@@ -192,7 +192,7 @@ func (ins *UploadPackInspector) inspectRequestCommand(a RequestArtefact, clientM
 
 }
 
-// InspectArtefact rejects upload-pack responses not conforming to the expected
+// InspectArtifact rejects upload-pack responses not conforming to the expected
 // format for the "ls-ref" or "fetch" commands:
 //
 //   - The Content-Type header must be "application/x-git-upload-pack-result"
@@ -200,10 +200,10 @@ func (ins *UploadPackInspector) inspectRequestCommand(a RequestArtefact, clientM
 //   - If command is "fetch", we expect an application/octet-stream response, containing
 //     the packfile for a single shallow ref.
 //
-// This inspector doesn't approve fetch artefacts and won't introspect into packfile
+// This inspector doesn't approve fetch artifacts and won't introspect into packfile
 // contents, but it will leave annotations in case of a successful fetch operation.
 // Approval is deferred to inspectors that examine specific types of git payloads.
-func (ins *UploadPackInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+func (ins *UploadPackInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if a.ContentType() != "application/x-git-upload-pack-result" {
 		return nil
 	}
@@ -222,7 +222,7 @@ func (ins *UploadPackInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 	return ins.inspectResponseCommand(f, a, repo, vendor)
 }
 
-func (ins *UploadPackInspector) inspectResponseCommand(f ArtefactReader, a ResponseArtefact, repo, vendor string) error {
+func (ins *UploadPackInspector) inspectResponseCommand(f ArtifactReader, a ResponseArtifact, repo, vendor string) error {
 	command, ok := a.RequestAnnotation(ins.ID(), "command") // the upload-pack request command
 	if !ok {
 		// this must have been set by the request inspector
@@ -232,7 +232,7 @@ func (ins *UploadPackInspector) inspectResponseCommand(f ArtefactReader, a Respo
 
 	notes := Annotation{}
 
-	logger.Debugf("inspect git upload-pack artefact: command %q", command)
+	logger.Debugf("inspect git upload-pack artifact: command %q", command)
 	// Supported upload-pack commands are 'ls-refs' and 'fetch'
 	switch command {
 	case "ls-refs":
@@ -252,13 +252,13 @@ func (ins *UploadPackInspector) inspectResponseCommand(f ArtefactReader, a Respo
 	return nil
 }
 
-func (ins *UploadPackInspector) inspectLsRefsResponse(f ArtefactReader, a ResponseArtefact, repo, vendor string, notes Annotation) error {
+func (ins *UploadPackInspector) inspectLsRefsResponse(f ArtifactReader, a ResponseArtifact, repo, vendor string, notes Annotation) error {
 	if !a.MimetypeIs("text/plain") {
 		a.SetResponseRejected(ins, "bad data type for ls-refs response")
 		return nil
 	}
 
-	a.SetArtefactMetadata(ArtefactMetadata{
+	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:        mimetypes.GitUploadPackLsRef,
 		Name:        "git ls-refs response",
 		Description: "Response to the git 'ls-refs' command",
@@ -303,13 +303,13 @@ func (ins *UploadPackInspector) inspectLsRefsResponse(f ArtefactReader, a Respon
 	return nil
 }
 
-func (ins *UploadPackInspector) inspectFetchResponse(f ArtefactReader, a ResponseArtefact, repo, vendor string, notes Annotation) error {
+func (ins *UploadPackInspector) inspectFetchResponse(f ArtifactReader, a ResponseArtifact, repo, vendor string, notes Annotation) error {
 	if !a.MimetypeIs("application/octet-stream") && !a.MimetypeIs("text/plain") {
 		a.SetResponseRejected(ins, "bad data type for fetch response")
 		return nil
 	}
 
-	a.SetArtefactMetadata(ArtefactMetadata{
+	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:        mimetypes.GitUploadPackFetch,
 		Name:        "git fetch response",
 		Description: "Response to the git 'fetch' command",
@@ -363,7 +363,7 @@ func (ins *UploadPackInspector) inspectFetchResponse(f ArtefactReader, a Respons
 	return nil
 }
 
-func (ins *UploadPackInspector) fetchResponseIsShallow(a ResponseArtefact, msgs []string, notes Annotation) bool {
+func (ins *UploadPackInspector) fetchResponseIsShallow(a ResponseArtifact, msgs []string, notes Annotation) bool {
 	serverMsgs := []string{}
 	isShallow := false
 	isUnshallow := false
@@ -391,7 +391,7 @@ func (ins *UploadPackInspector) fetchResponseIsShallow(a ResponseArtefact, msgs 
 	return true
 }
 
-func (ins *UploadPackInspector) getRefFromWants(a ResponseArtefact, notes Annotation) string {
+func (ins *UploadPackInspector) getRefFromWants(a ResponseArtifact, notes Annotation) string {
 	// Read "wants" information from the request annotation
 	w, hasWants := a.RequestAnnotation(ins.ID(), "wants")
 	wr, hasWantRefs := a.RequestAnnotation(ins.ID(), "want-refs")
@@ -495,7 +495,7 @@ func (h *uploadPackRequestHandler) Close() error {
 	return h.body.Close()
 }
 
-func unpackAndCheckout(f ArtefactReader, ref string, cacheDir string) (string, error) {
+func unpackAndCheckout(f ArtifactReader, ref string, cacheDir string) (string, error) {
 	// Unpack and checkout in temporary directory
 	if err := os.MkdirAll(cacheDir, 0700); err != nil {
 		return "", err

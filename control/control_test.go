@@ -196,13 +196,13 @@ func (t *controlSuite) TestGetSessionReport(c *C) {
 		req.Header["Authorization"] = []string{"Basic Zm9vOmJhcg=="}
 
 		go func() {
-			artefacts := []*metadata.Artefact{metadata.NewArtefact()}
-			artefacts[0].Metadata.AuthorEmail = "Jürgen <juergen@example.com>"
+			artifacts := []*metadata.Artifact{metadata.NewArtifact()}
+			artifacts[0].Metadata.AuthorEmail = "Jürgen <juergen@example.com>"
 
 			msg := <-ch
 			msg.(messages.SessionReport).Rch <- messages.SessionReportResult{
 				Err:       tc.err,
-				Artefacts: artefacts,
+				Artifacts: artifacts,
 			}
 		}()
 
@@ -215,7 +215,7 @@ func (t *controlSuite) TestGetSessionReport(c *C) {
 			err = json.Unmarshal(w.Body.Bytes(), &res)
 			c.Assert(err, IsNil)
 			c.Check(res.Err, IsNil)
-			c.Check(res.Artefacts[0].Metadata.AuthorEmail, Equals, "Jürgen <juergen@example.com>")
+			c.Check(res.Artifacts[0].Metadata.AuthorEmail, Equals, "Jürgen <juergen@example.com>")
 		}
 	}
 }

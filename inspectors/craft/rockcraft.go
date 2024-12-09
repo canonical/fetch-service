@@ -63,7 +63,7 @@ type rockcraftYaml struct {
 //   - The request URL must match a valid upload-pack pattern.
 //   - The upload-pack command must be "fetch".
 //   - It must be a shallow fetch.
-func (ins *RockcraftInspector) InspectRequest(a RequestArtefact) error {
+func (ins *RockcraftInspector) InspectRequest(a RequestArtifact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -87,11 +87,11 @@ func (ins *RockcraftInspector) InspectRequest(a RequestArtefact) error {
 	return nil
 }
 
-func (ins *RockcraftInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+func (ins *RockcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if a.ContentType() != "application/x-git-upload-pack-result" {
 		return nil
 	}
-	logger.Debugf("Inspecting rockcraft artefact")
+	logger.Debugf("Inspecting rockcraft artifact")
 
 	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
@@ -100,7 +100,7 @@ func (ins *RockcraftInspector) InspectArtefact(f ArtefactReader, a ResponseArtef
 		return nil
 	}
 
-	logger.Debugf("inspect git upload-pack artefact: checkout at %q", checkoutPath)
+	logger.Debugf("inspect git upload-pack artifact: checkout at %q", checkoutPath)
 
 	rockcraftYamlPath := filepath.Join(checkoutPath, "rockcraft.yaml")
 	if _, err := osStat(rockcraftYamlPath); err != nil {
@@ -122,7 +122,7 @@ func (ins *RockcraftInspector) InspectArtefact(f ArtefactReader, a ResponseArtef
 		return nil
 	}
 
-	a.SetArtefactMetadata(ArtefactMetadata{
+	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:        mimetypes.Rockcraft,
 		Name:        data.Name,
 		Version:     data.Version,

@@ -104,7 +104,7 @@ func (ins *AptReleaseInspector) ID() string {
 
 // AptReleaseInspector verifies if the request is valid for the types of
 // files handled by this inspector: InRelease, Packages.xz, and Translation.
-func (ins *AptReleaseInspector) InspectRequest(a RequestArtefact) error {
+func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -155,9 +155,9 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtefact) error {
 	return nil
 }
 
-// InspectArtefact examines InRelease files and validates Packages.xz files
+// InspectArtifact examines InRelease files and validates Packages.xz files
 // against InRelease entries.
-func (ins *AptReleaseInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if a.MimetypeIs(mimetypes.AptPackages) {
 		return ins.validatePackagesFile(f, a)
 	}
@@ -312,7 +312,7 @@ func (ins *AptReleaseInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 
 	repo := strings.TrimSuffix(a.DownloadURL(), "/InRelease")
 
-	a.SetArtefactMetadata(ArtefactMetadata{
+	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:        mimetypes.AptRelease,
 		Name:        "InRelease",
 		Version:     fields["Codename"],
@@ -352,7 +352,7 @@ func (ins *AptReleaseInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 	return nil
 }
 
-func (ins *AptReleaseInspector) validatePackagesFile(f ArtefactReader, a ResponseArtefact) error {
+func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a ResponseArtifact) error {
 	logger.Debug("validate package file")
 
 	u, err := url.Parse(a.DownloadURL())
@@ -411,7 +411,7 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtefactReader, a Respons
 // validateTranslationFile examines InRelease files and validates Translation-<lang>
 // files against InRelease entries.
 // https://wiki.debian.org/DebianRepository/Format#A.22Translation.22_indices
-func (ins *AptReleaseInspector) validateTranslationFile(f ArtefactReader, a ResponseArtefact) error {
+func (ins *AptReleaseInspector) validateTranslationFile(f ArtifactReader, a ResponseArtifact) error {
 	logger.Debug("validate translation file")
 
 	u, err := url.Parse(a.DownloadURL())

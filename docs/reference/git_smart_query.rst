@@ -40,7 +40,7 @@ The response is encoded using the git v2 protocol.
 Acceptance criteria
 -------------------
 
-To be approved, the artefacts examined by this inspector must meet the
+To be approved, the artifacts examined by this inspector must meet the
 following criteria:
 
 * The response sent by the server has plain text content with Content-Type

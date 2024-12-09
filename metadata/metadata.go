@@ -25,24 +25,24 @@ import (
 	. "github.com/canonical/fetch-service/metadata/digests"
 )
 
-// Metadata holds information about each artefact.
+// Metadata holds information about each artifact.
 type Metadata struct {
-	Type         string       `json:"type"`                   // The mime-type of the artefact file
-	Sha1         Sha1Digest   `json:"sha1"`                   // The SHA1 digest of the artefact file
-	Sha256       Sha256Digest `json:"sha256"`                 // The SHA256 digest of the artefact file
-	Size         int64        `json:"size"`                   // The size of the artefact file
-	Name         string       `json:"name"`                   // The artefact designation, given by its author
-	Version      string       `json:"version"`                // The artefact version, as published by the upstream
-	Vendor       string       `json:"vendor"`                 // The artefact vendor
-	Description  string       `json:"description"`            // A free-form description of the artefact
-	Author       string       `json:"author"`                 // The artefact author name
-	AuthorEmail  string       `json:"author-email,omitempty"` // The artefact author email address
-	Architecture string       `json:"architecture,omitempty"` // The architecture, if the artefact contains binary code
-	License      string       `json:"license"`                // The license the artefact is published under
+	Type         string       `json:"type"`                   // The mime-type of the artifact file
+	Sha1         Sha1Digest   `json:"sha1"`                   // The SHA1 digest of the artifact file
+	Sha256       Sha256Digest `json:"sha256"`                 // The SHA256 digest of the artifact file
+	Size         int64        `json:"size"`                   // The size of the artifact file
+	Name         string       `json:"name"`                   // The artifact designation, given by its author
+	Version      string       `json:"version"`                // The artifact version, as published by the upstream
+	Vendor       string       `json:"vendor"`                 // The artifact vendor
+	Description  string       `json:"description"`            // A free-form description of the artifact
+	Author       string       `json:"author"`                 // The artifact author name
+	AuthorEmail  string       `json:"author-email,omitempty"` // The artifact author email address
+	Architecture string       `json:"architecture,omitempty"` // The architecture, if the artifact contains binary code
+	License      string       `json:"license"`                // The license the artifact is published under
 	Copyright    string       `json:"copyright,omitempty"`    // The copyright line, if available
 }
 
-// Download holds information about each artefact download.
+// Download holds information about each artifact download.
 type Download struct {
 	StartTime      time.Time           `json:"start-time"`      // When the downloaded started (UTC)
 	EndTime        time.Time           `json:"end-time"`        // When the download finished (UTC)
@@ -66,7 +66,7 @@ type SessionMetadata struct {
 	StartTime  time.Time `json:"start-time"`        // When the session started (UTC)
 	EndTime    time.Time `json:"end-time"`          // When the session finished (UTC)
 	Inspectors []string  `json:"inspectors"`        // A list of registered inspector IDs
-	SpoolPath  string    `json:"spool-path"`        // The filesystem path to session artefacts
+	SpoolPath  string    `json:"spool-path"`        // The filesystem path to session artifacts
 	Policy     string    `json:"policy"`            // Session policy (strict or permissive)
 	Err        error     `json:"-"`
 }

@@ -63,7 +63,7 @@ type snapcraftYaml struct {
 //   - The request URL must match a valid upload-pack pattern.
 //   - The upload-pack command must be "fetch".
 //   - It must be a shallow fetch.
-func (ins *SnapcraftInspector) InspectRequest(a RequestArtefact) error {
+func (ins *SnapcraftInspector) InspectRequest(a RequestArtifact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -87,11 +87,11 @@ func (ins *SnapcraftInspector) InspectRequest(a RequestArtefact) error {
 	return nil
 }
 
-func (ins *SnapcraftInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+func (ins *SnapcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if a.ContentType() != "application/x-git-upload-pack-result" {
 		return nil
 	}
-	logger.Debugf("Inspecting snapcraft artefact")
+	logger.Debugf("Inspecting snapcraft artifact")
 
 	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
@@ -100,7 +100,7 @@ func (ins *SnapcraftInspector) InspectArtefact(f ArtefactReader, a ResponseArtef
 		return nil
 	}
 
-	logger.Debugf("inspect git upload-pack artefact: checkout at %q", checkoutPath)
+	logger.Debugf("inspect git upload-pack artifact: checkout at %q", checkoutPath)
 
 	snapcraftYamlPath, found := getSnapcraftYamlPath(checkoutPath)
 	if !found {
@@ -122,7 +122,7 @@ func (ins *SnapcraftInspector) InspectArtefact(f ArtefactReader, a ResponseArtef
 		return nil
 	}
 
-	a.SetArtefactMetadata(ArtefactMetadata{
+	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:        mimetypes.Snapcraft,
 		Name:        data.Name,
 		Version:     data.Version,

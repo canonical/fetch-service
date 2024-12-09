@@ -82,7 +82,7 @@ func (s *wheelSuite) TestInspectRequest(c *C) {
 		{"https://files.pythonhosted.org:443/packages/7f/66/b15ce62552d84bbfcec9a4873ab79d993a1dd4edb922cbfccae192bd5b5f/jaraco.classes-3.4.0-py3-none-any.whl", true},
 	} {
 		ins := pip.NewWheelInspector()
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 
 		err := ins.InspectRequest(a)
@@ -96,18 +96,18 @@ func (s *wheelSuite) TestInspectRequest(c *C) {
 	}
 }
 
-func (s *wheelSuite) TestInspectArtefactBadType(c *C) {
+func (s *wheelSuite) TestInspectArtifactBadType(c *C) {
 	ins := pip.NewWheelInspector()
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.MimeType = mimetype.Lookup("application/octet-stream")
 
-	err := ins.InspectArtefact(nil, a)
+	err := ins.InspectArtifact(nil, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, false)
 	c.Assert(a.Rejected(), Equals, true)
 }
 
-func (s *wheelSuite) TestWheelInspectArtefactBadContent(c *C) {
+func (s *wheelSuite) TestWheelInspectArtifactBadContent(c *C) {
 	tmp := c.MkDir()
 	zipfile := filepath.Join(tmp, "test.whl")
 	zdir := filepath.Join(tmp, "root")
@@ -124,16 +124,16 @@ func (s *wheelSuite) TestWheelInspectArtefactBadContent(c *C) {
 	err = testutils.CreateZip(zipfile, zdir)
 	c.Assert(err, IsNil)
 
-	f, err := files.OpenArtefactFile(zipfile)
+	f, err := files.OpenArtifactFile(zipfile)
 	c.Assert(err, IsNil)
 	defer f.Close()
 
 	ins := pip.NewWheelInspector()
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.MimeType = mimetype.Lookup("application/zip")
 	a.SetRequestPending(ins, "test")
 
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Rejected(), Equals, true)
 	c.Assert(a.ResponseInspection, DeepEquals, metadata.InspectionMap{
@@ -173,12 +173,12 @@ func (s *wheelSuite) TestWheelReadMetadata(c *C) {
 	err = testutils.CreateZip(zipfile, zdir)
 	c.Assert(err, IsNil)
 
-	f, err := files.OpenArtefactFile(zipfile)
+	f, err := files.OpenArtifactFile(zipfile)
 	c.Assert(err, IsNil)
 	defer f.Close()
 
 	ins := pip.NewWheelInspector()
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.Metadata.Type = "application/x.python.wheel"
 	a.SetRequestPending(ins, "test")
 
@@ -323,12 +323,12 @@ func (s *wheelSuite) TestReadWheelRecord(c *C) {
 		err = testutils.CreateZip(zipfile, zdir)
 		c.Assert(err, IsNil)
 
-		f, err := files.OpenArtefactFile(zipfile)
+		f, err := files.OpenArtifactFile(zipfile)
 		c.Assert(err, IsNil)
 		defer f.Close()
 
 		ins := pip.NewWheelInspector()
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.SetRequestPending(ins, "test")
 
 		notes := pip.NewWheelNotes()
@@ -348,22 +348,22 @@ func (s *wheelSuite) TestReadWheelRecord(c *C) {
 	}
 }
 
-func (s *wheelSuite) TestWheelInspectArtefact(c *C) {
+func (s *wheelSuite) TestWheelInspectArtifact(c *C) {
 	tmp := c.MkDir()
 	filename := filepath.Join(tmp, "wheel.data")
 	err := testutils.HTTPDownload(whlURL, filename)
 	c.Assert(err, IsNil)
 
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.MimeType = mimetype.Lookup("application/zip")
 
-	f, err := files.OpenArtefactFile(filename)
+	f, err := files.OpenArtifactFile(filename)
 	c.Assert(err, IsNil)
 	defer f.Close()
 
 	ins := pip.NewWheelInspector()
 	a.SetRequestPending(ins, "test")
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 
 	c.Assert(a.Approved(), Equals, true)

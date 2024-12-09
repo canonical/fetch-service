@@ -74,8 +74,8 @@ func (s *rockcraftSuite) TestUploadPackInspectorID(c *C) {
 
 }
 
-func createTestRockcraftArtefact(checkoutPath string) *metadata.Artefact {
-	a := metadata.NewArtefact()
+func createTestRockcraftArtifact(checkoutPath string) *metadata.Artifact {
+	a := metadata.NewArtifact()
 	a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
 	a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
 	a.Request.Body = io.NopCloser(strings.NewReader("0014command=fetch\n0000"))
@@ -121,9 +121,9 @@ func createTestRockcraftArtefact(checkoutPath string) *metadata.Artefact {
 	return a
 }
 
-func loadTestRockcraftArtefactData() (*files.ArtefactFile, error) {
+func loadTestRockcraftArtifactData() (*files.ArtifactFile, error) {
 	git_capture := filepath.Join("testdata", "rockcraftpkg.raw")
-	file, err := files.OpenArtefactFile(git_capture)
+	file, err := files.OpenArtifactFile(git_capture)
 	return file, err
 }
 
@@ -146,7 +146,7 @@ func (s *rockcraftSuite) TestInspectRockcraftGitRequest(c *C) {
 		{"https://git.lpad.net:443/~user/project/+git/project/git-upload-pack", false},
 	} {
 		ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.CurrentDownload.URL = tc.url
 		a.CurrentDownload.RequestHeader = map[string][]string{
 			"Content-Type": {"application/x-git-upload-pack-request"},
@@ -169,14 +169,14 @@ func (s *rockcraftSuite) TestInspectRockcraftGitRequest(c *C) {
 	}
 }
 
-func (s *rockcraftSuite) TestRockcraftGitInspectArtefact(c *C) {
+func (s *rockcraftSuite) TestRockcraftGitInspectArtifact(c *C) {
 	for _, tc := range []struct {
 		opinion opinions.OpinionKind
 		reason  string
 	}{
 		{opinions.Approved, "rockcraft repository found"},
 	} {
-		f, err := loadTestRockcraftArtefactData()
+		f, err := loadTestRockcraftArtifactData()
 		c.Assert(err, IsNil)
 		defer f.Close()
 
@@ -186,14 +186,14 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtefact(c *C) {
 		err = git.Checkout(checkoutPath, "d9c2c0282d81a993c0011113996b541a1ef1ebc7")
 		c.Assert(err, IsNil)
 
-		a := createTestRockcraftArtefact(checkoutPath)
+		a := createTestRockcraftArtifact(checkoutPath)
 
-		f, err = loadTestRockcraftArtefactData()
+		f, err = loadTestRockcraftArtifactData()
 		c.Assert(err, IsNil)
 		defer f.Close()
 
 		ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
-		err = ins.InspectArtefact(f, a)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
 		inspection := a.ResponseInspection["craft.rockcraft"]
@@ -210,7 +210,7 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtefact(c *C) {
 	}
 }
 
-func (s *rockcraftSuite) TestRockcraftGitInspectArtefactMissingRockcraftYaml(c *C) {
+func (s *rockcraftSuite) TestRockcraftGitInspectArtifactMissingRockcraftYaml(c *C) {
 	tc := struct {
 		is_shallow bool
 		opinion    opinions.OpinionKind
@@ -220,14 +220,14 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtefactMissingRockcraftYaml(c *
 		opinions.Unknown,
 		"git repository does not contain a rockcraft.yaml file",
 	}
-	a := createTestRockcraftArtefact(c.MkDir())
-	f, err := loadTestRockcraftArtefactData()
+	a := createTestRockcraftArtifact(c.MkDir())
+	f, err := loadTestRockcraftArtifactData()
 	c.Assert(err, IsNil)
 	defer f.Close()
 
 	ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
 
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 
 	inspection := a.ResponseInspection["craft.rockcraft"]
@@ -235,7 +235,7 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtefactMissingRockcraftYaml(c *
 	c.Assert(inspection.Reason, Equals, tc.reason)
 }
 
-func (s *rockcraftSuite) TestRockcraftGitInspectArtefactUnreadableRockcraftYaml(c *C) {
+func (s *rockcraftSuite) TestRockcraftGitInspectArtifactUnreadableRockcraftYaml(c *C) {
 	tc := struct {
 		opinion opinions.OpinionKind
 		reason  string
@@ -244,7 +244,7 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtefactUnreadableRockcraftYaml(
 		"cannot open rockcraft.yaml file",
 	}
 
-	f, err := loadTestRockcraftArtefactData()
+	f, err := loadTestRockcraftArtifactData()
 	c.Assert(err, IsNil)
 	defer f.Close()
 
@@ -256,10 +256,10 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtefactUnreadableRockcraftYaml(
 	checkoutPath := c.MkDir()
 	_, err = os.Create(filepath.Join(checkoutPath, "rockcraft.yaml"))
 	c.Assert(err, IsNil)
-	a := createTestSnapcraftArtefact(checkoutPath)
+	a := createTestSnapcraftArtifact(checkoutPath)
 
 	ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 
 	inspection := a.ResponseInspection["craft.rockcraft"]
@@ -267,7 +267,7 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtefactUnreadableRockcraftYaml(
 	c.Assert(inspection.Reason, Equals, tc.reason)
 }
 
-func (s *rockcraftSuite) TestRockcraftGitInspectArtefactUnableToDecodeRockcraftYaml(c *C) {
+func (s *rockcraftSuite) TestRockcraftGitInspectArtifactUnableToDecodeRockcraftYaml(c *C) {
 	tc := struct {
 		opinion opinions.OpinionKind
 		reason  string
@@ -275,7 +275,7 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtefactUnableToDecodeRockcraftY
 		opinions.Rejected,
 		"cannot decode rockcraft.yaml",
 	}
-	f, err := loadTestRockcraftArtefactData()
+	f, err := loadTestRockcraftArtifactData()
 	c.Assert(err, IsNil)
 	defer f.Close()
 
@@ -291,10 +291,10 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtefactUnableToDecodeRockcraftY
 	_, err = os.Create(filepath.Join(checkoutPath, "rockcraft.yaml"))
 	c.Assert(err, IsNil)
 
-	a := createTestRockcraftArtefact(checkoutPath)
+	a := createTestRockcraftArtifact(checkoutPath)
 
 	ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 
 	inspection := a.ResponseInspection["craft.rockcraft"]

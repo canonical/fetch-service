@@ -64,10 +64,10 @@ type GetServiceStatus struct {
 
 type RequestInspection struct {
 	Rch chan error         // Handler response channel
-	A   *metadata.Artefact // Artefact and download metadata
+	A   *metadata.Artifact // Artifact and download metadata
 }
 
-func NewRequestInspection(a *metadata.Artefact) RequestInspection {
+func NewRequestInspection(a *metadata.Artifact) RequestInspection {
 	return RequestInspection{
 		Rch: make(chan error, 1),
 		A:   a,
@@ -76,10 +76,10 @@ func NewRequestInspection(a *metadata.Artefact) RequestInspection {
 
 type ResponseInspection struct {
 	Rch chan error         // Handler response channel
-	A   *metadata.Artefact // Artefact and download metadata
+	A   *metadata.Artifact // Artifact and download metadata
 }
 
-func NewResponseInspection(a *metadata.Artefact) ResponseInspection {
+func NewResponseInspection(a *metadata.Artifact) ResponseInspection {
 	return ResponseInspection{
 		Rch: make(chan error, 1),
 		A:   a,
@@ -148,7 +148,7 @@ func NewSessionReport(sessionId string) SessionReport {
 
 type SessionReportResult struct {
 	*metadata.SessionMetadata
-	Artefacts []*metadata.Artefact `json:"artefacts"`
+	Artifacts []*metadata.Artifact `json:"artifacts"`
 	Err       error                `json:"-"`
 }
 
