@@ -43,19 +43,19 @@ import (
 // metadata in the designated local file spool.
 type FileDownloadHandler struct {
 	ch       chan interface{}   // service message channel
-	a        *metadata.Artefact // artefact metadata
+	a        *metadata.Artifact // artifact metadata
 	tempfile *os.File           // copy of streamed data
 	body     io.ReadCloser      // response body
 }
 
-func NewFileDownloadHandler(resp *http.Response, a *metadata.Artefact, spool string, ch chan interface{}) (*FileDownloadHandler, error) {
+func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool string, ch chan interface{}) (*FileDownloadHandler, error) {
 	r := resp.Request
 	sessionId := r.Header.Get(sessionIdHeader)
 	insTimeout := 60 * time.Second // XXX: make this a configurable parameter
 	assetDir := filepath.Join(spool, sessionId, "assets")
 	cacheDir := filepath.Join(spool, sessionId, "cache")
 
-	tempfile, err := os.CreateTemp("", "artefact-")
+	tempfile, err := os.CreateTemp("", "artifact-")
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artefact, spool str
 			return nil, err
 		}
 	case <-time.After(insTimeout):
-		return nil, fmt.Errorf("inspection of artefact %s timed out", a.Metadata.Sha256)
+		return nil, fmt.Errorf("inspection of artifact %s timed out", a.Metadata.Sha256)
 	}
 
 	filename := fmt.Sprintf("%s.data", a.Metadata.Sha256)
@@ -106,7 +106,7 @@ func (h *FileDownloadHandler) Close() error {
 }
 
 // localDownload stores the response body locally.
-func localDownload(resp *http.Response, a *metadata.Artefact, tempfile io.WriteCloser) error {
+func localDownload(resp *http.Response, a *metadata.Artifact, tempfile io.WriteCloser) error {
 	// download file for local buffering
 	resp.Body = NewLocalDownloadHandler(resp, a)
 	logger.Debugf("downloading %s...", resp.Request.URL)
@@ -132,16 +132,16 @@ func localDownload(resp *http.Response, a *metadata.Artefact, tempfile io.WriteC
 	return nil
 }
 
-// LocalDownloadHandler computes digests during artefact download.
+// LocalDownloadHandler computes digests during artifact download.
 type LocalDownloadHandler struct {
-	a      *metadata.Artefact // artefact metadata
+	a      *metadata.Artifact // artifact metadata
 	size   int64              // streamed data size
 	sha1   hash.Hash          // sha1 digest of streamed data
 	sha256 hash.Hash          // sha256 digest of streamed data
 	body   io.ReadCloser      // response body
 }
 
-func NewLocalDownloadHandler(resp *http.Response, a *metadata.Artefact) *LocalDownloadHandler {
+func NewLocalDownloadHandler(resp *http.Response, a *metadata.Artifact) *LocalDownloadHandler {
 	logger.Debugf("create new proxy downloader")
 
 	return &LocalDownloadHandler{

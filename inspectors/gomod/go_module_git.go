@@ -60,7 +60,7 @@ func (GoModuleGitInspector) ID() string {
 //   - The request URL must match a valid upload-pack pattern.
 //   - The upload-pack command must be "ls-refs" or "fetch".
 //   - If command is "fetch", it must want a single shallow ref.
-func (ins *GoModuleGitInspector) InspectRequest(a RequestArtefact) error {
+func (ins *GoModuleGitInspector) InspectRequest(a RequestArtifact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -88,9 +88,9 @@ func (ins *GoModuleGitInspector) InspectRequest(a RequestArtefact) error {
 	return nil
 }
 
-// InspectArtefact verifies if the fetched repository data
+// InspectArtifact verifies if the fetched repository data
 // contains a go module.
-func (ins *GoModuleGitInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+func (ins *GoModuleGitInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 
 	if a.ContentType() != "application/x-git-upload-pack-result" {
 		return nil
@@ -104,7 +104,7 @@ func (ins *GoModuleGitInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 	}
 	notes := Annotation{}
 
-	logger.Debugf("inspect git upload-pack artefact: checkout at %q", checkoutPath)
+	logger.Debugf("inspect git upload-pack artifact: checkout at %q", checkoutPath)
 
 	goModPath := filepath.Join(checkoutPath, "go.mod")
 	if _, err := os.Stat(goModPath); err != nil {
@@ -120,7 +120,7 @@ func (ins *GoModuleGitInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 		)
 	}
 
-	md := ArtefactMetadata{Type: mimetypes.GoModuleGit}
+	md := ArtifactMetadata{Type: mimetypes.GoModuleGit}
 
 	parts := strings.Split(mod.Name, "/")
 	n := len(parts)
@@ -167,7 +167,7 @@ func (ins *GoModuleGitInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 		notes.Add("go", mod.GoVersion)
 	}
 
-	a.SetArtefactMetadata(md)
+	a.SetArtifactMetadata(md)
 
 	// Reject if version not found
 	if md.Version == "" {

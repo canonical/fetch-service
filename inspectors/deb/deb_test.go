@@ -82,7 +82,7 @@ func (s *debSuite) TestInspectRequest(c *C) {
 		{"http://not-archive.ubuntu.com/ubuntu/pool/main/libe/liberror-perl/liberror-perl_0.17029-1_all.deb", false},
 	} {
 		ins := deb.NewDebInspector(getTestAptConfig())
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 
 		err := ins.InspectRequest(a)
@@ -96,7 +96,7 @@ func (s *debSuite) TestInspectRequest(c *C) {
 	}
 }
 
-func (s *debSuite) TestDebArtefactInspector(c *C) {
+func (s *debSuite) TestDebArtifactInspector(c *C) {
 	for _, tc := range []struct {
 		testfile string
 		approved bool
@@ -104,17 +104,17 @@ func (s *debSuite) TestDebArtefactInspector(c *C) {
 		{"testdata/hello_2.10-2ubuntu4_amd64.deb", true},
 		{"testdata/2048.package", false},
 	} {
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.Metadata.Type = "application/vnd.debian.binary-package"
 		a.MimeType = mimetype.Lookup("application/vnd.debian.binary-package")
 
-		f, err := files.OpenArtefactFile(tc.testfile)
+		f, err := files.OpenArtifactFile(tc.testfile)
 		c.Assert(err, IsNil)
 		defer f.Close()
 
 		ins := deb.NewDebInspector(getTestAptConfig())
 		a.SetRequestPending(ins, "test")
-		err = ins.InspectArtefact(f, a)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 		c.Assert(a.Approved(), Equals, tc.approved)
 

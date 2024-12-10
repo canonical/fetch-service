@@ -49,7 +49,7 @@ func (CargoIndexInspector) ID() string {
 	return "cargo.index"
 }
 
-func (ins *CargoIndexInspector) InspectRequest(a RequestArtefact) error {
+func (ins *CargoIndexInspector) InspectRequest(a RequestArtifact) error {
 	url := a.DownloadURL()
 	origin := indexRequestOrigin.FindString(url)
 	if origin == "" {
@@ -86,20 +86,20 @@ func (ins *CargoIndexInspector) InspectRequest(a RequestArtefact) error {
 	return nil
 }
 
-func (ins *CargoIndexInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+func (ins *CargoIndexInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	config, ok := a.RequestBoolAnnotation(ins.ID(), "is-config")
 	if !ok {
 		return nil
 	}
 
 	if config {
-		md, err := handleConfigArtefact(f, a)
+		md, err := handleConfigArtifact(f, a)
 		if err != nil {
 			return err
 		}
 
 		if md != nil {
-			a.SetArtefactMetadata(*md)
+			a.SetArtifactMetadata(*md)
 			a.SetResponseApproved(ins, "document contains valid config.json")
 		}
 
@@ -112,13 +112,13 @@ func (ins *CargoIndexInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 		return nil
 	}
 
-	md, err := handleCrateArtefact(f, a)
+	md, err := handleCrateArtifact(f, a)
 	if err != nil {
 		return err
 	}
 
 	if md != nil && md.Name == crate {
-		a.SetArtefactMetadata(*md)
+		a.SetArtifactMetadata(*md)
 		a.SetResponseApproved(ins, "document contains valid crate index")
 	}
 
@@ -126,7 +126,7 @@ func (ins *CargoIndexInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 
 }
 
-func handleConfigArtefact(f ArtefactReader, a ResponseArtefact) (*ArtefactMetadata, error) {
+func handleConfigArtifact(f ArtifactReader, a ResponseArtifact) (*ArtifactMetadata, error) {
 	if !a.MimetypeIs("application/json") {
 		return nil, nil
 	}
@@ -141,7 +141,7 @@ func handleConfigArtefact(f ArtefactReader, a ResponseArtefact) (*ArtefactMetada
 		return nil, nil
 	}
 
-	md := ArtefactMetadata{
+	md := ArtifactMetadata{
 		Type:        "application/json",
 		Name:        "config.json for Cargo package index",
 		Description: "config.json for Cargo package index",
@@ -155,7 +155,7 @@ func handleConfigArtefact(f ArtefactReader, a ResponseArtefact) (*ArtefactMetada
 /*
 {"name":"time","vers":"0.0.1","deps":[{"name":"gcc","req":"*","features":[],"optional":false,"default_features":true,"target":null,"kind":"normal"}],"cksum":"a623e34ae3050ff0e09f6488bb2cc5440bd7ec2b3596286683026bbd697bb447","features":{},"yanked":true}
 */
-func handleCrateArtefact(f ArtefactReader, a ResponseArtefact) (*ArtefactMetadata, error) {
+func handleCrateArtifact(f ArtifactReader, a ResponseArtifact) (*ArtifactMetadata, error) {
 	if !a.MimetypeIs("application/x-ndjson") {
 		return nil, nil
 	}
@@ -171,7 +171,7 @@ func handleCrateArtefact(f ArtefactReader, a ResponseArtefact) (*ArtefactMetadat
 		return nil, nil
 	}
 
-	md := ArtefactMetadata{
+	md := ArtifactMetadata{
 		Type:        "application/x-ndjson",
 		Name:        entry.Name,
 		Description: fmt.Sprintf(`Cargo package index for crate "%s"`, entry.Name),

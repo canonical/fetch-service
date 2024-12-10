@@ -32,7 +32,7 @@ const (
 var osStat = os.Stat
 var osOpen = os.Open
 
-func checkGitRequestHeaders(a RequestArtefact) bool {
+func checkGitRequestHeaders(a RequestArtifact) bool {
 	return a.RequestHeaderContains("Content-Type", "application/x-git-upload-pack-request") &&
 		a.RequestHeaderContains("Accept", "application/x-git-upload-pack-result")
 }

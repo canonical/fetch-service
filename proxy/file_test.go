@@ -69,7 +69,7 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 		Header:     http.Header{"Content-Type": []string{"application/x-test"}},
 	}
 
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.CurrentDownload.URL = req.URL.String()
 	a.CurrentDownload.Address = req.RemoteAddr
 	a.CurrentDownload.Method = req.Method
@@ -135,7 +135,7 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 		Body:       io.NopCloser(bytes.NewBufferString("Response body")), // same content
 	}
 
-	a = metadata.NewArtefact()
+	a = metadata.NewArtifact()
 	a.CurrentDownload.URL = req.URL.String()
 	a.CurrentDownload.Address = req.RemoteAddr
 	a.CurrentDownload.Method = req.Method

@@ -26,7 +26,7 @@ During the request the inspector records requested crate name and version.
 File format
 -----------
 
-To be considered a crate file, an artefact must meet the following criteria:
+To be considered a crate file, an artifact must meet the following criteria:
 
 * It must be a gzip archive
 * The archive must contain a root directory called ``<name>-<version>``, where

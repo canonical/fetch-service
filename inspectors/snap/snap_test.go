@@ -94,7 +94,7 @@ func (s *snapSuite) TestInspectRequest(c *C) {
 		{"https://api.snapcraft.io/v2/snaps/info", false},
 	} {
 		ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 
 		err := ins.InspectRequest(a)
@@ -110,25 +110,25 @@ func (s *snapSuite) TestInspectRequest(c *C) {
 
 func (s *snapSuite) TestInspectRequestError(c *C) {
 	ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.CurrentDownload = metadata.Download{URL: "::"}
 
 	err := ins.InspectRequest(a)
 	c.Assert(err, ErrorMatches, ".*: missing protocol scheme")
 }
 
-func (s *snapSuite) TestSnapArtefactInspector(c *C) {
-	a := metadata.NewArtefact()
+func (s *snapSuite) TestSnapArtifactInspector(c *C) {
+	a := metadata.NewArtifact()
 	a.Metadata.Type = "application/x.squashfs"
 	a.Metadata.Size = 8192
 
-	f, err := files.OpenArtefactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
+	f, err := files.OpenArtifactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
 	c.Assert(err, IsNil)
 	defer f.Close()
 
 	ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
 	a.SetRequestPending(ins, "test")
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 
 	c.Check(a.Approved(), Equals, true)
@@ -175,25 +175,25 @@ func (s *snapSuite) TestSnapArtefactInspector(c *C) {
 	})
 }
 
-func (s *snapSuite) TestSnapArtefactInspectorSkip(c *C) {
-	a := metadata.NewArtefact()
+func (s *snapSuite) TestSnapArtifactInspectorSkip(c *C) {
+	a := metadata.NewArtifact()
 	a.Metadata.Type = "application/octet-stream"
 	a.Metadata.Size = 8192
 
-	f, err := files.OpenArtefactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
+	f, err := files.OpenArtifactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
 	c.Assert(err, IsNil)
 	defer f.Close()
 
 	ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
 	a.SetRequestPending(ins, "test")
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 
 	c.Check(a.ResponseInspection["snap"], IsNil)
 	c.Check(a.Rejected(), Equals, true)
 }
 
-func (s *snapSuite) TestSnapArtefactInspectorError(c *C) {
+func (s *snapSuite) TestSnapArtifactInspectorError(c *C) {
 	restore := snap.MockDownloadAccountAssertion(fakeAccountAssertion)
 	defer restore()
 
@@ -248,23 +248,23 @@ func (s *snapSuite) TestSnapArtefactInspectorError(c *C) {
 			defer restorer()
 		}
 
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.Metadata.Type = "application/x.squashfs"
 		a.Metadata.Size = 8192
 
-		f, err := files.OpenArtefactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
+		f, err := files.OpenArtifactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
 		c.Assert(err, IsNil)
 		defer f.Close()
 
 		ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
 		a.SetRequestPending(ins, "test")
-		err = ins.InspectArtefact(f, a)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, Not(IsNil))
 		c.Check(err.Error(), Equals, tc.errorMsg)
 	}
 }
 
-func (s *snapSuite) TestSnapArtefactInspectorReject(c *C) {
+func (s *snapSuite) TestSnapArtifactInspectorReject(c *C) {
 	restore := snap.MockDownloadAccountAssertion(fakeAccountAssertion)
 	defer restore()
 
@@ -369,17 +369,17 @@ func (s *snapSuite) TestSnapArtefactInspectorReject(c *C) {
 			defer restorer()
 		}
 
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.Metadata.Type = "application/x.squashfs"
 		a.Metadata.Size = 8192
 
-		f, err := files.OpenArtefactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
+		f, err := files.OpenArtifactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
 		c.Assert(err, IsNil)
 		defer f.Close()
 
 		ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
 		a.SetRequestPending(ins, "test")
-		err = ins.InspectArtefact(f, a)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
 		c.Assert(a.Rejected(), Equals, true)
@@ -526,17 +526,17 @@ func (s *snapSuite) TestSnapDeclarationFilter(c *C) {
 	} {
 		cfg := config.SnapInspectorConfig{SnapDeclarationFilter: tc.filter}
 
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.Metadata.Type = "application/x.squashfs"
 		a.Metadata.Size = 8192
 
-		f, err := files.OpenArtefactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
+		f, err := files.OpenArtifactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
 		c.Assert(err, IsNil)
 		defer f.Close()
 
 		ins := snap.NewSnapInspector(cfg)
 		a.SetRequestPending(ins, "test")
-		err = ins.InspectArtefact(f, a)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
 		if tc.rejectReason == "" {

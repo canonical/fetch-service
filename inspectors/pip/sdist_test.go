@@ -72,7 +72,7 @@ func (s *sdistSuite) TestInspectRequest(c *C) {
 		{"ahttps://files.pythonhosted.org:443/packages/0f/9a/0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab/foobar-1.0.0.tar.gz", false},
 	} {
 		ins := pip.NewSdistInspector()
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 
 		err := ins.InspectRequest(a)
@@ -86,18 +86,18 @@ func (s *sdistSuite) TestInspectRequest(c *C) {
 	}
 }
 
-func (s *sdistSuite) TestInspectArtefactBadType(c *C) {
+func (s *sdistSuite) TestInspectArtifactBadType(c *C) {
 	ins := pip.NewSdistInspector()
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.MimeType = mimetype.Lookup("application/zip")
 
-	err := ins.InspectArtefact(nil, a)
+	err := ins.InspectArtifact(nil, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, false)
 	c.Assert(a.Rejected(), Equals, true)
 }
 
-func (s *sdistSuite) TestSdistInspectArtefactReadMetadata(c *C) {
+func (s *sdistSuite) TestSdistInspectArtifactReadMetadata(c *C) {
 	tmp := c.MkDir()
 	testfile := filepath.Join(tmp, "test.tar.gz")
 
@@ -159,16 +159,16 @@ func (s *sdistSuite) TestSdistInspectArtefactReadMetadata(c *C) {
 	c.Assert(err, IsNil)
 
 	// Inspect test sdist
-	f, err := files.OpenArtefactFile(testfile)
+	f, err := files.OpenArtifactFile(testfile)
 	c.Assert(err, IsNil)
 	defer f.Close()
 
 	ins := pip.NewSdistInspector()
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.MimeType = mimetype.Lookup("application/gzip")
 	a.SetRequestPending(ins, "test")
 
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
 	c.Assert(a.Metadata.Name, Equals, "craft-parts")
@@ -187,7 +187,7 @@ func (s *sdistSuite) TestSdistInspectArtefactReadMetadata(c *C) {
 	})
 }
 
-func (s *sdistSuite) TestSdistInspectArtefactBadFormat(c *C) {
+func (s *sdistSuite) TestSdistInspectArtifactBadFormat(c *C) {
 	tmp := c.MkDir()
 	testfile := filepath.Join(tmp, "test.tar.gz")
 
@@ -235,16 +235,16 @@ func (s *sdistSuite) TestSdistInspectArtefactBadFormat(c *C) {
 		c.Assert(err, IsNil)
 
 		// Inspect test sdist
-		f, err := files.OpenArtefactFile(testfile)
+		f, err := files.OpenArtifactFile(testfile)
 		c.Assert(err, IsNil)
 		defer f.Close()
 
 		ins := pip.NewSdistInspector()
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.MimeType = mimetype.Lookup("application/gzip")
 		a.SetRequestPending(ins, "test")
 
-		err = ins.InspectArtefact(f, a)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
 		if tc.approved {

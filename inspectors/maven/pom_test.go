@@ -46,7 +46,7 @@ var pomurltests = []struct {
 
 	// expected output
 	group_id    string
-	artefact_id string
+	artifact_id string
 	version     string
 }{
 	{"/joda-time/joda-time/2.2/joda-time-2.2.pom", "joda-time", "joda-time", "2.2"},
@@ -56,7 +56,7 @@ var pomurltests = []struct {
 func (s *mavenSuite) TestPomInspectRequest(c *C) {
 	for _, pt := range pomurltests {
 		ins := maven.NewPomInspector()
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: "https://repo.maven.apache.org:443/maven2" + pt.slug}
 
 		err := ins.InspectRequest(a)
@@ -67,7 +67,7 @@ func (s *mavenSuite) TestPomInspectRequest(c *C) {
 		c.Assert(insp.Opinion, Equals, opinions.Pending)
 
 		c.Check(a.RequestInspection[ins.ID()].Annotations["group-id"], Equals, pt.group_id)
-		c.Check(a.RequestInspection[ins.ID()].Annotations["artefact-id"], Equals, pt.artefact_id)
+		c.Check(a.RequestInspection[ins.ID()].Annotations["artifact-id"], Equals, pt.artifact_id)
 		c.Check(a.RequestInspection[ins.ID()].Annotations["version"], Equals, pt.version)
 	}
 }
@@ -76,7 +76,7 @@ var pomtests = []struct {
 	filename    string
 	slug        string
 	group_id    string
-	artefact_id string
+	artifact_id string
 	version     string
 
 	description string
@@ -101,14 +101,14 @@ var pomtests = []struct {
 	},
 }
 
-func (s *mavenSuite) TestPomInspectArtefact(c *C) {
+func (s *mavenSuite) TestPomInspectArtifact(c *C) {
 	for _, jt := range pomtests {
 		filename := filepath.Join("testdata", jt.filename)
 
 		ins := maven.NewPomInspector()
 		h, _ := digests.NewSha1Digest("a5f29a7acaddea3f4af307e8cf2d0cc82645fd7d")
 
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.Metadata.Type = "text/xml"
 		a.Metadata.Sha1 = h
 		a.MimeType = mimetype.Lookup("text/xml")
@@ -116,20 +116,20 @@ func (s *mavenSuite) TestPomInspectArtefact(c *C) {
 		a.RequestInspection[ins.ID()] = &Inspection{
 			Opinion:     opinions.Pending,
 			Reason:      "some reason",
-			Annotations: Annotation{"group-id": jt.group_id, "artefact-id": jt.artefact_id, "version": jt.version},
+			Annotations: Annotation{"group-id": jt.group_id, "artifact-id": jt.artifact_id, "version": jt.version},
 		}
 
-		f, err := files.OpenArtefactFile(filename)
+		f, err := files.OpenArtifactFile(filename)
 		c.Assert(err, IsNil)
 		defer f.Close()
 
-		err = ins.InspectArtefact(f, a)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
 		c.Assert(a.Approved(), Equals, true)
 
 		c.Check(a.Metadata.Type, Equals, "text/xml")
-		c.Check(a.Metadata.Name, Equals, fmt.Sprintf(`Maven POM file for '%s'`, jt.artefact_id))
+		c.Check(a.Metadata.Name, Equals, fmt.Sprintf(`Maven POM file for '%s'`, jt.artifact_id))
 		c.Check(a.Metadata.Version, Equals, jt.version)
 		c.Check(a.Metadata.Description, Equals, jt.description)
 		c.Check(a.Metadata.Author, Equals, jt.author)

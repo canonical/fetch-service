@@ -83,7 +83,7 @@ func (s *smartQuerySuite) TestInspectRequest(c *C) {
 		{"https://git.lpad.net:443/~user/project/+git/project/info/refs", false},
 	} {
 		ins := git.NewSmartQueryInspector(getTestConfig())
-		a := fakeGitArtefact()
+		a := fakeGitArtifact()
 		a.CurrentDownload.URL = tc.url
 
 		err := ins.InspectRequest(a)
@@ -97,7 +97,7 @@ func (s *smartQuerySuite) TestInspectRequest(c *C) {
 	}
 }
 
-var smartQueryArtefactData = `001e# service=git-upload-pack
+var smartQueryArtifactData = `001e# service=git-upload-pack
 0000000eversion 2
 0022agent=git/github-de75ed0166ec
 0013ls-refs=unborn
@@ -106,23 +106,23 @@ var smartQueryArtefactData = `001e# service=git-upload-pack
 0017object-format=sha1
 0000`
 
-func (s *smartQuerySuite) TestSmartQueryInspectArtefact(c *C) {
+func (s *smartQuerySuite) TestSmartQueryInspectArtifact(c *C) {
 	for _, tc := range []struct {
 		data   string
 		result bool
 	}{
-		{smartQueryArtefactData, true},
-		{smartQueryArtefactData[1:], false},
-		{smartQueryArtefactData[:len(smartQueryArtefactData)-1], false},
+		{smartQueryArtifactData, true},
+		{smartQueryArtifactData[1:], false},
+		{smartQueryArtifactData[:len(smartQueryArtifactData)-1], false},
 	} {
-		a := fakeGitArtefact()
+		a := fakeGitArtifact()
 		a.CurrentDownload.ContentType = "application/x-git-upload-pack-advertisement"
 
 		f := strings.NewReader(tc.data)
 
 		ins := git.NewSmartQueryInspector(config.GitInspectorConfig{})
 		a.SetRequestPending(ins, "test")
-		err := ins.InspectArtefact(f, a)
+		err := ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
 		c.Check(a.Metadata.Type, Equals, "application/x.git.upload-pack-advertisement")

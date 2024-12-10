@@ -18,12 +18,12 @@ Request verification
 --------------------
 
 The current implementation allows downloads from the PyPI archive. This
-will be changed to match an internal repository of binary artefacts.
+will be changed to match an internal repository of binary artifacts.
 
 File format
 -----------
 
-To be considered an sdist file, an artefact must meet the following criteria:
+To be considered an sdist file, an artifact must meet the following criteria:
 
 * It must be a gzipped tar archive.
 * It must contain a ``PKG-INFO`` file in the root directory.

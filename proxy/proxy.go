@@ -49,7 +49,7 @@ const (
 
 // proxyData contains contextual information for request and response handlers.
 type proxyData struct {
-	a *metadata.Artefact // the artefact to be inspected
+	a *metadata.Artifact // the artifact to be inspected
 }
 
 // HttpProxy implements a proxy that inspects downloaded contents.
@@ -186,7 +186,7 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 		}
 	}
 
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.Request = req
 	a.SessionId = req.Header.Get(sessionIdHeader)
 
@@ -237,7 +237,7 @@ func (p *HttpProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) 
 			os.Remove(a.Tempfile)
 		}
 		//a.CurrentDownload.EndTime = time.Now().UTC()
-		if err == common.ErrRejectedArtefact {
+		if err == common.ErrRejectedArtifact {
 			logger.Infof("[proxy] file download not authorized: %s", err)
 			return forbiddenResponse(resp.Request, "Download not authorized")
 		}

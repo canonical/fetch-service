@@ -69,7 +69,7 @@ func (s *cargoSuite) TestCargoInspectorID(c *C) {
 
 func (s *cargoSuite) TestCargoInspectRequest(c *C) {
 	ins := cargo.NewCrateInspector()
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.CurrentDownload = metadata.Download{URL: libc_url}
 
 	err := ins.InspectRequest(a)
@@ -85,7 +85,7 @@ func (s *cargoSuite) TestCargoInspectRequest(c *C) {
 
 func (s *cargoSuite) TestCargoInspectRequestBadOrigin(c *C) {
 	ins := cargo.NewCrateInspector()
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.CurrentDownload = metadata.Download{URL: "https://bad.origin.io:443/crates/libc/0.2.155/download"}
 
 	err := ins.InspectRequest(a)
@@ -97,7 +97,7 @@ func (s *cargoSuite) TestCargoInspectRequestBadOrigin(c *C) {
 
 func (s *cargoSuite) TestCargoInspectRequestBadSlug(c *C) {
 	ins := cargo.NewCrateInspector()
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.CurrentDownload = metadata.Download{URL: "https://static.crates.io:443/packages/libc/0.2.155/download"}
 
 	err := ins.InspectRequest(a)
@@ -107,7 +107,7 @@ func (s *cargoSuite) TestCargoInspectRequestBadSlug(c *C) {
 	c.Assert(ok, Equals, false)
 }
 
-func (s *cargoSuite) TestCargoInspectArtefact(c *C) {
+func (s *cargoSuite) TestCargoInspectArtifact(c *C) {
 	tmp := c.MkDir()
 	filename := filepath.Join(tmp, "libc-0.2.155.crate")
 
@@ -117,13 +117,13 @@ func (s *cargoSuite) TestCargoInspectArtefact(c *C) {
 	}
 
 	ins := cargo.NewCrateInspector()
-	a := createArtefact(ins)
+	a := createArtifact(ins)
 
-	f, err := files.OpenArtefactFile(filename)
+	f, err := files.OpenArtifactFile(filename)
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
 
@@ -138,7 +138,7 @@ func (s *cargoSuite) TestCargoInspectArtefact(c *C) {
 	c.Assert(a.Approved(), Equals, true)
 }
 
-func (s *cargoSuite) TestCargoInspectArtefactNoCargoToml(c *C) {
+func (s *cargoSuite) TestCargoInspectArtifactNoCargoToml(c *C) {
 	tmp := c.MkDir()
 	filename := filepath.Join(tmp, "libc-0.2.155.crate")
 
@@ -148,18 +148,18 @@ func (s *cargoSuite) TestCargoInspectArtefactNoCargoToml(c *C) {
 	}
 
 	ins := cargo.NewCrateInspector()
-	a := createArtefact(ins)
+	a := createArtifact(ins)
 
-	f, err := files.OpenArtefactFile(filename)
+	f, err := files.OpenArtifactFile(filename)
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, false)
 }
 
-func (s *cargoSuite) TestCargoInspectArtefactBadCargoToml(c *C) {
+func (s *cargoSuite) TestCargoInspectArtifactBadCargoToml(c *C) {
 	tmp := c.MkDir()
 	filename := filepath.Join(tmp, "libc-0.2.155.crate")
 
@@ -171,13 +171,13 @@ func (s *cargoSuite) TestCargoInspectArtefactBadCargoToml(c *C) {
 	}
 
 	ins := cargo.NewCrateInspector()
-	a := createArtefact(ins)
+	a := createArtifact(ins)
 
-	f, err := files.OpenArtefactFile(filename)
+	f, err := files.OpenArtifactFile(filename)
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, false)
 }
@@ -213,10 +213,10 @@ func createTarball(filename, subdir, contents string) error {
 	return nil
 }
 
-func createArtefact(ins Inspector) *metadata.Artefact {
+func createArtifact(ins Inspector) *metadata.Artifact {
 	h, _ := digests.NewSha1Digest("42962163ae017f7c2ffbcb79e4268e9c6250b8d9")
 
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.Metadata.Type = "application/gzip"
 	a.Metadata.Sha1 = h
 	a.MimeType = mimetype.Lookup("application/gzip")

@@ -18,13 +18,13 @@ Request verification
 --------------------
 
 The current implementation allows downloads from the PyPI archive. This
-will be changed to match an internal repository of binary artefacts. The
+will be changed to match an internal repository of binary artifacts. The
 downloaded file must have the ``.metadata`` suffix.
 
 File format
 -----------
 
-To be considered a Python metadata file, an artefact must meet the
+To be considered a Python metadata file, an artifact must meet the
 following criteria:
 
 * It must be a plain text file.

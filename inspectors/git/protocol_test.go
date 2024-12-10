@@ -40,14 +40,14 @@ func (t *protocolSuite) SetUpTest(c *C) {
 }
 
 func (s *protocolSuite) TestGetGitProtocol(c *C) {
-	a := fakeGitArtefact()
+	a := fakeGitArtifact()
 	proto := git.GetGitProtocol(a)
 	c.Assert(proto, Equals, "version=2")
 
 }
 
 func (s *protocolSuite) TestGetGitProtocolFail(c *C) {
-	a := metadata.NewArtefact() // not a git artefact
+	a := metadata.NewArtifact() // not a git artifact
 	proto := git.GetGitProtocol(a)
 	c.Assert(proto, Equals, "")
 }
@@ -89,8 +89,8 @@ func (s *protocolSuite) TestDecodeGitProtocolFail(c *C) {
 	}
 }
 
-func fakeGitArtefact() *metadata.Artefact {
-	a := metadata.NewArtefact()
+func fakeGitArtifact() *metadata.Artifact {
+	a := metadata.NewArtifact()
 	a.CurrentDownload.RequestHeader = map[string][]string{
 		"Accept":          []string{"application/x-git-upload-pack-result"},
 		"Accept-Encoding": []string{"deflate, gzip, br, zstd"},
@@ -107,8 +107,8 @@ func fakeGitArtefact() *metadata.Artefact {
 	return a
 }
 
-func fakeGitArtefactUnsuportedProtocol() *metadata.Artefact {
-	a := metadata.NewArtefact()
+func fakeGitArtifactUnsuportedProtocol() *metadata.Artifact {
+	a := metadata.NewArtifact()
 	a.CurrentDownload.RequestHeader = map[string][]string{
 		"Accept":          []string{"application/x-git-upload-pack-result"},
 		"Accept-Encoding": []string{"deflate, gzip, br, zstd"},
@@ -125,8 +125,8 @@ func fakeGitArtefactUnsuportedProtocol() *metadata.Artefact {
 	return a
 }
 
-func fakeGitArtefactNoProtocolVersion() *metadata.Artefact {
-	a := metadata.NewArtefact()
+func fakeGitArtifactNoProtocolVersion() *metadata.Artifact {
+	a := metadata.NewArtifact()
 	a.CurrentDownload.RequestHeader = map[string][]string{
 		"Accept":          []string{"application/x-git-upload-pack-result"},
 		"Accept-Encoding": []string{"deflate, gzip, br, zstd"},

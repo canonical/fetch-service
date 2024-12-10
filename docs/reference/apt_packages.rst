@@ -44,7 +44,7 @@ The APT release inspector expects the Packages file to:
 Acceptance criteria
 -------------------
 
-To be approved, the artefacts examined by this inspector must comply
+To be approved, the artifacts examined by this inspector must comply
 to the following rules:
 
 * The ``Packages.xz`` file must follow the format described in the
