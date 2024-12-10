@@ -34,8 +34,8 @@ import (
 	"github.com/canonical/fetch-service/logger"
 )
 
-// Check if the given data could be a valid Translation file.
-// The Translation file should contain the following fields:
+// Check if the given data could be a valid translation file.
+// The translation file should contain the following fields:
 // - Package
 // - Description-md5
 // - Description-<lang>
@@ -163,7 +163,7 @@ func (ins *AptTranslationInspector) InspectArtefact(f ArtefactReader, a Response
 
 		if strings.HasPrefix(line, "Package: ") {
 			if state_package {
-				a.SetResponseRejected(ins, "misplaced Package fields in Translation file")
+				a.SetResponseRejected(ins, "misplaced package fields in translation file")
 				return nil
 			}
 			state_package = true
