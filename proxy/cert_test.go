@@ -91,7 +91,7 @@ func (t *certSuite) TestUpdateCert(c *C) {
 		{false, append(append(testutils.ProxyCert, []byte("\n\n")...), testutils.ProxyKey...), ""},
 		{true, []byte{}, "cannot parse certificate and key"},
 		{true, testutils.ProxyCert, "cannot parse certificate and key"},
-		{true, testutils.ProxyCert, "cannot parse certificate and key"},
+		{true, testutils.ProxyKey, "cannot parse certificate and key"},
 	} {
 		dir := c.MkDir()
 		certPath := filepath.Join(dir, "cert.txt")
