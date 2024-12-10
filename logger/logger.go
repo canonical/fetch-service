@@ -21,6 +21,7 @@ package logger
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 )
@@ -59,15 +60,14 @@ func Init(lv Level, logFilepath string) error {
 }
 
 // Close finalizes the logging system.
-func Close() error {
+func Close() {
 	if logFile != nil {
-		log.SetOutput(os.Stdout)
 		if err := logFile.Close(); err != nil {
-			return err
+			fmt.Fprintf(os.Stderr, "cannot close logfile: %s\n", err)
 		}
-		logFile = nil
+	} else {
+		log.SetOutput(io.Discard)
 	}
-	return nil
 }
 
 // SetLevel updates the current logging level.

@@ -176,8 +176,8 @@ func (s *logSuite) TestLogToFile(c *C) {
 	logger.Debug("Debug message")
 	logger.Info("Info message")
 	logger.Warning("Warning message")
-	err = logger.Close()
-	c.Assert(err, IsNil)
+	logger.Close()
+	logger.Info("No message")
 
 	buf, err := os.ReadFile(logPath)
 	c.Assert(err, IsNil)
@@ -187,6 +187,7 @@ func (s *logSuite) TestLogToFile(c *C) {
 	c.Assert(strings.Contains(lines[0], "DEBUG: Debug message"), Equals, true)
 	c.Assert(strings.Contains(lines[1], "INFO : Info message"), Equals, true)
 	c.Assert(strings.Contains(lines[2], "WARN : Warning message"), Equals, true)
+	c.Assert(lines[3], Equals, "")
 }
 
 func (s *logSuite) TestLogToFileError(c *C) {
