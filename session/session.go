@@ -27,7 +27,6 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -280,7 +279,7 @@ func (s *Session) SaveData(digest digests.Sha256Digest) error {
 
 	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
 	if err := osMkdirAll(filepath.Dir(dest), 0755); err != nil {
-		os.Remove(a.Tempfile)
+		removeTempFile(a.Tempfile)
 		return err
 	}
 
@@ -289,16 +288,16 @@ func (s *Session) SaveData(digest digests.Sha256Digest) error {
 		if os.IsNotExist(err) {
 			// Move temporary file to spool
 			if err := utils.MoveFile(a.Tempfile, dest); err != nil {
-				os.Remove(a.Tempfile)
+				removeTempFile(a.Tempfile)
 				return err
 			}
 		} else {
-			os.Remove(a.Tempfile)
+			removeTempFile(a.Tempfile)
 			return err
 		}
 	} else {
 		// Remove temporary file if it already exists
-		os.Remove(a.Tempfile)
+		removeTempFile(a.Tempfile)
 	}
 
 	return nil
@@ -325,6 +324,12 @@ func (s *Session) SaveMetadata(digest digests.Sha256Digest) error {
 	return nil
 }
 
+func removeTempFile(name string) {
+	if err := os.Remove(name); err != nil {
+		logger.Warningf("cannot remove temporary file %s: %s", name, err)
+	}
+}
+
 // Generate a unique session ID
 func makeSessionIdImpl() string {
 	id := [16]byte(uuid.New())
@@ -334,11 +339,11 @@ func makeSessionIdImpl() string {
 // Generate a random string with the specified length.
 func randomStringImpl(length int) string {
 	chars := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-	var b strings.Builder
+	b := make([]byte, length)
 	for i := 0; i < length; i++ {
-		b.WriteByte(chars[rand.Intn(len(chars))])
+		b[i] = chars[rand.Intn(len(chars))]
 	}
-	return b.String()
+	return string(b)
 
 }
 

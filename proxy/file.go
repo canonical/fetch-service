@@ -114,7 +114,10 @@ func localDownload(resp *http.Response, a *metadata.Artifact, tempfile io.WriteC
 	if err != nil {
 		return err
 	}
-	resp.Body.Close()
+
+	if err := resp.Body.Close(); err != nil {
+		return err
+	}
 
 	if size != a.Metadata.Size {
 		return fmt.Errorf("file size mismatch (%d, expected %d)", size, a.Metadata.Size)
@@ -150,8 +153,8 @@ func NewLocalDownloadHandler(resp *http.Response, a *metadata.Artifact) *LocalDo
 	}
 }
 
-func (h *LocalDownloadHandler) Read(b []byte) (n int, err error) {
-	n, err = h.body.Read(b)
+func (h *LocalDownloadHandler) Read(b []byte) (int, error) {
+	n, err := h.body.Read(b)
 
 	h.size += int64(n)
 	h.sha1.Write(b[:n])
