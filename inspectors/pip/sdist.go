@@ -145,7 +145,10 @@ func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a ResponseArtifact) error 
 		}
 	}
 
-	t.Flush()
+	if err := t.Flush(); err != nil {
+		return err
+	}
+
 	temp.Close()
 
 	if mver == "" || name == "" || version == "" {

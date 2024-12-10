@@ -35,7 +35,7 @@ jobs:
           sudo cpanm --notest https://cpan.metacpan.org/authors/id/J/JO/JONASS/App-Licensecheck-v3.3.9.tar.gz
           echo "::endgroup::"
           echo "::group::staticcheck"
-          go install github.com/dominikh/go-tools/cmd/staticcheck@latest
+          go install honnef.co/go/tools/cmd/staticcheck@latest
           echo "::endgroup::"
           echo "::group::gocov"
           go install github.com/axw/gocov/gocov@latest
