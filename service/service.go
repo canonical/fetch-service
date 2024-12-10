@@ -158,7 +158,7 @@ loop:
 				}
 
 				// Run request inspectors
-				go func(s *session.Session, a *metadata.Artefact) {
+				go func(s *session.Session, a *metadata.Artifact) {
 					v.Rch <- runRequestInspection(s, a)
 				}(s, v.A)
 
@@ -176,16 +176,16 @@ loop:
 
 				v.A.CurrentDownload.EndTime = time.Now().UTC()
 
-				// Add download info to artefact metadata
+				// Add download info to artifact metadata
 				dl := v.A.CurrentDownload
 				logger.Infof("[%s] %s %s: %s (%s)", sessionId, dl.Method, dl.URL, dl.Status, dl.ContentType)
 
-				if s.HasArtefact(digest) {
-					logger.Infof("[%s] artefact %s already downloaded", s.Id, digest)
+				if s.HasArtifact(digest) {
+					logger.Infof("[%s] artifact %s already downloaded", s.Id, digest)
 					s.AddDownload(v.A.CurrentDownload)
 					os.Remove(v.A.Tempfile)
-					if !s.Permissive && s.ArtefactResult(digest) == opinions.Rejected {
-						v.Rch <- ErrRejectedArtefact
+					if !s.Permissive && s.ArtifactResult(digest) == opinions.Rejected {
+						v.Rch <- ErrRejectedArtifact
 					} else {
 						v.Rch <- nil
 					}
@@ -193,7 +193,7 @@ loop:
 				}
 
 				// Add metadata to session
-				s.AddArtefact(v.A)
+				s.AddArtifact(v.A)
 				if err := s.SaveData(digest); err != nil {
 					v.Rch <- err
 					break
@@ -202,7 +202,7 @@ loop:
 				s.AddDownload(v.A.CurrentDownload)
 
 				// Run response inspectors
-				go func(s *session.Session, a *metadata.Artefact) {
+				go func(s *session.Session, a *metadata.Artifact) {
 					v.Rch <- runResponseInspection(s, a)
 				}(s, v.A)
 
@@ -254,7 +254,7 @@ loop:
 				if s == nil {
 					v.Rch <- messages.SessionReportResult{
 						SessionMetadata: &metadata.SessionMetadata{Err: messages.ErrSessionNotFound},
-						Artefacts:       []*metadata.Artefact{},
+						Artifacts:       []*metadata.Artifact{},
 						Err:             messages.ErrSessionNotFound,
 					}
 					break
@@ -264,7 +264,7 @@ loop:
 					err := fmt.Errorf("cannot get session report: session %s token was not revoked", sessionId)
 					v.Rch <- messages.SessionReportResult{
 						SessionMetadata: &metadata.SessionMetadata{Err: err},
-						Artefacts:       []*metadata.Artefact{},
+						Artifacts:       []*metadata.Artifact{},
 						Err:             messages.ErrSessionActive,
 					}
 					break
@@ -272,7 +272,7 @@ loop:
 
 				v.Rch <- messages.SessionReportResult{
 					SessionMetadata: s.Metadata(),
-					Artefacts:       s.Artefacts(),
+					Artifacts:       s.Artifacts(),
 				}
 
 			case messages.EndSession:
@@ -376,14 +376,14 @@ loop:
 					logger.Infof("[service] session %s created", s.Id)
 					svc.totalSessions++
 
-				case "list-artefacts":
+				case "list-artifacts":
 					sessionId := string(v.Payload)
 					s := session.GetSession(sessionId)
 					if s == nil {
 						reply = messages.FetchCtlResult{Status: "error", Message: "session does not exist"}
 						break
 					}
-					j, err := utils.JSONMarshalIndentNoHTMLEscape(s.Artefacts(), "", "   ")
+					j, err := utils.JSONMarshalIndentNoHTMLEscape(s.Artifacts(), "", "   ")
 					if err != nil {
 						reply = messages.FetchCtlResult{Status: "error", Message: err.Error()}
 						break
@@ -476,7 +476,7 @@ func (svc *Service) Dying() <-chan struct{} {
 	return svc.tomb.Dying()
 }
 
-func runRequestInspection(s *session.Session, a *metadata.Artefact) error {
+func runRequestInspection(s *session.Session, a *metadata.Artifact) error {
 	// Check request
 	if err := s.Insps.RunRequestInspectors(a); err != nil {
 		logger.Errorf("[%s] %s", s.Id, err)
@@ -486,7 +486,7 @@ func runRequestInspection(s *session.Session, a *metadata.Artefact) error {
 	return evaluateRequestInspection(s, a)
 }
 
-func evaluateRequestInspection(s *session.Session, a *metadata.Artefact) error {
+func evaluateRequestInspection(s *session.Session, a *metadata.Artifact) error {
 	dl := a.CurrentDownload
 	sessionId := s.Id
 
@@ -504,9 +504,9 @@ func evaluateRequestInspection(s *session.Session, a *metadata.Artefact) error {
 	return nil
 }
 
-func runResponseInspection(s *session.Session, a *metadata.Artefact) error {
+func runResponseInspection(s *session.Session, a *metadata.Artifact) error {
 	// Extract metadata from file
-	if err := s.Insps.RunArtefactInspectors(a.AssetDir, a); err != nil {
+	if err := s.Insps.RunArtifactInspectors(a.AssetDir, a); err != nil {
 		logger.Errorf("%s", err)
 		a.Result = opinions.Rejected
 		return err
@@ -515,23 +515,23 @@ func runResponseInspection(s *session.Session, a *metadata.Artefact) error {
 	return evaluateResponseInspection(s, a)
 }
 
-func evaluateResponseInspection(s *session.Session, a *metadata.Artefact) error {
+func evaluateResponseInspection(s *session.Session, a *metadata.Artifact) error {
 	sessionId := s.Id
 	digest := a.Metadata.Sha256
 
 	if a.Rejected() {
 		a.Result = opinions.Rejected
 		if s.Permissive {
-			logger.Infof("[%s] artefact %s %d (%s) would be rejected (permissive)",
+			logger.Infof("[%s] artifact %s %d (%s) would be rejected (permissive)",
 				sessionId, digest, a.Metadata.Size, a.Metadata.Type)
 		} else {
-			logger.Infof("[%s] artefact rejected: %s %d (%s)",
+			logger.Infof("[%s] artifact rejected: %s %d (%s)",
 				sessionId, digest, a.Metadata.Size, a.Metadata.Type)
-			return ErrRejectedArtefact
+			return ErrRejectedArtifact
 		}
 	} else {
 		a.Result = opinions.Approved
-		logger.Infof("[%s] artefact approved: %s %d (%s)", sessionId, digest, a.Metadata.Size, a.Metadata.Type)
+		logger.Infof("[%s] artifact approved: %s %d (%s)", sessionId, digest, a.Metadata.Size, a.Metadata.Type)
 	}
 
 	return nil

@@ -21,20 +21,20 @@ Request verification
 The current implementation allows downloads from
 ``https://repo.maven.apache.org:443``. This will be changed in the future to match
 an internal repository of Maven assets. Only requests with the
-``/maven2/<org components separated by />/<artefact-id>/<version>/<jar file>``
+``/maven2/<org components separated by />/<artifact-id>/<version>/<jar file>``
 form are allowed.
 
 Acceptance criteria
 -------------------
 
 To be approved, the fetched JAR file must contain a ``pom.xml`` file with fields
-that match the artefact id and version from the requested URL.
+that match the artifact id and version from the requested URL.
 
 Rejection reasons
 -----------------
 
-* The requested artefact will be rejected if it's not a valid JAR file.
-* The requested artefact will be rejected if the metadata inside the ``pom.xml``
+* The requested artifact will be rejected if it's not a valid JAR file.
+* The requested artifact will be rejected if the metadata inside the ``pom.xml``
   contained in the JAR file does not match the requested URL.
 
 Extracted metadata

@@ -59,7 +59,7 @@ func (s *aptSuite) TestAptTranslationInspectRequest(c *C) {
 		{"http://some.other.location/Translation-zh_TW.xz", false},
 	} {
 		ins := apt.NewAptTranslationInspector(getAptInspectorConfig())
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 
 		err := ins.InspectRequest(a)
@@ -91,13 +91,14 @@ func (s *aptSuite) TestAptTranslationInspector(c *C) {
 		{"testdata/Translation-zh_TW-bad.xz", false, "not a valid translation file", "", 0},
 		{"testdata/2048.package", false, "cannot read xz file", "", 0},
 	} {
-		translationArtefactFile, _ := os.Open(tc.dataFile)
-		translationArtefactData := make([]byte, 1024*128)
-		_, err := translationArtefactFile.Read(translationArtefactData)
+		translationArtifactFile, _ := os.Open(tc.dataFile)
+		translationArtifactData := make([]byte, 1024*128)
+		_, err := translationArtifactFile.Read(translationArtifactData)
 		c.Assert(err, IsNil)
 
 		ins := apt.NewAptTranslationInspector(getTestAptConfig())
-		a := metadata.NewArtefact()
+
+		a := metadata.NewArtifact()
 		a.SetRequestPending(ins, "test")
 		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/devel/main/i18n/by-hash/SHA256/4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed"
 		a.Metadata.Type = "application/x.apt.translation"
@@ -105,9 +106,8 @@ func (s *aptSuite) TestAptTranslationInspector(c *C) {
 		a.Metadata.Size = 4242
 		a.ResponseInspection["apt.release"] = &common.Inspection{Annotations: common.Annotation{"vendor": "somevendor"}}
 
-		f := bytes.NewReader(translationArtefactData)
-
-		err = ins.InspectArtefact(f, a)
+		f := bytes.NewReader(translationArtifactData)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
 		c.Assert(a.Approved(), Equals, tc.result)

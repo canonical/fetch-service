@@ -40,7 +40,7 @@ func (SnapRefreshInspector) ID() string {
 }
 
 // InspectRequest verifies if the request complies with policy.
-func (ins *SnapRefreshInspector) InspectRequest(a RequestArtefact) error {
+func (ins *SnapRefreshInspector) InspectRequest(a RequestArtifact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -68,8 +68,8 @@ type snapRefreshBody struct {
 	Results   []snapRefreshItem `json:"results"`
 }
 
-// InspectArtefact extracts metadata from a known artefact file format.
-func (ins *SnapRefreshInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+// InspectArtifact extracts metadata from a known artifact file format.
+func (ins *SnapRefreshInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if !a.MimetypeIs("application/json") {
 		return nil
 	}
@@ -77,11 +77,11 @@ func (ins *SnapRefreshInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 	decoder := json.NewDecoder(f)
 	var b snapRefreshBody
 	if err := decoder.Decode(&b); err != nil {
-		return nil // we don't recognize this artefact
+		return nil // we don't recognize this artifact
 	}
 
 	if len(b.Results) > 0 && b.Results[0].EffectiveChannel != "" && b.Results[0].Name != "" && b.Results[0].SnapId != "" {
-		a.SetArtefactMetadata(ArtefactMetadata{
+		a.SetArtifactMetadata(ArtifactMetadata{
 			Type:        mimetypes.SnapRefresh,
 			Name:        "Store protocol response",
 			Description: "Snap store response for refresh request",
@@ -95,5 +95,5 @@ func (ins *SnapRefreshInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 			})
 	}
 
-	return nil // we don't recognize this artefact
+	return nil // we don't recognize this artifact
 }

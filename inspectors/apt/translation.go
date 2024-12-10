@@ -109,7 +109,7 @@ func (ins *AptTranslationInspector) ID() string {
 	return "apt.translations"
 }
 
-func (ins *AptTranslationInspector) InspectRequest(a RequestArtefact) error {
+func (ins *AptTranslationInspector) InspectRequest(a RequestArtifact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -128,7 +128,7 @@ func (ins *AptTranslationInspector) InspectRequest(a RequestArtefact) error {
 	return nil
 }
 
-func (ins *AptTranslationInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if !a.MimetypeIs(mimetypes.AptTranslation) {
 		return nil
 	}
@@ -221,7 +221,7 @@ func (ins *AptTranslationInspector) InspectArtefact(f ArtefactReader, a Response
 		return nil
 	}
 
-	md := ArtefactMetadata{
+	md := ArtifactMetadata{
 		Type: mimetypes.AptTranslation,
 		Name: "Translation",
 	}
@@ -233,7 +233,7 @@ func (ins *AptTranslationInspector) InspectArtefact(f ArtefactReader, a Response
 		md.Author = vendor
 	}
 
-	a.SetArtefactMetadata(md)
+	a.SetArtifactMetadata(md)
 	a.SetResponseApproved(ins, "translation file successfully parsed").Annotate(
 		Annotation{
 			"translation-language": lang,

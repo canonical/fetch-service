@@ -125,7 +125,7 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 }
 
 // RunRequestInspectors determine whether the HTTP request is valid.
-func (insps Inspectors) RunRequestInspectors(a *metadata.Artefact) error {
+func (insps Inspectors) RunRequestInspectors(a *metadata.Artifact) error {
 	logger.Debugf("Inspect request: %s", a.CurrentDownload.URL)
 	for _, id := range insps.ids {
 		ins := insps.insmap[id]
@@ -140,13 +140,13 @@ func (insps Inspectors) RunRequestInspectors(a *metadata.Artefact) error {
 	return nil
 }
 
-// RunArtefactInspectors examines the artefact in the given assets directory.
-func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) error {
+// RunArtifactInspectors examines the artifact in the given assets directory.
+func (insps Inspectors) RunArtifactInspectors(dir string, a *metadata.Artifact) error {
 	// detect file type
 	filename := filepath.Join(dir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
-	logger.Debugf("run artefact inspectors on %s", filename)
+	logger.Debugf("run artifact inspectors on %s", filename)
 
-	f, err := files.OpenArtefactFile(filename)
+	f, err := files.OpenArtifactFile(filename)
 	if err != nil {
 		return err
 	}
@@ -166,7 +166,7 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 		logger.Debugf("file type '%s' doesn't match content type '%s'", mtype.String(), ctype)
 	}
 
-	// run artefact inspectors
+	// run artifact inspectors
 	for _, id := range insps.ids {
 		// if not permissive, only inspectors with pending opinions can run
 		// (the default inspector always runs)
@@ -178,12 +178,12 @@ func (insps Inspectors) RunArtefactInspectors(dir string, a *metadata.Artefact) 
 		}
 
 		ins := insps.insmap[id]
-		logger.Debugf("run artefact inspector: %s", id)
+		logger.Debugf("run artifact inspector: %s", id)
 		if _, err := f.Seek(0, io.SeekStart); err != nil {
 			return err
 		}
-		if err := ins.InspectArtefact(f, a); err != nil {
-			a.SetResponseRejected(ins, "error inspecting artefact").Annotate(
+		if err := ins.InspectArtifact(f, a); err != nil {
+			a.SetResponseRejected(ins, "error inspecting artifact").Annotate(
 				Annotation{"error-message": err.Error()})
 			return err
 		}
@@ -206,7 +206,7 @@ func (insps Inspectors) List() []string {
 	return insps.ids
 }
 
-// DefaultInspector is a fallback inspector for unknown requests or artefacts.
+// DefaultInspector is a fallback inspector for unknown requests or artifacts.
 type DefaultInspector struct {
 }
 
@@ -214,16 +214,16 @@ func (ins DefaultInspector) ID() string {
 	return "default"
 }
 
-func (ins DefaultInspector) InspectRequest(a RequestArtefact) error {
+func (ins DefaultInspector) InspectRequest(a RequestArtifact) error {
 	if !a.RequestRejected() && !a.RequestPending() {
 		a.SetRequestUnknown(ins, "the request was not recognized by any format inspector")
 	}
 	return nil
 }
 
-func (ins DefaultInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+func (ins DefaultInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if !a.ResponseRejected() && !a.ResponseApproved() {
-		a.SetResponseUnknown(ins, "the artefact file content was not recognized by any format inspector")
+		a.SetResponseUnknown(ins, "the artifact file content was not recognized by any format inspector")
 	}
 	return nil
 }

@@ -74,8 +74,8 @@ func (s *snapcraftSuite) TestUploadPackInspectorID(c *C) {
 
 }
 
-func createTestSnapcraftArtefact(checkoutPath string) *metadata.Artefact {
-	a := metadata.NewArtefact()
+func createTestSnapcraftArtifact(checkoutPath string) *metadata.Artifact {
+	a := metadata.NewArtifact()
 	a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
 	a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
 	a.Request.Body = io.NopCloser(strings.NewReader("0014command=fetch\n0000"))
@@ -121,9 +121,9 @@ func createTestSnapcraftArtefact(checkoutPath string) *metadata.Artefact {
 	return a
 }
 
-func loadTestSnapcraftArtefactData() (*files.ArtefactFile, error) {
+func loadTestSnapcraftArtifactData() (*files.ArtifactFile, error) {
 	sourcepkg_file := filepath.Join("testdata", "snapcraftpkg.raw")
-	file, err := files.OpenArtefactFile(sourcepkg_file)
+	file, err := files.OpenArtifactFile(sourcepkg_file)
 	return file, err
 }
 
@@ -146,7 +146,7 @@ func (s *snapcraftSuite) TestInspectSnapcraftGitRequest(c *C) {
 		{"https://git.lpad.net:443/~user/project/+git/project/git-upload-pack", false},
 	} {
 		ins := craft.NewSnapcraftInspector(getTestSnapcraftConfig())
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.CurrentDownload.URL = tc.url
 		a.CurrentDownload.RequestHeader = map[string][]string{
 			"Content-Type": {"application/x-git-upload-pack-request"},
@@ -169,14 +169,14 @@ func (s *snapcraftSuite) TestInspectSnapcraftGitRequest(c *C) {
 	}
 }
 
-func (s *snapcraftSuite) TestSnapcraftGitInspectArtefact(c *C) {
+func (s *snapcraftSuite) TestSnapcraftGitInspectArtifact(c *C) {
 	for _, tc := range []struct {
 		opinion opinions.OpinionKind
 		reason  string
 	}{
 		{opinions.Approved, "snapcraft repository found"},
 	} {
-		f, err := loadTestSnapcraftArtefactData()
+		f, err := loadTestSnapcraftArtifactData()
 		c.Assert(err, IsNil)
 		defer f.Close()
 
@@ -186,15 +186,15 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtefact(c *C) {
 		err = git.Checkout(checkoutPath, "9ae13d6ca5afec49279f8515feb289a7069e5a29")
 		c.Assert(err, IsNil)
 
-		a := createTestSnapcraftArtefact(checkoutPath)
+		a := createTestSnapcraftArtifact(checkoutPath)
 		c.Assert(err, IsNil)
 
-		f, err = loadTestSnapcraftArtefactData()
+		f, err = loadTestSnapcraftArtifactData()
 		c.Assert(err, IsNil)
 		defer f.Close()
 
 		ins := craft.NewSnapcraftInspector(getTestSnapcraftConfig())
-		err = ins.InspectArtefact(f, a)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
 		inspection := a.ResponseInspection["craft.snapcraft"]
@@ -211,7 +211,7 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtefact(c *C) {
 	}
 }
 
-func (s *snapcraftSuite) TestSnapcraftGitInspectArtefactMissingSnapcraftYaml(c *C) {
+func (s *snapcraftSuite) TestSnapcraftGitInspectArtifactMissingSnapcraftYaml(c *C) {
 	tc := struct {
 		opinion opinions.OpinionKind
 		reason  string
@@ -220,14 +220,14 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtefactMissingSnapcraftYaml(c *
 		"git repository does not contain a snapcraft.yaml file",
 	}
 
-	a := createTestSnapcraftArtefact(c.MkDir())
-	f, err := loadTestSnapcraftArtefactData()
+	a := createTestSnapcraftArtifact(c.MkDir())
+	f, err := loadTestSnapcraftArtifactData()
 	c.Assert(err, IsNil)
 	defer f.Close()
 
 	ins := craft.NewSnapcraftInspector(getTestSnapcraftConfig())
 
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 
 	inspection := a.ResponseInspection["craft.snapcraft"]
@@ -235,7 +235,7 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtefactMissingSnapcraftYaml(c *
 	c.Assert(inspection.Reason, Equals, tc.reason)
 }
 
-func (s *snapcraftSuite) TestSnapcraftGitInspectArtefactUnreadableSnapcraftYaml(c *C) {
+func (s *snapcraftSuite) TestSnapcraftGitInspectArtifactUnreadableSnapcraftYaml(c *C) {
 	tc := struct {
 		opinion opinions.OpinionKind
 		reason  string
@@ -244,7 +244,7 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtefactUnreadableSnapcraftYaml(
 		"cannot open snapcraft.yaml file",
 	}
 
-	f, err := loadTestSnapcraftArtefactData()
+	f, err := loadTestSnapcraftArtifactData()
 	c.Assert(err, IsNil)
 	defer f.Close()
 
@@ -256,10 +256,10 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtefactUnreadableSnapcraftYaml(
 	checkoutPath := c.MkDir()
 	_, err = os.Create(filepath.Join(checkoutPath, "snapcraft.yaml"))
 	c.Assert(err, IsNil)
-	a := createTestSnapcraftArtefact(checkoutPath)
+	a := createTestSnapcraftArtifact(checkoutPath)
 
 	ins := craft.NewSnapcraftInspector(getTestSnapcraftConfig())
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 
 	inspection := a.ResponseInspection["craft.snapcraft"]
@@ -267,7 +267,7 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtefactUnreadableSnapcraftYaml(
 	c.Assert(inspection.Reason, Equals, tc.reason)
 }
 
-func (s *snapcraftSuite) TestSnapcraftGitInspectArtefactUnableToDecodeSnapcraftYaml(c *C) {
+func (s *snapcraftSuite) TestSnapcraftGitInspectArtifactUnableToDecodeSnapcraftYaml(c *C) {
 	tc := struct {
 		opinion opinions.OpinionKind
 		reason  string
@@ -275,7 +275,7 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtefactUnableToDecodeSnapcraftY
 		opinions.Rejected,
 		"cannot decode snapcraft.yaml",
 	}
-	f, err := loadTestSnapcraftArtefactData()
+	f, err := loadTestSnapcraftArtifactData()
 	c.Assert(err, IsNil)
 	defer f.Close()
 
@@ -290,10 +290,10 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtefactUnableToDecodeSnapcraftY
 	checkoutPath := c.MkDir()
 	_, err = os.Create(filepath.Join(checkoutPath, "snapcraft.yaml"))
 	c.Assert(err, IsNil)
-	a := createTestSnapcraftArtefact(checkoutPath)
+	a := createTestSnapcraftArtifact(checkoutPath)
 
 	ins := craft.NewSnapcraftInspector(getTestSnapcraftConfig())
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 
 	inspection := a.ResponseInspection["craft.snapcraft"]

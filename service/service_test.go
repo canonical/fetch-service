@@ -347,7 +347,7 @@ func (t *serviceSuite) TestRequestInspection(c *C) {
 		s := session.New(opt.Spool, 0, tc.policy == "permissive")
 		defer s.Discard()
 
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		if tc.sessionExists {
 			a.SessionId = s.Id
 		} else {
@@ -392,7 +392,7 @@ func (t *serviceSuite) TestEvaluateRequestInspection(c *C) {
 		s := session.New("/my/spool", 0, tc.policy == "permissive")
 		defer s.Discard()
 
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.SessionId = s.Id
 		a.RequestInspection = tc.inspections
 		res := service.EvaluateRequestInspection(s, a)
@@ -410,15 +410,15 @@ func (t *serviceSuite) TestResponseInspection(c *C) {
 
 	for _, tc := range []struct {
 		sessionExists bool
-		hasArtefact   bool
+		hasArtifact   bool
 		policy        string
 		errMsg        string
 	}{
 		{true, false, "permissive", ""},
 		{true, true, "permissive", ""},
 		{false, false, "permissive", "cannot inspect response: session foo is not active"},
-		{true, false, "strict", "artefact rejected by inspectors"},
-		{true, true, "strict", ""}, // artefact has already been downloaded
+		{true, false, "strict", "artifact rejected by inspectors"},
+		{true, true, "strict", ""}, // artifact has already been downloaded
 		{false, false, "strict", "cannot inspect response: session foo is not active"},
 	} {
 		dir := c.MkDir()
@@ -442,7 +442,7 @@ func (t *serviceSuite) TestResponseInspection(c *C) {
 		defer s.Discard()
 
 		sha, _ := digests.NewSha256Digest("5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03")
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.Metadata.Sha256 = sha
 		a.AssetDir = filepath.Join(s.SessionDir, "assets")
 
@@ -451,7 +451,7 @@ func (t *serviceSuite) TestResponseInspection(c *C) {
 		c.Assert(err, IsNil)
 
 		a.Tempfile = tmpfile
-		if tc.hasArtefact { // this sha has already been downloaded
+		if tc.hasArtifact { // this sha has already been downloaded
 			s.A[sha] = a
 		}
 		if tc.sessionExists {
@@ -493,18 +493,18 @@ func (t *serviceSuite) TestEvaluateResponseInspection(c *C) {
 		{"permissive", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Approved}, "bar": &Inspection{Opinion: opinions.Unknown}}, opinions.Approved, nil},
 		{"permissive", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Approved}, "bar": &Inspection{Opinion: opinions.Rejected}}, opinions.Rejected, nil},
 		{"permissive", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Rejected}, "bar": &Inspection{Opinion: opinions.Unknown}}, opinions.Rejected, nil},
-		{"strict", metadata.InspectionMap{}, opinions.Rejected, ErrRejectedArtefact},
-		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Unknown}}, opinions.Rejected, ErrRejectedArtefact},
-		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Rejected}}, opinions.Rejected, ErrRejectedArtefact},
+		{"strict", metadata.InspectionMap{}, opinions.Rejected, ErrRejectedArtifact},
+		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Unknown}}, opinions.Rejected, ErrRejectedArtifact},
+		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Rejected}}, opinions.Rejected, ErrRejectedArtifact},
 		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Approved}}, opinions.Approved, nil},
 		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Approved}, "bar": &Inspection{Opinion: opinions.Unknown}}, opinions.Approved, nil},
-		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Approved}, "bar": &Inspection{Opinion: opinions.Rejected}}, opinions.Rejected, ErrRejectedArtefact},
-		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Rejected}, "bar": &Inspection{Opinion: opinions.Unknown}}, opinions.Rejected, ErrRejectedArtefact},
+		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Approved}, "bar": &Inspection{Opinion: opinions.Rejected}}, opinions.Rejected, ErrRejectedArtifact},
+		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Rejected}, "bar": &Inspection{Opinion: opinions.Unknown}}, opinions.Rejected, ErrRejectedArtifact},
 	} {
 		s := session.New("/my/spool", 0, tc.policy == "permissive")
 		defer s.Discard()
 
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.SessionId = s.Id
 		a.RequestInspection = metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Pending}}
 		a.ResponseInspection = tc.inspections
@@ -741,7 +741,7 @@ func (t *serviceSuite) TestGetSessionReport(c *C) {
 
 		if tc.err == nil {
 			c.Assert(res.Err, IsNil)
-			c.Assert(res.Artefacts, DeepEquals, []*metadata.Artefact{})
+			c.Assert(res.Artifacts, DeepEquals, []*metadata.Artifact{})
 			c.Assert(res.SessionMetadata.SessionId, Equals, s.Id)
 			c.Assert(res.SessionMetadata.SpoolPath, Equals, filepath.Join(dir, s.Id))
 		} else {

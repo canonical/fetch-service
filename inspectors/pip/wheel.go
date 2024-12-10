@@ -50,7 +50,7 @@ func (WheelInspector) ID() string {
 }
 
 // InspectRequest verifies if the request complies with policy.
-func (ins *WheelInspector) InspectRequest(a RequestArtefact) error {
+func (ins *WheelInspector) InspectRequest(a RequestArtifact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -69,8 +69,8 @@ var wheelPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`^\w+-[^/]+\.dist-info/RECORD$`),
 }
 
-// InspectArtefact extracts metadata from a known artefact file format.
-func (ins *WheelInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+// InspectArtifact extracts metadata from a known artifact file format.
+func (ins *WheelInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if !a.MimetypeIs("application/zip") {
 		return nil
 	}
@@ -106,7 +106,7 @@ func (ins *WheelInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact)
 	return nil
 }
 
-func processOpinion(ins *WheelInspector, a ResponseArtefact, notes *wheelNotes) {
+func processOpinion(ins *WheelInspector, a ResponseArtifact, notes *wheelNotes) {
 	// Reject if required files not found
 	if len(notes.requirementFaults) > 0 {
 		notes.Add("faults", notes.requirementFaults)
@@ -135,7 +135,7 @@ func processOpinion(ins *WheelInspector, a ResponseArtefact, notes *wheelNotes) 
 }
 
 // readWheelMetadata reads the wheel's METADATA file.
-func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a ResponseArtefact, notes *wheelNotes) error {
+func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a ResponseArtifact, notes *wheelNotes) error {
 	z, err := zip.NewReader(f, size)
 	if err != nil {
 		return err
@@ -166,7 +166,7 @@ func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a Respons
 				return nil
 			}
 
-			a.SetArtefactMetadata(md)
+			a.SetArtifactMetadata(md)
 			notes.Add("metadata-version", ver)
 			return nil
 		}
@@ -178,13 +178,13 @@ func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a Respons
 }
 
 // scanWheelMetadata parses metadata entries from the given file.
-func scanWheelMetadata(zf io.ReadCloser) (ArtefactMetadata, string, error) {
+func scanWheelMetadata(zf io.ReadCloser) (ArtifactMetadata, string, error) {
 	sc := bufio.NewScanner(zf)
 	sc.Split(bufio.ScanLines)
 
 	temp, err := os.CreateTemp("", "tmpfile-")
 	if err != nil {
-		return ArtefactMetadata{}, "", err
+		return ArtifactMetadata{}, "", err
 	}
 	defer temp.Close()
 	defer os.Remove(temp.Name())
@@ -202,7 +202,7 @@ func scanWheelMetadata(zf io.ReadCloser) (ArtefactMetadata, string, error) {
 		}
 
 		if _, err := fmt.Fprintln(t, line); err != nil {
-			return ArtefactMetadata{}, "", err
+			return ArtifactMetadata{}, "", err
 		}
 
 		k, v, ok := strings.Cut(line, ":")
@@ -235,7 +235,7 @@ func scanWheelMetadata(zf io.ReadCloser) (ArtefactMetadata, string, error) {
 
 	license, err = utils.GetLicense(temp.Name())
 	if err != nil {
-		return ArtefactMetadata{}, mver, err
+		return ArtifactMetadata{}, mver, err
 	}
 
 	// If vendor is not specified, fall back to maintainer
@@ -243,7 +243,7 @@ func scanWheelMetadata(zf io.ReadCloser) (ArtefactMetadata, string, error) {
 		vendor = maintainer
 	}
 
-	md := ArtefactMetadata{
+	md := ArtifactMetadata{
 		Type:        mimetypes.PythonWheel,
 		Name:        name,
 		Version:     version,
@@ -265,7 +265,7 @@ type memberFile struct {
 }
 
 // listWheelFiles gets a list of wheel files and their sha1 digests.
-func listWheelFiles(ins *WheelInspector, f io.ReaderAt, size int64, a ResponseArtefact, notes *wheelNotes) ([]memberFile, error) {
+func listWheelFiles(ins *WheelInspector, f io.ReaderAt, size int64, a ResponseArtifact, notes *wheelNotes) ([]memberFile, error) {
 	res := []memberFile{}
 
 	z, err := zip.NewReader(f, size)
@@ -304,7 +304,7 @@ func listWheelFiles(ins *WheelInspector, f io.ReaderAt, size int64, a ResponseAr
 
 // readWheelRecord reads the wheel's RECORD file and verifies the
 // checksum of the listed files.
-func readWheelRecord(ins *WheelInspector, f io.ReaderAt, size int64, a ResponseArtefact, files []memberFile, notes *wheelNotes) error {
+func readWheelRecord(ins *WheelInspector, f io.ReaderAt, size int64, a ResponseArtifact, files []memberFile, notes *wheelNotes) error {
 	z, err := zip.NewReader(f, size)
 	if err != nil {
 		return err
@@ -337,7 +337,7 @@ func readWheelRecord(ins *WheelInspector, f io.ReaderAt, size int64, a ResponseA
 }
 
 // checkRecord verifies files against the RECORD file checksum.
-func checkRecord(ins *WheelInspector, zf io.ReadCloser, rname string, a ResponseArtefact, files []memberFile, notes *wheelNotes) error {
+func checkRecord(ins *WheelInspector, zf io.ReadCloser, rname string, a ResponseArtifact, files []memberFile, notes *wheelNotes) error {
 	sc := bufio.NewScanner(zf)
 	sc.Split(bufio.ScanLines)
 

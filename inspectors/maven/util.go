@@ -28,17 +28,17 @@ import (
 	. "github.com/canonical/fetch-service/inspectors/common"
 )
 
-type artefactUrl struct {
-	ArtefactId string
+type artifactUrl struct {
+	ArtifactId string
 	GroupId    string
 	Version    string
 }
 
-func parseUrl(slug *regexp.Regexp, url string) *artefactUrl {
+func parseUrl(slug *regexp.Regexp, url string) *artifactUrl {
 	m := slug.FindStringSubmatch(url)
 	if len(m) == 4 {
 		// Convert the "/" org separator into "."
-		return &artefactUrl{GroupId: strings.ReplaceAll(m[1], "/", "."), ArtefactId: m[2], Version: m[3]}
+		return &artifactUrl{GroupId: strings.ReplaceAll(m[1], "/", "."), ArtifactId: m[2], Version: m[3]}
 	}
 	return nil
 }
@@ -65,13 +65,13 @@ type project struct {
 	} `xml:"parent"`
 }
 
-func parsePom(tf io.Reader) (*ArtefactMetadata, error) {
+func parsePom(tf io.Reader) (*ArtifactMetadata, error) {
 	p := project{}
 	if err := xml.NewDecoder(tf).Decode(&p); err != nil {
 		return nil, err
 	}
 
-	md := &ArtefactMetadata{}
+	md := &ArtifactMetadata{}
 
 	md.Name = p.ArtifactId
 

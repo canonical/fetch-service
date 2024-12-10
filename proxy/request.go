@@ -32,12 +32,12 @@ import (
 // RequestHandler checks whether requests are authorized
 type RequestHandler struct {
 	ch         chan interface{}   // service messaging channel
-	a          *metadata.Artefact // artefact metadata
+	a          *metadata.Artifact // artifact metadata
 	body       io.ReadCloser      // request body
-	insTimeout time.Duration      // artefact inspection timeout
+	insTimeout time.Duration      // artifact inspection timeout
 }
 
-func NewRequestHandler(req *http.Request, a *metadata.Artefact, ch chan interface{}) (*RequestHandler, error) {
+func NewRequestHandler(req *http.Request, a *metadata.Artifact, ch chan interface{}) (*RequestHandler, error) {
 	h := &RequestHandler{
 		ch:         ch,
 		a:          a,

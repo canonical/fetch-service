@@ -77,7 +77,7 @@ func (s *uploadPackSuite) TestInspectLsRefsRequest(c *C) {
 		{"https://git.lpad.net:443/~user/project/+git/project/git-upload-pack", false},
 	} {
 		ins := git.NewUploadPackInspector(getTestConfig())
-		a := fakeGitArtefact()
+		a := fakeGitArtifact()
 		a.CurrentDownload.URL = tc.url
 		a.Request, _ = http.NewRequest("GET", tc.url, nil)
 		a.Request.Body = io.NopCloser(strings.NewReader("0014command=ls-refs\n0000"))
@@ -92,7 +92,7 @@ func (s *uploadPackSuite) TestInspectLsRefsRequest(c *C) {
 	}
 }
 
-var uploadPackLsRefsArtefactData = `00526b99254b1c5c823d054bc0ae1ebccfa070380fce HEAD symref-target:refs/heads/master
+var uploadPackLsRefsArtifactData = `00526b99254b1c5c823d054bc0ae1ebccfa070380fce HEAD symref-target:refs/heads/master
 004497cea5a48e9144f83ff4d7211c6d1c38bc42d014 refs/heads/fix/release
 003f6b99254b1c5c823d054bc0ae1ebccfa070380fce refs/heads/master
 003e8cb123237fbe2b13a1108fa7b876c9ad0c12a3b1 refs/tags/v0.5.0
@@ -111,19 +111,19 @@ var uploadPackLsRefsArtefactData = `00526b99254b1c5c823d054bc0ae1ebccfa070380fce
 006ee57a1f3a81f78545bfd7112472c38a2c7bf5485e refs/tags/v1.0.1 peeled:14fa60386d05b7971bcf2b76878da9e3c87760b5
 0000`
 
-func (s *uploadPackSuite) TestUploadPackInspectLsRefsArtefact(c *C) {
+func (s *uploadPackSuite) TestUploadPackInspectLsRefsArtifact(c *C) {
 	for _, tc := range []struct {
 		data   string
 		errmsg string
 	}{
-		{uploadPackLsRefsArtefactData, ""},
-		{uploadPackLsRefsArtefactData[1:], "decode error"},
+		{uploadPackLsRefsArtifactData, ""},
+		{uploadPackLsRefsArtifactData[1:], "decode error"},
 		{
-			uploadPackLsRefsArtefactData[:len(uploadPackLsRefsArtefactData)-1],
+			uploadPackLsRefsArtifactData[:len(uploadPackLsRefsArtifactData)-1],
 			`strconv.ParseUint: parsing "000\x00": invalid syntax`,
 		},
 	} {
-		a := fakeGitArtefact()
+		a := fakeGitArtifact()
 		a.Request, _ = http.NewRequest("GET", "https://github.com:443/user/project.git/git-upload-pack", nil)
 		a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
 		a.Request.Body = io.NopCloser(strings.NewReader("0014command=ls-refs\n0000"))
@@ -161,7 +161,7 @@ func (s *uploadPackSuite) TestUploadPackInspectLsRefsArtefact(c *C) {
 		f := strings.NewReader(tc.data)
 
 		ins := git.NewUploadPackInspector(getTestConfig())
-		err := ins.InspectArtefact(f, a)
+		err := ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
 		if tc.errmsg == "" {
@@ -180,7 +180,7 @@ func (s *uploadPackSuite) TestInspectFetchRequest(c *C) {
 	url := "https://github.com:443/user/project.git/git-upload-pack"
 
 	ins := git.NewUploadPackInspector(getTestConfig())
-	a := fakeGitArtefact()
+	a := fakeGitArtifact()
 	a.CurrentDownload.URL = url
 	a.Request, _ = http.NewRequest("GET", url, nil)
 	a.Request.Body = io.NopCloser(strings.NewReader(
@@ -217,11 +217,11 @@ func (s *uploadPackSuite) TestInspectFetchRequest(c *C) {
 
 func (s *uploadPackSuite) TestInspectFetchRequestUnsupportedProtocolVersions(c *C) {
 	for _, tc := range []struct {
-		a     *metadata.Artefact
+		a     *metadata.Artifact
 		proto string
 	}{
-		{fakeGitArtefactUnsuportedProtocol(), "version=1"},
-		{fakeGitArtefactNoProtocolVersion(), ""},
+		{fakeGitArtifactUnsuportedProtocol(), "version=1"},
+		{fakeGitArtifactNoProtocolVersion(), ""},
 	} {
 		url := "https://github.com:443/user/project.git/git-upload-pack"
 
@@ -252,7 +252,7 @@ func (s *uploadPackSuite) TestInspectFetchRequestDuplicateRef(c *C) {
 	url := "https://github.com:443/user/project.git/git-upload-pack"
 
 	ins := git.NewUploadPackInspector(getTestConfig())
-	a := fakeGitArtefact()
+	a := fakeGitArtifact()
 	a.CurrentDownload.URL = url
 	a.Request, _ = http.NewRequest("GET", url, nil)
 	a.Request.Body = io.NopCloser(strings.NewReader(
@@ -293,7 +293,7 @@ func (s *uploadPackSuite) TestInspectFetchRequestReject(c *C) {
 	url := "https://github.com:443/user/project.git/git-upload-pack"
 
 	ins := git.NewUploadPackInspector(getTestConfig())
-	a := fakeGitArtefact()
+	a := fakeGitArtifact()
 	a.CurrentDownload.URL = url
 	a.Request, _ = http.NewRequest("GET", url, nil)
 	a.Request.Body = io.NopCloser(strings.NewReader(
@@ -334,7 +334,7 @@ func (s *uploadPackSuite) TestInspectFetchRequestReject(c *C) {
 	c.Assert(a.RequestPending(), Equals, false)
 }
 
-func (s *uploadPackSuite) TestUploadPackInspectFetchArtefact(c *C) {
+func (s *uploadPackSuite) TestUploadPackInspectFetchArtifact(c *C) {
 	for _, tc := range []struct {
 		filename string
 		errmsg   string
@@ -342,7 +342,7 @@ func (s *uploadPackSuite) TestUploadPackInspectFetchArtefact(c *C) {
 		{"testdata/sourcepkg.raw", ""},
 		{"testdata/bad-data.raw", `strconv.ParseUint: parsing "not-": invalid syntax`},
 	} {
-		a := fakeGitArtefact()
+		a := fakeGitArtifact()
 		a.Request, _ = http.NewRequest("GET", "https://github.com:443/user/project.git/git-upload-pack", nil)
 		a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
 		a.MimeType = mimetype.Lookup("application/octet-stream")
@@ -377,11 +377,11 @@ func (s *uploadPackSuite) TestUploadPackInspectFetchArtefact(c *C) {
 
 		a.SessionCacheDir = c.MkDir()
 
-		f, err := files.OpenArtefactFile(tc.filename)
+		f, err := files.OpenArtifactFile(tc.filename)
 		c.Assert(err, IsNil)
 
 		ins := git.NewUploadPackInspector(getTestConfig())
-		err = ins.InspectArtefact(f, a)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
 		if tc.errmsg == "" {

@@ -41,7 +41,7 @@ The APT release inspector expects the Translation-<lang> file to:
 Acceptance criteria
 -------------------
 
-To be approved, the artefacts examined by this inspector must comply
+To be approved, the artifacts examined by this inspector must comply
 to the following rules:
 
 * The ``Translation-<lang>.xz`` file must match the format described in the

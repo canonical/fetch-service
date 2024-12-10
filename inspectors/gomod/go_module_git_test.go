@@ -82,7 +82,7 @@ func (s *goModuleGitSuite) TestInspectGoModuleGitRequest(c *C) {
 		{"https://git.lpad.net:443/~user/project/+git/project/git-upload-pack", false},
 	} {
 		ins := gomod.NewGoModuleGitInspector()
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.CurrentDownload.URL = tc.url
 		a.CurrentDownload.RequestHeader = map[string][]string{
 			"Content-Type": {"application/x-git-upload-pack-request"},
@@ -151,7 +151,7 @@ var goModuleGitFetch = []byte{
 	0x84, 0x30, 0x30, 0x30, 0x36, 0x01, 0x3f, 0x30, 0x30, 0x30, 0x30,
 }
 
-func (s *goModuleGitSuite) TestGoModuleGitInspectArtefact(c *C) {
+func (s *goModuleGitSuite) TestGoModuleGitInspectArtifact(c *C) {
 	for _, tc := range []struct {
 		data        []byte
 		has_version bool
@@ -168,7 +168,7 @@ func (s *goModuleGitSuite) TestGoModuleGitInspectArtefact(c *C) {
 		err = git.Checkout(checkoutPath, "467ef24fabbcce4a3bda7af3918fb970ee970c8b")
 		c.Assert(err, IsNil)
 
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
 		a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
 		a.Request.Body = io.NopCloser(strings.NewReader("0014command=fetch\n0000"))
@@ -221,7 +221,7 @@ func (s *goModuleGitSuite) TestGoModuleGitInspectArtefact(c *C) {
 		f = bytes.NewReader(tc.data)
 
 		ins := gomod.NewGoModuleGitInspector()
-		err = ins.InspectArtefact(f, a)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
 		inspection := a.ResponseInspection["go.module.git"]

@@ -29,7 +29,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 )
 
-func getGitProtocol(a RequestArtefact) string {
+func getGitProtocol(a RequestArtifact) string {
 	proto, ok := a.RequestHeader("Git-Protocol")
 	if !ok || len(proto) != 1 {
 		return ""

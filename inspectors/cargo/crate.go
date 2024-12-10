@@ -53,7 +53,7 @@ func (CargoCrateInspector) ID() string {
 	return "cargo.crate"
 }
 
-func (ins *CargoCrateInspector) InspectRequest(a RequestArtefact) error {
+func (ins *CargoCrateInspector) InspectRequest(a RequestArtifact) error {
 	url := a.DownloadURL()
 	m := crateRequestOrigin.FindStringSubmatch(url)
 	if len(m) == 0 {
@@ -75,7 +75,7 @@ func (ins *CargoCrateInspector) InspectRequest(a RequestArtefact) error {
 	return nil
 }
 
-func (ins *CargoCrateInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+func (ins *CargoCrateInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if !a.MimetypeIs("application/gzip") {
 		return nil
 	}
@@ -108,17 +108,17 @@ func (ins *CargoCrateInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 				break
 			}
 			logger.Debugf("crate tar parsing error: %s", err)
-			return nil // we don't recognize this artefact
+			return nil // we don't recognize this artifact
 		}
 		if h.Name == cargotoml {
-			var md *ArtefactMetadata
+			var md *ArtifactMetadata
 			md, err = parseCargoToml(tf)
 			if err != nil {
 				return err
 			}
 			// Check that crate metadata matches the request
 			if md.Name == package_name && md.Version == package_version {
-				a.SetArtefactMetadata(*md)
+				a.SetArtifactMetadata(*md)
 				a.SetResponseApproved(ins, "rust crate successfully parsed")
 			}
 			break
@@ -140,7 +140,7 @@ type cargoToml struct {
 	Package cargoPackage
 }
 
-func parseCargoToml(tf io.Reader) (*ArtefactMetadata, error) {
+func parseCargoToml(tf io.Reader) (*ArtifactMetadata, error) {
 	crate_md := cargoToml{}
 
 	_, err := toml.NewDecoder(tf).Decode(&crate_md)
@@ -155,7 +155,7 @@ func parseCargoToml(tf io.Reader) (*ArtefactMetadata, error) {
 		author = strings.Join(pack.Authors, ", ")
 	}
 
-	md := ArtefactMetadata{
+	md := ArtifactMetadata{
 		Type:        mimetypes.RustCrate,
 		Name:        pack.Name,
 		Version:     pack.Version,

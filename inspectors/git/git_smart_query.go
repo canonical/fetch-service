@@ -41,7 +41,7 @@ func (SmartQueryInspector) ID() string {
 	return "git.smart-query"
 }
 
-func (ins *SmartQueryInspector) InspectRequest(a RequestArtefact) error {
+func (ins *SmartQueryInspector) InspectRequest(a RequestArtifact) error {
 	proto := getGitProtocol(a)
 	if proto != "version=2" {
 		return nil
@@ -65,7 +65,7 @@ func (ins *SmartQueryInspector) InspectRequest(a RequestArtefact) error {
 	return nil // we don't recognize this request
 }
 
-func (ins *SmartQueryInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+func (ins *SmartQueryInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if !a.MimetypeIs("application/octet-stream") && !a.MimetypeIs("text/plain") {
 		return nil
 	}
@@ -77,7 +77,7 @@ func (ins *SmartQueryInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 	vendor, _ := a.RequestStringAnnotation(ins.ID(), "server")
 
 	// Content type says it's an upload pack advertisement
-	a.SetArtefactMetadata(ArtefactMetadata{
+	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:        mimetypes.GitUploadPackAdvertisement,
 		Name:        "git upload-pack advertisement",
 		Description: "response to git smart server query",
@@ -111,7 +111,7 @@ func (ins *SmartQueryInspector) InspectArtefact(f ArtefactReader, a ResponseArte
 	return nil
 }
 
-func (ins *SmartQueryInspector) decodeProtocol(f ArtefactReader, a ResponseArtefact) ([]string, error) {
+func (ins *SmartQueryInspector) decodeProtocol(f ArtifactReader, a ResponseArtifact) ([]string, error) {
 	msgs, err := decodeGitProtocol(f)
 	if err != nil {
 		a.SetResponseRejected(ins, "cannot decode git protocol").Annotate(
