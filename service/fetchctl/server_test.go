@@ -26,12 +26,15 @@ import (
 	"net"
 	"os"
 	"strings"
+	"testing"
 
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/service/fetchctl"
 	"github.com/canonical/fetch-service/service/messages"
 )
+
+func Test(t *testing.T) { TestingT(t) }
 
 type serverSuite struct{}
 
