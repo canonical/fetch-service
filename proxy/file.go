@@ -22,6 +22,7 @@ package proxy
 import (
 	"crypto/sha1"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"hash"
 	"io"
@@ -50,7 +51,11 @@ type FileDownloadHandler struct {
 
 func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool string, ch chan interface{}) (*FileDownloadHandler, error) {
 	r := resp.Request
-	sessionId := r.Header.Get(sessionIdHeader)
+	sessionId, err := getSessionIdHeader(r)
+	if err != nil {
+		return nil, err
+	}
+
 	insTimeout := 60 * time.Second // XXX: make this a configurable parameter
 	assetDir := filepath.Join(spool, sessionId, "assets")
 	cacheDir := filepath.Join(spool, sessionId, "cache")
@@ -103,6 +108,22 @@ func (h *FileDownloadHandler) Read(b []byte) (int, error) {
 // Close finalizes the transfer.
 func (h *FileDownloadHandler) Close() error {
 	return h.body.Close()
+}
+
+// Extract and validate the session ID from the request header
+func getSessionIdHeader(r *http.Request) (string, error) {
+	id := r.Header.Get(sessionIdHeader)
+	if id == "" {
+		return "", errors.New("session ID cannot be empty")
+	}
+
+	for _, c := range id {
+		if !((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
+			return "", fmt.Errorf("invalid session ID: %q", id)
+		}
+	}
+
+	return id, nil
 }
 
 // localDownload stores the response body locally.
