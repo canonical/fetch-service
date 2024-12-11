@@ -28,7 +28,6 @@ import (
 
 	"github.com/canonical/fetch-service/glob"
 	"github.com/canonical/fetch-service/inspectors/apt/config"
-	"github.com/canonical/fetch-service/inspectors/common"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/deb"
 	"github.com/canonical/fetch-service/inspectors/files"
@@ -137,7 +136,7 @@ func (s *debSuite) TestParseControl(c *C) {
 	reader, err := os.OpenFile("testdata/libcurl-gnutls.control", os.O_RDONLY, 0)
 	c.Assert(err, IsNil)
 
-	meta := common.ArtifactMetadata{}
+	meta := ArtifactMetadata{}
 
 	err = deb.ParseControl(reader, &meta)
 	c.Assert(err, IsNil)
