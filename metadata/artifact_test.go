@@ -205,16 +205,17 @@ func (t *metadataSuite) TestSetArtifactMetadata(c *C) {
 		{"", "text/plain"},
 	} {
 		m := ArtifactMetadata{
-			Type:         tc.assignedType,
-			Name:         "froblator",
-			Version:      "3.14.15",
-			Vendor:       "Acme",
-			Description:  "Too lazy to add one",
-			Author:       "J. Random Hacker",
-			AuthorEmail:  "root@localhost",
-			Architecture: "z80",
-			License:      "CC0",
-			Copyright:    "Copyright 1976 Acme Corp.",
+			Type:          tc.assignedType,
+			Name:          "froblator",
+			Version:       "3.14.15",
+			Vendor:        "Acme",
+			Description:   "Too lazy to add one",
+			Author:        "J. Random Hacker",
+			AuthorEmail:   "root@localhost",
+			Architecture:  "z80",
+			License:       "CC0",
+			Copyright:     "Copyright 1976 Acme Corp.",
+			SourcePackage: "my-source-package",
 		}
 
 		a := metadata.NewArtifact()
@@ -231,6 +232,7 @@ func (t *metadataSuite) TestSetArtifactMetadata(c *C) {
 		c.Check(a.Metadata.Architecture, Equals, m.Architecture)
 		c.Check(a.Metadata.License, Equals, m.License)
 		c.Check(a.Metadata.Copyright, Equals, m.Copyright)
+		c.Check(a.Metadata.SourcePackage, Equals, m.SourcePackage)
 	}
 }
 

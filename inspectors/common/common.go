@@ -149,14 +149,15 @@ func (in *Inspection) Annotate(a Annotation) {
 // ArtifactMetadata contains essential metadata information
 // about the artifact being inspected.
 type ArtifactMetadata struct {
-	Type         string // The type of the artifact file
-	Name         string // The artifact designation, given by its author
-	Version      string // The artifact version, as published by the upstream
-	Vendor       string // The artifact vendor
-	Description  string // A free-form description of the artifact
-	Author       string // The artifact author name
-	AuthorEmail  string // The artifact author email address
-	Architecture string // The architecture, if the artifact contains binary code
-	License      string // The license the artifact is published under
-	Copyright    string // The copyright line, if available
+	Type          string // The type of the artifact file
+	Name          string // The artifact designation, given by its author
+	Version       string // The artifact version, as published by the upstream
+	Vendor        string // The artifact vendor
+	Description   string // A free-form description of the artifact
+	Author        string // The artifact author name
+	AuthorEmail   string // The artifact author email address
+	Architecture  string // The architecture, if the artifact contains binary code
+	License       string // The license the artifact is published under
+	Copyright     string // The copyright line, if available
+	SourcePackage string // The name of the source package that generated this artifact, if available.
 }
