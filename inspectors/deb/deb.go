@@ -164,7 +164,7 @@ func (ins DebInspector) parseControlTar(zf io.Reader, md *ArtifactMetadata) erro
 		}
 		switch h.Name {
 		case "./control":
-			err = ins.parseControl(tf, md)
+			err = parseControl(tf, md)
 			if err != nil {
 				return err
 			}
@@ -174,7 +174,7 @@ func (ins DebInspector) parseControlTar(zf io.Reader, md *ArtifactMetadata) erro
 	return nil
 }
 
-func (ins DebInspector) parseControl(tf io.Reader, md *ArtifactMetadata) error {
+func parseControl(tf io.Reader, md *ArtifactMetadata) error {
 	sc := bufio.NewScanner(tf)
 	sc.Split(bufio.ScanLines)
 
@@ -209,6 +209,8 @@ func (ins DebInspector) parseControl(tf io.Reader, md *ArtifactMetadata) error {
 		case "Maintainer":
 			md.Vendor = v
 			md.AuthorEmail = v
+		case "Source":
+			md.SourcePackage = v
 		}
 	}
 

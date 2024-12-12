@@ -133,6 +133,26 @@ func (s *debSuite) TestDebArtifactInspector(c *C) {
 	}
 }
 
+func (s *debSuite) TestParseControl(c *C) {
+	reader, err := os.OpenFile("testdata/libcurl-gnutls.control", os.O_RDONLY, 0)
+	c.Assert(err, IsNil)
+
+	meta := ArtifactMetadata{}
+
+	err = deb.ParseControl(reader, &meta)
+	c.Assert(err, IsNil)
+
+	c.Check(meta.Name, Equals, "libcurl3-gnutls")
+	c.Check(meta.Version, Equals, "7.81.0-1ubuntu1.19")
+	c.Check(meta.Vendor, Equals, "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>")
+	c.Check(meta.Description, Equals, "Easy-to-use client-side URL transfer library (GnuTLS flavour)")
+	c.Check(meta.Author, Equals, "") // FIXME: deb inspector needs a better author email parser
+	c.Check(meta.AuthorEmail, Equals, "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>")
+	c.Check(meta.License, Equals, "")
+	c.Check(meta.Architecture, Equals, "amd64")
+	c.Check(meta.SourcePackage, Equals, "curl")
+}
+
 func (s *debSuite) TestGetDebBinaryVersion(c *C) {
 	for _, tc := range []struct {
 		content string

@@ -22,4 +22,5 @@ package deb
 var (
 	DebInspectorGetDebianBinaryVersion = (*DebInspector).getDebianBinaryVersion
 	DebInspectorReadDebMetadata        = (*DebInspector).readDebMetadata
+	ParseControl                       = parseControl
 )
