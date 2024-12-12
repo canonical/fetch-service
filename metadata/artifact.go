@@ -116,6 +116,7 @@ func (a *Artifact) SetArtifactMetadata(m ArtifactMetadata) {
 	a.Metadata.Architecture = m.Architecture
 	a.Metadata.License = m.License
 	a.Metadata.Copyright = m.Copyright
+	a.Metadata.SourcePackage = m.SourcePackage
 }
 
 func (a *Artifact) MimetypeIs(t string) bool {

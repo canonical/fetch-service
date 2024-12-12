@@ -1,0 +1,295 @@
+// -*- Mode: Go; indent-tabs-mode: t -*-
+
+/*
+ * Copyright 2023-2024 Canonical Ltd.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+package service
+
+import (
+	"fmt"
+	"os"
+	"time"
+
+	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/opinions"
+	"github.com/canonical/fetch-service/service/messages"
+	"github.com/canonical/fetch-service/session"
+)
+
+func handleMessages(svc *Service, msg interface{}) {
+	switch v := msg.(type) {
+	case messages.GetServiceStatus:
+		v.Rch <- messages.ServiceStatus{
+			Uptime:         uint64(time.Since(svc.start).Seconds()),
+			StartTime:      svc.start,
+			SessionCount:   svc.totalSessions,
+			ActiveSessions: session.SessionInfos(),
+		}
+
+	case messages.RequestInspection:
+		handleRequestInspection(v)
+
+	case messages.ResponseInspection:
+		handleResponseInspection(v)
+
+	case messages.CreateSession:
+		handleCreateSession(v, svc.opt.Spool, svc.opt.PermissiveMode, svc)
+
+	case messages.RevokeToken:
+		handleRevokeToken(v, svc.opt.Spool)
+
+	case messages.SessionReport:
+		handleSessionReport(v)
+
+	case messages.EndSession:
+		handleEndSession(v)
+
+	case messages.DeleteResources:
+		handleDeleteResources(v, svc.opt.Spool)
+
+	case messages.ProxyAuth:
+		v.Rch <- session.CheckAuth(v.Id, v.Pw)
+
+	case messages.FetchCtl:
+		logger.Infof("[service] fetchctl operation: %s", v.Operation)
+		reply := handleFetchCtl(v, svc)
+		v.Rch <- reply
+
+	default:
+		logger.Warningf("[service] unknown message type %T", v)
+	}
+}
+
+func handleRequestInspection(v messages.RequestInspection) {
+	sessionId := v.A.SessionId
+
+	s := session.GetSession(sessionId)
+	if s == nil {
+		v.Rch <- fmt.Errorf("cannot inspect request: session %s is not active", sessionId)
+		return
+	}
+
+	// Run request inspectors
+	go func(s *session.Session, a *metadata.Artifact) {
+		v.Rch <- runRequestInspection(s, a)
+	}(s, v.A)
+}
+
+func handleResponseInspection(v messages.ResponseInspection) {
+	sessionId := v.A.SessionId
+	digest := v.A.Metadata.Sha256
+
+	s := session.GetSession(sessionId)
+	if s == nil {
+		v.Rch <- fmt.Errorf("cannot inspect response: session %s is not active", sessionId)
+		logger.Debugf("[%s] remove stale temporary file: %s", sessionId, v.A.Tempfile)
+		os.Remove(v.A.Tempfile)
+		return
+	}
+
+	v.A.CurrentDownload.EndTime = time.Now().UTC()
+
+	// Add download info to artifact metadata
+	dl := v.A.CurrentDownload
+	logger.Infof("[%s] %s %s: %s (%s)", sessionId, dl.Method, dl.URL, dl.Status, dl.ContentType)
+
+	if s.HasArtifact(digest) {
+		logger.Infof("[%s] artifact %s already downloaded", s.Id, digest)
+		s.AddDownload(v.A.CurrentDownload)
+		os.Remove(v.A.Tempfile)
+		if !s.Permissive && s.ArtifactResult(digest) == opinions.Rejected {
+			v.Rch <- ErrRejectedArtifact
+		} else {
+			v.Rch <- nil
+		}
+		return
+	}
+
+	// Add metadata to session
+	s.AddArtifact(v.A)
+	if err := s.SaveData(digest); err != nil {
+		v.Rch <- err
+		return
+	}
+
+	s.AddDownload(v.A.CurrentDownload)
+
+	// Run response inspectors
+	go func(s *session.Session, a *metadata.Artifact) {
+		v.Rch <- runResponseInspection(s, a)
+	}(s, v.A)
+}
+
+func handleCreateSession(v messages.CreateSession, spoolDir string, permissiveMode bool, svc *Service) {
+	permissive := false
+	if v.Policy == "permissive" {
+		if permissiveMode {
+			permissive = true
+		} else {
+			v.Rch <- messages.SessionCredentials{
+				Err: session.ErrInvalidSessionPolicy,
+			}
+			return
+		}
+	}
+
+	timeout := time.Duration(v.Timeout * uint64(time.Second))
+	s := session.New(spoolDir, timeout, permissive)
+	svc.totalSessions++
+	v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Token}
+}
+
+func handleRevokeToken(v messages.RevokeToken, spoolDir string) {
+	sessionId := v.Id
+	s := session.GetSession(sessionId)
+	if s == nil {
+		v.Rch <- messages.RevokeTokenResult{
+			Err: messages.ErrSessionNotFound,
+		}
+		return
+	}
+
+	if !s.Revoke(v.Token) {
+		v.Rch <- messages.RevokeTokenResult{
+			Err: messages.ErrInvalidSessionToken,
+		}
+		return
+	}
+
+	v.Rch <- messages.RevokeTokenResult{
+		SessionId: s.Id,
+		StartTime: s.Start.String(),
+		EndTime:   s.End.String(),
+		SpoolPath: spoolDir,
+	}
+}
+
+func handleSessionReport(v messages.SessionReport) {
+	sessionId := v.Id
+	s := session.GetSession(sessionId)
+	if s == nil {
+		v.Rch <- messages.SessionReportResult{
+			SessionMetadata: &metadata.SessionMetadata{Err: messages.ErrSessionNotFound},
+			Artifacts:       []*metadata.Artifact{},
+			Err:             messages.ErrSessionNotFound,
+		}
+		return
+	}
+
+	if !s.IsRevoked() {
+		err := fmt.Errorf("cannot get session report: session %s token was not revoked", sessionId)
+		v.Rch <- messages.SessionReportResult{
+			SessionMetadata: &metadata.SessionMetadata{Err: err},
+			Artifacts:       []*metadata.Artifact{},
+			Err:             messages.ErrSessionActive,
+		}
+		return
+	}
+
+	v.Rch <- messages.SessionReportResult{
+		SessionMetadata: s.Metadata(),
+		Artifacts:       s.Artifacts(),
+	}
+}
+
+func handleEndSession(v messages.EndSession) {
+	sessionId := v.Id
+	s := session.GetSession(sessionId)
+	if s == nil {
+		v.Rch <- messages.ErrSessionNotFound
+		return
+	}
+
+	v.Rch <- s.Finish()
+}
+
+func handleDeleteResources(v messages.DeleteResources, spoolDir string) {
+	sessionId := v.Id
+	s := session.GetSession(sessionId)
+	if s != nil {
+		v.Rch <- messages.ErrSessionNotFinished
+		return
+	}
+
+	// Delete session resources
+	go func(spoolDir, sessionId string) {
+		v.Rch <- session.RemoveResources(spoolDir, sessionId)
+	}(spoolDir, sessionId)
+}
+
+func runRequestInspection(s *session.Session, a *metadata.Artifact) error {
+	// Check request
+	if err := s.Insps.RunRequestInspectors(a); err != nil {
+		logger.Errorf("[%s] %s", s.Id, err)
+		return err
+	}
+
+	return evaluateRequestInspection(s, a)
+}
+
+func evaluateRequestInspection(s *session.Session, a *metadata.Artifact) error {
+	dl := a.CurrentDownload
+	sessionId := s.Id
+
+	if !a.RequestPending() {
+		if s.Permissive {
+			logger.Infof("[%s] request would be rejected: %s %s", sessionId, dl.Method, dl.URL)
+		} else {
+			logger.Infof("[%s] request rejected: %s %s", sessionId, dl.Method, dl.URL)
+			return ErrRejectedRequest
+		}
+	} else {
+		logger.Infof("[%s] request approved: %s %s", sessionId, dl.Method, dl.URL)
+	}
+
+	return nil
+}
+
+func runResponseInspection(s *session.Session, a *metadata.Artifact) error {
+	// Extract metadata from file
+	if err := s.Insps.RunArtifactInspectors(a.AssetDir, a); err != nil {
+		logger.Errorf("%s", err)
+		a.Result = opinions.Rejected
+		return err
+	}
+
+	return evaluateResponseInspection(s, a)
+}
+
+func evaluateResponseInspection(s *session.Session, a *metadata.Artifact) error {
+	sessionId := s.Id
+	digest := a.Metadata.Sha256
+
+	if a.Rejected() {
+		a.Result = opinions.Rejected
+		if s.Permissive {
+			logger.Infof("[%s] artifact %s %d (%s) would be rejected (permissive)",
+				sessionId, digest, a.Metadata.Size, a.Metadata.Type)
+		} else {
+			logger.Infof("[%s] artifact rejected: %s %d (%s)",
+				sessionId, digest, a.Metadata.Size, a.Metadata.Type)
+			return ErrRejectedArtifact
+		}
+	} else {
+		a.Result = opinions.Approved
+		logger.Infof("[%s] artifact approved: %s %d (%s)", sessionId, digest, a.Metadata.Size, a.Metadata.Type)
+	}
+
+	return nil
+}
