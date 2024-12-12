@@ -102,7 +102,7 @@ func (ins *DebInspector) readDebMetadata(f io.Reader, md *ArtifactMetadata) erro
 			if err == io.EOF {
 				break
 			}
-			return err
+			return fmt.Errorf("ar parse error: %w", err)
 		}
 		switch h.Name {
 		case "debian-binary":
@@ -145,8 +145,11 @@ func (ins DebInspector) getDebianBinaryVersion(af io.Reader) string {
 	sc.Split(bufio.ScanLines)
 
 	// Read a single line
-	sc.Scan()
+	if !sc.Scan() {
+		return ""
+	}
 	return strings.TrimSpace(sc.Text())
+
 }
 
 func (ins DebInspector) parseControlTar(zf io.Reader, md *ArtifactMetadata) error {

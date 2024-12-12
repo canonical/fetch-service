@@ -21,6 +21,7 @@ package deb_test
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/gabriel-vasile/mimetype"
@@ -150,4 +151,48 @@ func (s *debSuite) TestParseControl(c *C) {
 	c.Check(meta.License, Equals, "")
 	c.Check(meta.Architecture, Equals, "amd64")
 	c.Check(meta.SourcePackage, Equals, "curl")
+}
+
+func (s *debSuite) TestGetDebBinaryVersion(c *C) {
+	for _, tc := range []struct {
+		content string
+		result  string
+	}{
+		{"", ""},
+		{"2.0", "2.0"},
+		{"2.0\n", "2.0"},
+		{"2.0\nxyz", "2.0"},
+	} {
+		r := strings.NewReader(tc.content)
+		ins := deb.NewDebInspector(getTestAptConfig())
+		res := deb.DebInspectorGetDebianBinaryVersion(ins, r)
+		c.Check(res, Equals, tc.result)
+	}
+
+}
+
+func (s *debSuite) TestReadDebMetadata(c *C) {
+	for _, tc := range []struct {
+		filename string
+		name     string
+		errMsg   string
+	}{
+		{"testdata/hello_2.10-1_amd64.deb", "hello", ""},
+		{"testdata/hello_2.10-2ubuntu4_amd64.deb", "hello", ""},
+		{"testdata/2048.package", "", "ar parse error: unexpected EOF"},
+	} {
+		r, err := os.Open(tc.filename)
+		c.Assert(err, IsNil)
+
+		am := ArtifactMetadata{}
+		ins := deb.NewDebInspector(getTestAptConfig())
+		err = deb.DebInspectorReadDebMetadata(ins, r, &am)
+		if tc.errMsg == "" {
+			c.Assert(err, IsNil)
+			c.Check(am.Name, Equals, tc.name)
+		} else {
+			c.Assert(err, ErrorMatches, tc.errMsg)
+		}
+	}
+
 }
