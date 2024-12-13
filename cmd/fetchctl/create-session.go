@@ -26,6 +26,15 @@ import (
 	"github.com/canonical/fetch-service/service/fetchctl"
 )
 
+var createSessionCmd CreateSessionCmd
+
+func init() {
+	_, err := parser.AddCommand("create-session", "create a new fetch service session", "", &createSessionCmd)
+	if err != nil {
+		panic(err)
+	}
+}
+
 type CreateSessionCmd struct {
 	SessionId  string `long:"session-id" description:"Session ID of the newly created session"`
 	Token      string `long:"token" description:"Session token of the newly created session"`
@@ -74,10 +83,4 @@ func (cmd *CreateSessionCmd) Execute(args []string) error {
 	fmt.Printf("%s\n", reply.Message)
 
 	return nil
-}
-
-var createSessionCmd CreateSessionCmd
-
-func init() {
-	_, _ = parser.AddCommand("create-session", "create a new fetch service session", "", &createSessionCmd)
 }

@@ -26,6 +26,15 @@ import (
 	"github.com/canonical/fetch-service/service/fetchctl"
 )
 
+var updateCertCmd UpdateCertCmd
+
+func init() {
+	_, err := parser.AddCommand("update-cert", "update the running service certificate", "", &updateCertCmd)
+	if err != nil {
+		panic(err)
+	}
+}
+
 type UpdateCertCmd struct {
 	ValidateOnly bool `long:"validate-only" description:"Validate the certificate and exit"`
 	Args         struct {
@@ -73,10 +82,4 @@ func (cmd *UpdateCertCmd) Execute(args []string) error {
 	fmt.Printf("%s\n", reply.Message)
 
 	return nil
-}
-
-var updateCertCmd UpdateCertCmd
-
-func init() {
-	_, _ = parser.AddCommand("update-cert", "update the running service certificate", "", &updateCertCmd)
 }

@@ -125,7 +125,9 @@ func (p *HttpProxy) Start() error {
 // Stop shuts down the proxy.
 func (p *HttpProxy) Stop() error {
 	logger.Infof("Shutting down the HTTP proxy...")
-	p.srv.Close()
+	if err := p.srv.Close(); err != nil {
+		return err
+	}
 	if err := p.tomb.Wait(); err != nil {
 		return err
 	}
