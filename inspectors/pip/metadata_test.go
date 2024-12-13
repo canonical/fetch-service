@@ -70,7 +70,7 @@ func (s *metadataSuite) TestInspectRequest(c *C) {
 		{"ahttps://files.pythonhosted.org:443/packages/0f/9a/0123456789abcdef0123456789abcdef0123456789abcdef0123456789ab/foobar-1.0.0.whl.metadata", false},
 	} {
 		ins := pip.NewMetadataInspector()
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 
 		err := ins.InspectRequest(a)
@@ -84,18 +84,18 @@ func (s *metadataSuite) TestInspectRequest(c *C) {
 	}
 }
 
-func (s *metadataSuite) TestInspectArtefactBadType(c *C) {
+func (s *metadataSuite) TestInspectArtifactBadType(c *C) {
 	ins := pip.NewMetadataInspector()
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.MimeType = mimetype.Lookup("application/zip")
 
-	err := ins.InspectArtefact(nil, a)
+	err := ins.InspectArtifact(nil, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, false)
 	c.Assert(a.Rejected(), Equals, true)
 }
 
-func (s *metadataSuite) TestMetadataInspectArtefactReadMetadata(c *C) {
+func (s *metadataSuite) TestMetadataInspectArtifactReadMetadata(c *C) {
 	tmp := c.MkDir()
 	testfile := filepath.Join(tmp, "test.metadata")
 
@@ -129,16 +129,16 @@ func (s *metadataSuite) TestMetadataInspectArtefactReadMetadata(c *C) {
 	c.Assert(err, IsNil)
 
 	// Inspect test metadata
-	f, err := files.OpenArtefactFile(testfile)
+	f, err := files.OpenArtifactFile(testfile)
 	c.Assert(err, IsNil)
 	defer f.Close()
 
 	ins := pip.NewMetadataInspector()
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.MimeType = mimetype.Lookup("text/plain")
 	a.SetRequestPending(ins, "test")
 
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
 	c.Assert(a.Metadata.Name, Equals, "metadata file for package 'craft-parts'")
@@ -156,7 +156,7 @@ func (s *metadataSuite) TestMetadataInspectArtefactReadMetadata(c *C) {
 	})
 }
 
-func (s *metadataSuite) TestMetadataInspectArtefactBadFormat(c *C) {
+func (s *metadataSuite) TestMetadataInspectArtifactBadFormat(c *C) {
 	tmp := c.MkDir()
 	testfile := filepath.Join(tmp, "test.metadata")
 
@@ -175,16 +175,16 @@ func (s *metadataSuite) TestMetadataInspectArtefactBadFormat(c *C) {
 		c.Assert(err, IsNil)
 
 		// Inspect test metadata
-		f, err := files.OpenArtefactFile(testfile)
+		f, err := files.OpenArtifactFile(testfile)
 		c.Assert(err, IsNil)
 		defer f.Close()
 
 		ins := pip.NewMetadataInspector()
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.MimeType = mimetype.Lookup("text/plain")
 		a.SetRequestPending(ins, "test")
 
-		err = ins.InspectArtefact(f, a)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
 		if tc.approved {

@@ -2,6 +2,8 @@ github.com/BurntSushi/toml v1.4.0 h1:kuoIxZQy2WRRk1pttg9asf+WVv6tWQuBNVmK8+nqPr0
 github.com/BurntSushi/toml v1.4.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
 github.com/CalebQ42/squashfs v1.0.2 h1:r1OMSTpacV4GXOWaLwnydEpcrv+yhUSIzrvSGYO74Xg=
 github.com/CalebQ42/squashfs v1.0.2/go.mod h1:uhKIQfq2+dgJ+utqCkvVk0t7XuqaNhcotCrqSI0wUuI=
+github.com/CalebQ42/squashfs v1.0.4 h1:v7d6BxamgumtvqkOmezEOHmlBUGP4+Epewoin0JZ6LA=
+github.com/CalebQ42/squashfs v1.0.4/go.mod h1:uhKIQfq2+dgJ+utqCkvVk0t7XuqaNhcotCrqSI0wUuI=
 github.com/ProtonMail/go-crypto v1.0.0 h1:LRuvITjQWX+WIfr930YHG2HNfjR1uOfyf5vE0kC2U78=
 github.com/ProtonMail/go-crypto v1.0.0/go.mod h1:EjAoLdwvbIOoOQr3ihjnSoLZRtE8azugULFRteWMNc0=
 github.com/PuerkitoBio/purell v1.2.1 h1:QsZ4TjvwiMpat6gBCBxEQI0rcS9ehtkKtSpiUnd9N28=

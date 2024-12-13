@@ -50,7 +50,7 @@ func (t *inspectorsSuite) SetUpTest(c *C) {
 var _ = Suite(&inspectorsSuite{})
 
 func (t *inspectorsSuite) TestRunRequestInspectors(c *C) {
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 
 	s := session.New(c.MkDir(), 0, false)
 	defer s.Discard()
@@ -65,7 +65,7 @@ func (t *inspectorsSuite) TestRunRequestInspectors(c *C) {
 }
 
 func (t *inspectorsSuite) TestRunRequestInspectorsPermissive(c *C) {
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 
 	s := session.New(c.MkDir(), 0, true)
 	defer s.Discard()
@@ -79,14 +79,14 @@ func (t *inspectorsSuite) TestRunRequestInspectorsPermissive(c *C) {
 	})
 }
 
-func (t *inspectorsSuite) TestRunArtefactInspectors(c *C) {
+func (t *inspectorsSuite) TestRunArtifactInspectors(c *C) {
 	dir := c.MkDir()
 	data := []byte("Measure twice, saw once.\n")
 	err := os.WriteFile(filepath.Join(dir, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.data"), data, 0644)
 	c.Assert(err, IsNil)
 
 	h, _ := digests.NewSha256Digest(MySha256)
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.CurrentDownload.ContentType = "text/plain"
 	a.CurrentDownload.Sha256 = h
 	a.Metadata.Sha256 = h
@@ -94,25 +94,25 @@ func (t *inspectorsSuite) TestRunArtefactInspectors(c *C) {
 	s := session.New(c.MkDir(), 0, false)
 	defer s.Discard()
 
-	err = s.Insps.RunArtefactInspectors(dir, a)
+	err = s.Insps.RunArtifactInspectors(dir, a)
 	c.Assert(err, Equals, nil)
 	c.Assert(a.Metadata.Type, Equals, "text/plain; charset=utf-8")
 	c.Assert(len(a.ResponseInspection), Equals, 1)
 	c.Assert(a.ResponseInspection["default"], DeepEquals, &Inspection{
 		Opinion: opinions.Unknown,
-		Reason:  "the artefact file content was not recognized by any format inspector",
+		Reason:  "the artifact file content was not recognized by any format inspector",
 	})
 	c.Assert(a.Rejected(), Equals, true)
 }
 
-func (t *inspectorsSuite) TestRunArtefactInspectorsPermissive(c *C) {
+func (t *inspectorsSuite) TestRunArtifactInspectorsPermissive(c *C) {
 	dir := c.MkDir()
 	data := []byte("Measure twice, saw once.\n")
 	err := os.WriteFile(filepath.Join(dir, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.data"), data, 0644)
 	c.Assert(err, IsNil)
 
 	h, _ := digests.NewSha256Digest(MySha256)
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.CurrentDownload.ContentType = "text/plain"
 	a.CurrentDownload.Sha256 = h
 	a.CurrentDownload.URL = "http://some.url"
@@ -121,13 +121,13 @@ func (t *inspectorsSuite) TestRunArtefactInspectorsPermissive(c *C) {
 	s := session.New(dir, 0, true)
 	defer s.Discard()
 
-	err = s.Insps.RunArtefactInspectors(dir, a)
+	err = s.Insps.RunArtifactInspectors(dir, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Metadata.Type, Equals, "text/plain; charset=utf-8")
 	c.Assert(len(a.ResponseInspection), Equals, 1)
 	c.Assert(a.ResponseInspection["default"], DeepEquals, &Inspection{
 		Opinion: opinions.Unknown,
-		Reason:  "the artefact file content was not recognized by any format inspector",
+		Reason:  "the artifact file content was not recognized by any format inspector",
 	})
 	c.Assert(a.Rejected(), Equals, true)
 }

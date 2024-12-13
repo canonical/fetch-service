@@ -74,7 +74,7 @@ func (s *simpleIndexSuite) TestInspectRequest(c *C) {
 		{"ahttps://pypi.org:443/simple/foo", "", false},
 	} {
 		ins := pip.NewSimpleIndexInspector()
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 
 		err := ins.InspectRequest(a)
@@ -92,44 +92,44 @@ func (s *simpleIndexSuite) TestInspectRequest(c *C) {
 	}
 }
 
-func (s *simpleIndexSuite) TestInspectArtefactBadType(c *C) {
+func (s *simpleIndexSuite) TestInspectArtifactBadType(c *C) {
 	ins := pip.NewSimpleIndexInspector()
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.Metadata.Type = "text/plain"
 	a.MimeType = mimetype.Lookup("text/plain")
 	a.CurrentDownload.URL = "https://pypi.org:443/simple/foo/"
 
-	err := ins.InspectArtefact(nil, a)
+	err := ins.InspectArtifact(nil, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, false)
 	c.Assert(a.Rejected(), Equals, true)
 }
 
-func (s *simpleIndexSuite) TestWheelInspectArtefactBadContent(c *C) {
+func (s *simpleIndexSuite) TestWheelInspectArtifactBadContent(c *C) {
 	tmp := c.MkDir()
 	filename := filepath.Join(tmp, "index.html")
 	err := os.WriteFile(filename, []byte("random content"), 0755)
 	c.Assert(err, IsNil)
 
 	ins := pip.NewSimpleIndexInspector()
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.Metadata.Type = "text/plain"
 	a.MimeType = mimetype.Lookup("text/plain")
 	a.CurrentDownload.URL = "https://pypi.org:443/simple/foo/"
 	a.SetRequestPending(ins, "test")
 
-	f, err := files.OpenArtefactFile(filename)
+	f, err := files.OpenArtifactFile(filename)
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, false)
 	c.Assert(a.Rejected(), Equals, true)
 	c.Assert(a.ResponseInspection, DeepEquals, metadata.InspectionMap{})
 }
 
-func (s *simpleIndexSuite) TestWheelInspectArtefact(c *C) {
+func (s *simpleIndexSuite) TestWheelInspectArtifact(c *C) {
 	for _, tc := range []struct {
 		ver     string
 		failMsg string
@@ -155,7 +155,7 @@ func (s *simpleIndexSuite) TestWheelInspectArtefact(c *C) {
 		ins := pip.NewSimpleIndexInspector()
 		h, _ := digests.NewSha1Digest("85fc2d2a3764089191e57cd552601278a5985c46")
 
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.Metadata.Type = "text/html"
 		a.Metadata.Sha1 = h
 		a.MimeType = mimetype.Lookup("text/html")
@@ -166,11 +166,11 @@ func (s *simpleIndexSuite) TestWheelInspectArtefact(c *C) {
 			Annotations: Annotation{"package-name": "foobar"},
 		}
 
-		f, err := files.OpenArtefactFile(filename)
+		f, err := files.OpenArtifactFile(filename)
 		c.Assert(err, IsNil)
 		defer f.Close()
 
-		err = ins.InspectArtefact(f, a)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
 		if tc.failMsg == "" {

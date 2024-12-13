@@ -69,7 +69,7 @@ func (s *snapSuite) TestInspectAssertionRequest(c *C) {
 		{"http://api.snapcraft.io/v2/assertions/snap-revision/", true, false},
 	} {
 		ins := snap.NewSnapAssertionInspector()
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 		if tc.hasAccept {
 			a.CurrentDownload.RequestHeader = map[string][]string{"Accept": []string{"application/x.ubuntu.assertion"}}
@@ -86,7 +86,7 @@ func (s *snapSuite) TestInspectAssertionRequest(c *C) {
 	}
 }
 
-func (s *snapSuite) TestSnapAssertionArtefactInspector(c *C) {
+func (s *snapSuite) TestSnapAssertionArtifactInspector(c *C) {
 	for _, tc := range []struct {
 		testfile  string
 		rejection string
@@ -99,19 +99,19 @@ func (s *snapSuite) TestSnapAssertionArtefactInspector(c *C) {
 		{"testdata/bad-assertion.assert", "error parsing assertion", ""},
 		{"testdata/bad-signature.assert", "assertion signature verification failed", ""},
 	} {
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.Metadata.Type = "application/x.ubuntu.assertion"
 		a.Metadata.Size = 3330
 		a.MimeType = mimetype.Lookup("application/x.ubuntu.assertion")
 		a.CurrentDownload.ContentType = "application/x.ubuntu.assertion"
 
-		f, err := files.OpenArtefactFile(tc.testfile)
+		f, err := files.OpenArtifactFile(tc.testfile)
 		c.Assert(err, IsNil)
 		defer f.Close()
 
 		ins := snap.NewSnapAssertionInspector()
 		a.SetRequestPending(ins, "test")
-		err = ins.InspectArtefact(f, a)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 		c.Assert(a.Approved(), Equals, tc.rejection == "", Commentf("test case: %+v", tc))
 
@@ -127,30 +127,30 @@ func (s *snapSuite) TestSnapAssertionArtefactInspector(c *C) {
 	}
 }
 
-func (s *snapSuite) TestSnapAssertionArtefactBadType(c *C) {
-	a := metadata.NewArtefact()
+func (s *snapSuite) TestSnapAssertionArtifactBadType(c *C) {
+	a := metadata.NewArtifact()
 	a.Metadata.Type = "application/x.ubuntu.assertion"
 	a.Metadata.Size = 3330
 
-	f, err := files.OpenArtefactFile("testdata/refresh.json")
+	f, err := files.OpenArtifactFile("testdata/refresh.json")
 	c.Assert(err, IsNil)
 	defer f.Close()
 
 	ins := snap.NewSnapAssertionInspector()
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, false)
 }
 
-func (s *snapSuite) TestSnapAssertionArtefactBadContent(c *C) {
-	a := metadata.NewArtefact()
+func (s *snapSuite) TestSnapAssertionArtifactBadContent(c *C) {
+	a := metadata.NewArtifact()
 	a.Metadata.Type = "text/plain"
 	a.Metadata.Size = 3330
 
 	f := strings.NewReader(`{"content": "bad"}`)
 
 	ins := snap.NewSnapAssertionInspector()
-	err := ins.InspectArtefact(f, a)
+	err := ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, false)
 }

@@ -48,7 +48,7 @@ func (SdistInspector) ID() string {
 }
 
 // InspectRequest verifies if the request complies with policy.
-func (ins *SdistInspector) InspectRequest(a RequestArtefact) error {
+func (ins *SdistInspector) InspectRequest(a RequestArtifact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -61,8 +61,8 @@ func (ins *SdistInspector) InspectRequest(a RequestArtefact) error {
 	return nil // we don't recognize this request
 }
 
-// InspectArtefact extracts metadata from a known artefact file format.
-func (ins *SdistInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+// InspectArtifact extracts metadata from a known artifact file format.
+func (ins *SdistInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if !a.MimetypeIs("application/gzip") {
 		return nil
 	}
@@ -83,7 +83,7 @@ func (ins *SdistInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact)
 				break
 			}
 			logger.Debugf("sdist tar parsing error: %s", err)
-			return nil // we don't recognize this artefact
+			return nil // we don't recognize this artifact
 		}
 		if rePkgInfo.MatchString(h.Name) {
 			return ins.parsePkgInfo(tf, a)
@@ -94,7 +94,7 @@ func (ins *SdistInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact)
 }
 
 // scanSdistMetadata parses metadata entries from the given file.
-func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a ResponseArtefact) error {
+func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a ResponseArtifact) error {
 	sc := bufio.NewScanner(tf)
 	sc.Split(bufio.ScanLines)
 
@@ -167,7 +167,7 @@ func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a ResponseArtefact) error 
 		vendor = maintainer
 	}
 
-	a.SetArtefactMetadata(ArtefactMetadata{
+	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:        mimetypes.PythonSdist,
 		Name:        name,
 		Version:     version,

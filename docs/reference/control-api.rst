@@ -12,7 +12,7 @@ Normal fetch service operation includes creating and ending sessions, as well
 as obtaining status information and cleaning the file spool. These functionalities
 are available through an API to be used by the build orchestrator.
 
-The fetch service requires artefact requests to happen inside build sessions. Each
+The fetch service requires artifact requests to happen inside build sessions. Each
 build session must be created by the orchestrator, and session data provided by
 the fetch service must be provisioned to build instances for proper proxying setup
 and authentication.
@@ -118,7 +118,7 @@ Endpoints
 ^^^^^^^^^^^^^^^^^^^^^
 
 :Description:
-  Retrieve the metadata containing a list of all downloaded artefacts. The information
+  Retrieve the metadata containing a list of all downloaded artifacts. The information
   must be requested only after the session token has been revoked, and before the
   session is finished.
 
@@ -138,9 +138,9 @@ Endpoints
         "start-time": <string>,		// session start timestamp in RFC-3339 format
         "end-time": <string>,		// session end timestamp in RFC-3339 format
         "inspectors": <list of string>,	// list of registered inspector IDs
-        "artefacts": [
+        "artifacts": [
           {
-            "artefact-metadata-version": <string>,  // metadata compatibility (major.minor)
+            "artifact-metadata-version": <string>,  // metadata compatibility (major.minor)
             "request-inspection": {
                 <inspector id>: {
                     "opinion": <string>,	// "Unknown", "Rejected" or "Pending"
@@ -159,14 +159,14 @@ Endpoints
             },
             "result": <string>,			// "Approved" or "Rejected"
             "metadata": {
-                "type": <string>,		// artefact mimetype
-                "sha1": <string>,		// artefact SHA1 digest
-                "sha256": <string>,		// artefact SHA256 digest
-                "size": <int>,			// artefact size in bytes
-                "name": <string>,		// artefact name
-                "version": <string>,		// artefact version
-                "vendor": <string>,		// artefact vendor
-                "description": <string>,	// brief description of the artefact
+                "type": <string>,		// artifact mimetype
+                "sha1": <string>,		// artifact SHA1 digest
+                "sha256": <string>,		// artifact SHA256 digest
+                "size": <int>,			// artifact size in bytes
+                "name": <string>,		// artifact name
+                "version": <string>,		// artifact version
+                "vendor": <string>,		// artifact vendor
+                "description": <string>,	// brief description of the artifact
                 "author": <string>,		// author name
                 "author-email": <string>,	// author email address
                 "architecture": <string>,	// binary architecture in debian format

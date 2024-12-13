@@ -30,7 +30,7 @@ import (
 	"github.com/canonical/fetch-service/cmd/fetchctl"
 )
 
-func (t *fetchctlSuite) TestListArtefacts(c *C) {
+func (t *fetchctlSuite) TestListArtifacts(c *C) {
 	for _, tc := range []struct {
 		sid     string
 		payload string
@@ -57,7 +57,7 @@ func (t *fetchctlSuite) TestListArtefacts(c *C) {
 			data := make([]byte, 4096)
 			n, err := f.Read(data)
 			c.Assert(err, IsNil)
-			c.Check(string(data[:n]), Equals, fmt.Sprintf(`{"operation":"list-artefacts","payload":%q}`, tc.sid))
+			c.Check(string(data[:n]), Equals, fmt.Sprintf(`{"operation":"list-artifacts","payload":%q}`, tc.sid))
 
 			_, err = f.Write([]byte(fmt.Sprintf(`{"result":%q,"message":%q}`, tc.result, tc.errmsg)))
 			c.Assert(err, IsNil)
@@ -66,11 +66,11 @@ func (t *fetchctlSuite) TestListArtefacts(c *C) {
 
 		time.Sleep(500 * time.Millisecond)
 
-		cmd := fetchctl.ListArtefactsCmd{
+		cmd := fetchctl.ListArtifactsCmd{
 			SessionId: tc.sid,
 		}
 
-		err := cmd.Execute([]string{"fetchctl", "list-artefacts"}) // only argv[0] is relevant
+		err := cmd.Execute([]string{"fetchctl", "list-artifacts"}) // only argv[0] is relevant
 
 		if tc.result == "ok" {
 			c.Assert(err, IsNil)

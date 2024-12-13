@@ -34,8 +34,8 @@ import (
 	"github.com/canonical/fetch-service/logger"
 )
 
-// Check if the given data could be a valid Translation file.
-// The Translation file should contain the following fields:
+// Check if the given data could be a valid translation file.
+// The translation file should contain the following fields:
 // - Package
 // - Description-md5
 // - Description-<lang>
@@ -109,7 +109,7 @@ func (ins *AptTranslationInspector) ID() string {
 	return "apt.translations"
 }
 
-func (ins *AptTranslationInspector) InspectRequest(a RequestArtefact) error {
+func (ins *AptTranslationInspector) InspectRequest(a RequestArtifact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -128,7 +128,7 @@ func (ins *AptTranslationInspector) InspectRequest(a RequestArtefact) error {
 	return nil
 }
 
-func (ins *AptTranslationInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if !a.MimetypeIs(mimetypes.AptTranslation) {
 		return nil
 	}
@@ -140,7 +140,8 @@ func (ins *AptTranslationInspector) InspectArtefact(f ArtefactReader, a Response
 
 	r, err := xz.NewReader(f, 0)
 	if err != nil {
-		return err
+		a.SetResponseRejected(ins, "cannot read xz file")
+		return nil
 	}
 
 	sc := bufio.NewScanner(r)
@@ -162,24 +163,21 @@ func (ins *AptTranslationInspector) InspectArtefact(f ArtefactReader, a Response
 
 		if strings.HasPrefix(line, "Package: ") {
 			if state_package {
-				a.SetResponseRejected(ins,
-					"misplaced Package fields in Translation file")
+				a.SetResponseRejected(ins, "misplaced package fields in translation file")
 				return nil
 			}
 			state_package = true
 			continue
 		} else if strings.HasPrefix(line, "Description-md5: ") {
 			if !state_package {
-				a.SetResponseRejected(ins,
-					"description-md5 field without Package field")
+				a.SetResponseRejected(ins, "description-md5 field without Package field")
 				return nil
 			}
 			state_md5sum = true
 			continue
 		} else if strings.HasPrefix(line, "Description-") {
 			if !state_md5sum || !state_package {
-				a.SetResponseRejected(ins,
-					"description field without Package or Description-md5 field")
+				a.SetResponseRejected(ins, "description field without Package or Description-md5 field")
 				return nil
 			}
 			state_description = true
@@ -192,8 +190,7 @@ func (ins *AptTranslationInspector) InspectArtefact(f ArtefactReader, a Response
 			continue
 		} else if strings.HasPrefix(line, " ") { // Description field continuation with leading space
 			if !state_description {
-				a.SetResponseRejected(ins,
-					"description field without Package or Description-md5 field")
+				a.SetResponseRejected(ins, "description field without Package or Description-md5 field")
 				return nil
 			}
 			continue
@@ -211,22 +208,20 @@ func (ins *AptTranslationInspector) InspectArtefact(f ArtefactReader, a Response
 	if item_count > 0 {
 		if state_package {
 			if !state_md5sum {
-				a.SetResponseRejected(ins,
-					"description-md5 field missing for the last Package")
+				a.SetResponseRejected(ins, "description-md5 field missing for the last Package")
 				return nil
 			}
 			if !state_description {
-				a.SetResponseRejected(ins,
-					"description field missing for the last Package")
+				a.SetResponseRejected(ins, "description field missing for the last Package")
 				return nil
 			}
 		}
 	} else {
-		a.SetResponseRejected(ins, "not a valid Translation file")
+		a.SetResponseRejected(ins, "not a valid translation file")
 		return nil
 	}
 
-	md := ArtefactMetadata{
+	md := ArtifactMetadata{
 		Type: mimetypes.AptTranslation,
 		Name: "Translation",
 	}
@@ -238,7 +233,7 @@ func (ins *AptTranslationInspector) InspectArtefact(f ArtefactReader, a Response
 		md.Author = vendor
 	}
 
-	a.SetArtefactMetadata(md)
+	a.SetArtifactMetadata(md)
 	a.SetResponseApproved(ins, "translation file successfully parsed").Annotate(
 		Annotation{
 			"translation-language": lang,

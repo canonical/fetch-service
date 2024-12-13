@@ -46,7 +46,7 @@ func (SimpleIndexInspector) ID() string {
 	return "pip.simple-index"
 }
 
-func (ins *SimpleIndexInspector) InspectRequest(a RequestArtefact) error {
+func (ins *SimpleIndexInspector) InspectRequest(a RequestArtifact) error {
 	m := indexRequestURL.FindStringSubmatch(a.DownloadURL())
 	if len(m) > 1 {
 		a.SetRequestPending(ins, "request matches valid URL").Annotate(
@@ -61,7 +61,7 @@ func (ins *SimpleIndexInspector) InspectRequest(a RequestArtefact) error {
 	return nil // we don't recognize this request
 }
 
-func (ins *SimpleIndexInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+func (ins *SimpleIndexInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	pkgName, ok := a.RequestStringAnnotation(ins.ID(), "package-name")
 	if !ok {
 		return nil
@@ -79,7 +79,7 @@ func (ins *SimpleIndexInspector) InspectArtefact(f ArtefactReader, a ResponseArt
 	}
 }
 
-func parseHtmlIndex(ins *SimpleIndexInspector, f ArtefactReader, a ResponseArtefact, pkgName string) error {
+func parseHtmlIndex(ins *SimpleIndexInspector, f ArtifactReader, a ResponseArtifact, pkgName string) error {
 	z := html.NewTokenizer(f)
 
 	for {
@@ -109,7 +109,7 @@ func parseHtmlIndex(ins *SimpleIndexInspector, f ArtefactReader, a ResponseArtef
 						host = host[:vidx]
 					}
 
-					a.SetArtefactMetadata(ArtefactMetadata{
+					a.SetArtifactMetadata(ArtifactMetadata{
 						Type:        "text/html",
 						Name:        fmt.Sprintf("Simple index for '%s'", pkgName),
 						Description: fmt.Sprintf("PyPI repository index HTML file for package '%s'", pkgName),
@@ -152,7 +152,7 @@ func extractMetaProperty(t html.Token, name string) (content string, ok bool) {
 	return
 }
 
-func parseJsonIndex(ins *SimpleIndexInspector, f ArtefactReader, a ResponseArtefact, pkgName string) error {
+func parseJsonIndex(ins *SimpleIndexInspector, f ArtifactReader, a ResponseArtifact, pkgName string) error {
 	// FIXME: add better format verification, e.g. check schema
 
 	u, err := url.Parse(a.DownloadURL())
@@ -165,7 +165,7 @@ func parseJsonIndex(ins *SimpleIndexInspector, f ArtefactReader, a ResponseArtef
 		host = host[:vidx]
 	}
 
-	a.SetArtefactMetadata(ArtefactMetadata{
+	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:        "application/json",
 		Name:        fmt.Sprintf("JSON index for '%s'", pkgName),
 		Version:     "v1+json",

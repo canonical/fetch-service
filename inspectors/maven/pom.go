@@ -29,7 +29,7 @@ import (
 var (
 	// Location of the maven repo (will be configurable)
 	pomRequestOrigin = regexp.MustCompile(`^https://repo.maven.apache.org:443`)
-	// POM urls have the form /maven2/<org components separated by />/<artefact-id>/<version>/<pom file>
+	// POM urls have the form /maven2/<org components separated by />/<artifact-id>/<version>/<pom file>
 	pomRequestSlug = regexp.MustCompile(`/maven2/((?:\w|\-|/)+).*/((?:\w|\-)+)/(.*)/.*.pom$`)
 )
 
@@ -45,19 +45,19 @@ func (MavenPomInspector) ID() string {
 	return "maven.pom"
 }
 
-func (ins *MavenPomInspector) InspectRequest(a RequestArtefact) error {
+func (ins *MavenPomInspector) InspectRequest(a RequestArtifact) error {
 	url := a.DownloadURL()
 	m := pomRequestOrigin.FindStringSubmatch(url)
 	if len(m) == 0 {
 		return nil
 	}
 
-	if artefactUrl := parseUrl(pomRequestSlug, url); artefactUrl != nil {
+	if artifactUrl := parseUrl(pomRequestSlug, url); artifactUrl != nil {
 		a.SetRequestPending(ins, "request matches valid URL").Annotate(
 			Annotation{
-				"group-id":    artefactUrl.GroupId,
-				"artefact-id": artefactUrl.ArtefactId,
-				"version":     artefactUrl.Version,
+				"group-id":    artifactUrl.GroupId,
+				"artifact-id": artifactUrl.ArtifactId,
+				"version":     artifactUrl.Version,
 			},
 		)
 		return nil
@@ -65,12 +65,12 @@ func (ins *MavenPomInspector) InspectRequest(a RequestArtefact) error {
 	return nil
 }
 
-func (ins *MavenPomInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+func (ins *MavenPomInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if !a.MimetypeIs("text/xml") {
 		return nil
 	}
 
-	artefact_id, ok := a.RequestStringAnnotation(ins.ID(), "artefact-id")
+	artifact_id, ok := a.RequestStringAnnotation(ins.ID(), "artifact-id")
 	if !ok {
 		return nil
 	}
@@ -85,9 +85,9 @@ func (ins *MavenPomInspector) InspectArtefact(f ArtefactReader, a ResponseArtefa
 		return err
 	}
 
-	if md.Name == artefact_id && md.Version == version {
-		md.Name = fmt.Sprintf(`Maven POM file for '%s'`, artefact_id)
-		a.SetArtefactMetadata(*md)
+	if md.Name == artifact_id && md.Version == version {
+		md.Name = fmt.Sprintf(`Maven POM file for '%s'`, artifact_id)
+		a.SetArtifactMetadata(*md)
 		a.SetResponseApproved(ins, "Maven pom successfully parsed and validated")
 	}
 	return nil

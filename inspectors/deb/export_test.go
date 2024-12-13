@@ -17,22 +17,10 @@
  *
  */
 
-package craft
+package deb
 
-import (
-	"os"
-
-	. "github.com/canonical/fetch-service/inspectors/common"
+var (
+	DebInspectorGetDebianBinaryVersion = (*DebInspector).getDebianBinaryVersion
+	DebInspectorReadDebMetadata        = (*DebInspector).readDebMetadata
+	ParseControl                       = parseControl
 )
-
-const (
-	GitUploadPackID = "git.upload-pack"
-)
-
-var osStat = os.Stat
-var osOpen = os.Open
-
-func checkGitRequestHeaders(a RequestArtifact) bool {
-	return a.RequestHeaderContains("Content-Type", "application/x-git-upload-pack-request") &&
-		a.RequestHeaderContains("Accept", "application/x-git-upload-pack-result")
-}

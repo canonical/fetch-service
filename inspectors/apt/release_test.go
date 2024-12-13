@@ -40,7 +40,7 @@ import (
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
-var inReleaseArtefactData = `-----BEGIN PGP SIGNED MESSAGE-----
+var inReleaseArtifactData = `-----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA512
 
 Origin: Ubuntu
@@ -86,14 +86,14 @@ func getTestAptConfig() apt_cfg.AptInspectorConfig {
 	}
 }
 
-func (s *aptSuite) TestAptReleaseArtefactInspector(c *C) {
+func (s *aptSuite) TestAptReleaseArtifactInspector(c *C) {
 	for _, tc := range []struct {
 		data     string
 		validSig bool
 		result   bool
 	}{
-		{inReleaseArtefactData, true, true},
-		{inReleaseArtefactData, false, false},
+		{inReleaseArtifactData, true, true},
+		{inReleaseArtifactData, false, false},
 		{"some arbitrary data", true, false},
 	} {
 		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes Annotation, pubkey string) (io.ReadSeeker, error) {
@@ -105,7 +105,7 @@ func (s *aptSuite) TestAptReleaseArtefactInspector(c *C) {
 		})
 		defer restorer()
 
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.RequestInspection = metadata.InspectionMap{
 			"apt.release": &Inspection{
 				Opinion: opinions.Pending,
@@ -121,7 +121,7 @@ func (s *aptSuite) TestAptReleaseArtefactInspector(c *C) {
 		f := strings.NewReader(tc.data)
 
 		ins := apt.NewAptReleaseInspector(getTestAptConfig())
-		err := ins.InspectArtefact(f, a)
+		err := ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 		c.Assert(a.Approved(), Equals, tc.result)
 
@@ -166,7 +166,7 @@ func (s *aptSuite) TestAptReleaseArtefactInspector(c *C) {
 	}
 }
 
-func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
+func (s *aptSuite) TestAptTranslationArtifactInspector(c *C) {
 	for _, tc := range []struct {
 		dataRelease              string
 		translationLocalFileName string
@@ -174,23 +174,23 @@ func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
 		translationSize          int64
 		result                   bool
 	}{
-		{inReleaseArtefactData, "testdata/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 792, true},
-		{inReleaseArtefactData, "testdata/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 600, false},
-		{inReleaseArtefactData, "testdata/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 792, false},
-		{inReleaseArtefactData, "testdata/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 600, false},
+		{inReleaseArtifactData, "testdata/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 792, true},
+		{inReleaseArtifactData, "testdata/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 600, false},
+		{inReleaseArtifactData, "testdata/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 792, false},
+		{inReleaseArtifactData, "testdata/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 600, false},
 	} {
 		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes Annotation, pubkey string) (io.ReadSeeker, error) {
 			return f, nil
 		})
 		defer restorer()
 
-		translationArtefactFile, _ := os.Open(tc.translationLocalFileName)
-		translationArtefactData := make([]byte, tc.translationSize)
-		_, err := translationArtefactFile.Read(translationArtefactData)
+		translationArtifactFile, _ := os.Open(tc.translationLocalFileName)
+		translationArtifactData := make([]byte, tc.translationSize)
+		_, err := translationArtifactFile.Read(translationArtifactData)
 		c.Assert(err, IsNil)
 
 		// Load the release file first
-		a_release := metadata.NewArtefact()
+		a_release := metadata.NewArtifact()
 		a_release.RequestInspection = metadata.InspectionMap{
 			"apt.release": &Inspection{
 				Opinion: opinions.Pending,
@@ -203,15 +203,15 @@ func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
 		a_release.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/InRelease"
 		a_release.MimeType = mimetype.Lookup("text/plain")
 
-		f_release := strings.NewReader(inReleaseArtefactData)
+		f_release := strings.NewReader(inReleaseArtifactData)
 
 		// Inspect the InRelease file with the release inspector
 		ins := apt.NewAptReleaseInspector(getTestAptConfig())
-		err = ins.InspectArtefact(f_release, a_release)
+		err = ins.InspectArtifact(f_release, a_release)
 		c.Assert(err, IsNil)
 
 		// Now load the translation file
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.SetRequestPending(ins, "test")
 		a.RequestInspection = metadata.InspectionMap{
 			"apt.release": &Inspection{
@@ -235,7 +235,7 @@ func (s *aptSuite) TestAptTranslationArtefactInspector(c *C) {
 
 		f := bytes.NewReader(data)
 
-		err = ins.InspectArtefact(f, a)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
 		c.Assert(a.Approved(), Equals, tc.result)
@@ -250,7 +250,7 @@ func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
 	sha256_rel, _ := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
 	sha256_pkg, _ := digests.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
 
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6"
 	a.Metadata.Type = mimetypes.AptPackages
 	a.Metadata.Sha256 = sha256_pkg
@@ -271,7 +271,7 @@ func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
 	ins := apt.NewAptReleaseInspector(getTestAptConfig())
 	a.SetRequestPending(ins, "test")
 	ins.SetRelease(map[string]apt.ReleaseFile{"http://archive.ubuntu.com/ubuntu/dists/jammy": rf})
-	err := ins.InspectArtefact(f, a)
+	err := ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
 	c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
@@ -289,7 +289,7 @@ func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
 	sha256_rel, _ := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
 	sha256_trn, _ := digests.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
 
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/i18n/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6"
 	a.Metadata.Type = mimetypes.AptTranslation
 	a.Metadata.Sha256 = sha256_trn
@@ -311,7 +311,7 @@ func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
 	ins := apt.NewAptReleaseInspector(getTestAptConfig())
 	a.SetRequestPending(ins, "test")
 	ins.SetRelease(map[string]apt.ReleaseFile{"http://archive.ubuntu.com/ubuntu/dists/jammy": rf})
-	err := ins.InspectArtefact(f, a)
+	err := ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
 	c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
@@ -326,7 +326,7 @@ func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
 }
 
 func (s *aptSuite) TestAptReleaseSignature(c *C) {
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.RequestInspection = metadata.InspectionMap{
 		"apt.release": &Inspection{
 			Opinion: opinions.Pending,
@@ -353,7 +353,7 @@ func (s *aptSuite) TestAptReleaseSignature(c *C) {
 	r := bytes.NewReader(buf.Bytes())
 
 	ins := apt.NewAptReleaseInspector(getTestAptConfig())
-	err = ins.InspectArtefact(r, a)
+	err = ins.InspectArtifact(r, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
 

@@ -49,7 +49,7 @@ func (t *metadataSuite) TestRequestOpinions(c *C) {
 		{[]opinions.OpinionKind{opinions.Unknown, opinions.Unknown, opinions.Rejected}, true, false},
 		{[]opinions.OpinionKind{opinions.Pending, opinions.Rejected, opinions.Unknown}, true, false},
 	} {
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 
 		for i, o := range tc.opinions {
 			id := fmt.Sprintf("insp%d", i)
@@ -77,7 +77,7 @@ func (t *metadataSuite) TestResponseOpinions(c *C) {
 		{[]opinions.OpinionKind{opinions.Unknown, opinions.Unknown, opinions.Rejected}, true, false},
 		{[]opinions.OpinionKind{opinions.Approved, opinions.Rejected, opinions.Unknown}, true, false},
 	} {
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 
 		for i, o := range tc.opinions {
 			id := fmt.Sprintf("insp%d", i)
@@ -96,11 +96,11 @@ func (ins testInspector) ID() string {
 	return "test-inspector"
 }
 
-func (ins *testInspector) InspectRequest(a RequestArtefact) error {
+func (ins *testInspector) InspectRequest(a RequestArtifact) error {
 	return nil
 }
 
-func (ins *testInspector) InspectArtefact(f ArtefactReader, a ResponseArtefact) error {
+func (ins *testInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	return nil
 }
 
@@ -112,8 +112,8 @@ func (ins testInspector2) ID() string {
 	return "test-inspector2"
 }
 
-func (t *metadataSuite) TestNewArtefact(c *C) {
-	a := metadata.NewArtefact()
+func (t *metadataSuite) TestNewArtifact(c *C) {
+	a := metadata.NewArtifact()
 	c.Check(a.MetadataVersion, Equals, "0.1")
 	c.Check(a.RequestInspection, Not(IsNil))
 	c.Check(a.ResponseInspection, Not(IsNil))
@@ -132,7 +132,7 @@ func (t *metadataSuite) TestRequestHeader(c *C) {
 		{true, []string{"bar"}, true},
 		{false, nil, false},
 	} {
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.CurrentDownload.RequestHeader = http.Header{}
 
 		if tc.headerExists {
@@ -159,7 +159,7 @@ func (t *metadataSuite) TestRequestHeaderContains(c *C) {
 		{"foo", []string{"foo1", "foo2"}, "foo3", false},
 		{"foo", []string{}, "foo1", false},
 	} {
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.CurrentDownload.RequestHeader = http.Header{}
 		a.CurrentDownload.RequestHeader[tc.entry] = tc.haystack
 
@@ -172,31 +172,31 @@ func (t *metadataSuite) TestRequestHeaderContains(c *C) {
 }
 
 func (t *metadataSuite) TestContentType(c *C) {
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.CurrentDownload.ContentType = "application/test"
 	c.Assert(a.ContentType(), Equals, "application/test")
 }
 
 func (t *metadataSuite) TestDownloadURL(c *C) {
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.CurrentDownload.URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 	c.Assert(a.DownloadURL(), Equals, "https://www.youtube.com/watch?v=dQw4w9WgXcQ")
 }
 
 func (t *metadataSuite) TestHTTPRequest(c *C) {
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	c.Assert(a.HTTPRequest(), Equals, a.Request)
 }
 
 func (t *metadataSuite) TestSetRequestBody(c *C) {
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.Request = &http.Request{}
 	f := io.NopCloser(strings.NewReader("content"))
 	a.SetRequestBody(f)
 	c.Assert(a.Request.Body, Equals, f)
 }
 
-func (t *metadataSuite) TestSetArtefactMetadata(c *C) {
+func (t *metadataSuite) TestSetArtifactMetadata(c *C) {
 	for _, tc := range []struct {
 		assignedType string
 		expectedType string
@@ -204,22 +204,23 @@ func (t *metadataSuite) TestSetArtefactMetadata(c *C) {
 		{"application/test", "application/test"},
 		{"", "text/plain"},
 	} {
-		m := ArtefactMetadata{
-			Type:         tc.assignedType,
-			Name:         "froblator",
-			Version:      "3.14.15",
-			Vendor:       "Acme",
-			Description:  "Too lazy to add one",
-			Author:       "J. Random Hacker",
-			AuthorEmail:  "root@localhost",
-			Architecture: "z80",
-			License:      "CC0",
-			Copyright:    "Copyright 1976 Acme Corp.",
+		m := ArtifactMetadata{
+			Type:          tc.assignedType,
+			Name:          "froblator",
+			Version:       "3.14.15",
+			Vendor:        "Acme",
+			Description:   "Too lazy to add one",
+			Author:        "J. Random Hacker",
+			AuthorEmail:   "root@localhost",
+			Architecture:  "z80",
+			License:       "CC0",
+			Copyright:     "Copyright 1976 Acme Corp.",
+			SourcePackage: "my-source-package",
 		}
 
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.Metadata.Type = "text/plain"
-		a.SetArtefactMetadata(m)
+		a.SetArtifactMetadata(m)
 
 		c.Check(a.Metadata.Type, Equals, tc.expectedType)
 		c.Check(a.Metadata.Name, Equals, m.Name)
@@ -231,11 +232,12 @@ func (t *metadataSuite) TestSetArtefactMetadata(c *C) {
 		c.Check(a.Metadata.Architecture, Equals, m.Architecture)
 		c.Check(a.Metadata.License, Equals, m.License)
 		c.Check(a.Metadata.Copyright, Equals, m.Copyright)
+		c.Check(a.Metadata.SourcePackage, Equals, m.SourcePackage)
 	}
 }
 
 func (t *metadataSuite) TestSize(c *C) {
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.Metadata.Size = 1337
 	c.Assert(a.Size(), Equals, int64(1337))
 }
@@ -254,7 +256,7 @@ func (t *metadataSuite) TestMetadataIs(c *C) {
 		{"text/plain", "text/plain", "application/octet-stream", true},
 		{"text/plain", "application/octet-stream", "text/plain", true},
 	} {
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		if tc.metadataType != "" {
 			a.Metadata.Type = tc.metadataType
 		}
@@ -268,7 +270,7 @@ func (t *metadataSuite) TestMetadataIs(c *C) {
 
 func (t *metadataSuite) TestSha256Digest(c *C) {
 	digest := "00e3261a6e0d79c329445acd540fb2b07187a0dcf6017065c8814010283ac67f"
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.Metadata.Sha256, _ = digests.NewSha256Digest(digest)
 	res := a.Sha256()
 	c.Assert(res.String(), Equals, digest)
@@ -276,7 +278,7 @@ func (t *metadataSuite) TestSha256Digest(c *C) {
 
 func (t *metadataSuite) TestSetRequestPending(c *C) {
 	ins := &testInspector{}
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.SetRequestPending(ins, "testing %d", 1).Annotate(
 		Annotation{"foo": "bar"},
 	)
@@ -289,7 +291,7 @@ func (t *metadataSuite) TestSetRequestPending(c *C) {
 
 func (t *metadataSuite) TestSetRequestRejected(c *C) {
 	ins := &testInspector{}
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.SetRequestRejected(ins, "testing %d", 1).Annotate(
 		Annotation{"foo": "bar"},
 	)
@@ -302,7 +304,7 @@ func (t *metadataSuite) TestSetRequestRejected(c *C) {
 
 func (t *metadataSuite) TestSetRequestUnknown(c *C) {
 	ins := &testInspector{}
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.SetRequestUnknown(ins, "testing %d", 1).Annotate(
 		Annotation{"foo": "bar"},
 	)
@@ -322,7 +324,7 @@ func (t *metadataSuite) TestRequestRejected(c *C) {
 		{false, false},
 	} {
 		ins := &testInspector{}
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		if tc.reject {
 			a.SetRequestRejected(ins, "test")
 		}
@@ -332,7 +334,7 @@ func (t *metadataSuite) TestRequestRejected(c *C) {
 }
 func (t *metadataSuite) TestSetResponseApproved(c *C) {
 	ins := &testInspector{}
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.SetResponseApproved(ins, "testing %d", 1).Annotate(
 		Annotation{"foo": "bar"},
 	)
@@ -345,7 +347,7 @@ func (t *metadataSuite) TestSetResponseApproved(c *C) {
 
 func (t *metadataSuite) TestSetResponseRejected(c *C) {
 	ins := &testInspector{}
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.SetResponseRejected(ins, "testing %d", 1).Annotate(
 		Annotation{"foo": "bar"},
 	)
@@ -358,7 +360,7 @@ func (t *metadataSuite) TestSetResponseRejected(c *C) {
 
 func (t *metadataSuite) TestSetResponseUnknown(c *C) {
 	ins := &testInspector{}
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.SetResponseUnknown(ins, "testing %d", 1).Annotate(
 		Annotation{"foo": "bar"},
 	)
@@ -383,7 +385,7 @@ func (t *metadataSuite) TestResponseRejected(c *C) {
 		{false, true, false},
 		{false, false, false},
 	} {
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		if tc.reject {
 			a.SetResponseRejected(ins, "test")
 		}
@@ -408,7 +410,7 @@ func (t *metadataSuite) TestRequestPending(c *C) {
 		{false, true, true},
 		{false, false, false},
 	} {
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		if tc.reject {
 			a.SetResponseRejected(ins, "test")
 		}
@@ -433,7 +435,7 @@ func (t *metadataSuite) TestResponseApproved(c *C) {
 		{false, true, true},
 		{false, false, false},
 	} {
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		if tc.reject {
 			a.SetResponseRejected(ins, "test")
 		}
@@ -446,7 +448,7 @@ func (t *metadataSuite) TestResponseApproved(c *C) {
 
 func (t *metadataSuite) TestRequestAnnotation(c *C) {
 	ins := &testInspector{}
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.SetRequestUnknown(ins, "test").Annotate(
 		Annotation{
 			"key": "value",
@@ -466,7 +468,7 @@ func (t *metadataSuite) TestRequestAnnotation(c *C) {
 
 func (t *metadataSuite) TestRequestStringAnnotation(c *C) {
 	ins := &testInspector{}
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.SetRequestUnknown(ins, "test").Annotate(
 		Annotation{
 			"key": "value",
@@ -490,7 +492,7 @@ func (t *metadataSuite) TestRequestStringAnnotation(c *C) {
 
 func (t *metadataSuite) TestRequestBoolAnnotation(c *C) {
 	ins := &testInspector{}
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.SetRequestUnknown(ins, "test").Annotate(
 		Annotation{
 			"key": true,
@@ -514,7 +516,7 @@ func (t *metadataSuite) TestRequestBoolAnnotation(c *C) {
 
 func (t *metadataSuite) TestResponseAnnotation(c *C) {
 	ins := &testInspector{}
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.SetResponseUnknown(ins, "test").Annotate(
 		Annotation{
 			"key": "value",
@@ -534,7 +536,7 @@ func (t *metadataSuite) TestResponseAnnotation(c *C) {
 
 func (t *metadataSuite) TestResponseStringAnnotation(c *C) {
 	ins := &testInspector{}
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.SetResponseUnknown(ins, "test").Annotate(
 		Annotation{
 			"key": "value",
@@ -558,7 +560,7 @@ func (t *metadataSuite) TestResponseStringAnnotation(c *C) {
 
 func (t *metadataSuite) TestResponseBoolAnnotation(c *C) {
 	ins := &testInspector{}
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.SetResponseUnknown(ins, "test").Annotate(
 		Annotation{
 			"key": true,
@@ -595,7 +597,7 @@ func (t *metadataSuite) TestApproved(c *C) {
 		{false, true, true, true, false},
 		{false, true, false, true, true},
 	} {
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		ins := &testInspector{}
 		ins2 := &testInspector2{}
 

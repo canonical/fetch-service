@@ -18,12 +18,12 @@ Request verification
 --------------------
 
 The current implementation allows downloads from the PyPI archive. This
-will be changed to match an internal repository of binary artefacts.
+will be changed to match an internal repository of binary artifacts.
 
 File format
 -----------
 
-To be considered a wheel file, an artefact must meet the following criteria:
+To be considered a wheel file, an artifact must meet the following criteria:
 
 * It must be a zip archive
 * It must contain a root directory ending in ``dist-info``, containing

@@ -48,7 +48,7 @@ func (s *snapSuite) TestInspectInfoRequest(c *C) {
 		{"http://api.snapcraft.io/v2/snaps/info", false},
 	} {
 		ins := snap.NewSnapInfoInspector()
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 
 		err := ins.InspectRequest(a)
@@ -62,18 +62,18 @@ func (s *snapSuite) TestInspectInfoRequest(c *C) {
 	}
 }
 
-func (s *snapSuite) TestSnapInfoArtefactInspector(c *C) {
-	a := metadata.NewArtefact()
+func (s *snapSuite) TestSnapInfoArtifactInspector(c *C) {
+	a := metadata.NewArtifact()
 	a.Metadata.Type = "application/json"
 	a.Metadata.Size = 3330
 
-	f, err := files.OpenArtefactFile("testdata/info.json")
+	f, err := files.OpenArtifactFile("testdata/info.json")
 	c.Assert(err, IsNil)
 	defer f.Close()
 
 	ins := snap.NewSnapInfoInspector()
 	a.SetRequestPending(ins, "test")
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
 	c.Check(a.Metadata.Type, Equals, "application/x.canonical.snap-info")
@@ -87,30 +87,30 @@ func (s *snapSuite) TestSnapInfoArtefactInspector(c *C) {
 	})
 }
 
-func (s *snapSuite) TestSnapInfoArtefactBadType(c *C) {
-	a := metadata.NewArtefact()
+func (s *snapSuite) TestSnapInfoArtifactBadType(c *C) {
+	a := metadata.NewArtifact()
 	a.Metadata.Type = "text/plain"
 	a.Metadata.Size = 3330
 
-	f, err := files.OpenArtefactFile("testdata/refresh.json")
+	f, err := files.OpenArtifactFile("testdata/refresh.json")
 	c.Assert(err, IsNil)
 	defer f.Close()
 
 	ins := snap.NewSnapInfoInspector()
-	err = ins.InspectArtefact(f, a)
+	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, false)
 }
 
-func (s *snapSuite) TestSnapInfoArtefactBadContent(c *C) {
-	a := metadata.NewArtefact()
+func (s *snapSuite) TestSnapInfoArtifactBadContent(c *C) {
+	a := metadata.NewArtifact()
 	a.Metadata.Type = "text/plain"
 	a.Metadata.Size = 3330
 
 	f := strings.NewReader(`{"content": "bad"}`)
 
 	ins := snap.NewSnapInfoInspector()
-	err := ins.InspectArtefact(f, a)
+	err := ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, false)
 }

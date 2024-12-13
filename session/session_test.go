@@ -139,7 +139,7 @@ func (t *sessionSuite) TestSessionTimeoutCancel(c *C) {
 	c.Assert(s, IsNil)
 }
 
-func (t *sessionSuite) TestHasArtefact(c *C) {
+func (t *sessionSuite) TestHasArtifact(c *C) {
 	for _, tc := range []struct {
 		addToSession bool
 	}{
@@ -152,19 +152,19 @@ func (t *sessionSuite) TestHasArtefact(c *C) {
 		digest, err := digests.NewSha256Digest(MySha256)
 		c.Assert(err, IsNil)
 
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.Metadata.Sha256 = digest
 		if tc.addToSession {
-			s.AddArtefact(a)
+			s.AddArtifact(a)
 		}
 
-		hasArtefact := tc.addToSession
+		hasArtifact := tc.addToSession
 
-		c.Assert(s.HasArtefact(digest), Equals, hasArtefact)
+		c.Assert(s.HasArtifact(digest), Equals, hasArtifact)
 	}
 }
 
-func (t *sessionSuite) TestArtefactResult(c *C) {
+func (t *sessionSuite) TestArtifactResult(c *C) {
 	for _, tc := range []struct {
 		addToSession bool
 		result       opinions.OpinionKind
@@ -179,14 +179,14 @@ func (t *sessionSuite) TestArtefactResult(c *C) {
 		digest, err := digests.NewSha256Digest(MySha256)
 		c.Assert(err, IsNil)
 
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.Metadata.Sha256 = digest
 		a.Result = tc.result
 		if tc.addToSession {
-			s.AddArtefact(a)
+			s.AddArtifact(a)
 		}
 
-		c.Assert(s.ArtefactResult(digest), Equals, tc.result)
+		c.Assert(s.ArtifactResult(digest), Equals, tc.result)
 	}
 }
 
@@ -204,16 +204,16 @@ func (t *sessionSuite) TestAddMetadata(c *C) {
 
 	h, _ := digests.NewSha256Digest(MySha256)
 	c.Assert(s.A, HasLen, 0)
-	c.Assert(s.HasArtefact(h), Equals, false)
+	c.Assert(s.HasArtifact(h), Equals, false)
 
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.Metadata.Name = "test-metadata"
 	a.Metadata.Sha256 = h
 
-	s.AddArtefact(a)
+	s.AddArtifact(a)
 
 	c.Assert(s.A[h].Metadata.Name, Equals, "test-metadata")
-	c.Assert(s.HasArtefact(h), Equals, true)
+	c.Assert(s.HasArtifact(h), Equals, true)
 }
 
 func (t *sessionSuite) TestAddDownload(c *C) {
@@ -221,11 +221,11 @@ func (t *sessionSuite) TestAddDownload(c *C) {
 	defer s.Discard()
 
 	h, _ := digests.NewSha256Digest(MySha256)
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.Metadata.Name = "test-metadata"
 	a.Metadata.Sha256 = h
 
-	s.AddArtefact(a)
+	s.AddArtifact(a)
 
 	di := metadata.Download{URL: "https://foo.bar", Sha256: h}
 	s.AddDownload(di)
@@ -242,11 +242,11 @@ func (t *sessionSuite) TestAddInvalidDownload(c *C) {
 	defer s.Discard()
 
 	h, _ := digests.NewSha256Digest(MySha256)
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.Metadata.Name = "test-metadata"
 	a.Metadata.Sha256 = h
 
-	s.AddArtefact(a)
+	s.AddArtifact(a)
 
 	// adding an invalid sha1 must not crash the server
 	di := metadata.Download{URL: "https://foo.bar", Sha256: h}
@@ -255,12 +255,12 @@ func (t *sessionSuite) TestAddInvalidDownload(c *C) {
 
 func (t *sessionSuite) TestSaveData(c *C) {
 	for _, tc := range []struct {
-		artefactAdded bool
+		artifactAdded bool
 		mkdirFail     bool
 		errMsg        string
 	}{
 		{true, false, ""},
-		{false, false, "metadata for artefact .* not available"},
+		{false, false, "metadata for artifact .* not available"},
 		{true, true, "cannot create dir"},
 	} {
 		session.MockOsMkdirAll(func(path string, perm os.FileMode) error {
@@ -278,14 +278,14 @@ func (t *sessionSuite) TestSaveData(c *C) {
 
 		h, _ := digests.NewSha256Digest(MySha256)
 
-		a := metadata.NewArtefact()
+		a := metadata.NewArtifact()
 		a.AssetDir = tmp
 		a.Tempfile = tempfile
 		a.Metadata.Name = "test-metadata"
 		a.Metadata.Sha256 = h
 
-		if tc.artefactAdded {
-			s.AddArtefact(a)
+		if tc.artifactAdded {
+			s.AddArtifact(a)
 
 			content := []byte("hello world")
 			err := os.WriteFile(tempfile, content, 0644)
@@ -317,12 +317,12 @@ func (t *sessionSuite) TestSaveMetadata(c *C) {
 	tmp := c.MkDir()
 
 	h, _ := digests.NewSha256Digest(MySha256)
-	a := metadata.NewArtefact()
+	a := metadata.NewArtifact()
 	a.AssetDir = tmp
 	a.Metadata.Name = "test-metadata"
 	a.Metadata.Sha256 = h
 
-	s.AddArtefact(a)
+	s.AddArtifact(a)
 
 	err := s.SaveMetadata(h)
 	c.Assert(err, IsNil)
@@ -330,7 +330,7 @@ func (t *sessionSuite) TestSaveMetadata(c *C) {
 	data, err := os.ReadFile(filepath.Join(tmp, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.json"))
 	c.Assert(err, IsNil)
 
-	var j metadata.Artefact
+	var j metadata.Artifact
 	err = json.Unmarshal(data, &j)
 	c.Assert(err, IsNil)
 	c.Assert(j.Metadata.Name, Equals, "test-metadata")
@@ -405,7 +405,7 @@ func (t *sessionSuite) TestFinish(c *C) {
 			return os.MkdirAll(path, perm)
 		})
 
-		a := metadata.Artefact{AssetDir: assetDir}
+		a := metadata.Artifact{AssetDir: assetDir}
 		d, err := digests.NewSha256Digest(tc.digest)
 		if err == nil {
 			a.Metadata.Sha256 = d
@@ -478,7 +478,7 @@ func (t *sessionSuite) TestIsRevoked(c *C) {
 	}
 }
 
-func (t *sessionSuite) TestArtefacts(c *C) {
+func (t *sessionSuite) TestArtifacts(c *C) {
 	spool := c.MkDir()
 	s := session.New(spool, 0, true)
 	defer s.Discard()
@@ -486,13 +486,13 @@ func (t *sessionSuite) TestArtefacts(c *C) {
 	d0, _ := digests.NewSha256Digest("1234567890123456789012345678901234567890123456789012345678901234")
 	d1, _ := digests.NewSha256Digest("1111111111222222222233333333334444444444555555555566666666667777")
 
-	m0 := metadata.Artefact{}
-	m1 := metadata.Artefact{}
+	m0 := metadata.Artifact{}
+	m1 := metadata.Artifact{}
 
 	s.A[d0] = &m0
 	s.A[d1] = &m1
 
-	a := s.Artefacts()
+	a := s.Artifacts()
 	c.Check(len(a), Equals, 2)
 	c.Check((a[0] == &m0 && a[1] == &m1) || (a[0] == &m1 && a[1] == &m0), Equals, true)
 }
