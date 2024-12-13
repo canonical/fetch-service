@@ -60,7 +60,9 @@ func UnpackObjects(f io.ReadSeeker, dir string) error {
 		if err := pipe.Close(); err != nil {
 			return err
 		}
-		_ = cmd.Wait()
+		if err := cmd.Wait(); err != nil {
+			logger.Errorf("error waiting for git-unpack-objects: %s", err)
+		}
 		return fmt.Errorf("error reading git pack: %s", err)
 	}
 

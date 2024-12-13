@@ -149,7 +149,9 @@ func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a ResponseArtifact) error 
 		return err
 	}
 
-	temp.Close()
+	if err := temp.Close(); err != nil {
+		return err
+	}
 
 	if mver == "" || name == "" || version == "" {
 		return nil

@@ -26,6 +26,15 @@ import (
 	"github.com/canonical/fetch-service/service/fetchctl"
 )
 
+var updateConfigCmd UpdateConfigCmd
+
+func init() {
+	_, err := parser.AddCommand("update-config", "update the running service configuration", "", &updateConfigCmd)
+	if err != nil {
+		panic(err)
+	}
+}
+
 type UpdateConfigCmd struct {
 	Type         string `long:"type" choice:"acl" choice:"inspectors" description:"Type of configuration to update"`
 	ValidateOnly bool   `long:"validate-only" description:"Validate the configuration and exit"`
@@ -75,10 +84,4 @@ func (cmd *UpdateConfigCmd) Execute(args []string) error {
 	fmt.Printf("%s %s\n", cmd.Type, reply.Message)
 
 	return nil
-}
-
-var updateConfigCmd UpdateConfigCmd
-
-func init() {
-	_, _ = parser.AddCommand("update-config", "update the running service configuration", "", &updateConfigCmd)
 }
