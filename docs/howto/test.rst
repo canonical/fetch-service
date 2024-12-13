@@ -1,10 +1,10 @@
 .. _howto-test:
 
-Testing the fetch service locally
+Test the fetch service locally
 =================================
 
 During development, you'll likely want to run the fetch service locally. This guide shows
-how to do so.
+you how to do so.
 
 Generate certificates
 ---------------------
@@ -44,9 +44,9 @@ Use the session
 ---------------
 
 You could load your self-signed certificate as an accepted certificate if you want, or you
-could just not verify TLS. Set your proxy configuration with the session ID as the username
-and the token as the password, and run a command. For example, to clone a git repository
-you can run::
+could choose not to verify TLS. Set your proxy configuration with the session ID as the username
+and the token as the password, and run a command. For example, you could test
+by cloning a git repostiory::
 
    https_proxy=http://abc:def@localhost:9988 git -c http.sslVerify=false clone https://github.com/lengau/charmcraft-rocks --depth 1 --no-progress
 
