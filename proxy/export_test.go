@@ -20,8 +20,9 @@
 package proxy
 
 var (
-	CopyHeader   = copyHeader
-	SplitCertKey = splitCertKey
+	CopyHeader         = copyHeader
+	SplitCertKey       = splitCertKey
+	GetSessionIdHeader = getSessionIdHeader
 )
 
 func (p *HttpProxy) ForceError(err error) {
