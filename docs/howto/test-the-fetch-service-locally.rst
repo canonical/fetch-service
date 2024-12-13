@@ -1,7 +1,7 @@
 .. _howto-test:
 
 Test the fetch service locally
-=================================
+==============================
 
 During development, you'll likely want to run the fetch service locally. This guide shows
 you how to do so.
@@ -24,9 +24,8 @@ You can run the fetch service itself with `go run`::
 
    go run ./cmd/fetch --permissive-mode --cert=./ca.pem --key=ca.key.pem --permissive-mode --spool=./spool --verbosity=debug
 
-This will create a ``spool`` directory in your fetch service directory where artefacts
-will be stored. Debug verbosity is especially useful when examining what the inspectors
-are doing.
+This will create a ``spool`` directory where artefacts will be stored. Debug verbosity
+is especially useful when examining what the inspectors are doing.
 
 Start a session
 ---------------
