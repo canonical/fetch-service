@@ -26,6 +26,15 @@ import (
 	"github.com/canonical/fetch-service/service/fetchctl"
 )
 
+var listArtifactsCmd ListArtifactsCmd
+
+func init() {
+	_, err := parser.AddCommand("list-artifacts", "list the session artifacts", "", &listArtifactsCmd)
+	if err != nil {
+		panic(err)
+	}
+}
+
 type ListArtifactsCmd struct {
 	SessionId string `long:"session-id" required:"true" description:"ID of the session holding the artifacts to list"`
 }
@@ -64,10 +73,4 @@ func (cmd *ListArtifactsCmd) Execute(args []string) error {
 	fmt.Printf("%s\n", reply.Message)
 
 	return nil
-}
-
-var listArtifactsCmd ListArtifactsCmd
-
-func init() {
-	_, _ = parser.AddCommand("list-artifacts", "list the session artifacts", "", &listArtifactsCmd)
 }

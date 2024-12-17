@@ -28,6 +28,15 @@ import (
 	"github.com/canonical/fetch-service/service/fetchctl"
 )
 
+var versionCmd VersionCmd
+
+func init() {
+	_, err := parser.AddCommand("version", "check the Fetch Service version", "long description", &versionCmd)
+	if err != nil {
+		panic(err)
+	}
+}
+
 type VersionCmd struct {
 }
 
@@ -62,10 +71,4 @@ func (cmd *VersionCmd) Execute(args []string) error {
 	fmt.Printf("%s\n", reply.Message)
 
 	return nil
-}
-
-var versionCmd VersionCmd
-
-func init() {
-	_, _ = parser.AddCommand("version", "check the Fetch Service version", "long description", &versionCmd)
 }
