@@ -6,4 +6,4 @@ How-tos
    :maxdepth: 1
 
    create-a-new-inspector
-   test
+   test-the-fetch-service-locally
