@@ -2,6 +2,18 @@
 Changelog
 *********
 
+0.6.0 (2025-01-13)
+------------------
+
+- feat(proxy): validate session id from request header (#313)
+- fix: address tiobe security warnings (#307, #317)
+- fix(inspectors/deb): check scan return value (#312)
+- fix(inspectors/apt): rejection fix and additional tests (#308)
+- fix(deps): update module golang.org/x/net to v0.33.0 [security] (#318)
+- refactor(service): handle messages in separate functions (#315)
+- docs: local testing howto (#263)
+- chore!: change artefact spelling to artifact (#306)
+
 0.5.0 (2024-11-27)
 ------------------
 
@@ -28,7 +40,6 @@ Changelog
 - fix(deps): update module github.com/gabriel-vasile/mimetype to v1.4.6 (#270)
 - fix: add build-aux location for snapcraft project (#274)
 - tests: add initial spread testing (#269)
-
 
 0.4.0 (2024-10-14)
 ------------------
