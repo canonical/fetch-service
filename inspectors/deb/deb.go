@@ -208,7 +208,6 @@ func parseControl(tf io.Reader, md *ArtifactMetadata) error {
 			md.Description = string(runes)
 		case "Maintainer":
 			md.Vendor = v
-			md.AuthorEmail = v
 		case "Source":
 			md.SourcePackage = v
 		}
@@ -277,7 +276,7 @@ func (ins DebInspector) parseCopyright(tf io.Reader, md *ArtifactMetadata) error
 		}
 
 		switch k {
-		case "Upstream-Contact", "Upstream author":
+		case "Upstream author":
 			md.Author = v
 		}
 	}

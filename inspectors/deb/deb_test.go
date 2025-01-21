@@ -125,8 +125,8 @@ func (s *debSuite) TestDebArtifactInspector(c *C) {
 			c.Check(a.Metadata.Version, Equals, "2.10-2ubuntu4")
 			c.Check(a.Metadata.Vendor, Equals, "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>")
 			c.Check(a.Metadata.Description, Equals, "Example package based on GNU hello")
-			c.Check(a.Metadata.Author, Equals, "") // FIXME: deb inspector needs a better author email parser
-			c.Check(a.Metadata.AuthorEmail, Equals, "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>")
+			c.Check(a.Metadata.Author, Equals, "")
+			c.Check(a.Metadata.AuthorEmail, Equals, "")
 			c.Check(a.Metadata.License, Equals, "GFDL-1.3-or-later and/or GPL-3.0-or-later") // this is what licensecheck says
 			c.Check(a.Metadata.Architecture, Equals, "amd64")
 		}
@@ -146,8 +146,8 @@ func (s *debSuite) TestParseControl(c *C) {
 	c.Check(meta.Version, Equals, "7.81.0-1ubuntu1.19")
 	c.Check(meta.Vendor, Equals, "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>")
 	c.Check(meta.Description, Equals, "Easy-to-use client-side URL transfer library (GnuTLS flavour)")
-	c.Check(meta.Author, Equals, "") // FIXME: deb inspector needs a better author email parser
-	c.Check(meta.AuthorEmail, Equals, "Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>")
+	c.Check(meta.Author, Equals, "")
+	c.Check(meta.AuthorEmail, Equals, "")
 	c.Check(meta.License, Equals, "")
 	c.Check(meta.Architecture, Equals, "amd64")
 	c.Check(meta.SourcePackage, Equals, "curl")
