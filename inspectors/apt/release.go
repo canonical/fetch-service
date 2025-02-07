@@ -262,6 +262,8 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		"Date",
 		"Architectures",
 		"Components",
+	}
+	optional_fields := []string{
 		"Description",
 	}
 
@@ -270,6 +272,11 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		if !ok {
 			logger.Debugf("expected field %q not found", k)
 			return nil // we don't recognize this file
+		}
+	}
+	for _, k := range optional_fields {
+		if _, ok := fields[k]; !ok {
+			logger.Debugf("optional field %q not found", k)
 		}
 	}
 
