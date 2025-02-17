@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -41,6 +41,7 @@ type Metadata struct {
 	License       string       `json:"license"`                  // The license the artifact is published under
 	Copyright     string       `json:"copyright,omitempty"`      // The copyright line, if available
 	SourcePackage string       `json:"source-package,omitempty"` // The name of the source package that generated this artifact.
+	StoreRevision string       `json:"store-revision,omitempty"` // The revision number assigned by the store to this artifact.
 }
 
 // Download holds information about each artifact download.
