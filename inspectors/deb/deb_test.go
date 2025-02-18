@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -73,16 +73,27 @@ func (s *debSuite) TestDebInspectorInterface(c *C) {
 
 }
 
-func (s *debSuite) TestInspectRequest(c *C) {
-	for _, tc := range []struct {
-		url     string
-		pending bool
-	}{
-		{"http://archive.ubuntu.com/ubuntu/pool/main/libe/liberror-perl/liberror-perl_0.17029-1_all.deb", true},
-		{"http://archive.ubuntu.com/ubuntu/pool/main/b/borgmatic/borgmatic_1.7.9-0ubuntu1~bpo22.04.1_all.deb", true},
-		{"http://archive.ubuntu.com/ubuntu/pool/universe/b/borgmatic/borgmatic_1.7.9-0ubuntu1~bpo22.04.1_all.deb", true},
-		{"http://not-archive.ubuntu.com/ubuntu/pool/main/libe/liberror-perl/liberror-perl_0.17029-1_all.deb", false},
-	} {
+type debInspectRequestTest struct {
+	url     string // The request URL
+	pending bool   // Whether this should be set to pending state
+}
+
+var debInspectRequestTests = []debInspectRequestTest{{
+	url:     "http://archive.ubuntu.com/ubuntu/pool/main/libe/liberror-perl/liberror-perl_0.17029-1_all.deb",
+	pending: true,
+}, {
+	url:     "http://archive.ubuntu.com/ubuntu/pool/main/b/borgmatic/borgmatic_1.7.9-0ubuntu1~bpo22.04.1_all.deb",
+	pending: true,
+}, {
+	url:     "http://archive.ubuntu.com/ubuntu/pool/universe/b/borgmatic/borgmatic_1.7.9-0ubuntu1~bpo22.04.1_all.deb",
+	pending: true,
+}, {
+	url:     "http://not-archive.ubuntu.com/ubuntu/pool/main/libe/liberror-perl/liberror-perl_0.17029-1_all.deb",
+	pending: false,
+}}
+
+func (s *debSuite) TestDebInspectRequest(c *C) {
+	for _, tc := range debInspectRequestTests {
 		ins := deb.NewDebInspector(getTestAptConfig())
 		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
@@ -98,19 +109,26 @@ func (s *debSuite) TestInspectRequest(c *C) {
 	}
 }
 
+type debArtifactInspectorTest struct {
+	filename string // The deb file to be inspected
+	approved bool   // Whether it should be approved
+}
+
+var debArtifactInspectorTests = []debArtifactInspectorTest{{
+	filename: "testdata/hello_2.10-2ubuntu4_amd64.deb",
+	approved: true,
+}, {
+	filename: "testdata/2048.package",
+	approved: false,
+}}
+
 func (s *debSuite) TestDebArtifactInspector(c *C) {
-	for _, tc := range []struct {
-		testfile string
-		approved bool
-	}{
-		{"testdata/hello_2.10-2ubuntu4_amd64.deb", true},
-		{"testdata/2048.package", false},
-	} {
+	for _, tc := range debArtifactInspectorTests {
 		a := metadata.NewArtifact()
 		a.Metadata.Type = "application/vnd.debian.binary-package"
 		a.MimeType = mimetype.Lookup("application/vnd.debian.binary-package")
 
-		f, err := files.OpenArtifactFile(tc.testfile)
+		f, err := files.OpenArtifactFile(tc.filename)
 		c.Assert(err, IsNil)
 		defer f.Close()
 
@@ -153,34 +171,65 @@ func (s *debSuite) TestParseControl(c *C) {
 	c.Check(meta.SourcePackage, Equals, "curl")
 }
 
-func (s *debSuite) TestGetDebBinaryVersion(c *C) {
-	for _, tc := range []struct {
-		content string
-		result  string
-	}{
-		{"", ""},
-		{"2.0", "2.0"},
-		{"2.0\n", "2.0"},
-		{"2.0\nxyz", "2.0"},
-	} {
+type debBinaryVersionTest struct {
+	content         string // debian-binary file content
+	expectedVersion string // Expected version
+}
+
+var debBinaryVersionTests = []debBinaryVersionTest{{
+	content:         "",
+	expectedVersion: "",
+}, {
+	content:         "2.0",
+	expectedVersion: "2.0",
+}, {
+	content:         "2.0\n",
+	expectedVersion: "2.0",
+}, {
+	content:         "2.0\nxyz",
+	expectedVersion: "2.0",
+}}
+
+func (s *debSuite) TestDebBinaryVersion(c *C) {
+	for _, tc := range debBinaryVersionTests {
 		r := strings.NewReader(tc.content)
 		ins := deb.NewDebInspector(getTestAptConfig())
 		res := deb.DebInspectorGetDebianBinaryVersion(ins, r)
-		c.Check(res, Equals, tc.result)
+		c.Check(res, Equals, tc.expectedVersion)
 	}
 
 }
 
+type readDebMetadataTest struct {
+	filename string // The name of the deb file to test
+	name     string // The expected package name
+	errMsg   string // The expected error string, if not empty
+}
+
+var readDebMetadataTests = []readDebMetadataTest{{
+	filename: "testdata/hello_2.10-1_amd64.deb", // deb has gzipped control and xz data
+	name:     "hello",
+	errMsg:   "",
+}, {
+	filename: "testdata/hello_2.10-2_amd64.deb", // deb has xz control and gzipped data
+	name:     "hello",
+	errMsg:   "",
+}, {
+	filename: "testdata/hello_2.10-2ubuntu4_amd64.deb", // deb has zstd control and data
+	name:     "hello",
+	errMsg:   "",
+}, {
+	filename: "testdata/2048.package", // not a deb file
+	name:     "",
+	errMsg:   "ar parse error: unexpected EOF",
+}, {
+	filename: "testdata/hello_2.10-3_amd64.deb", // deb is missing the control file
+	name:     "",
+	errMsg:   "cannot read name and version from control metadata",
+}}
+
 func (s *debSuite) TestReadDebMetadata(c *C) {
-	for _, tc := range []struct {
-		filename string
-		name     string
-		errMsg   string
-	}{
-		{"testdata/hello_2.10-1_amd64.deb", "hello", ""},
-		{"testdata/hello_2.10-2ubuntu4_amd64.deb", "hello", ""},
-		{"testdata/2048.package", "", "ar parse error: unexpected EOF"},
-	} {
+	for _, tc := range readDebMetadataTests {
 		r, err := os.Open(tc.filename)
 		c.Assert(err, IsNil)
 
@@ -190,6 +239,7 @@ func (s *debSuite) TestReadDebMetadata(c *C) {
 		if tc.errMsg == "" {
 			c.Assert(err, IsNil)
 			c.Check(am.Name, Equals, tc.name)
+			c.Check(am.License, Equals, "GFDL-1.3-or-later and/or GPL-3.0-or-later")
 		} else {
 			c.Assert(err, ErrorMatches, tc.errMsg)
 		}

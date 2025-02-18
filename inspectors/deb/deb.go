@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -34,6 +34,7 @@ import (
 
 	"github.com/blakesmith/ar"
 	"github.com/klauspost/compress/zstd"
+	"github.com/xi2/xz"
 
 	"github.com/canonical/fetch-service/inspectors/apt/config"
 	. "github.com/canonical/fetch-service/inspectors/common"
@@ -117,12 +118,36 @@ func (ins *DebInspector) readDebMetadata(f io.Reader, md *ArtifactMetadata) erro
 			if err = ins.parseControlTar(zf, md); err != nil {
 				return err
 			}
+		case "control.tar.xz":
+			zf, err := xz.NewReader(af, 0)
+			if err != nil {
+				return err
+			}
+			if err = ins.parseControlTar(zf, md); err != nil {
+				return err
+			}
 		case "control.tar.zst", "control.tar.zstd":
 			zf, err := zstd.NewReader(af, zstd.WithDecoderConcurrency(1))
 			if err != nil {
 				return err
 			}
 			if err = ins.parseControlTar(zf, md); err != nil {
+				return err
+			}
+		case "data.tar.gz":
+			zf, err := gzip.NewReader(af)
+			if err != nil {
+				return err
+			}
+			if err = ins.parseDataTar(zf, md); err != nil {
+				return err
+			}
+		case "data.tar.xz":
+			zf, err := xz.NewReader(af, 0)
+			if err != nil {
+				return err
+			}
+			if err = ins.parseDataTar(zf, md); err != nil {
 				return err
 			}
 		case "data.tar.zst", "data.tar.zstd":
@@ -133,8 +158,11 @@ func (ins *DebInspector) readDebMetadata(f io.Reader, md *ArtifactMetadata) erro
 			if err = ins.parseDataTar(zf, md); err != nil {
 				return err
 			}
-			// TODO: add gzip reader
 		}
+	}
+
+	if md.Name == "" || md.Version == "" {
+		return errors.New("cannot read name and version from control metadata")
 	}
 
 	return nil
