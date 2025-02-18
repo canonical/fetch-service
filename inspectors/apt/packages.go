@@ -141,7 +141,10 @@ func compressedReader(r io.ReadSeeker) (io.Reader, error) {
 		return xzr, nil
 	}
 
-	r.Seek(0, io.SeekStart)
+	if _, err := r.Seek(0, io.SeekStart); err != nil {
+		return nil, err
+	}
+
 	gzr, err := gzip.NewReader(r)
 	if err == nil {
 		return gzr, nil
