@@ -109,25 +109,49 @@ var chiselReleaseArtifactTests = []chiselReleaseArtifactTest{{
 	},
 	mimetype: "application/gzip",
 }, {
-	summary: "Invalid chisel.yaml",
+	summary: "Invalid chisel.yaml: missing fields",
 	files: map[string]string{
-		"chisel.yaml": "testdata/chisel.yaml.invalid",
+		"chisel.yaml": "testdata/chisel.yaml.invalid.missing",
 		"slices/":     "",
 	},
 	mimetype: "application/gzip",
-	err:      "cannot parse chisel.yaml: invalid chisel.yaml",
+	err:      "cannot parse chisel.yaml: invalid chisel.yaml: missing fields",
+}, {
+	summary: "Invalid chisel.yaml: missing fields in archive",
+	files: map[string]string{
+		"chisel.yaml": "testdata/chisel.yaml.invalid.archive.missing",
+		"slices/":     "",
+	},
+	mimetype: "application/gzip",
+	err:      `cannot parse chisel.yaml: invalid chisel.yaml: archive "ubuntu" has missing fields`,
+}, {
+	summary: "Invalid chisel.yaml: undefined pubkey in archive",
+	files: map[string]string{
+		"chisel.yaml": "testdata/chisel.yaml.invalid.archive.pubkey-undefined",
+		"slices/":     "",
+	},
+	mimetype: "application/gzip",
+	err:      `cannot parse chisel.yaml: invalid chisel.yaml: archive "ubuntu" pubkey "foo" undefined`,
+}, {
+	summary: "Invalid chisel.yaml: missing fields in pubkey",
+	files: map[string]string{
+		"chisel.yaml": "testdata/chisel.yaml.invalid.pubkey.missing",
+		"slices/":     "",
+	},
+	mimetype: "application/gzip",
+	err:      `cannot parse chisel.yaml: invalid chisel.yaml: pubkey "ubuntu-archive-key-2018" has missing fields`,
 }, {
 	summary: "Invalid mimetype",
 	files: map[string]string{
-		"chisel.yaml": "testdata/chisel.yaml.invalid",
+		"chisel.yaml": "testdata/chisel.yaml.invalid.missing",
 		"slices/":     "",
 	},
 	mimetype: "text/plain",
 }}
 
 func (s *chiselSuite) TestChiselReleaseInspectArtifact(c *C) {
-	const branch = "ubuntu-24.04"
-	const rootDir = "chisel-releases-" + branch
+	const release = "ubuntu-24.04"
+	const rootDir = "chisel-releases-" + release
 
 	for _, test := range chiselReleaseArtifactTests {
 		c.Logf("Summary: %s", test.summary)
@@ -142,7 +166,7 @@ func (s *chiselSuite) TestChiselReleaseInspectArtifact(c *C) {
 			Reason:  "some reason",
 		}
 		inspection.Annotate(Annotation{
-			"branch-name": branch,
+			"release": release,
 		})
 		a.RequestInspection[ins.ID()] = inspection
 
@@ -165,7 +189,7 @@ func (s *chiselSuite) TestChiselReleaseInspectArtifact(c *C) {
 		c.Assert(a.Approved(), Equals, test.approved)
 		if test.approved {
 			c.Check(a.Metadata.Type, Equals, mimetypes.ChiselRelease)
-			c.Check(a.Metadata.Name, Equals, branch)
+			c.Check(a.Metadata.Name, Equals, release)
 			c.Check(a.Metadata.Version, Matches, `^v[1-9][0-9]*$`)
 		}
 	}

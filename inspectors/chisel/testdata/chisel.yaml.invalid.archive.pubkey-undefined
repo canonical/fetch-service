@@ -5,7 +5,7 @@ archives:
     version: 20.04
     components: [main, universe]
     suites: [focal, focal-security, focal-updates]
-    public-keys: [ubuntu-archive-key-2018]
+    public-keys: [foo] # undefined
 
 public-keys:
   ubuntu-archive-key-2018:
@@ -40,3 +40,4 @@ public-keys:
       uOgcXny1UlwtCUzlrSaP
       =9AdM
       -----END PGP PUBLIC KEY BLOCK-----
+

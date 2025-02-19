@@ -188,43 +188,54 @@ func inspectTarball(r *tar.Reader, chiselPath, slicesDir string) (format string,
 
 // Only a subset of chisel.yaml fields are parsed here.
 type chiselYAML struct {
-	Format     string
-	Archives   map[string]chiselArchive
-	PublicKeys map[string]chiselPublicKey
+	Format     string                     `yaml:"format"`
+	Archives   map[string]chiselArchive   `yaml:"archives"`
+	PublicKeys map[string]chiselPublicKey `yaml:"public-keys"`
 }
 
 type chiselArchive struct {
-	Components []string
-	Suites     []string
-	PublicKeys []string
+	Components []string `yaml:"components"`
+	Suites     []string `yaml:"suites"`
+	PublicKeys []string `yaml:"public-keys"`
 }
 
 type chiselPublicKey struct {
-	ID    string
-	Armor string
+	ID    string `yaml:"id"`
+	Armor string `yaml:"armor"`
 }
 
 // parseChiselYAML parses the chisel.yaml file and check if it is valid.
 // The file is deemed valid if it has a non-empty "format" and at least one
 // "archive". Each archive must have at least one "component" and one "suite".
 func parseChiselYAML(r io.Reader) (format string, err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("invalid chisel.yaml: %w", err)
+		}
+	}()
+
 	var data chiselYAML
 	dec := yaml.NewDecoder(r)
 	if err = dec.Decode(&data); err != nil {
 		return "", err
 	}
 	if data.Format == "" || len(data.Archives) == 0 || len(data.PublicKeys) == 0 {
-		return "", fmt.Errorf("invalid chisel.yaml")
+		return "", fmt.Errorf("missing fields")
 	}
-	for _, archive := range data.Archives {
+	for name, archive := range data.Archives {
 		if len(archive.Components) == 0 || len(archive.Suites) == 0 ||
 			len(archive.PublicKeys) == 0 {
-			return "", fmt.Errorf("invalid chisel.yaml")
+			return "", fmt.Errorf("archive %q has missing fields", name)
 		}
 		for _, key := range archive.PublicKeys {
 			if _, ok := data.PublicKeys[key]; !ok {
-				return "", fmt.Errorf("invalid chisel.yaml")
+				return "", fmt.Errorf("archive %q pubkey %q undefined", name, key)
 			}
+		}
+	}
+	for name, key := range data.PublicKeys {
+		if key.ID == "" || key.Armor == "" {
+			return "", fmt.Errorf("pubkey %q has missing fields", name)
 		}
 	}
 	return data.Format, nil
