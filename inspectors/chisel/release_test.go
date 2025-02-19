@@ -32,7 +32,6 @@ import (
 	"github.com/canonical/fetch-service/inspectors/chisel"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/files"
-	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
@@ -79,6 +78,7 @@ type chiselReleaseArtifactTest struct {
 	files    map[string]string // files to compress to a tar.gz file.
 	mimetype string            // set artifact type to mimetype.
 	approved bool
+	metadata metadata.Metadata
 	err      string
 }
 
@@ -89,6 +89,13 @@ var chiselReleaseArtifactTests = []chiselReleaseArtifactTest{{
 		"slices/":     "",
 	},
 	mimetype: "application/gzip",
+	metadata: metadata.Metadata{
+		Type:        "application/x.canonical.chisel.release",
+		Name:        "ubuntu-20.04",
+		Version:     "v1",
+		Description: "Chisel release file for ubuntu-20.04",
+		Vendor:      "Canonical",
+	},
 	approved: true,
 }, {
 	summary: "Missing files: slices directory",
@@ -150,7 +157,7 @@ var chiselReleaseArtifactTests = []chiselReleaseArtifactTest{{
 }}
 
 func (s *chiselSuite) TestChiselReleaseInspectArtifact(c *C) {
-	const release = "ubuntu-24.04"
+	const release = "ubuntu-20.04"
 	const rootDir = "chisel-releases-" + release
 
 	for _, test := range chiselReleaseArtifactTests {
@@ -188,9 +195,7 @@ func (s *chiselSuite) TestChiselReleaseInspectArtifact(c *C) {
 
 		c.Assert(a.Approved(), Equals, test.approved)
 		if test.approved {
-			c.Check(a.Metadata.Type, Equals, mimetypes.ChiselRelease)
-			c.Check(a.Metadata.Name, Equals, release)
-			c.Check(a.Metadata.Version, Matches, `^v[1-9][0-9]*$`)
+			c.Check(a.Metadata, DeepEquals, test.metadata)
 		}
 	}
 }
