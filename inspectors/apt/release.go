@@ -263,20 +263,12 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		"Architectures",
 		"Components",
 	}
-	optional_fields := []string{
-		"Description",
-	}
 
 	for _, k := range expected_fields {
 		_, ok := fields[k]
 		if !ok {
 			logger.Debugf("expected field %q not found", k)
 			return nil // we don't recognize this file
-		}
-	}
-	for _, k := range optional_fields {
-		if _, ok := fields[k]; !ok {
-			logger.Debugf("optional field %q not found", k)
 		}
 	}
 
@@ -323,7 +315,7 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		Type:        mimetypes.AptRelease,
 		Name:        "InRelease",
 		Version:     fields["Codename"],
-		Description: fields["Description"],
+		Description: fmt.Sprintf("%s %s", fields["Origin"], fields["Suite"]),
 		Vendor:      fields["Origin"],
 		Author:      fields["Origin"],
 	})
