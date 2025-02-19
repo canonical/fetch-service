@@ -39,10 +39,10 @@ File format
 The Chisel release inspector ensures the downloaded file:
 
 * Is a gzip compressed tar file.
-* Contains a valid ``chisel-releases-<branch>/chisel.yaml`` file inside.
-* Contains a ``chisel-releases-<branch>/slices/`` directory inside.
+* Contains a valid ``chisel-releases-<release>/chisel.yaml`` file inside.
+* Contains a ``chisel-releases-<release>/slices/`` directory inside.
 
-Here, ``<branch>`` is the slug matched from the request described above.
+Here, ``<release>`` is the slug matched from the request described above.
 
 
 Acceptance criteria
@@ -83,10 +83,10 @@ The following pieces of metadata are extracted by the Chisel release inspector:
    Field         Used  Data source
    ============  ====  ============================================
    type          Yes   ``application/x.canonical.chisel.release``
-   name          Yes   ``<branch>`` e.g. ``ubuntu-22.04``
+   name          Yes   ``<release>`` e.g. ``ubuntu-22.04``
    version       Yes   ``chisel.yaml`` field ``format`` e.g. ``v1``
-   description
-   vendor
+   description   Yes   ``Chisel release file for <release>``
+   vendor        Yes   ``Canonical``
    author
    author-email
    architecture

@@ -59,7 +59,7 @@ const (
 )
 
 var (
-	// Chisel downloads a tarball of a branch of the canonical/chisel-releases
+	// Chisel downloads a tarball of a branch (release) of the chisel-releases
 	// repository, using the codeload.github.com service.
 	// See https://github.com/canonical/chisel/blob/cdd1a3c22ac99a948d300d5b36ae6218f964af85/internal/setup/fetch.go#L30
 	requestOrigin = regexp.MustCompile(
@@ -74,15 +74,15 @@ var (
 func (ins *ChiselReleaseInspector) InspectRequest(a RequestArtifact) error {
 	url := a.DownloadURL()
 	match := requestOrigin.FindStringSubmatch(url)
-	if match == nil || len(match) < 2 {
+	if len(match) < 2 {
 		// We do not recognize this URL.
 		return nil
 	}
 
-	branch := match[1]
+	release := match[1]
 	a.SetRequestPending(ins, "request matches valid URL").Annotate(
 		Annotation{
-			"branch-name": branch,
+			"release": release,
 		},
 	)
 	return nil
@@ -97,8 +97,8 @@ var (
 // InspectArtifact sets an artifact to approved if:
 //   - it is a gzip compressed tarball.
 //   - it contains a valid "chisel.yaml" file in the top-level
-//     "chisel-releases-<branch>" directory.
-//   - it contains a "slices/" directory inside the "chisel-releases-<branch>"
+//     "chisel-releases-<release>" directory.
+//   - it contains a "slices/" directory inside the "chisel-releases-<release>"
 //     directory.
 //
 // It only rejects an artifact if there is chisel.yaml file inside, but the file
@@ -111,7 +111,7 @@ func (ins *ChiselReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseA
 		return nil // We do not recognize this artifact.
 	}
 
-	branch, ok := a.RequestStringAnnotation(ins.ID(), "branch-name")
+	release, ok := a.RequestStringAnnotation(ins.ID(), "release")
 	if !ok {
 		// Following [pip.SimpleIndexInspector].
 		return nil
@@ -123,12 +123,12 @@ func (ins *ChiselReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseA
 	}
 	defer zf.Close()
 
-	chiselPath := fmt.Sprintf(chiselPathTemplate, branch)
-	slicesDir := fmt.Sprintf(slicesDirTemplate, branch)
+	chiselPath := fmt.Sprintf(chiselPathTemplate, release)
+	slicesDir := fmt.Sprintf(slicesDirTemplate, release)
 
 	// Parse the tarball.
 	tr := tar.NewReader(zf)
-	md, err := inspectTarball(tr, chiselPath, slicesDir)
+	format, err := inspectTarball(tr, chiselPath, slicesDir)
 	if err != nil {
 		if err == errUnrecognized {
 			return nil // We do not recognize this artifact.
@@ -136,11 +136,13 @@ func (ins *ChiselReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseA
 		return err
 	}
 
-	if md.Name == "" {
-		// Use the branch name as the metadata name.
-		md.Name = branch
-	}
-	a.SetArtifactMetadata(*md)
+	a.SetArtifactMetadata(ArtifactMetadata{
+		Type:        mimetypes.ChiselRelease,
+		Name:        release,
+		Version:     format,
+		Description: fmt.Sprintf("Chisel release file for %s", release),
+		Vendor:      "Canonical",
+	})
 	a.SetResponseApproved(ins, "artifact successfully parsed")
 	return nil
 }
@@ -148,10 +150,10 @@ func (ins *ChiselReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseA
 var errUnrecognized = errors.New("unrecognized artifact")
 
 // inspectTarball inspects the artifact tarball and checks that chiselPath and
-// slicesDir are present there. It also parses the chisel.yaml file and sets the
-// "format" as the metadata version. It returns an error if those files are not
-// present or the parsed chisel.yaml is not valid.
-func inspectTarball(r *tar.Reader, chiselPath, slicesDir string) (md *ArtifactMetadata, err error) {
+// slicesDir are present there.
+// It parses the chisel.yaml file and returns the "format". It returns an error
+// if those files are not present or the parsed chisel.yaml is not valid.
+func inspectTarball(r *tar.Reader, chiselPath, slicesDir string) (format string, err error) {
 	pending := map[string]bool{
 		chiselPath: true,
 		slicesDir:  true,
@@ -163,13 +165,13 @@ func inspectTarball(r *tar.Reader, chiselPath, slicesDir string) (md *ArtifactMe
 			if err == io.EOF {
 				break
 			}
-			return nil, errUnrecognized
+			return "", errUnrecognized
 		}
 		switch h.Name {
 		case chiselPath:
-			md, err = parseChiselYAML(r)
+			format, err = parseChiselYAML(r)
 			if err != nil {
-				return nil, fmt.Errorf("cannot parse chisel.yaml: %w", err)
+				return "", fmt.Errorf("cannot parse chisel.yaml: %w", err)
 			}
 			delete(pending, chiselPath)
 		case slicesDir:
@@ -178,42 +180,52 @@ func inspectTarball(r *tar.Reader, chiselPath, slicesDir string) (md *ArtifactMe
 	}
 
 	if len(pending) > 0 {
-		return nil, errUnrecognized
+		return "", errUnrecognized
 	}
 
-	return md, nil
+	return format, nil
 }
 
 // Only a subset of chisel.yaml fields are parsed here.
 type chiselYAML struct {
-	Format   string
-	Archives map[string]chiselArchive
+	Format     string
+	Archives   map[string]chiselArchive
+	PublicKeys map[string]chiselPublicKey
 }
 
 type chiselArchive struct {
 	Components []string
 	Suites     []string
+	PublicKeys []string
+}
+
+type chiselPublicKey struct {
+	ID    string
+	Armor string
 }
 
 // parseChiselYAML parses the chisel.yaml file and check if it is valid.
 // The file is deemed valid if it has a non-empty "format" and at least one
 // "archive". Each archive must have at least one "component" and one "suite".
-func parseChiselYAML(r io.Reader) (*ArtifactMetadata, error) {
+func parseChiselYAML(r io.Reader) (format string, err error) {
 	var data chiselYAML
 	dec := yaml.NewDecoder(r)
-	if err := dec.Decode(&data); err != nil {
-		return nil, err
+	if err = dec.Decode(&data); err != nil {
+		return "", err
 	}
-	if data.Format == "" || len(data.Archives) == 0 {
-		return nil, fmt.Errorf("invalid chisel.yaml")
+	if data.Format == "" || len(data.Archives) == 0 || len(data.PublicKeys) == 0 {
+		return "", fmt.Errorf("invalid chisel.yaml")
 	}
 	for _, archive := range data.Archives {
-		if len(archive.Components) == 0 || len(archive.Suites) == 0 {
-			return nil, fmt.Errorf("invalid chisel.yaml")
+		if len(archive.Components) == 0 || len(archive.Suites) == 0 ||
+			len(archive.PublicKeys) == 0 {
+			return "", fmt.Errorf("invalid chisel.yaml")
+		}
+		for _, key := range archive.PublicKeys {
+			if _, ok := data.PublicKeys[key]; !ok {
+				return "", fmt.Errorf("invalid chisel.yaml")
+			}
 		}
 	}
-	return &ArtifactMetadata{
-		Type:    mimetypes.ChiselRelease,
-		Version: data.Format,
-	}, nil
+	return data.Format, nil
 }
