@@ -110,6 +110,34 @@ func getTestAptConfig() apt_cfg.AptInspectorConfig {
 	}
 }
 
+type releaseArtifactInspectorTest struct {
+	data       string
+	metadata   metadata.Metadata
+	annotation Annotation
+	validSig   bool
+	result     bool
+}
+
+var releaseArtifactInspectorTests = []releaseArtifactInspectorTest{{
+	data:       inReleaseArtifactData,
+	metadata:   inReleaseArtifactMetaData,
+	annotation: inReleaseArtifactAnnotation,
+	validSig:   true,
+	result:     true,
+}, {
+	data:       inReleaseArtifactData,
+	metadata:   inReleaseArtifactMetaData,
+	annotation: inReleaseArtifactAnnotation,
+	validSig:   false,
+	result:     false,
+}, {
+	data:       "some arbitrary data",
+	metadata:   metadata.Metadata{},
+	annotation: Annotation{},
+	validSig:   true,
+	result:     false,
+}}
+
 func (s *aptSuite) TestAptReleaseArtifactInspector(c *C) {
 	// Create data without the optional "Description" field.
 	artifactDataNoDesc := strings.ReplaceAll(
@@ -125,18 +153,16 @@ func (s *aptSuite) TestAptReleaseArtifactInspector(c *C) {
 		}
 	}
 
-	for _, tc := range []struct {
-		data       string
-		metadata   metadata.Metadata
-		annotation Annotation
-		validSig   bool
-		result     bool
-	}{
-		{inReleaseArtifactData, inReleaseArtifactMetaData, inReleaseArtifactAnnotation, true, true},
-		{inReleaseArtifactData, inReleaseArtifactMetaData, inReleaseArtifactAnnotation, false, false},
-		{artifactDataNoDesc, artifactMetaDataNoDesc, artifactAnnotationNoDesc, true, true},
-		{"some arbitrary data", metadata.Metadata{}, Annotation{}, true, false},
-	} {
+	tests := releaseArtifactInspectorTests
+	tests = append(tests, releaseArtifactInspectorTest{
+		data:       artifactDataNoDesc,
+		metadata:   artifactMetaDataNoDesc,
+		annotation: artifactAnnotationNoDesc,
+		validSig:   true,
+		result:     true,
+	})
+
+	for _, tc := range tests {
 		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes Annotation, pubkey string) (io.ReadSeeker, error) {
 			if !tc.validSig {
 				return f, errors.New("invalid signature")
