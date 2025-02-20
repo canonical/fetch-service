@@ -203,28 +203,34 @@ func (s *debSuite) TestDebBinaryVersion(c *C) {
 type readDebMetadataTest struct {
 	filename string // The name of the deb file to test
 	name     string // The expected package name
+	version  string // The expected package version
 	errMsg   string // The expected error string, if not empty
 }
 
 var readDebMetadataTests = []readDebMetadataTest{{
 	filename: "testdata/hello_2.10-1_amd64.deb", // deb has gzipped control and xz data
 	name:     "hello",
+	version:  "2.10-1",
 	errMsg:   "",
 }, {
 	filename: "testdata/hello_2.10-2_amd64.deb", // deb has xz control and gzipped data
 	name:     "hello",
+	version:  "2.10-1", // it's 1 because the deb file was renamed but contents not changed
 	errMsg:   "",
 }, {
 	filename: "testdata/hello_2.10-2ubuntu4_amd64.deb", // deb has zstd control and data
 	name:     "hello",
+	version:  "2.10-2ubuntu4",
 	errMsg:   "",
 }, {
 	filename: "testdata/2048.package", // not a deb file
 	name:     "",
+	version:  "",
 	errMsg:   "ar parse error: unexpected EOF",
 }, {
 	filename: "testdata/hello_2.10-3_amd64.deb", // deb is missing the control file
 	name:     "",
+	version:  "",
 	errMsg:   "cannot read name and version from control metadata",
 }}
 
@@ -239,6 +245,7 @@ func (s *debSuite) TestReadDebMetadata(c *C) {
 		if tc.errMsg == "" {
 			c.Assert(err, IsNil)
 			c.Check(am.Name, Equals, tc.name)
+			c.Check(am.Version, Equals, tc.version)
 			c.Check(am.License, Equals, "GFDL-1.3-or-later and/or GPL-3.0-or-later")
 		} else {
 			c.Assert(err, ErrorMatches, tc.errMsg)
