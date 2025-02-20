@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -174,19 +174,36 @@ func NewPackagesUrlInfo(u *url.URL, cfg *AptInspectorConfig) (*PackagesUrlInfo, 
 
 	rePackages := regexp.MustCompile(`^/[\w-]+/dists/[\w-]+/[\w-]+/binary-(\w+)/by-hash/SHA256/([0-9a-f]{64})$`)
 	m := rePackages.FindStringSubmatch(u.Path)
-	if len(m) != 3 {
-		return nil, fmt.Errorf("invalid Packages URL path: %s", u.Path)
+	if len(m) == 3 {
+		info := &PackagesUrlInfo{
+			CfgName:      name,
+			Origin:       utils.NormalizedOrigin(u),
+			Repository:   repo,
+			Dist:         dist,
+			Component:    component,
+			Architecture: m[1],
+			Digest:       m[2],
+		}
+		return info, nil
 	}
-	info := &PackagesUrlInfo{
-		CfgName:      name,
-		Origin:       utils.NormalizedOrigin(u),
-		Repository:   repo,
-		Dist:         dist,
-		Component:    component,
-		Architecture: m[1],
-		Digest:       m[2],
+
+	// Chisel fetches the Packages.gz file by name, e.g.:
+	// GET https://esm.ubuntu.com:443/fips/ubuntu/dists/focal/main/binary-amd64/Packages.gz
+	rePackages = regexp.MustCompile(`^/[\w-]+/dists/[\w-]+/[\w-]+/binary-(\w+)/Packages.gz$`)
+	m = rePackages.FindStringSubmatch(u.Path)
+	if len(m) == 2 {
+		info := &PackagesUrlInfo{
+			CfgName:      name,
+			Origin:       utils.NormalizedOrigin(u),
+			Repository:   repo,
+			Dist:         dist,
+			Component:    component,
+			Architecture: m[1],
+		}
+		return info, nil
 	}
-	return info, nil
+
+	return nil, fmt.Errorf("invalid Packages URL path: %s", u.Path)
 }
 
 type TranslationUrlInfo struct {

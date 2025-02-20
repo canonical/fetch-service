@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -206,13 +206,14 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 	}
 
 	a.SetArtifactMetadata(ArtifactMetadata{
-		Type:         mimetypes.SnapPackage,
-		Name:         snapDeclarationAssertion.SnapName(),
-		Version:      snapRevisionAssertion.SnapRevision(),
-		Description:  data.Summary,
-		License:      data.License,
-		Vendor:       accountAssertion.DisplayName(),
-		Architecture: strings.Join(data.Architectures, ","),
+		Type:          mimetypes.SnapPackage,
+		Name:          snapDeclarationAssertion.SnapName(),
+		Version:       data.Version,
+		Description:   data.Summary,
+		License:       data.License,
+		Vendor:        accountAssertion.DisplayName(),
+		Architecture:  strings.Join(data.Architectures, ","),
+		StoreRevision: snapRevisionAssertion.SnapRevision(),
 	})
 
 	if err := checkSnapDeclarationFilter(ins.config, snapDeclarationAssertion); err != nil {

@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -79,20 +79,39 @@ func (s *snapSuite) TestSnapInspectorID(c *C) {
 	c.Assert(ins.ID(), Equals, "snap")
 }
 
-func (s *snapSuite) TestInspectRequest(c *C) {
-	for _, tc := range []struct {
-		url      string
-		approved bool
-	}{
-		{"https://api.snapcraft.io:443/api/v1/snaps/download/foo_42.snap", true},
-		{"https://x.snapcraftcontent.com:443/subdir/foo_42.snap?", true},
-		{"https://api.snapcraft.io:443/v2/snaps/download/foo_42.snap", false},
-		{"https://x.snapcraftcontent.com:443/subdir/foo_42.snap", false},
-		{"https://api.snapcraft.io:443/v3/snaps/download/foo_42.snap", false},
-		{"http://api.snapcraft.io/v2/snaps/download/foo_42.snap", false},
-		{"https://x.snapcraftcontent.com:443/subdir/foo_42.snap", false},
-		{"https://api.snapcraft.io/v2/snaps/info", false},
-	} {
+type snapInspectRequestTest struct {
+	url      string // The artifact request URL
+	approved bool   // Whether the request should be approved
+}
+
+var snapInspectRequestTests = []snapInspectRequestTest{{
+	url:      "https://api.snapcraft.io:443/api/v1/snaps/download/foo_42.snap",
+	approved: true,
+}, {
+	url:      "https://x.snapcraftcontent.com:443/subdir/foo_42.snap?",
+	approved: true,
+}, {
+	url:      "https://api.snapcraft.io:443/v2/snaps/download/foo_42.snap",
+	approved: false,
+}, {
+	url:      "https://x.snapcraftcontent.com:443/subdir/foo_42.snap",
+	approved: false,
+}, {
+	url:      "https://api.snapcraft.io:443/v3/snaps/download/foo_42.snap",
+	approved: false,
+}, {
+	url:      "http://api.snapcraft.io/v2/snaps/download/foo_42.snap",
+	approved: false,
+}, {
+	url:      "https://x.snapcraftcontent.com:443/subdir/foo_42.snap",
+	approved: false,
+}, {
+	url:      "https://api.snapcraft.io/v2/snaps/info",
+	approved: false,
+}}
+
+func (s *snapSuite) TestSnapInspectRequest(c *C) {
+	for _, tc := range snapInspectRequestTests {
 		ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
 		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
@@ -108,7 +127,7 @@ func (s *snapSuite) TestInspectRequest(c *C) {
 	}
 }
 
-func (s *snapSuite) TestInspectRequestError(c *C) {
+func (s *snapSuite) TestSnapInspectRequestError(c *C) {
 	ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
 	a := metadata.NewArtifact()
 	a.CurrentDownload = metadata.Download{URL: "::"}
@@ -136,7 +155,8 @@ func (s *snapSuite) TestSnapArtifactInspector(c *C) {
 	c.Check(a.Metadata.Name, Equals, "word-salad")
 	c.Check(a.Metadata.Vendor, Equals, "Alan Pope")
 	c.Check(a.Metadata.Size, Equals, int64(8192))
-	c.Check(a.Metadata.Version, Equals, "7")
+	c.Check(a.Metadata.Version, Equals, "0.1")
+	c.Check(a.Metadata.StoreRevision, Equals, "7")
 	c.Check(a.Metadata.Architecture, Equals, "amd64")
 	c.Check(a.Metadata.Description, Equals, "Word Salad - Password Generator")
 	c.Check(a.ResponseInspection["snap"].Annotations, DeepEquals, Annotation{
@@ -193,6 +213,28 @@ func (s *snapSuite) TestSnapArtifactInspectorSkip(c *C) {
 	c.Check(a.Rejected(), Equals, true)
 }
 
+type snapArtifactInspectorErrorTest struct {
+	errorCase string // A string identifying this error case
+	errorMsg  string // The expected error message
+}
+
+var snapArtifactInspectorErrorTests = []snapArtifactInspectorErrorTest{{
+	errorCase: "compute-digest",
+	errorMsg:  "cannot compute digest: compute digest error",
+}, {
+	errorCase: "encode-digest",
+	errorMsg:  "cannot encode digest: encode digest error",
+}, {
+	errorCase: "revision-assertion-download",
+	errorMsg:  "cannot retrieve snap-revision assertion: assertion download error",
+}, {
+	errorCase: "declaration-assertion-download",
+	errorMsg:  "cannot retrieve snap-declaration assertion: assertion download error",
+}, {
+	errorCase: "account-assertion-download",
+	errorMsg:  "cannot retrieve account assertion: assertion download error",
+}}
+
 func (s *snapSuite) TestSnapArtifactInspectorError(c *C) {
 	restore := snap.MockDownloadAccountAssertion(fakeAccountAssertion)
 	defer restore()
@@ -203,17 +245,7 @@ func (s *snapSuite) TestSnapArtifactInspectorError(c *C) {
 	restore = snap.MockDownloadSnapDeclarationAssertion(fakeSnapDeclarationAssertion)
 	defer restore()
 
-	for _, tc := range []struct {
-		errorCase string
-		errorMsg  string
-	}{
-		{"compute-digest", "cannot compute digest: compute digest error"},
-		{"encode-digest", "cannot encode digest: encode digest error"},
-		{"revision-assertion-download", "cannot retrieve snap-revision assertion: assertion download error"},
-		{"declaration-assertion-download", "cannot retrieve snap-declaration assertion: assertion download error"},
-		{"account-assertion-download", "cannot retrieve account assertion: assertion download error"},
-	} {
-
+	for _, tc := range snapArtifactInspectorErrorTests {
 		snap.MockComputeDigest(snap.ComputeDigestImpl)
 		snap.MockEncodeDigest(snap.EncodeDigestImpl)
 		snap.MockDownloadSnapRevisionAssertion(fakeSnapRevisionAssertion)
@@ -264,6 +296,34 @@ func (s *snapSuite) TestSnapArtifactInspectorError(c *C) {
 	}
 }
 
+type snapArtifactInspectorRejectTest struct {
+	rejectCase string // A string identifying this rejection case
+	reason     string // The expected reason why the artifact was rejected
+}
+
+var snapArtifactInspectorRejectTests = []snapArtifactInspectorRejectTest{{
+	rejectCase: "snap-revision-signature-mismatch",
+	reason:     "snap-revision assertion has invalid signature",
+}, {
+	rejectCase: "digest-mismatch",
+	reason:     "snap-revision assertion digest mismatch",
+}, {
+	rejectCase: "snap-size-mismatch",
+	reason:     "snap size mismatch in snap-revision assertion",
+}, {
+	rejectCase: "missing-snap-id",
+	reason:     "cannot find snap ID in snap-revision assertion",
+}, {
+	rejectCase: "snap-declaration-signature-mismatch",
+	reason:     "snap-declaration assertion has invalid signature",
+}, {
+	rejectCase: "missing-publisher-id",
+	reason:     "cannot find publisher ID in snap-declaration assertion",
+}, {
+	rejectCase: "account-signature-mismatch",
+	reason:     "account assertion has invalid signature",
+}}
+
 func (s *snapSuite) TestSnapArtifactInspectorReject(c *C) {
 	restore := snap.MockDownloadAccountAssertion(fakeAccountAssertion)
 	defer restore()
@@ -274,18 +334,7 @@ func (s *snapSuite) TestSnapArtifactInspectorReject(c *C) {
 	restore = snap.MockDownloadSnapDeclarationAssertion(fakeSnapDeclarationAssertion)
 	defer restore()
 
-	for _, tc := range []struct {
-		rejectCase string
-		reason     string
-	}{
-		{"snap-revision-signature-mismatch", "snap-revision assertion has invalid signature"},
-		{"digest-mismatch", "snap-revision assertion digest mismatch"},
-		{"snap-size-mismatch", "snap size mismatch in snap-revision assertion"},
-		{"missing-snap-id", "cannot find snap ID in snap-revision assertion"},
-		{"snap-declaration-signature-mismatch", "snap-declaration assertion has invalid signature"},
-		{"missing-publisher-id", "cannot find publisher ID in snap-declaration assertion"},
-		{"account-signature-mismatch", "account assertion has invalid signature"},
-	} {
+	for _, tc := range snapArtifactInspectorRejectTests {
 		c.Logf("rejection case: %s", tc.rejectCase)
 
 		snap.MockComputeDigest(snap.ComputeDigestImpl)
@@ -387,19 +436,32 @@ func (s *snapSuite) TestSnapArtifactInspectorReject(c *C) {
 	}
 }
 
+type squashFsDetectorTest struct {
+	buffer   []byte // The contents of the format detector buffer
+	detected bool   // Whether this should be detected as SquashFS
+}
+
+var squashFsDetectorTests = []squashFsDetectorTest{{
+	buffer:   []byte{},
+	detected: false,
+}, {
+	buffer:   []byte{0, 0, 0, 0},
+	detected: false,
+}, {
+	buffer:   []byte("hsq"),
+	detected: false,
+}, {
+	buffer:   []byte("hsqx---"),
+	detected: false,
+}, {
+	buffer:   []byte("hsqs---"),
+	detected: true,
+}}
+
 func (s *snapSuite) TestSquashFsDetector(c *C) {
-	for _, tc := range []struct {
-		buffer []byte
-		result bool
-	}{
-		{[]byte{}, false},
-		{[]byte{0, 0, 0, 0}, false},
-		{[]byte("hsq"), false},
-		{[]byte("hsqx---"), false},
-		{[]byte("hsqs---"), true},
-	} {
+	for _, tc := range squashFsDetectorTests {
 		res := snap.SquashFsDetector(tc.buffer, uint32(len(tc.buffer)))
-		c.Assert(res, Equals, tc.result)
+		c.Assert(res, Equals, tc.detected)
 	}
 }
 
@@ -432,20 +494,44 @@ A8X9HXVGPmI2TGst36cBgjdd9f+jj9ZqISKs8jdHfPKEpOBdH4wo1rodXO1y/GxZeP2Z710qep4t
 7K/m9/Ff04A86/gvRlzduXIjEvKJ
 `
 
+type checkSnapDeclarationFilterTest struct {
+	name     string   // The snap-declaration assertion field name
+	value    []string // The snap-declaration assertion field value
+	errorMsg string   // The expected error message, or empty
+}
+
+var checkSnapDeclarationFilterTests = []checkSnapDeclarationFilterTest{{
+	name:     "",
+	value:    []string{""},
+	errorMsg: "",
+}, {
+	name:     "publisher-id",
+	value:    []string{"canonical"},
+	errorMsg: "",
+}, {
+	name:     "publisher-id",
+	value:    []string{"foo", "canonical"},
+	errorMsg: "",
+}, {
+	name:     "publisher-id",
+	value:    []string{""},
+	errorMsg: "attribute 'publisher-id' value 'canonical' is not allowed",
+}, {
+	name:     "publisher-id",
+	value:    []string{"foo", "bar"},
+	errorMsg: "attribute 'publisher-id' value 'canonical' is not allowed",
+}, {
+	name:     "publisher-id",
+	value:    []string{"foo"},
+	errorMsg: "attribute 'publisher-id' value 'canonical' is not allowed",
+}, {
+	name:     "color",
+	value:    []string{"blue"},
+	errorMsg: "attribute 'color' not found in the snap-declaration assertion",
+}}
+
 func (s *snapSuite) TestCheckSnapDeclarationFilter(c *C) {
-	for _, tc := range []struct {
-		name   string
-		value  []string
-		errMsg string
-	}{
-		{"", []string{""}, ""},
-		{"publisher-id", []string{"canonical"}, ""},
-		{"publisher-id", []string{"foo", "canonical"}, ""},
-		{"publisher-id", []string{""}, "attribute 'publisher-id' value 'canonical' is not allowed"},
-		{"publisher-id", []string{"foo", "bar"}, "attribute 'publisher-id' value 'canonical' is not allowed"},
-		{"publisher-id", []string{"foo"}, "attribute 'publisher-id' value 'canonical' is not allowed"},
-		{"color", []string{"blue"}, "attribute 'color' not found in the snap-declaration assertion"},
-	} {
+	for _, tc := range checkSnapDeclarationFilterTests {
 		filter := []config.AssertionFilter{}
 		if tc.name != "" {
 			filter = []config.AssertionFilter{
@@ -459,13 +545,56 @@ func (s *snapSuite) TestCheckSnapDeclarationFilter(c *C) {
 		c.Assert(err, IsNil)
 
 		err = snap.CheckSnapDeclarationFilter(cfg, a)
-		if tc.errMsg == "" {
+		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
 		} else {
-			c.Assert(err, ErrorMatches, tc.errMsg)
+			c.Assert(err, ErrorMatches, tc.errorMsg)
 		}
 	}
 }
+
+type snapDeclarationFilterTest struct {
+	filter       []config.AssertionFilter // The declaration filter to apply
+	rejectReason string                   // The filter rejection reason, if any
+}
+
+var snapDeclarationFilterTests = []snapDeclarationFilterTest{{
+	// no filters
+	filter:       []config.AssertionFilter{},
+	rejectReason: "",
+}, {
+	// filtering by matching publisher-id
+	filter: []config.AssertionFilter{
+		{Name: "publisher-id", Value: []string{"ekRMaarzOfN1Vu3sDY0Bt1aGnM8Cd4kG"}},
+	},
+	rejectReason: "",
+}, {
+	// filtering by list including matching publisher-id
+	filter: []config.AssertionFilter{
+		{Name: "publisher-id", Value: []string{"canonical", "ekRMaarzOfN1Vu3sDY0Bt1aGnM8Cd4kG"}},
+	},
+	rejectReason: "",
+}, {
+	// filtering by publisher-id and snap-name
+	filter: []config.AssertionFilter{
+		{Name: "publisher-id", Value: []string{"ekRMaarzOfN1Vu3sDY0Bt1aGnM8Cd4kG"}},
+		{Name: "snap-name", Value: []string{"word-salad"}},
+	},
+	rejectReason: "",
+}, {
+	// filtering by non-matching publisher-id
+	filter: []config.AssertionFilter{
+		{Name: "publisher-id", Value: []string{"canonical"}},
+	},
+	rejectReason: "failure on snap-declaration assertion attribute check",
+}, {
+	// filtering by matching publisher-id and non-maching snap-name
+	filter: []config.AssertionFilter{
+		{Name: "publisher-id", Value: []string{"ekRMaarzOfN1Vu3sDY0Bt1aGnM8Cd4kG"}},
+		{Name: "snap-name", Value: []string{"snorklemaster"}},
+	},
+	rejectReason: "failure on snap-declaration assertion attribute check",
+}}
 
 func (s *snapSuite) TestSnapDeclarationFilter(c *C) {
 	restore := snap.MockDownloadAccountAssertion(fakeAccountAssertion)
@@ -477,53 +606,7 @@ func (s *snapSuite) TestSnapDeclarationFilter(c *C) {
 	restore = snap.MockDownloadSnapDeclarationAssertion(fakeSnapDeclarationAssertion)
 	defer restore()
 
-	for _, tc := range []struct {
-		filter       []config.AssertionFilter
-		rejectReason string
-	}{
-
-		{
-			// no filters
-			[]config.AssertionFilter{}, "",
-		},
-		{
-			// filtering by matching publisher-id
-			[]config.AssertionFilter{
-				{Name: "publisher-id", Value: []string{"ekRMaarzOfN1Vu3sDY0Bt1aGnM8Cd4kG"}},
-			},
-			"",
-		},
-		{
-			// filtering by list including matching publisher-id
-			[]config.AssertionFilter{
-				{Name: "publisher-id", Value: []string{"canonical", "ekRMaarzOfN1Vu3sDY0Bt1aGnM8Cd4kG"}},
-			},
-			"",
-		},
-		{
-			// filtering by publisher-id and snap-name
-			[]config.AssertionFilter{
-				{Name: "publisher-id", Value: []string{"ekRMaarzOfN1Vu3sDY0Bt1aGnM8Cd4kG"}},
-				{Name: "snap-name", Value: []string{"word-salad"}},
-			},
-			"",
-		},
-		{
-			// filtering by non-matching publisher-id
-			[]config.AssertionFilter{
-				{Name: "publisher-id", Value: []string{"canonical"}},
-			},
-			"failure on snap-declaration assertion attribute check",
-		},
-		{
-			// filtering by matching publisher-id and non-maching snap-name
-			[]config.AssertionFilter{
-				{Name: "publisher-id", Value: []string{"ekRMaarzOfN1Vu3sDY0Bt1aGnM8Cd4kG"}},
-				{Name: "snap-name", Value: []string{"snorklemaster"}},
-			},
-			"failure on snap-declaration assertion attribute check",
-		},
-	} {
+	for _, tc := range snapDeclarationFilterTests {
 		cfg := config.SnapInspectorConfig{SnapDeclarationFilter: tc.filter}
 
 		a := metadata.NewArtifact()
