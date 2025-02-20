@@ -2,6 +2,8 @@ module github.com/canonical/fetch-service
 
 go 1.22.5
 
+toolchain go1.24.0
+
 require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/CalebQ42/squashfs v1.0.4
