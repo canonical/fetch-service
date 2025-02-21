@@ -2,6 +2,15 @@
 Changelog
 *********
 
+0.6.1 (2025-02-21)
+------------------
+
+- feat(inspectors/apt): allow packages file download by name (#338)
+- fix(inspectors/snap): use version as assigned by vendor (#341)
+- fix(inspectors/deb): handle more compression methods (#339)
+- fix(inspectors/deb): remove incorrect metadata mapping (#328)
+- fix(deps): update module golang.org/x/net to v0.35.0 (#321)
+
 0.6.0 (2025-01-13)
 ------------------
 
