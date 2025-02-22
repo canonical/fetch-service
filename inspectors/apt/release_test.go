@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -86,18 +86,30 @@ func getTestAptConfig() apt_cfg.AptInspectorConfig {
 	}
 }
 
+type aptReleaseArtifactInspectorTest struct {
+	content     string // Release file content
+	hasValidSig bool   // Whether the release file has a valid signature
+	approved    bool   // Expected inspection result
+}
+
+var aptReleaseArtifactInspectorTests = []aptReleaseArtifactInspectorTest{{
+	content:     inReleaseArtifactData,
+	hasValidSig: true,
+	approved:    true,
+}, {
+	content:     inReleaseArtifactData,
+	hasValidSig: false,
+	approved:    false,
+}, {
+	content:     "some arbitrary data",
+	hasValidSig: true,
+	approved:    false,
+}}
+
 func (s *aptSuite) TestAptReleaseArtifactInspector(c *C) {
-	for _, tc := range []struct {
-		data     string
-		validSig bool
-		result   bool
-	}{
-		{inReleaseArtifactData, true, true},
-		{inReleaseArtifactData, false, false},
-		{"some arbitrary data", true, false},
-	} {
+	for _, tc := range aptReleaseArtifactInspectorTests {
 		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes Annotation, pubkey string) (io.ReadSeeker, error) {
-			if !tc.validSig {
+			if !tc.hasValidSig {
 				return f, errors.New("invalid signature")
 			}
 
@@ -118,14 +130,14 @@ func (s *aptSuite) TestAptReleaseArtifactInspector(c *C) {
 		a.CurrentDownload.URL = "https://my.archive/test"
 		a.MimeType = mimetype.Lookup("text/plain")
 
-		f := strings.NewReader(tc.data)
+		f := strings.NewReader(tc.content)
 
 		ins := apt.NewAptReleaseInspector(getTestAptConfig())
 		err := ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
-		c.Assert(a.Approved(), Equals, tc.result)
+		c.Assert(a.Approved(), Equals, tc.approved)
 
-		if tc.result {
+		if tc.approved {
 			c.Check(a.Metadata.Type, Equals, "application/x.apt.release")
 			c.Check(a.Metadata.Name, Equals, "InRelease")
 			c.Check(a.Metadata.Vendor, Equals, "Ubuntu")
@@ -166,28 +178,36 @@ func (s *aptSuite) TestAptReleaseArtifactInspector(c *C) {
 	}
 }
 
+type aptTranslationArtifactInspectorTest = struct {
+	filename string // Path to translation file
+	digest   string // The SHA256 digest of the translation file
+	size     int64  // The size of the translation file
+	approved bool   // The expected test result
+}
+
+var aptTranslationArtifactInspectorTests = []aptTranslationArtifactInspectorTest{{
+	filename: "testdata/Translation-zh_TW.xz",
+	digest:   "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed",
+	size:     792,
+	approved: true,
+}, {
+	filename: "testdata/Translation-zh_TW.xz",
+	digest:   "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed",
+	size:     600, // wrong size
+	approved: false,
+}, {
+	filename: "testdata/Translation-zh_TW-bad.xz", // bad content
+	digest:   "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5",
+	size:     64,
+	approved: false,
+}}
+
 func (s *aptSuite) TestAptTranslationArtifactInspector(c *C) {
-	for _, tc := range []struct {
-		dataRelease              string
-		translationLocalFileName string
-		translationDigest        string
-		translationSize          int64
-		result                   bool
-	}{
-		{inReleaseArtifactData, "testdata/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 792, true},
-		{inReleaseArtifactData, "testdata/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 600, false},
-		{inReleaseArtifactData, "testdata/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 792, false},
-		{inReleaseArtifactData, "testdata/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 600, false},
-	} {
+	for _, tc := range aptTranslationArtifactInspectorTests {
 		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes Annotation, pubkey string) (io.ReadSeeker, error) {
 			return f, nil
 		})
 		defer restorer()
-
-		translationArtifactFile, _ := os.Open(tc.translationLocalFileName)
-		translationArtifactData := make([]byte, tc.translationSize)
-		_, err := translationArtifactFile.Read(translationArtifactData)
-		c.Assert(err, IsNil)
 
 		// Load the release file first
 		a_release := metadata.NewArtifact()
@@ -207,7 +227,7 @@ func (s *aptSuite) TestAptTranslationArtifactInspector(c *C) {
 
 		// Inspect the InRelease file with the release inspector
 		ins := apt.NewAptReleaseInspector(getTestAptConfig())
-		err = ins.InspectArtifact(f_release, a_release)
+		err := ins.InspectArtifact(f_release, a_release)
 		c.Assert(err, IsNil)
 
 		// Now load the translation file
@@ -222,25 +242,22 @@ func (s *aptSuite) TestAptTranslationArtifactInspector(c *C) {
 				},
 			},
 		}
-		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/i18n/by-hash/SHA256/" + tc.translationDigest
+		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/i18n/by-hash/SHA256/" + tc.digest
 		a.Metadata.Type = "application/x.apt.translation"
-		a.Metadata.Size = tc.translationSize
-		a.Metadata.Sha256, err = digests.NewSha256Digest(tc.translationDigest)
+		a.Metadata.Size = tc.size
+		a.Metadata.Sha256, err = digests.NewSha256Digest(tc.digest)
 		c.Assert(err, IsNil)
 
-		translationFile, _ := os.Open(tc.translationLocalFileName)
-		data := make([]byte, 1024*128)
-		_, err = translationFile.Read(data)
+		data, err := os.ReadFile(tc.filename)
 		c.Assert(err, IsNil)
 
 		f := bytes.NewReader(data)
-
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
-		c.Assert(a.Approved(), Equals, tc.result)
+		c.Assert(a.Approved(), Equals, tc.approved)
 
-		if tc.result {
+		if tc.approved {
 			c.Check(a.Metadata.Type, Equals, "application/x.apt.translation")
 		}
 	}
