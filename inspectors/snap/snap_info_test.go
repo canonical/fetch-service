@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -36,17 +36,30 @@ func (s *snapSuite) TestSnapInfoInspectorID(c *C) {
 	c.Assert(ins.ID(), Equals, "snap.info")
 }
 
-func (s *snapSuite) TestInspectInfoRequest(c *C) {
-	for _, tc := range []struct {
-		url      string
-		approved bool
-	}{
-		{"https://api.snapcraft.io:443/v2/snaps/info/something", true},
-		{"https://api.snapcraft.io:443/v2/snaps/info", false},
-		{"https://api.snapcraft.io:443/v1/snaps/info", false},
-		{"https://api.snapcraft.io:443/v2/snaps/refresh", false},
-		{"http://api.snapcraft.io/v2/snaps/info", false},
-	} {
+type snapInfoInspectRequestTest struct {
+	url     string // The info request URL
+	pending bool   // Whether the inspection result should be pending
+}
+
+var snapInfoInspectRequestTests = []snapInfoInspectRequestTest{{
+	url:     "https://api.snapcraft.io:443/v2/snaps/info/something",
+	pending: true,
+}, {
+	url:     "https://api.snapcraft.io:443/v2/snaps/info",
+	pending: false,
+}, {
+	url:     "https://api.snapcraft.io:443/v1/snaps/info",
+	pending: false,
+}, {
+	url:     "https://api.snapcraft.io:443/v2/snaps/refresh",
+	pending: false,
+}, {
+	url:     "http://api.snapcraft.io/v2/snaps/info",
+	pending: false,
+}}
+
+func (s *snapSuite) TestSnapInfoInspectRequest(c *C) {
+	for _, tc := range snapInfoInspectRequestTests {
 		ins := snap.NewSnapInfoInspector()
 		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
@@ -55,8 +68,8 @@ func (s *snapSuite) TestInspectInfoRequest(c *C) {
 		c.Assert(err, IsNil)
 
 		insp, ok := a.RequestInspection[ins.ID()]
-		c.Assert(ok, Equals, tc.approved)
-		if tc.approved {
+		c.Assert(ok, Equals, tc.pending)
+		if tc.pending {
 			c.Assert(insp.Opinion, Equals, opinions.Pending)
 		}
 	}
