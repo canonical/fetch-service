@@ -53,7 +53,7 @@ var archiveKeyTests = []archiveKeyTest{{
 }, {
 	summary:  "Armored data: bad packets",
 	armor:    invalidPubKeyArmor,
-	relerror: "openpgp: .*",
+	relerror: "unexpected EOF",
 }}
 
 func (s *pgputilSuite) TestDecodeArchivePubKey(c *C) {
