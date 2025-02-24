@@ -5,7 +5,7 @@ go 1.22.12
 require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/CalebQ42/squashfs v1.0.4
-	github.com/ProtonMail/go-crypto v1.0.0
+	github.com/ProtonMail/go-crypto v1.1.5
 	github.com/PuerkitoBio/purell v1.2.1
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
 	github.com/elazarl/goproxy v1.7.1
@@ -24,7 +24,6 @@ require (
 
 require (
 	github.com/cloudflare/circl v1.3.7 // indirect
-	github.com/elazarl/goproxy/ext v0.0.0-20221015165544-a0805db90819 // indirect
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
