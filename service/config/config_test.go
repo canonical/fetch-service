@@ -390,3 +390,25 @@ uOgcXny1UlwtCUzlrSaP
 	c.Check(cfg3.Apt.Repositories["extra"].Urls, HasLen, 0)
 
 }
+
+func (t *configSuite) TestLoadInspectorsConfigSnap(c *C) {
+	// Create a fake $SNAP_DATA/conf/inspectors.yaml
+	snap_data := c.MkDir()
+	os.Setenv("SNAP_DATA", snap_data)
+	snap_conf := filepath.Join(snap_data, "conf")
+	c.Assert(os.Mkdir(snap_conf, 0700), IsNil)
+	cfgFile := filepath.Join(snap_conf, "inspectors.yaml")
+	err := os.WriteFile(cfgFile, []byte(inspectorsConfig), 0644)
+	c.Assert(err, IsNil)
+
+	// Pass a *different* (empty) config dir to LoadInspectorsConfig()
+	emptyDir := c.MkDir()
+	err = config.LoadInspectorsConfig(emptyDir)
+	c.Assert(err, IsNil)
+
+	// Check that the snap_data config was loaded
+	// (it should be enough to test one of the keys, other tests check the loading itself)
+	cfg := config.GetInspectorsConfig()
+	c.Check(cfg.Git.Urls, HasLen, 1)
+	c.Check(cfg.Git.Urls[0], DeepEquals, glob.MustCompile("https://git.test:443/**"))
+}

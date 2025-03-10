@@ -278,7 +278,11 @@ func LoadInspectorsConfig(cfgdir string) error {
 	if _, err := os.Stat(cfgfile); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			logger.Infof("Inspectors configuration file %s does not exist", cfgfile)
-			return nil
+			// Try to load the default configuration file, if running as a snap.
+			cfgfile = getDefaultInspectorConfig()
+			if cfgfile == "" {
+				return nil
+			}
 		}
 	}
 
@@ -304,6 +308,21 @@ func LoadInspectorsConfig(cfgdir string) error {
 	logger.Info("Inspectors configuration updated")
 
 	return nil
+}
+
+func getDefaultInspectorConfig() string {
+	snap_data := os.Getenv("SNAP_DATA")
+	if snap_data == "" {
+		return ""
+	}
+	cfgfile := filepath.Join(snap_data, "conf", inspectorsConfigFile)
+	if _, err := os.Stat(cfgfile); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			logger.Infof("Default inspectors configuration file %s does not exist", cfgfile)
+		}
+		return ""
+	}
+	return cfgfile
 }
 
 func decodeInspectorsConfig(r io.Reader) (InspectorsConfig, error) {
