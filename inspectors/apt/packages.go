@@ -120,7 +120,6 @@ func AptPackagesDetector(raw []byte, limit uint32) bool {
 		"Version",
 		"Priority",
 		"Section",
-		"Origin",
 		"Maintainer",
 	}
 
