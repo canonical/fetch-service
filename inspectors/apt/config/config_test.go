@@ -20,7 +20,6 @@
 package config_test
 
 import (
-	"fmt"
 	"net/url"
 	"testing"
 
@@ -40,7 +39,10 @@ func getTestAptConfig() config.AptInspectorConfig {
 	return config.AptInspectorConfig{
 		Repositories: map[string]config.AptInspectorConfigRepository{
 			"default": {
-				Urls:       []glob.Glob{glob.MustCompile("http://*.ubuntu.com/ubuntu")},
+				Urls: []glob.Glob{
+					glob.MustCompile("http://*.ubuntu.com/ubuntu"),
+					glob.MustCompile("https://*.ubuntu.com:443/**/ubuntu"),
+				},
 				Dists:      []glob.Glob{glob.MustCompile("focal")},
 				Components: []glob.Glob{glob.MustCompile("main")},
 				PublicKey:  "",
@@ -49,17 +51,49 @@ func getTestAptConfig() config.AptInspectorConfig {
 	}
 }
 
+type inReleaseUrlInfoTest struct {
+	url      string
+	msg      string
+	expected *config.InReleaseUrlInfo
+}
+
+var inReleaseUrlInfoTests = []inReleaseUrlInfoTest{{
+	url: "http://archive.ubuntu.com/ubuntu/dists/focal/InRelease",
+	expected: &config.InReleaseUrlInfo{
+		CfgName:    "default",
+		Origin:     "http://archive.ubuntu.com",
+		Repository: "http://archive.ubuntu.com/ubuntu",
+		Dist:       "focal",
+	},
+}, {
+	url: "http://us.archive.ubuntu.com/ubuntu/dists/focal/InRelease",
+	expected: &config.InReleaseUrlInfo{
+		CfgName:    "default",
+		Origin:     "http://us.archive.ubuntu.com",
+		Repository: "http://us.archive.ubuntu.com/ubuntu",
+		Dist:       "focal",
+	},
+}, {
+	url: "https://esm.ubuntu.com/fips/ubuntu/dists/focal/InRelease",
+	expected: &config.InReleaseUrlInfo{
+		CfgName:    "default",
+		Origin:     "https://esm.ubuntu.com:443",
+		Repository: "https://esm.ubuntu.com:443/fips/ubuntu",
+		Dist:       "focal",
+	},
+}, {
+	url: "http://archive.ubuntu.com/ubuntu/dists/jammy/InRelease",
+	msg: "invalid dist: jammy",
+}, {
+	url: "http://archive.ubuntu.com/ubuntu/dists/focal/NotInRelease",
+	msg: "invalid InRelease URL path: .*",
+}, {
+	url: "http://archive.ubuntu.com/ubuntu/focal/InRelease",
+	msg: "invalid repository URL: http://.*",
+}}
+
 func (t *configSuite) TestInReleaseUrlInfo(c *C) {
-	for _, tc := range []struct {
-		url string
-		msg string
-	}{
-		{"http://archive.ubuntu.com/ubuntu/dists/focal/InRelease", ""},
-		{"http://us.archive.ubuntu.com/ubuntu/dists/focal/InRelease", ""},
-		{"http://archive.ubuntu.com/ubuntu/dists/jammy/InRelease", "invalid dist: jammy"},
-		{"http://archive.ubuntu.com/ubuntu/dists/focal/NotInRelease", "invalid InRelease URL path: .*"},
-		{"http://archive.ubuntu.com/ubuntu/focal/InRelease", "invalid repository URL: http://.*"},
-	} {
+	for _, tc := range inReleaseUrlInfoTests {
 		u, err := url.Parse(tc.url)
 		c.Assert(err, IsNil)
 
@@ -68,28 +102,53 @@ func (t *configSuite) TestInReleaseUrlInfo(c *C) {
 
 		if tc.msg == "" {
 			c.Assert(err, IsNil)
-			c.Assert(info, DeepEquals, &config.InReleaseUrlInfo{
-				CfgName:    "default",
-				Origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
-				Repository: fmt.Sprintf("%s://%s/ubuntu", u.Scheme, u.Host),
-				Dist:       "focal",
-			})
+			c.Assert(info, DeepEquals, tc.expected)
 		} else {
 			c.Assert(err, ErrorMatches, tc.msg)
 		}
 	}
 }
 
+type packagesUrlInfoTest struct {
+	url      string
+	msg      string
+	expected *config.PackagesUrlInfo
+}
+
+var packagesUrlInfoTests = []packagesUrlInfoTest{{
+	url: "http://archive.ubuntu.com/ubuntu/dists/focal/main/binary-amd64/by-hash/SHA256/5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+	expected: &config.PackagesUrlInfo{
+		CfgName:      "default",
+		Origin:       "http://archive.ubuntu.com",
+		Repository:   "http://archive.ubuntu.com/ubuntu",
+		Dist:         "focal",
+		Component:    "main",
+		Architecture: "amd64",
+		Digest:       "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+	},
+}, {
+	url: "https://esm.ubuntu.com/fips/ubuntu/dists/focal/main/binary-amd64/Packages.gz",
+	expected: &config.PackagesUrlInfo{
+		CfgName:      "default",
+		Origin:       "https://esm.ubuntu.com:443",
+		Repository:   "https://esm.ubuntu.com:443/fips/ubuntu",
+		Dist:         "focal",
+		Component:    "main",
+		Architecture: "amd64",
+	},
+}, {
+	url: "http://archive.not-ubuntu.com/ubuntu/dists/focal/main/binary-amd64/by-hash/SHA256/5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+	msg: "invalid repository: .*",
+}, {
+	url: "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+	msg: "invalid dist: jammy",
+}, {
+	url: "http://archive.ubuntu.com/ubuntu/dists/focal/universe/binary-amd64/by-hash/SHA256/5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+	msg: "invalid component: universe",
+}}
+
 func (t *configSuite) TestPackagesUrlInfo(c *C) {
-	for _, tc := range []struct {
-		url string
-		msg string
-	}{
-		{"http://archive.ubuntu.com/ubuntu/dists/focal/main/binary-amd64/by-hash/SHA256/5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03", ""},
-		{"http://archive.not-ubuntu.com/ubuntu/dists/focal/main/binary-amd64/by-hash/SHA256/5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03", "invalid repository: .*"},
-		{"http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03", "invalid dist: jammy"},
-		{"http://archive.ubuntu.com/ubuntu/dists/focal/universe/binary-amd64/by-hash/SHA256/5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03", "invalid component: universe"},
-	} {
+	for _, tc := range packagesUrlInfoTests {
 		u, err := url.Parse(tc.url)
 		c.Assert(err, IsNil)
 
@@ -98,15 +157,7 @@ func (t *configSuite) TestPackagesUrlInfo(c *C) {
 
 		if tc.msg == "" {
 			c.Assert(err, IsNil)
-			c.Assert(info, DeepEquals, &config.PackagesUrlInfo{
-				CfgName:      "default",
-				Origin:       "http://archive.ubuntu.com",
-				Repository:   "http://archive.ubuntu.com/ubuntu",
-				Dist:         "focal",
-				Component:    "main",
-				Architecture: "amd64",
-				Digest:       "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
-			})
+			c.Assert(info, DeepEquals, tc.expected)
 		} else {
 			c.Assert(err, ErrorMatches, tc.msg)
 		}
