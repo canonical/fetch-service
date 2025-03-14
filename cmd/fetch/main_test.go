@@ -21,6 +21,7 @@ package main_test
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	. "gopkg.in/check.v1"
@@ -50,4 +51,78 @@ func (t *mainSuite) TestVersion(c *C) {
 	c.Assert(main.Run(), Equals, 0)
 	c.Check(output, HasLen, 1)
 	c.Check(output[0], Equals, "fetch "+version.Version+"\n")
+}
+
+func clearEnv() {
+	os.Setenv("SNAP_NAME", "")
+	os.Setenv("SNAP", "")
+	os.Setenv("SNAP_DATA", "")
+	os.Setenv("SNAP_COMMON", "")
+}
+
+func (t *mainSuite) TestOptionsNotSnapDefault(c *C) {
+	clearEnv()
+
+	opts := main.Opts{}
+	parser := main.Parser(&opts)
+
+	_, err := parser.ParseArgs([]string{})
+	c.Assert(err, IsNil)
+	opt := main.GetServiceOptions(&opts)
+
+	// Default values in non-snap case
+	c.Assert(opt.Config, Equals, "/etc/fetch")
+	c.Assert(opt.Spool, Equals, "/var/lib/fetch")
+}
+
+func (t *mainSuite) TestOptionsNotSnapProvided(c *C) {
+	clearEnv()
+
+	opts := main.Opts{}
+	parser := main.Parser(&opts)
+
+	_, err := parser.ParseArgs([]string{"--config=/provided/conf", "--spool=/provided/spool"})
+	c.Assert(err, IsNil)
+	opt := main.GetServiceOptions(&opts)
+
+	// Values provided
+	c.Assert(opt.Config, Equals, "/provided/conf")
+	c.Assert(opt.Spool, Equals, "/provided/spool")
+}
+
+func setSnapEnv() {
+	os.Setenv("SNAP_NAME", "fetch-service")
+	os.Setenv("SNAP", "/snap/fetch-service/x1")
+	os.Setenv("SNAP_DATA", "/var/snap/fetch-service/x1")
+	os.Setenv("SNAP_COMMON", "/var/snap/fetch-service/common")
+}
+
+func (t *mainSuite) TestOptionsSnapDefault(c *C) {
+	setSnapEnv()
+
+	opts := main.Opts{}
+	parser := main.Parser(&opts)
+
+	_, err := parser.ParseArgs([]string{})
+	c.Assert(err, IsNil)
+	opt := main.GetServiceOptions(&opts)
+
+	// Default values in snap case
+	c.Assert(opt.Config, Equals, "/var/snap/fetch-service/x1/conf")
+	c.Assert(opt.Spool, Equals, "/var/snap/fetch-service/common/spool")
+}
+
+func (t *mainSuite) TestOptionsSnapProvided(c *C) {
+	setSnapEnv()
+
+	opts := main.Opts{}
+	parser := main.Parser(&opts)
+
+	_, err := parser.ParseArgs([]string{"--config=/provided/conf", "--spool=/provided/spool"})
+	c.Assert(err, IsNil)
+	opt := main.GetServiceOptions(&opts)
+
+	// Values provided
+	c.Assert(opt.Config, Equals, "/provided/conf")
+	c.Assert(opt.Spool, Equals, "/provided/spool")
 }

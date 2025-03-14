@@ -38,3 +38,6 @@ func MockPrintf(mock func(format string, a ...any)) func() {
 		printf = old
 	}
 }
+
+var Parser = parser
+var GetServiceOptions = getServiceOptions

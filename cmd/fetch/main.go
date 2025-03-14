@@ -42,7 +42,7 @@ The fetch service is a tool to mediate network access when executing
 craft tools.`
 )
 
-var opts struct {
+type Opts struct {
 	// Enable profiling API
 	Profile bool `long:"profile" description:"Enable profiling"`
 
@@ -56,10 +56,10 @@ var opts struct {
 	ProxyPort int `short:"p" long:"proxy-port" description:"Proxy port number" default:"9988"`
 
 	// Path to the configuration files.
-	Config string `long:"config" description:"Path to the directory containing configuration files" default:"/etc/fetch"`
+	Config string `long:"config" description:"Path to the directory containing configuration files"`
 
 	// Path to the local spool containing downloaded files and extracted metadata.
-	Spool string `long:"spool" description:"Path to downloaded dependencies" default:"/var/lib/fetch"`
+	Spool string `long:"spool" description:"Path to downloaded dependencies"`
 
 	// Set the verbosity level
 	Verbosity string `long:"verbosity" description:"Verbosity level" choice:"debug"`
@@ -84,7 +84,8 @@ var opts struct {
 }
 
 func Run() int {
-	p := parser()
+	opts := Opts{}
+	p := parser(&opts)
 
 	_, err := p.ParseArgs(os.Args[1:])
 	if err != nil {
@@ -117,19 +118,11 @@ func Run() int {
 		pp.Start()
 	}
 
-	// Start the fetch service
-	opt := service.Options{
-		ControlPort:    opts.ControlPort,
-		ProxyPort:      opts.ProxyPort,
-		Config:         opts.Config,
-		Spool:          opts.Spool,
-		PermissiveMode: opts.PermissiveMode,
-		CertPath:       opts.CertPath,
-		KeyPath:        opts.KeyPath,
-		IdleShutdown:   opts.IdleShutdown,
-	}
+	svc_opt := getServiceOptions(&opts)
 
-	svc, err := service.New(&opt)
+	// Start the fetch service
+
+	svc, err := service.New(&svc_opt)
 	if err != nil {
 		logger.Fatalf("Cannot create service: %s", err)
 	}
@@ -174,11 +167,47 @@ func printfImpl(format string, a ...any) {
 	fmt.Printf(format, a...)
 }
 
-func parser() *flags.Parser {
-	p := flags.NewParser(&opts, flags.HelpFlag|flags.PassDoubleDash|flags.PassAfterNonOption)
+func parser(opts *Opts) *flags.Parser {
+	p := flags.NewParser(opts, flags.HelpFlag|flags.PassDoubleDash|flags.PassAfterNonOption)
 	p.ShortDescription = shortHelp
 	p.LongDescription = longHelp
 	return p
+}
+
+func is_snap() bool {
+	return os.Getenv("SNAP_NAME") == "fetch-service" && os.Getenv("SNAP") != ""
+}
+
+// Get the "real" value of an option that can be provided by the command line (cmdline_value),
+// and has different defaults depending on whether the fetch-service is running as a snap (snap_default)
+// or not (nonsnap_default).
+// For snap_default, environment variables (like SNAP_DATA and SNAP_COMMON) are expanded.
+func getOptionOrDefault(cmdline_value, snap_default, nonsnap_default string) string {
+	if cmdline_value != "" {
+		// Value provided on the command line; use it
+		return cmdline_value
+	}
+
+	if is_snap() {
+		return os.ExpandEnv(snap_default)
+	}
+	return nonsnap_default
+}
+
+func getServiceOptions(opts *Opts) service.Options {
+	var config = getOptionOrDefault(opts.Config, "${SNAP_DATA}/conf", "/etc/fetch")
+	var spool = getOptionOrDefault(opts.Spool, "${SNAP_COMMON}/spool", "/var/lib/fetch")
+
+	return service.Options{
+		ControlPort:    opts.ControlPort,
+		ProxyPort:      opts.ProxyPort,
+		Config:         config,
+		Spool:          spool,
+		PermissiveMode: opts.PermissiveMode,
+		CertPath:       opts.CertPath,
+		KeyPath:        opts.KeyPath,
+		IdleShutdown:   opts.IdleShutdown,
+	}
 }
 
 func main() {
