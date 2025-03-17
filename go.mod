@@ -5,7 +5,7 @@ go 1.22.12
 require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/CalebQ42/squashfs v1.0.4
-	github.com/ProtonMail/go-crypto v1.1.5
+	github.com/ProtonMail/go-crypto v1.1.6
 	github.com/PuerkitoBio/purell v1.2.1
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
 	github.com/elazarl/goproxy v1.7.2
