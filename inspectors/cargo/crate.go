@@ -35,8 +35,8 @@ import (
 )
 
 var (
-	// Location of the crates repo (will be configurable)
-	crateRequestOrigin = regexp.MustCompile(`^https://static.crates.io:443`)
+	// Location of the crates repo (will be configurable, for now it's empty)
+	crateRequestOrigins []*regexp.Regexp
 	// Download urls have the form crates/<crate-name>/<crate-version>/download
 	crateRequestSlug = regexp.MustCompile(`/crates/([\w-]+)/([\d\.]+)/download$`)
 )
@@ -55,11 +55,22 @@ func (CargoCrateInspector) ID() string {
 
 func (ins *CargoCrateInspector) InspectRequest(a RequestArtifact) error {
 	url := a.DownloadURL()
-	m := crateRequestOrigin.FindStringSubmatch(url)
-	if len(m) == 0 {
+
+	// Check that the origin matches any of the allowed ones
+	var match_origin bool = false
+	for _, origin := range crateRequestOrigins {
+		m := origin.FindStringSubmatch(url)
+		if len(m) != 0 {
+			match_origin = true
+			break
+		}
+	}
+
+	if !match_origin {
 		return nil
 	}
-	m = crateRequestSlug.FindStringSubmatch(url)
+
+	m := crateRequestSlug.FindStringSubmatch(url)
 	if len(m) == 3 {
 		package_name := m[1]
 		package_version := m[2]

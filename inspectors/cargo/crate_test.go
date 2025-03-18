@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/canonical/fetch-service/inspectors/cargo"
@@ -67,7 +68,11 @@ func (s *cargoSuite) TestCargoInspectorID(c *C) {
 	c.Assert(ins.ID(), Equals, "cargo.crate")
 }
 
+var cratesIO = []*regexp.Regexp{regexp.MustCompile(`^https://static.crates.io:443`)}
+
 func (s *cargoSuite) TestCargoInspectRequest(c *C) {
+	defer cargo.SetTestOrigins(cratesIO)()
+
 	ins := cargo.NewCrateInspector()
 	a := metadata.NewArtifact()
 	a.CurrentDownload = metadata.Download{URL: libc_url}
@@ -84,6 +89,8 @@ func (s *cargoSuite) TestCargoInspectRequest(c *C) {
 }
 
 func (s *cargoSuite) TestCargoInspectRequestBadOrigin(c *C) {
+	defer cargo.SetTestOrigins(cratesIO)()
+
 	ins := cargo.NewCrateInspector()
 	a := metadata.NewArtifact()
 	a.CurrentDownload = metadata.Download{URL: "https://bad.origin.io:443/crates/libc/0.2.155/download"}
@@ -96,6 +103,8 @@ func (s *cargoSuite) TestCargoInspectRequestBadOrigin(c *C) {
 }
 
 func (s *cargoSuite) TestCargoInspectRequestBadSlug(c *C) {
+	defer cargo.SetTestOrigins(cratesIO)()
+
 	ins := cargo.NewCrateInspector()
 	a := metadata.NewArtifact()
 	a.CurrentDownload = metadata.Download{URL: "https://static.crates.io:443/packages/libc/0.2.155/download"}
