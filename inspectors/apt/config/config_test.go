@@ -132,10 +132,10 @@ func (t *configSuite) TestInReleaseUrlInfo(c *C) {
 
 type packageUrlInfoTest struct {
 	url      string // The request URL
-	conf     string // The repository configuration entry
-	repo     string // The repository name (URL scheme and origin)
+	conf     string // The repository configuration name
+	repo     string // The repository name
 	series   string // The distribution series
-	errorMsg string // The error message, if any
+	errorMsg string // The error message
 }
 
 var packageUrlInfoTests = []packageUrlInfoTest{{
@@ -304,8 +304,8 @@ func (t *configSuite) TestTranslationUrlInfo(c *C) {
 type debPackageUrlInfoTest struct {
 	url      string // The request URL
 	conf     string // The repository configuration entry
-	repo     string // The repository name (URL scheme and origin)
-	errorMsg string // The error message, if any
+	repo     string // The repository URL scheme and origin
+	errorMsg string // The error message if any
 }
 
 var debPackageUrlInfoTests = []debPackageUrlInfoTest{{
