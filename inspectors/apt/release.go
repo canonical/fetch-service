@@ -262,7 +262,6 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		"Date",
 		"Architectures",
 		"Components",
-		"Description",
 	}
 
 	for _, k := range expected_fields {
@@ -312,11 +311,15 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 
 	repo := strings.TrimSuffix(a.DownloadURL(), "/InRelease")
 
+	desc := fields["Description"]
+	if desc == "" {
+		desc = fmt.Sprintf("%s %s", fields["Origin"], fields["Suite"])
+	}
 	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:        mimetypes.AptRelease,
 		Name:        "InRelease",
 		Version:     fields["Codename"],
-		Description: fields["Description"],
+		Description: desc,
 		Vendor:      fields["Origin"],
 		Author:      fields["Origin"],
 	})
