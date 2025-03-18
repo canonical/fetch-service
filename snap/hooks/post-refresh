@@ -3,20 +3,21 @@
 CONF_DIR="${SNAP_DATA}/conf"
 CA_CERT_DIR="${SNAP_DATA}/certs"
 
-mkdir -p $(dirname "$ACL_YAML")
+mkdir -p "$CONF_DIR"
 
-# If old acl configuration exists, move it to conf/
-if [ -f "${SNAP_DATA}/acl.yaml" ]; then
-	mv "${SNAP_DATA}/acl.yaml" "$CONF_DIR/"
+# Remove unchanged default configuration files
+if [ -f "${CONF_DIR}/acl.yaml" ]; then
+	digest=$(sha256sum "${CONF_DIR}/acl.yaml" | cut -f1 -d' ' | tr -d '\n')
+	if [ "$digest" == "a7c4075e9231df17f00fc708a1e5fce3b996a4fd25b66f1bdc42cf8cbc077221" ]; then
+		rm -f "${CONF_DIR}/acl.yaml"
+	fi
 fi
 
-# Create configuration files if they doesn't exist
-if [ ! -f "${CONF_DIR}/acl.yaml" ]; then
-	cp "${SNAP}/skel/acl.yaml" "$CONF_DIR/"
-fi
-
-if [ ! -f "${CONF_DIR}/inspectors.yaml" ]; then
-	cp "${SNAP}/skel/inspectors.yaml" "$CONF_DIR/"
+if [ -f "${CONF_DIR}/inspectors.yaml" ]; then
+	digest=$(sha256sum "${CONF_DIR}/inspectors.yaml" | cut -f1 -d' ' | tr -d '\n')
+	if [ "$digest" == "62e323393507073ddd1a4f924e8014a1114d71caea033ee65198ebcfbfd305e0" ]; then
+		rm -f "${CONF_DIR}/inspectors.yaml"
+	fi
 fi
 
 # Create a CA certificate if it doesn't exist

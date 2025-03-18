@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -1009,6 +1009,93 @@ func (t *serviceSuite) TestFetchctlCreateSession(c *C) {
 		err = svc.Stop()
 		c.Assert(err, IsNil)
 	}
+}
+
+type loadConfigsOrDefaultTest struct {
+	isSnap       bool   // Whether we're running from snap
+	hasConfig    bool   // Whether the user has created a configuration file
+	finalConfDir string // The directory configuration will be loaded from
+}
+
+var loadConfigsOrDefaultTests = []loadConfigsOrDefaultTest{{
+	isSnap:       false,
+	hasConfig:    false,
+	finalConfDir: "/user/config",
+}, {
+	isSnap:       false,
+	hasConfig:    true,
+	finalConfDir: "/user/config",
+}, {
+	isSnap:       true,
+	hasConfig:    false,
+	finalConfDir: "/snap/fetch-service/x1/conf",
+}, {
+	isSnap:       true,
+	hasConfig:    true,
+	finalConfDir: "/user/config",
+}}
+
+func (t *serviceSuite) TestLoadHttpProxyRulesOrDefault(c *C) {
+	var aclConfigDir string
+
+	for _, tc := range loadConfigsOrDefaultTests {
+		restorer := service.MockConfigLoadProxyHttpRules(func(cfgdir string) error {
+			aclConfigDir = cfgdir
+			if tc.hasConfig && cfgdir == "/user/config" {
+				return nil
+			}
+			if tc.isSnap && cfgdir == "/snap/fetch-service/x1/conf" {
+				return nil
+			}
+			return os.ErrNotExist
+		})
+		defer restorer()
+
+		if tc.isSnap {
+			os.Setenv("SNAP", "/snap/fetch-service/x1")
+			os.Setenv("SNAP_NAME", "fetch-service")
+		}
+
+		aclConfigDir = ""
+		err := service.LoadHttpProxyRulesOrDefault("/user/config")
+		c.Assert(err, IsNil)
+		c.Assert(aclConfigDir, Equals, tc.finalConfDir, Commentf("test case: %+v", tc))
+
+		os.Unsetenv("SNAP")
+		os.Unsetenv("SNAP_NAME")
+	}
+}
+
+func (t *serviceSuite) TestInspectorsConfigOrDefault(c *C) {
+	var inspConfigDir string
+
+	for _, tc := range loadConfigsOrDefaultTests {
+		restorer := service.MockConfigLoadInspectorsConfig(func(cfgdir string) error {
+			inspConfigDir = cfgdir
+			if tc.hasConfig && cfgdir == "/user/config" {
+				return nil
+			}
+			if tc.isSnap && cfgdir == "/snap/fetch-service/x1/conf" {
+				return nil
+			}
+			return os.ErrNotExist
+		})
+		defer restorer()
+
+		if tc.isSnap {
+			os.Setenv("SNAP", "/snap/fetch-service/x1")
+			os.Setenv("SNAP_NAME", "fetch-service")
+		}
+
+		inspConfigDir = ""
+		err := service.LoadInspectorsConfigOrDefault("/user/config")
+		c.Assert(err, IsNil)
+		c.Assert(inspConfigDir, Equals, tc.finalConfDir, Commentf("test case: %+v", tc))
+
+		os.Unsetenv("SNAP")
+		os.Unsetenv("SNAP_NAME")
+	}
+
 }
 
 func createCertFiles(dir string) (string, string, error) {

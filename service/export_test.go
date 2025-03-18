@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -29,8 +29,10 @@ import (
 )
 
 var (
-	EvaluateRequestInspection  = evaluateRequestInspection
-	EvaluateResponseInspection = evaluateResponseInspection
+	EvaluateRequestInspection     = evaluateRequestInspection
+	EvaluateResponseInspection    = evaluateResponseInspection
+	LoadHttpProxyRulesOrDefault   = loadHttpProxyRulesOrDefault
+	LoadInspectorsConfigOrDefault = loadInspectorsConfigOrDefault
 )
 
 func MockNewHttpProxy(mock func(int, string, []byte, []byte, chan interface{}) (*proxy.HttpProxy, error)) (restorer func()) {
@@ -78,5 +80,21 @@ func MockSessionNewWithId(mock func(string, string, string, time.Duration, bool)
 	sessionNewWithId = mock
 	return func() {
 		sessionNewWithId = old
+	}
+}
+
+func MockConfigLoadProxyHttpRules(mock func(string) error) (restorer func()) {
+	old := configLoadHttpProxyRules
+	configLoadHttpProxyRules = mock
+	return func() {
+		configLoadHttpProxyRules = old
+	}
+}
+
+func MockConfigLoadInspectorsConfig(mock func(string) error) (restorer func()) {
+	old := configLoadInspectorsConfig
+	configLoadInspectorsConfig = mock
+	return func() {
+		configLoadInspectorsConfig = old
 	}
 }
