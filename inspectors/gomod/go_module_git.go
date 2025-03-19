@@ -84,7 +84,8 @@ func (ins *GoModuleGitInspector) InspectRequest(a RequestArtifact) error {
 		return nil // we don't recognize this request
 	}
 
-	a.SetRequestPending(ins, "valid URL for go module download")
+	// Request marked as Unknown because it comes from a default origin
+	a.SetRequestUnknown(ins, "unsupported origin")
 	return nil
 }
 

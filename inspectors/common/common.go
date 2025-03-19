@@ -162,17 +162,3 @@ type ArtifactMetadata struct {
 	SourcePackage string // The name of the source package that generated this artifact, if available.
 	StoreRevision string // The revision of the artifact assigned by the store, if any.
 }
-
-// Handle a request that is valid for an Inspector's default (non-configured) origin.
-//
-// This function marks the request as Unknown, meaning that it is not explicitly allowed by the
-// Inspector (and thus will fail in strict sessions) but will create a valid Inspection for the
-// artifact inspection (to support artifacts in permissive sessions).
-//
-// This function should be used for a request that matches the expected default of a given ecosystem
-// (e.g. crates.io for cargo crates, or pypi for pip wheels) for an Inspector that is currently
-// *not* configurable. It is meant as a stepping stone until the Inspector is made fully configurable.
-func HandleDefaultOriginRequest(ins Inspector, a RequestArtifact, reason string, args ...any) *Inspection {
-	reason = reason + " (default origin)"
-	return a.SetRequestUnknown(ins, reason, args...)
-}

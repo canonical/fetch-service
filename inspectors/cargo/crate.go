@@ -63,7 +63,8 @@ func (ins *CargoCrateInspector) InspectRequest(a RequestArtifact) error {
 	if len(m) == 3 {
 		package_name := m[1]
 		package_version := m[2]
-		HandleDefaultOriginRequest(ins, a, "request matches valid URL").Annotate(
+		// Request marked as Unknown because it comes from the default crates.io origin
+		a.SetRequestUnknown(ins, "unsupported origin").Annotate(
 			Annotation{
 				"package-name":    package_name,
 				"package-version": package_version,
