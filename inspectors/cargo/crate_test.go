@@ -77,7 +77,8 @@ func (s *cargoSuite) TestCargoInspectRequest(c *C) {
 
 	insp, ok := a.RequestInspection[ins.ID()]
 	c.Assert(ok, Equals, true)
-	c.Assert(insp.Opinion, Equals, opinions.Pending)
+	c.Assert(insp.Opinion, Equals, opinions.Unknown)
+	c.Assert(insp.Reason, Equals, "request matches valid URL (default origin)")
 
 	c.Assert(a.RequestInspection[ins.ID()].Annotations["package-name"], Equals, "libc")
 	c.Assert(a.RequestInspection[ins.ID()].Annotations["package-version"], Equals, "0.2.155")

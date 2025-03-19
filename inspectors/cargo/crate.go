@@ -63,7 +63,7 @@ func (ins *CargoCrateInspector) InspectRequest(a RequestArtifact) error {
 	if len(m) == 3 {
 		package_name := m[1]
 		package_version := m[2]
-		a.SetRequestPending(ins, "request matches valid URL").Annotate(
+		HandleDefaultOriginRequest(ins, a, "request matches valid URL").Annotate(
 			Annotation{
 				"package-name":    package_name,
 				"package-version": package_version,
