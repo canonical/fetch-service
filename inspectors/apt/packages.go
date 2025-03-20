@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -22,6 +22,7 @@ package apt
 import (
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"net/url"
@@ -71,7 +72,7 @@ import (
 // ...
 
 func AptPackagesDetector(raw []byte, limit uint32) bool {
-	r, err := xz.NewReader(bytes.NewReader(raw), 0)
+	r, err := compressedReader(bytes.NewReader(raw))
 	if err != nil {
 		return false
 	}
@@ -119,7 +120,6 @@ func AptPackagesDetector(raw []byte, limit uint32) bool {
 		"Version",
 		"Priority",
 		"Section",
-		"Origin",
 		"Maintainer",
 	}
 
@@ -132,6 +132,24 @@ func AptPackagesDetector(raw []byte, limit uint32) bool {
 	}
 
 	return true
+}
+
+func compressedReader(r io.ReadSeeker) (io.Reader, error) {
+	xzr, err := xz.NewReader(r, 0)
+	if err == nil {
+		return xzr, nil
+	}
+
+	if _, err := r.Seek(0, io.SeekStart); err != nil {
+		return nil, err
+	}
+
+	gzr, err := gzip.NewReader(r)
+	if err == nil {
+		return gzr, nil
+	}
+
+	return nil, err
 }
 
 // aptPackagesEntry stores selected fields from each package listed in
@@ -251,14 +269,14 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	pkg.sha256 = a.Sha256()
 
 	// Add packages list to inspector state
-	r, err := xz.NewReader(f, 0)
+	r, err := compressedReader(f)
 	if err != nil {
 		return err
 	}
 
 	md := ArtifactMetadata{
 		Type:         mimetypes.AptPackages,
-		Name:         "Packages.xz",
+		Name:         "Packages",
 		Version:      pkg.dist,
 		Description:  fmt.Sprintf("%s %s Packages file", pkg.dist, pkg.component),
 		Architecture: pkg.architecture,

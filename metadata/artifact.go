@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -39,7 +39,7 @@ type InspectionMap map[string]*Inspection
 
 const (
 	MetadataVersionMajor = 0 // Updated when incompatible changes are made
-	MetadataVersionMinor = 1 // Existing fields not changed, may contain additional fields
+	MetadataVersionMinor = 2 // Existing fields not changed, may contain additional fields
 )
 
 // Artifact holds information about each downloaded file during
@@ -117,6 +117,7 @@ func (a *Artifact) SetArtifactMetadata(m ArtifactMetadata) {
 	a.Metadata.License = m.License
 	a.Metadata.Copyright = m.Copyright
 	a.Metadata.SourcePackage = m.SourcePackage
+	a.Metadata.StoreRevision = m.StoreRevision
 }
 
 func (a *Artifact) MimetypeIs(t string) bool {

@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -262,7 +262,6 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		"Date",
 		"Architectures",
 		"Components",
-		"Description",
 	}
 
 	for _, k := range expected_fields {
@@ -312,11 +311,15 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 
 	repo := strings.TrimSuffix(a.DownloadURL(), "/InRelease")
 
+	desc := fields["Description"]
+	if desc == "" {
+		desc = fmt.Sprintf("%s %s", fields["Origin"], fields["Suite"])
+	}
 	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:        mimetypes.AptRelease,
 		Name:        "InRelease",
 		Version:     fields["Codename"],
-		Description: fields["Description"],
+		Description: desc,
 		Vendor:      fields["Origin"],
 		Author:      fields["Origin"],
 	})
@@ -367,12 +370,23 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a Respons
 		return nil
 	}
 
-	sha256, err := digests.NewSha256Digest(info.Digest)
-	if err != nil {
-		a.SetResponseRejected(ins, "invalid SHA256 digest: %s", err)
-		return nil
+	if info.Digest != "" {
+		sha256, err := digests.NewSha256Digest(info.Digest)
+		if err != nil {
+			a.SetResponseRejected(ins, "invalid SHA256 digest: %s", err)
+			return nil
+		}
+		logger.Debugf("by-hash SHA256 digest: %s", info.Digest)
+
+		if sha256 != a.Sha256() {
+			a.SetResponseRejected(ins, "SHA256 digest mismatch").Annotate(
+				Annotation{
+					"expected-sha256": sha256.String(),
+				},
+			)
+			return nil
+		}
 	}
-	logger.Debugf("by-hash SHA256 digest: %s", info.Digest)
 
 	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
 	rel, ok := ins.release[repo]
@@ -381,21 +395,12 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a Respons
 		return nil
 	}
 
-	entry, ok := rel.Files[sha256]
+	entry, ok := rel.Files[a.Sha256()]
 	if !ok {
 		a.SetResponseRejected(ins, "Packages file not listed in Release file")
 		return nil
 	}
 	logger.Debugf("release entry: %+v", entry)
-
-	if sha256 != a.Sha256() {
-		a.SetResponseRejected(ins, "SHA256 digest mismatch").Annotate(
-			Annotation{
-				"expected-sha256": sha256.String(),
-			},
-		)
-		return nil
-	}
 
 	a.SetResponseApproved(ins, "Packages file listed in Release").Annotate(
 		Annotation{
