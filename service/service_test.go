@@ -1053,16 +1053,16 @@ func (t *serviceSuite) TestLoadHttpProxyRulesOrDefault(c *C) {
 
 		if tc.isSnap {
 			os.Setenv("SNAP", "/snap/fetch-service/x1")
+			defer os.Unsetenv("SNAP")
+
 			os.Setenv("SNAP_NAME", "fetch-service")
+			defer os.Unsetenv("SNAP_NAME")
 		}
 
 		aclConfigDir = ""
 		err := service.LoadHttpProxyRulesOrDefault("/user/config")
 		c.Assert(err, IsNil)
 		c.Assert(aclConfigDir, Equals, tc.finalConfDir, Commentf("test case: %+v", tc))
-
-		os.Unsetenv("SNAP")
-		os.Unsetenv("SNAP_NAME")
 	}
 }
 

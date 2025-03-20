@@ -20,8 +20,8 @@ execute: |
   snap install "$PROJECT_PATH"/spread/fetch-service_*.snap --dangerous
 
   # confirm that the default configuration file was removed
-  test -f "$CONFDIR/inspectors.yaml" && exit 1
-  test -f "$CONFDIR/acl.yaml" && exit 1
+  test ! -f "$CONFDIR/inspectors.yaml"
+  test ! -f "$CONFDIR/acl.yaml"
 
   # the file is restored if revision reverted
   snap revert fetch-service
