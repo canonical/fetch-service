@@ -28,7 +28,6 @@ import (
 
 	"github.com/canonical/fetch-service/inspectors/apt"
 	"github.com/canonical/fetch-service/inspectors/cargo"
-	"github.com/canonical/fetch-service/inspectors/chisel"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/craft"
 	"github.com/canonical/fetch-service/inspectors/deb"
@@ -101,9 +100,6 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		// maven
 		maven.NewJarInspector(),
 		maven.NewPomInspector(),
-
-		// chisel
-		chisel.NewChiselReleaseInspector(),
 
 		// default inspector
 		// must be the last inspector to run
