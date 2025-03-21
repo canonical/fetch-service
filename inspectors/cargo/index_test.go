@@ -92,7 +92,8 @@ func (s *cargoSuite) TestIndexInspectRequestCrate(c *C) {
 
 	insp, ok := a.RequestInspection[ins.ID()]
 	c.Assert(ok, Equals, true)
-	c.Assert(insp.Opinion, Equals, opinions.Pending)
+	c.Assert(insp.Opinion, Equals, opinions.Unknown)
+	c.Assert(insp.Reason, Equals, "unsupported origin")
 
 	c.Assert(a.RequestInspection[ins.ID()].Annotations["is-config"], Equals, false)
 	c.Assert(a.RequestInspection[ins.ID()].Annotations["crate-name"], Equals, "time")

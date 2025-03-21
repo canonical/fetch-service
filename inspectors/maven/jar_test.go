@@ -62,7 +62,8 @@ func (s *mavenSuite) TestJarInspectRequest(c *C) {
 
 		insp, ok := a.RequestInspection[ins.ID()]
 		c.Assert(ok, Equals, true)
-		c.Assert(insp.Opinion, Equals, opinions.Pending)
+		c.Assert(insp.Opinion, Equals, opinions.Unknown)
+		c.Assert(insp.Reason, Equals, "unsupported origin")
 
 		c.Check(a.RequestInspection[ins.ID()].Annotations["group-id"], Equals, jt.group_id)
 		c.Check(a.RequestInspection[ins.ID()].Annotations["artifact-id"], Equals, jt.artifact_id)

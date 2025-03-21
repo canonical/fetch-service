@@ -83,7 +83,8 @@ func (s *simpleIndexSuite) TestInspectRequest(c *C) {
 		insp, ok := a.RequestInspection[ins.ID()]
 		c.Assert(ok, Equals, tc.approved)
 		if tc.approved {
-			c.Assert(insp.Opinion, Equals, opinions.Pending)
+			c.Assert(insp.Opinion, Equals, opinions.Unknown)
+			c.Assert(insp.Reason, Equals, "unsupported origin")
 		}
 
 		if tc.name != "" {

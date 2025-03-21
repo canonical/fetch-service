@@ -100,7 +100,8 @@ func (s *goModuleGitSuite) TestInspectGoModuleGitRequest(c *C) {
 		insp, ok := a.RequestInspection[ins.ID()]
 		c.Assert(ok, Equals, tc.approved, Commentf("Aproval status is wrong for '%s' (%t != %t)", tc.url, ok, tc.approved))
 		if tc.approved {
-			c.Assert(insp.Opinion, Equals, opinions.Pending)
+			c.Assert(insp.Opinion, Equals, opinions.Unknown)
+			c.Assert(insp.Reason, Equals, "unsupported origin")
 		}
 	}
 }
