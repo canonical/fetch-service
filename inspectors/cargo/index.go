@@ -74,7 +74,8 @@ func (ins *CargoIndexInspector) InspectRequest(a RequestArtifact) error {
 
 	if len(m) == 2 {
 		crate_name := m[1]
-		a.SetRequestPending(ins, "request matches valid URL").Annotate(
+		// Request marked as Unknown because it comes from the default crates.io origin
+		a.SetRequestUnknown(ins, "unsupported origin").Annotate(
 			Annotation{
 				"is-config":  false,
 				"crate-name": crate_name,

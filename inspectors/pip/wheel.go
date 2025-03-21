@@ -57,7 +57,8 @@ func (ins *WheelInspector) InspectRequest(a RequestArtifact) error {
 	}
 
 	if checkWheelUrl(u) == nil {
-		a.SetRequestPending(ins, "request matches valid URL")
+		// Request marked as Unknown because it comes from the default pypi origin
+		a.SetRequestUnknown(ins, "unsupported origin")
 	}
 
 	return nil // we don't recognize this request
