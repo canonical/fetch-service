@@ -49,7 +49,8 @@ func (SimpleIndexInspector) ID() string {
 func (ins *SimpleIndexInspector) InspectRequest(a RequestArtifact) error {
 	m := indexRequestURL.FindStringSubmatch(a.DownloadURL())
 	if len(m) > 1 {
-		a.SetRequestPending(ins, "request matches valid URL").Annotate(
+		// Request marked as Unknown because it comes from the default pypi origin
+		a.SetRequestUnknown(ins, "unsupported origin").Annotate(
 			Annotation{
 				"match":        indexRequestURL,
 				"package-name": m[1],

@@ -91,7 +91,8 @@ func (s *wheelSuite) TestInspectRequest(c *C) {
 		insp, ok := a.RequestInspection[ins.ID()]
 		c.Assert(ok, Equals, tc.approved, Commentf("test case: %+v", tc))
 		if tc.approved {
-			c.Assert(insp.Opinion, Equals, opinions.Pending, Commentf("test case: %+v", tc))
+			c.Assert(insp.Opinion, Equals, opinions.Unknown, Commentf("test case: %+v", tc))
+			c.Assert(insp.Reason, Equals, "unsupported origin")
 		}
 	}
 }

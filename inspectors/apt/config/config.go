@@ -59,7 +59,7 @@ func checkRepositoryAndDist(cfg *AptInspectorConfig, u *url.URL) (string, string
 	}
 
 	if ok := distIsAllowed(cfg, repoCfgName, dist); !ok {
-		return "", "", "", fmt.Errorf("invalid dist: %s", dist)
+		return "", "", "", fmt.Errorf("invalid series: %s", dist)
 	}
 
 	return repoCfgName, repo, dist, nil
@@ -135,7 +135,7 @@ func NewInReleaseUrlInfo(u *url.URL, cfg *AptInspectorConfig) (*InReleaseUrlInfo
 		return nil, err
 	}
 
-	reInRelease := regexp.MustCompile(`^/[\w-]+/dists/([\w-]+)/InRelease$`)
+	reInRelease := regexp.MustCompile(`/[\w-]+/dists/([\w-]+)/InRelease$`)
 	if !reInRelease.MatchString(u.Path) {
 		return nil, fmt.Errorf("invalid InRelease URL path: %s", u.Path)
 	}
@@ -172,7 +172,7 @@ func NewPackagesUrlInfo(u *url.URL, cfg *AptInspectorConfig) (*PackagesUrlInfo, 
 	}
 	logger.Debugf("packages file component=%s", component)
 
-	rePackages := regexp.MustCompile(`^/[\w-]+/dists/[\w-]+/[\w-]+/binary-(\w+)/by-hash/SHA256/([0-9a-f]{64})$`)
+	rePackages := regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/binary-(\w+)/by-hash/SHA256/([0-9a-f]{64})$`)
 	m := rePackages.FindStringSubmatch(u.Path)
 	if len(m) == 3 {
 		info := &PackagesUrlInfo{
@@ -189,7 +189,7 @@ func NewPackagesUrlInfo(u *url.URL, cfg *AptInspectorConfig) (*PackagesUrlInfo, 
 
 	// Chisel fetches the Packages.gz file by name, e.g.:
 	// GET https://esm.ubuntu.com:443/fips/ubuntu/dists/focal/main/binary-amd64/Packages.gz
-	rePackages = regexp.MustCompile(`^/[\w-]+/dists/[\w-]+/[\w-]+/binary-(\w+)/Packages.gz$`)
+	rePackages = regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/binary-(\w+)/Packages.gz$`)
 	m = rePackages.FindStringSubmatch(u.Path)
 	if len(m) == 2 {
 		info := &PackagesUrlInfo{
@@ -226,7 +226,7 @@ func NewTranslationUrlInfo(u *url.URL, cfg *AptInspectorConfig) (*TranslationUrl
 		return nil, err
 	}
 
-	reTranslation := regexp.MustCompile(`^/[\w-]+/dists/[\w-]+/[\w-]+/i18n/by-hash/SHA256/([0-9a-f]{64})$`)
+	reTranslation := regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/i18n/by-hash/SHA256/([0-9a-f]{64})$`)
 	m := reTranslation.FindStringSubmatch(u.Path)
 	if len(m) != 2 {
 		return nil, fmt.Errorf("invalid translation URL path: %s", u.Path)
@@ -267,7 +267,7 @@ func NewDebPackageUrlInfo(u *url.URL, cfg *AptInspectorConfig) (*DebPackageUrlIn
 		return nil, fmt.Errorf("invalid repository: %s", repo)
 	}
 
-	reDebPackage := regexp.MustCompile(`^/[\w-]+/pool/([\w-]+)/.*/([^/_]+)_([^/_]+)_([^/_]+)\.deb$`)
+	reDebPackage := regexp.MustCompile(`/[\w-]+/pool/([\w-]+)/.*/([^/_]+)_([^/_]+)_([^/_]+)\.deb$`)
 	m := reDebPackage.FindStringSubmatch(u.Path)
 	if len(m) != 5 {
 		return nil, fmt.Errorf("%s: not a valid deb package URL path", u.Path)
