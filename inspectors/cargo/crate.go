@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,11 +27,10 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/BurntSushi/toml"
+
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
-	"github.com/canonical/fetch-service/logger"
-
-	"github.com/BurntSushi/toml"
 )
 
 var (
@@ -93,6 +92,8 @@ func (ins *CargoCrateInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		return nil
 	}
 
+	slog := a.Logger()
+
 	cargotoml := fmt.Sprintf(`%s-%s/Cargo.toml`, package_name, package_version)
 
 	zf, err := gzip.NewReader(f)
@@ -108,7 +109,7 @@ func (ins *CargoCrateInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 			if err == io.EOF {
 				break
 			}
-			logger.Debugf("crate tar parsing error: %s", err)
+			slog.Debugf("crate tar parsing error: %s", err)
 			return nil // we don't recognize this artifact
 		}
 		if h.Name == cargotoml {

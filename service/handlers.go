@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -67,12 +67,12 @@ func handleMessages(svc *Service, msg interface{}) {
 		v.Rch <- session.CheckAuth(v.Id, v.Pw)
 
 	case messages.FetchCtl:
-		logger.Infof("[service] fetchctl operation: %s", v.Operation)
+		logger.Infof("service: fetchctl operation: %s", v.Operation)
 		reply := handleFetchCtl(v, svc)
 		v.Rch <- reply
 
 	default:
-		logger.Warningf("[service] unknown message type %T", v)
+		logger.Warningf("service: unknown message type %T", v)
 	}
 }
 
@@ -94,11 +94,12 @@ func handleRequestInspection(v messages.RequestInspection) {
 func handleResponseInspection(v messages.ResponseInspection) {
 	sessionId := v.A.SessionId
 	digest := v.A.Metadata.Sha256
+	slog := v.A.Logger()
 
 	s := session.GetSession(sessionId)
 	if s == nil {
 		v.Rch <- fmt.Errorf("cannot inspect response: session %s is not active", sessionId)
-		logger.Debugf("[%s] remove stale temporary file: %s", sessionId, v.A.Tempfile)
+		slog.Debugf("remove stale temporary file: %s", v.A.Tempfile)
 		os.Remove(v.A.Tempfile)
 		return
 	}
@@ -107,10 +108,10 @@ func handleResponseInspection(v messages.ResponseInspection) {
 
 	// Add download info to artifact metadata
 	dl := v.A.CurrentDownload
-	logger.Infof("[%s] %s %s: %s (%s)", sessionId, dl.Method, dl.URL, dl.Status, dl.ContentType)
+	slog.Infof("%s %s: %s (%s)", dl.Method, dl.URL, dl.Status, dl.ContentType)
 
 	if s.HasArtifact(digest) {
-		logger.Infof("[%s] artifact %s already downloaded", s.Id, digest)
+		slog.Infof("artifact %s already downloaded", digest)
 		s.AddDownload(v.A.CurrentDownload)
 		os.Remove(v.A.Tempfile)
 		if !s.Permissive && s.ArtifactResult(digest) == opinions.Rejected {
@@ -236,7 +237,7 @@ func handleDeleteResources(v messages.DeleteResources, spoolDir string) {
 func runRequestInspection(s *session.Session, a *metadata.Artifact) error {
 	// Check request
 	if err := s.Insps.RunRequestInspectors(a); err != nil {
-		logger.Errorf("[%s] %s", s.Id, err)
+		a.Logger().Error(err.Error())
 		return err
 	}
 
@@ -245,17 +246,17 @@ func runRequestInspection(s *session.Session, a *metadata.Artifact) error {
 
 func evaluateRequestInspection(s *session.Session, a *metadata.Artifact) error {
 	dl := a.CurrentDownload
-	sessionId := s.Id
+	slog := a.Logger()
 
 	if !a.RequestPending() {
 		if s.Permissive {
-			logger.Infof("[%s] request would be rejected: %s %s", sessionId, dl.Method, dl.URL)
+			slog.Infof("request would be rejected: %s %s", dl.Method, dl.URL)
 		} else {
-			logger.Infof("[%s] request rejected: %s %s", sessionId, dl.Method, dl.URL)
+			slog.Infof("request rejected: %s %s", dl.Method, dl.URL)
 			return ErrRejectedRequest
 		}
 	} else {
-		logger.Infof("[%s] request approved: %s %s", sessionId, dl.Method, dl.URL)
+		slog.Infof("request approved: %s %s", dl.Method, dl.URL)
 	}
 
 	return nil
@@ -264,7 +265,7 @@ func evaluateRequestInspection(s *session.Session, a *metadata.Artifact) error {
 func runResponseInspection(s *session.Session, a *metadata.Artifact) error {
 	// Extract metadata from file
 	if err := s.Insps.RunArtifactInspectors(a.AssetDir, a); err != nil {
-		logger.Errorf("%s", err)
+		a.Logger().Errorf("%s", err)
 		a.Result = opinions.Rejected
 		return err
 	}
@@ -273,22 +274,20 @@ func runResponseInspection(s *session.Session, a *metadata.Artifact) error {
 }
 
 func evaluateResponseInspection(s *session.Session, a *metadata.Artifact) error {
-	sessionId := s.Id
 	digest := a.Metadata.Sha256
+	slog := a.Logger()
 
 	if a.Rejected() {
 		a.Result = opinions.Rejected
 		if s.Permissive {
-			logger.Infof("[%s] artifact %s %d (%s) would be rejected (permissive)",
-				sessionId, digest, a.Metadata.Size, a.Metadata.Type)
+			slog.Infof("artifact %s %d (%s) would be rejected (permissive)", digest, a.Metadata.Size, a.Metadata.Type)
 		} else {
-			logger.Infof("[%s] artifact rejected: %s %d (%s)",
-				sessionId, digest, a.Metadata.Size, a.Metadata.Type)
+			slog.Infof("artifact rejected: %s %d (%s)", digest, a.Metadata.Size, a.Metadata.Type)
 			return ErrRejectedArtifact
 		}
 	} else {
 		a.Result = opinions.Approved
-		logger.Infof("[%s] artifact approved: %s %d (%s)", sessionId, digest, a.Metadata.Size, a.Metadata.Type)
+		slog.Infof("artifact approved: %s %d (%s)", digest, a.Metadata.Size, a.Metadata.Type)
 	}
 
 	return nil

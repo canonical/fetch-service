@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -223,7 +223,7 @@ func UpdateConfig(optype string, dryRun bool, payload []byte, cfgdir string) err
 			if err := updateConfigFile(cfgdir, aclConfigFile, payload); err != nil {
 				return err
 			}
-			logger.Infof("[config] write ACL configuration file: %s", filepath.Join(cfgdir, aclConfigFile))
+			logger.Infof("config: write ACL configuration file: %s", filepath.Join(cfgdir, aclConfigFile))
 		}
 	case "inspectors":
 		cfg, err := decodeInspectorsConfig(r)
@@ -238,7 +238,7 @@ func UpdateConfig(optype string, dryRun bool, payload []byte, cfgdir string) err
 			if err := updateConfigFile(cfgdir, inspectorsConfigFile, payload); err != nil {
 				return err
 			}
-			logger.Infof("[config] write inspectors configuration file: %s", filepath.Join(cfgdir, inspectorsConfigFile))
+			logger.Infof("config: write inspectors configuration file: %s", filepath.Join(cfgdir, inspectorsConfigFile))
 		}
 	}
 	return nil

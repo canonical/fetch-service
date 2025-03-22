@@ -38,7 +38,6 @@ import (
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/inspectors/pip"
 	"github.com/canonical/fetch-service/inspectors/snap"
-	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
 	"github.com/canonical/fetch-service/service/config"
@@ -119,7 +118,6 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		id := ins.ID()
 		insps.ids[n] = id
 		insps.insmap[id] = ins
-		//logger.Debugf("register inspector: %s", id)
 	}
 
 	return insps
@@ -127,10 +125,11 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 
 // RunRequestInspectors determine whether the HTTP request is valid.
 func (insps Inspectors) RunRequestInspectors(a *metadata.Artifact) error {
-	logger.Debugf("Inspect request: %s", a.CurrentDownload.URL)
+	slog := a.Logger()
+	slog.Debugf("inspect request: %s", a.CurrentDownload.URL)
 	for _, id := range insps.ids {
 		ins := insps.insmap[id]
-		logger.Debugf("run request inspector: %s", ins.ID())
+		slog.Debugf("run request inspector: %s", ins.ID())
 		if err := ins.InspectRequest(a); err != nil {
 			a.SetRequestRejected(ins, "error inspecting request").Annotate(
 				Annotation{"error-message": err.Error()})
@@ -143,9 +142,11 @@ func (insps Inspectors) RunRequestInspectors(a *metadata.Artifact) error {
 
 // RunArtifactInspectors examines the artifact in the given assets directory.
 func (insps Inspectors) RunArtifactInspectors(dir string, a *metadata.Artifact) error {
+	slog := a.Logger()
+
 	// detect file type
 	filename := filepath.Join(dir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
-	logger.Debugf("run artifact inspectors on %s", filename)
+	slog.Debugf("run artifact inspectors on %s", filename)
 
 	f, err := files.OpenArtifactFile(filename)
 	if err != nil {
@@ -155,7 +156,7 @@ func (insps Inspectors) RunArtifactInspectors(dir string, a *metadata.Artifact) 
 
 	mtype, err := mimetype.DetectReader(f)
 	if err != nil {
-		logger.Debug("cannot detect mime type")
+		slog.Debug("cannot detect mime type")
 		return err
 	}
 
@@ -164,7 +165,7 @@ func (insps Inspectors) RunArtifactInspectors(dir string, a *metadata.Artifact) 
 	ctype := a.CurrentDownload.ContentType
 
 	if len(ctype) > 0 && !mtype.Is(ctype) {
-		logger.Debugf("file type '%s' doesn't match content type '%s'", mtype.String(), ctype)
+		slog.Debugf("file type '%s' doesn't match content type '%s'", mtype.String(), ctype)
 	}
 
 	// run artifact inspectors
@@ -179,7 +180,7 @@ func (insps Inspectors) RunArtifactInspectors(dir string, a *metadata.Artifact) 
 		}
 
 		ins := insps.insmap[id]
-		logger.Debugf("run artifact inspector: %s", id)
+		slog.Debugf("run artifact inspector: %s", id)
 		if _, err := f.Seek(0, io.SeekStart); err != nil {
 			return err
 		}

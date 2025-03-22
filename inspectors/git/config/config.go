@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -40,12 +40,12 @@ type GitInspectorConfig struct {
 	Urls []glob.Glob `yaml:"urls"` // List of allowed URL glob patterns
 }
 
-func checkRequestUrl(cfg *GitInspectorConfig, u *url.URL) error {
+func checkRequestUrl(cfg *GitInspectorConfig, u *url.URL, slog logger.Logger) error {
 	reqUrl := utils.NormalizedOrigin(u) + u.Path
 
 	for _, h := range cfg.Urls {
 		if h.Match(reqUrl) {
-			logger.Debugf("git url matches %v\n", h)
+			slog.Debugf("git url matches %v\n", h)
 			return nil
 		}
 	}
@@ -56,8 +56,8 @@ type SmartQueryUrlInfo struct {
 	Service string
 }
 
-func NewSmartQueryUrlInfo(u *url.URL, cfg *GitInspectorConfig) (*SmartQueryUrlInfo, error) {
-	if err := checkRequestUrl(cfg, u); err != nil {
+func NewSmartQueryUrlInfo(u *url.URL, cfg *GitInspectorConfig, slog logger.Logger) (*SmartQueryUrlInfo, error) {
+	if err := checkRequestUrl(cfg, u, slog); err != nil {
 		return nil, err
 	}
 
@@ -80,8 +80,8 @@ type UploadPackUrlInfo struct {
 	Project string
 }
 
-func NewUploadPackUrlInfo(u *url.URL, cfg *GitInspectorConfig) (*UploadPackUrlInfo, error) {
-	if err := checkRequestUrl(cfg, u); err != nil {
+func NewUploadPackUrlInfo(u *url.URL, cfg *GitInspectorConfig, slog logger.Logger) (*UploadPackUrlInfo, error) {
+	if err := checkRequestUrl(cfg, u, slog); err != nil {
 		return nil, err
 	}
 

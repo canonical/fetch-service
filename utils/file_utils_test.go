@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -31,14 +31,17 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/utils"
 )
 
 func Test(t *testing.T) { TestingT(t) }
 
-type fileutilsSuite struct{}
+type fileutilsSuite struct {
+	slog logger.Logger
+}
 
-var _ = Suite(&fileutilsSuite{})
+var _ = Suite(&fileutilsSuite{logger.NewSessionLogger("test")})
 
 func (t *fileutilsSuite) TestZipMatches(c *C) {
 	tmp := c.MkDir()
@@ -141,7 +144,7 @@ func (t *fileutilsSuite) TestGetLicense(c *C) {
 		{"../go.mod", "UNKNOWN", ""},
 		{"does-not-exist", "", ""},
 	} {
-		res, err := utils.GetLicense(tc.filename)
+		res, err := utils.GetLicense(tc.filename, t.slog)
 		if tc.errMsg == "" {
 			c.Assert(err, IsNil)
 			c.Check(res, Equals, tc.license)
@@ -159,7 +162,7 @@ func (t *fileutilsSuite) TestCheckLicenseFiles(c *C) {
 		{[]string{"does-not-exist", "export_test.go"}, "GPL-3"},
 		{[]string{"does-not-exist"}, ""},
 	} {
-		res, err := utils.CheckLicenseFiles(tc.files)
+		res, err := utils.CheckLicenseFiles(tc.files, t.slog)
 		c.Assert(err, IsNil)
 		c.Check(res, Equals, tc.license)
 	}

@@ -24,6 +24,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
@@ -63,6 +64,9 @@ type RequestArtifact interface {
 
 	// Save request for inspection
 	SetRequestBody(io.ReadCloser)
+
+	// Logging
+	Logger() logger.Logger
 }
 
 // ResponseArtifact is an interface with methods to be used on the
@@ -95,6 +99,9 @@ type ResponseArtifact interface {
 
 	// Fill metadata fields
 	SetArtifactMetadata(ArtifactMetadata)
+
+	// Logging
+	Logger() logger.Logger
 }
 
 // Inspector is the interface implemented by artifact metadata extractors.

@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -37,7 +37,7 @@ func getGitProtocol(a RequestArtifact) string {
 	return proto[0]
 }
 
-func decodeGitProtocol(f io.Reader) ([]string, error) {
+func decodeGitProtocol(f io.Reader, slog logger.Logger) ([]string, error) {
 	msgs := []string{}
 	for {
 		buf := make([]byte, 4)
@@ -66,9 +66,9 @@ func decodeGitProtocol(f io.Reader) ([]string, error) {
 		}
 
 		if len(line) < 256 {
-			logger.Debugf(":: %04x  %q", size, line)
+			slog.Debugf(":: %04x  %q", size, line)
 		} else {
-			logger.Debugf(":: %04x  <line too long>", size)
+			slog.Debugf(":: %04x  <line too long>", size)
 		}
 
 		// remove trailing line break, if any

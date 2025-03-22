@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -65,6 +65,7 @@ type Session struct {
 	CacheDir      string        // location of session-specific cache
 	Timeout       time.Duration // maximum time allowed for a session
 	InspectorsCfg config.InspectorsConfig
+	Logger        logger.Logger // Session-aware log helper
 
 	timer   *sessionTimer // timeout to auto-finish an idle session
 	revoked bool          // session token has been revoked
@@ -89,7 +90,7 @@ func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permiss
 	_, ok := sessions.Load(sessionId)
 	if ok {
 		id := makeSessionId()
-		logger.Warningf("[%s] attempt to re-create existing session ID, use %s instead", sessionId, id)
+		logger.Warningf("cannot recreate existing session ID %s, use %s instead", sessionId, id)
 		sessionId = id
 	}
 
@@ -107,16 +108,17 @@ func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permiss
 		CacheDir:      filepath.Join(spoolDir, sessionId, "cache"),
 		Timeout:       timeout,
 		InspectorsCfg: config.GetInspectorsConfig(),
+		Logger:        logger.NewSessionLogger(sessionId),
 	}
 
 	cfg := config.GetInspectorsConfig()
 	s.Insps = inspectors.New(permissive, cfg)
 
-	var sType string
+	var sType = "strict"
 	if permissive {
-		sType = " (permissive)"
+		sType = "permissive"
 	}
-	logger.Infof("[%s] creating session%s, timeout = %s", s.Id, sType, timeout)
+	s.Logger.Infof("create %s session, timeout = %s", sType, timeout)
 
 	sessions.Store(s.Id, s)
 	s.timer = newSessionTimer(s, ExpiredSessionId)
@@ -152,7 +154,7 @@ func (s *Session) Finish() error {
 	sm := s.Metadata()
 
 	for k := range s.A {
-		logger.Infof("[%s] save metadata for artifact %s", s.Id, k)
+		s.Logger.Infof("save metadata for artifact %s", k)
 		if err := s.SaveMetadata(k); err != nil {
 			return err
 		}
@@ -180,7 +182,7 @@ func (s *Session) Revoke(token string) bool {
 	if token != s.Token {
 		return false
 	}
-	logger.Debugf("[%s] token revoked", s.Id)
+	s.Logger.Debug("token revoked")
 	s.revoked = true
 	s.End = time.Now().UTC()
 	return true
@@ -214,13 +216,13 @@ func (s *Session) SaveSessionMetadata(sm *metadata.SessionMetadata) error {
 func (s *Session) Discard() {
 	_, ok := sessions.Load(s.Id)
 	if !ok {
-		logger.Warningf("[%s] cannot discard non-existing session", s.Id)
+		s.Logger.Warning("cannot discard non-existing session")
 		return
 	}
-	logger.Infof("[%s] discarding session", s.Id)
+	s.Logger.Info("discarding session")
 	sessions.Delete(s.Id)
 	s.timer.Cancel() // end session timer
-	logger.Infof("[%s] session discarded", s.Id)
+	s.Logger.Info("session discarded")
 }
 
 func (s *Session) Artifacts() []*metadata.Artifact {
@@ -279,7 +281,7 @@ func (s *Session) SaveData(digest digests.Sha256Digest) error {
 
 	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
 	if err := osMkdirAll(filepath.Dir(dest), 0755); err != nil {
-		removeTempFile(a.Tempfile)
+		s.removeTempFile(a.Tempfile)
 		return err
 	}
 
@@ -288,16 +290,16 @@ func (s *Session) SaveData(digest digests.Sha256Digest) error {
 		if os.IsNotExist(err) {
 			// Move temporary file to spool
 			if err := utils.MoveFile(a.Tempfile, dest); err != nil {
-				removeTempFile(a.Tempfile)
+				s.removeTempFile(a.Tempfile)
 				return err
 			}
 		} else {
-			removeTempFile(a.Tempfile)
+			s.removeTempFile(a.Tempfile)
 			return err
 		}
 	} else {
 		// Remove temporary file if it already exists
-		removeTempFile(a.Tempfile)
+		s.removeTempFile(a.Tempfile)
 	}
 
 	return nil
@@ -324,9 +326,9 @@ func (s *Session) SaveMetadata(digest digests.Sha256Digest) error {
 	return nil
 }
 
-func removeTempFile(name string) {
+func (s *Session) removeTempFile(name string) {
 	if err := os.Remove(name); err != nil {
-		logger.Warningf("cannot remove temporary file %s: %s", name, err)
+		s.Logger.Warningf("cannot remove temporary file %s: %s", name, err)
 	}
 }
 
@@ -394,15 +396,14 @@ func GetSessionImpl(id string) *Session {
 // FinishAll gracefully finishes all active sessions.
 func FinishAll() {
 	sessions.Range(func(key, value any) bool {
-		id := key.(string)
 		s := value.(*Session)
-		logger.Infof("[session] finishing session %s", id)
+		s.Logger.Info("finishing session")
 		if err := s.Finish(); err != nil {
-			logger.Errorf("[session] cannot finish session: %s", err)
+			s.Logger.Errorf("cannot finish session: %s", err.Error())
 		}
 		return true
 	})
-	logger.Info("[session] all sessions finished")
+	logger.Info("all sessions finished")
 }
 
 // NumSessions returns the number of active sessions.

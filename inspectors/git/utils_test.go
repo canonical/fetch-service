@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -14,7 +14,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
  */
 
 package git_test
@@ -26,11 +25,14 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/inspectors/git"
+	"github.com/canonical/fetch-service/logger"
 )
 
-type utilsSuite struct{}
+type utilsSuite struct {
+	slog logger.Logger
+}
 
-var _ = Suite(&utilsSuite{})
+var _ = Suite(&utilsSuite{logger.NewSessionLogger("test")})
 
 func (s *utilsSuite) TestUnpackObjects(c *C) {
 	for _, tc := range []struct {
@@ -45,7 +47,7 @@ func (s *utilsSuite) TestUnpackObjects(c *C) {
 		c.Assert(err, IsNil)
 		defer f.Close()
 
-		err = git.UnpackObjects(f, dir)
+		err = git.UnpackObjects(f, dir, s.slog)
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
 			_, err = os.Stat(filepath.Join(dir, ".git", "objects"))
@@ -70,9 +72,9 @@ func (s *utilsSuite) TestCheckout(c *C) {
 		c.Assert(err, IsNil)
 		defer f.Close()
 
-		err = git.UnpackObjects(f, dir)
+		err = git.UnpackObjects(f, dir, s.slog)
 		c.Assert(err, IsNil)
-		err = git.Checkout(dir, tc.wants)
+		err = git.Checkout(dir, tc.wants, s.slog)
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
 			_, err = os.Stat(filepath.Join(dir, "sourcecraft.yaml"))

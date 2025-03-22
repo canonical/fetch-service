@@ -146,7 +146,7 @@ func (s *aptSuite) TestPackagesInspectArtifact(c *C) {
 
 		// simulate InRelease entry
 		data := apt.NewAptPackages("http://myserver", "jammy", "main", "amd64")
-		apt.AptPackagesInspectorAddPackages(ins, "http://myserver", "/path/Packages.xz", data)
+		apt.AptPackagesInspectorAddPackages(ins, "http://myserver", "/path/Packages.xz", data, s.slog)
 
 		h2, _ := digests.NewSha256Digest(tc.digest)
 
@@ -222,7 +222,7 @@ func (s *aptSuite) TestPackageParsing(c *C) {
 		entries := map[digests.Sha256Digest]apt.AptPackagesEntry{}
 
 		var num int
-		num, err = apt.ParsePackages(reader, entries)
+		num, err = apt.ParsePackages(reader, entries, s.slog)
 
 		c.Assert(err, IsNil)
 		c.Assert(num, Equals, 1)
