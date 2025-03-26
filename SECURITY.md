@@ -16,7 +16,7 @@ own configuration are considered issues on the Fetch Service itself.
 
 ## Supported versions
 
-The Fetch Service is still in development and has no Long-Term Support releases. As such,
+The Fetch Service is still in development and has no long-term support releases. As such,
 only the latest released version is considered supported.
 
 ## Reporting a vulnerability
