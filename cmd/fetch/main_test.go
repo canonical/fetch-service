@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,6 +21,7 @@ package main_test
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	. "gopkg.in/check.v1"
@@ -50,4 +51,38 @@ func (t *mainSuite) TestVersion(c *C) {
 	c.Assert(main.Run(), Equals, 0)
 	c.Check(output, HasLen, 1)
 	c.Check(output[0], Equals, "fetch "+version.Version+"\n")
+}
+
+func (t *mainSuite) TestOptionsNotSnapDefault(c *C) {
+	os.Unsetenv("SNAP_NAME")
+	os.Unsetenv("SNAP")
+
+	opt := main.GetServiceOptions(main.CmdlineOptions{})
+
+	// Default values in non-snap case
+	c.Assert(opt.Config, Equals, "/etc/fetch")
+	c.Assert(opt.Spool, Equals, "/var/lib/fetch")
+}
+
+func (t *mainSuite) TestOptionsSnapDefault(c *C) {
+	os.Setenv("SNAP_NAME", "fetch-service")
+	os.Setenv("SNAP", "/snap/fetch-service/x1")
+	os.Setenv("SNAP_DATA", "/var/snap/fetch-service/x1")
+	os.Setenv("SNAP_COMMON", "/var/snap/fetch-service/common")
+
+	opt := main.GetServiceOptions(main.CmdlineOptions{})
+
+	// Default values in snap case
+	c.Assert(opt.Config, Equals, "/var/snap/fetch-service/x1/conf")
+	c.Assert(opt.Spool, Equals, "/var/snap/fetch-service/common/spool")
+}
+
+func (t *mainSuite) TestOptionsUserSet(c *C) {
+	opt := main.GetServiceOptions(main.CmdlineOptions{
+		Spool:  "/user/spool",
+		Config: "/user/config",
+	})
+
+	c.Assert(opt.Config, Equals, "/user/config")
+	c.Assert(opt.Spool, Equals, "/user/spool")
 }

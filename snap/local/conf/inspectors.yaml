@@ -1,10 +1,14 @@
 git:
   urls:
     - https://git.pkg.store:443/**
+    - https://git.staging.snapcraftcontent.com:443/**
+    - https://git.qastaging.paddev.net:443/**
 
 crafts:
   urls:
     - https://git.pkg.store:443/**
+    - https://git.staging.snapcraftcontent.com:443/**
+    - https://git.qastaging.paddev.net:443/**
 
 snap:
   snap-declaration:

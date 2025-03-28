@@ -171,12 +171,8 @@ func SetHttpProxyConfig(cfg HttpProxyConfig) {
 func LoadHttpProxyRules(cfgdir string) error {
 	cfgfile := filepath.Join(cfgdir, aclConfigFile)
 	if _, err := os.Stat(cfgfile); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			logger.Infof("ACL configuration file %s does not exist", cfgfile)
-			return nil
-		}
+		return err
 	}
-
 	logger.Infof("Load proxy rules from %s", cfgfile)
 
 	f, err := os.Open(cfgfile)
@@ -245,6 +241,10 @@ func UpdateConfig(optype string, dryRun bool, payload []byte, cfgdir string) err
 }
 
 func updateConfigFile(cfgdir, filename string, payload []byte) error {
+	if err := os.MkdirAll(cfgdir, 0755); err != nil {
+		return err
+	}
+
 	cfgfile := filepath.Join(cfgdir, filename)
 	tmpfile := cfgfile + ".new"
 
@@ -276,10 +276,7 @@ type InspectorsConfig struct {
 func LoadInspectorsConfig(cfgdir string) error {
 	cfgfile := filepath.Join(cfgdir, inspectorsConfigFile)
 	if _, err := os.Stat(cfgfile); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			logger.Infof("Inspectors configuration file %s does not exist", cfgfile)
-			return nil
-		}
+		return err
 	}
 
 	logger.Infof("Load inspectors configuration from %s", cfgfile)
