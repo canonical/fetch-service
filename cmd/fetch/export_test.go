@@ -23,6 +23,10 @@ import (
 	"os"
 )
 
+var (
+	GetServiceOptions = getServiceOptions
+)
+
 func MockArgs(args []string) func() {
 	old := os.Args
 	os.Args = args
