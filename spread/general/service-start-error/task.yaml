@@ -27,7 +27,7 @@ execute: |
     --cert=/var/snap/fetch-service/current/certs/ca.pem \
     --key=/var/snap/fetch-service/current/certs/ca.key.pem \
     --control-port=5678 \
-    --idle-shutdown=2 || test "$?" -eq 3
+    --idle-shutdown=2 || test "$?" -eq 2
 
   sleep 2
   echo "Profile port conflict"
@@ -36,5 +36,5 @@ execute: |
     --cert=/var/snap/fetch-service/current/certs/ca.pem \
     --key=/var/snap/fetch-service/current/certs/ca.key.pem \
     --profile --profile-port=5678 \
-    --idle-shutdown=2 || test "$?" -eq 4
+    --idle-shutdown=2 || test "$?" -eq 3
 

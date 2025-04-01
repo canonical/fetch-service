@@ -140,13 +140,17 @@ loop:
 		select {
 		case sig := <-cs:
 			logger.Infof("Exiting on %s signal.\n", sig)
-			status = 2
+			if sysSig, ok := sig.(syscall.Signal); ok {
+				status = 128 + int(sysSig)
+			} else {
+				status = 128
+			}
 			break loop
 
 		case <-svc.Dying():
 			if err := svc.Err(); err != nil {
 				logger.Errorf("Server error: %s", err)
-				status = 3
+				status = 2
 			} else {
 				// something called Stop()
 				logger.Info("Server exiting!")
@@ -156,7 +160,7 @@ loop:
 		case <-pp.Dying():
 			// profiling server died
 			logger.Errorf("Profiling error: %s", pp.Err())
-			status = 4
+			status = 3
 		}
 	}
 
