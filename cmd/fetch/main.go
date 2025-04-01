@@ -162,7 +162,6 @@ loop:
 
 	if err := svc.Stop(); err != nil {
 		logger.Fatalf("error: %s", err)
-		status = 5
 	}
 
 	return status
