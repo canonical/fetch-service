@@ -1,4 +1,4 @@
-summary: Artifact inspection
+summary: Service start status codes
 
 execute: |
   timeout 20s python3 -m http.server 5678 &
