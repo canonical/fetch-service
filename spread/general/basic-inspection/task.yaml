@@ -5,9 +5,11 @@ environment:
   POLICY/permissive: permissive
 
 prepare: |
+  snap stop fetch-service
   rm -f ./*.json ./*.deb
 
 restore: |
+  snap stop fetch-service
   rm -f ./*.json ./*.deb
 
 execute: |

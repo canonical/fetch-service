@@ -1,0 +1,40 @@
+summary: Artifact inspection
+
+execute: |
+  timeout 20s python3 -m http.server 5678 &
+
+  sleep 2
+  echo "Normal service start"
+
+  fetch-service \
+    --cert=/var/snap/fetch-service/current/certs/ca.pem \
+    --key=/var/snap/fetch-service/current/certs/ca.key.pem \
+    --idle-shutdown=2
+
+  sleep 2
+  echo "Proxy port conflict"
+  
+  fetch-service \
+    --cert=/var/snap/fetch-service/current/certs/ca.pem \
+    --key=/var/snap/fetch-service/current/certs/ca.key.pem \
+    --proxy-port=5678 \
+    --idle-shutdown=2 || test "$?" -eq 1
+
+  sleep 2
+  echo "Control port conflict"
+
+  fetch-service \
+    --cert=/var/snap/fetch-service/current/certs/ca.pem \
+    --key=/var/snap/fetch-service/current/certs/ca.key.pem \
+    --control-port=5678 \
+    --idle-shutdown=2 || test "$?" -eq 3
+
+  sleep 2
+  echo "Profile port conflict"
+  
+  fetch-service \
+    --cert=/var/snap/fetch-service/current/certs/ca.pem \
+    --key=/var/snap/fetch-service/current/certs/ca.key.pem \
+    --profile --profile-port=5678 \
+    --idle-shutdown=2 || test "$?" -eq 4
+
