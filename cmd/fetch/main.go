@@ -134,20 +134,33 @@ func Run() int {
 	cs := make(chan os.Signal, 1)
 	signal.Notify(cs, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
+	status := 0
 loop:
 	for {
 		select {
 		case sig := <-cs:
 			logger.Infof("Exiting on %s signal.\n", sig)
+			if sysSig, ok := sig.(syscall.Signal); ok {
+				status = 128 + int(sysSig)
+			} else {
+				status = 128
+			}
 			break loop
+
 		case <-svc.Dying():
-			// something called Stop()
-			logger.Info("Server exiting!")
+			if err := svc.Err(); err != nil {
+				logger.Errorf("Server error: %s", err)
+				status = 2
+			} else {
+				// something called Stop()
+				logger.Info("Server exiting!")
+			}
 			break loop
 
 		case <-pp.Dying():
 			// profiling server died
 			logger.Errorf("Profiling error: %s", pp.Err())
+			status = 3
 		}
 	}
 
@@ -155,7 +168,7 @@ loop:
 		logger.Fatalf("error: %s", err)
 	}
 
-	return 0
+	return status
 }
 
 var printf = printfImpl
