@@ -247,3 +247,7 @@ func (svc *Service) Alive() bool {
 func (svc *Service) Dying() <-chan struct{} {
 	return svc.tomb.Dying()
 }
+
+func (svc *Service) Err() error {
+	return svc.tomb.Err()
+}
