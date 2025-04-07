@@ -2,6 +2,19 @@
 Changelog
 *********
 
+0.7.0 (2025-04-07)
+------------------
+
+- feat!(config): default to bundled configuration (#370)
+- feat!: mark requests for external origins as unknown (#368)
+- fix(inspectors/apt): use correct esm archive url (#365)
+- fix(inspectors/apt): make InRelease description field optional (#334)
+- fix!(cli): return proper error codes on start error (#375)
+- fix(deps): update module github.com/klauspost/compress to v1.18.0 (#340)
+- fix(deps): update go-crypto to v1.1.5 (#348)
+- fix(deps): update module github.com/elazarl/goproxy to v1.7.2 (#349)
+- fix(deps): update module github.com/gabriel-vasile/mimetype to v1.4.8 (#297)
+
 0.6.1 (2025-02-21)
 ------------------
 
