@@ -55,6 +55,9 @@ restore_each() {
 }
 
 allocate_lxdvm() {
+	#[ -f /tmp/.craft-test-$$ ] && exit 0
+	#touch /tmp/.craft-test-$$
+
 	name=$(echo "$SPREAD_SYSTEM" | tr '[:punct:]' -)
 	system=$(echo "$SPREAD_SYSTEM" | tr / -)
 	if [[ "$system" =~ ^ubuntu- ]]; then
