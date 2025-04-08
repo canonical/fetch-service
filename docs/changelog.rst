@@ -2,7 +2,7 @@
 Changelog
 *********
 
-0.7.0 (2025-04-07)
+0.7.0 (2025-04-08)
 ------------------
 
 - feat!(config): default to bundled configuration (#370)
