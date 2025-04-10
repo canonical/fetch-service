@@ -53,7 +53,8 @@ func (ins *MavenJarInspector) InspectRequest(a RequestArtifact) error {
 		return nil
 	}
 	if artifactUrl := parseUrl(jarRequestSlug, url); artifactUrl != nil {
-		a.SetRequestPending(ins, "request matches valid URL").Annotate(
+		// Request marked as Unknown because it comes from the default maven.org origin
+		a.SetRequestUnknown(ins, "unsupported origin").Annotate(
 			Annotation{
 				"group-id":    artifactUrl.GroupId,
 				"artifact-id": artifactUrl.ArtifactId,

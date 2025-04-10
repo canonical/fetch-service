@@ -57,6 +57,11 @@ parts:
       go generate ./...
       craftctl default
       craftctl set version=$(cat version/version.txt)
+  config:
+    plugin: dump
+    source: snap/local/conf
+    organize:
+      '*': conf/
   service-runner:
     plugin: dump
     source: .

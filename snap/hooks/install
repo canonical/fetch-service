@@ -4,14 +4,12 @@
 CONF_DIR="${SNAP_DATA}/conf"
 CA_CERT_DIR="${SNAP_DATA}/certs"
 
+# Create config dir
+mkdir -p "$CONF_DIR"
+
 # Create file spool
 rm -Rf "${SNAP_COMMON}/spool"
 mkdir -m 0700 "${SNAP_COMMON}/spool"
-
-# Initial configuration
-mkdir -p "$CONF_DIR"
-cp "${SNAP}/skel/acl.yaml" "$CONF_DIR/"
-cp "${SNAP}/skel/inspectors.yaml" "$CONF_DIR/"
 
 # Generate certificates
 rm -Rf "$CA_CERT_DIR"

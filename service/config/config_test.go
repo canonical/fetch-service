@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,6 +20,7 @@
 package config_test
 
 import (
+	"errors"
 	"net"
 	"os"
 	"path/filepath"
@@ -33,6 +34,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/service/config"
+	"github.com/canonical/fetch-service/testutils"
 )
 
 func Test(t *testing.T) { TestingT(t) }
@@ -45,51 +47,75 @@ func (t *configSuite) SetUpTest(c *C) {
 
 var _ = Suite(&configSuite{})
 
+type marshalACLPolicyTest struct {
+	value     config.ACLPolicy // The ACL configuration value
+	errorMsg  string           // The error message, if any
+	marshaled string           // The expected marshaled policy string
+}
+
+var marshalACLPolicyTests = []marshalACLPolicyTest{{
+	value:     config.Allow,
+	errorMsg:  "",
+	marshaled: "foo: allow\n",
+}, {
+	value:     config.Deny,
+	errorMsg:  "",
+	marshaled: "foo: deny\n",
+}, {
+	value:     42,
+	errorMsg:  "invalid ACL policy",
+	marshaled: "",
+}}
+
 func (t *configSuite) TestMarshalACLPolicy(c *C) {
 	type FooStruct struct {
 		Foo config.ACLPolicy `yaml:"foo"`
 	}
 
-	for _, tc := range []struct {
-		val    config.ACLPolicy
-		errMsg string
-		s      string
-	}{
-		{config.Allow, "", "foo: allow\n"},
-		{config.Deny, "", "foo: deny\n"},
-		{42, "invalid ACL policy", ""},
-	} {
-		d, err := yaml.Marshal(FooStruct{Foo: tc.val})
-		if tc.errMsg == "" {
+	for _, tc := range marshalACLPolicyTests {
+		d, err := yaml.Marshal(FooStruct{Foo: tc.value})
+		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
-			c.Assert(string(d), Equals, tc.s)
+			c.Assert(string(d), Equals, tc.marshaled)
 		} else {
-			c.Assert(err.Error(), Equals, tc.errMsg)
+			c.Assert(err.Error(), Equals, tc.errorMsg)
 		}
 	}
 }
+
+type unmarshalACLPolicyTest struct {
+	marshaled string           // The marshaled string
+	errorMsg  string           // The error message, if any
+	value     config.ACLPolicy // The expected ACL policy value
+}
+
+var unmarshalACLPolicyTests = []unmarshalACLPolicyTest{{
+	marshaled: "foo: allow",
+	errorMsg:  "",
+	value:     config.Allow,
+}, {
+	marshaled: "foo: deny",
+	errorMsg:  "",
+	value:     config.Deny,
+}, {
+	marshaled: "foo: invalid",
+	errorMsg:  "invalid ACL policy",
+	value:     0,
+}}
 
 func (t *configSuite) TestUnmarshalACLPolicy(c *C) {
 	type FooStruct struct {
 		Foo config.ACLPolicy `yaml:"foo"`
 	}
 
-	for _, tc := range []struct {
-		s      string
-		errMsg string
-		val    config.ACLPolicy
-	}{
-		{"foo: allow", "", config.Allow},
-		{"foo: deny", "", config.Deny},
-		{"foo: invalid", "invalid ACL policy", 0},
-	} {
+	for _, tc := range unmarshalACLPolicyTests {
 		var foo FooStruct
-		err := yaml.Unmarshal([]byte(tc.s), &foo)
-		if tc.errMsg == "" {
+		err := yaml.Unmarshal([]byte(tc.marshaled), &foo)
+		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
-			c.Assert(foo.Foo, Equals, tc.val)
+			c.Assert(foo.Foo, Equals, tc.value)
 		} else {
-			c.Assert(err.Error(), Equals, tc.errMsg)
+			c.Assert(err.Error(), Equals, tc.errorMsg)
 		}
 	}
 }
@@ -99,60 +125,102 @@ func (t *configSuite) TestACLPolicyString(c *C) {
 	c.Assert(config.Deny.String(), Equals, "deny")
 }
 
+type marshalIPNetTest struct {
+	value     string // The IP address to marshal
+	errorMsg  string // The error message, if any
+	marshaled string // The expected marshaled IP address
+}
+
+var marshalIPNetTests = []marshalIPNetTest{{
+	value:     "10.42.42.0/24",
+	errorMsg:  "",
+	marshaled: "foo: 10.42.42.0/24\n",
+}, {
+	value:     "10.42.42.10/24",
+	errorMsg:  "",
+	marshaled: "foo: 10.42.42.0/24\n",
+}, {
+	value:     "::1/128",
+	errorMsg:  "",
+	marshaled: "foo: ::1/128\n",
+}, {
+	value:     "0:0:0:0::1/128",
+	errorMsg:  "",
+	marshaled: "foo: ::1/128\n",
+}, {
+	value:     "ff80::1/128",
+	errorMsg:  "",
+	marshaled: "foo: ff80::1/128\n",
+}}
+
 func (t *configSuite) TestMarshalIPNet(c *C) {
 	type FooStruct struct {
 		Foo config.IPNet `yaml:"foo"`
 	}
 
-	for _, tc := range []struct {
-		val    string
-		errMsg string
-		s      string
-	}{
-		{"10.42.42.0/24", "", "foo: 10.42.42.0/24\n"},
-		{"10.42.42.10/24", "", "foo: 10.42.42.0/24\n"},
-		{"::1/128", "", "foo: ::1/128\n"},
-		{"0:0:0:0::1/128", "", "foo: ::1/128\n"},
-		{"ff80::1/128", "", "foo: ff80::1/128\n"},
-	} {
-		_, ipnet, err := net.ParseCIDR(tc.val)
+	for _, tc := range marshalIPNetTests {
+		_, ipnet, err := net.ParseCIDR(tc.value)
 		c.Assert(err, IsNil)
 
 		d, err := yaml.Marshal(FooStruct{Foo: config.IPNet{*ipnet}})
-		if tc.errMsg == "" {
+		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
-			c.Check(string(d), Equals, tc.s)
+			c.Check(string(d), Equals, tc.marshaled)
 		} else {
-			c.Assert(err.Error(), Equals, tc.errMsg)
+			c.Assert(err.Error(), Equals, tc.errorMsg)
 		}
 	}
 }
+
+type unmarshalIPNetTest struct {
+	marshaled string // The marshaled IP string
+	errorMsg  string // The error message, if any
+	value     string // The expected IP value
+}
+
+var unmarshalIPNetTests = []unmarshalIPNetTest{{
+	marshaled: "foo: 10.42.42.0/24",
+	errorMsg:  "",
+	value:     "10.42.42.0/24",
+}, {
+	marshaled: "foo: 10.42.42.10",
+	errorMsg:  "",
+	value:     "10.42.42.10/32",
+}, {
+	marshaled: "foo: ::1/128",
+	errorMsg:  "",
+	value:     "::1/128",
+}, {
+	marshaled: "foo: 0:0:0:0::1/128",
+	errorMsg:  "",
+	value:     "::1/128",
+}, {
+	marshaled: "foo: ff80::1/64",
+	errorMsg:  "",
+	value:     "ff80::/64",
+}, {
+	marshaled: "foo: FF80::1/64",
+	errorMsg:  "",
+	value:     "ff80::/64",
+}, {
+	marshaled: "foo: xxx",
+	errorMsg:  "invalid CIDR address: xxx",
+	value:     "",
+}}
 
 func (t *configSuite) TestUnmarshalIPNet(c *C) {
 	type FooStruct struct {
 		Foo config.IPNet `yaml:"foo"`
 	}
 
-	for _, tc := range []struct {
-		s      string
-		errMsg string
-		val    string
-	}{
-		{"foo: 10.42.42.0/24", "", "10.42.42.0/24"},
-		{"foo: 10.42.42.10", "", "10.42.42.10/32"},
-		{"foo: ::1/128", "", "::1/128"},
-		{"foo: 0:0:0:0::1/128", "", "::1/128"},
-		{"foo: ff80::1/64", "", "ff80::/64"},
-		{"foo: FF80::1/64", "", "ff80::/64"},
-		{"foo: xxx", "invalid CIDR address: xxx", ""},
-	} {
+	for _, tc := range unmarshalIPNetTests {
 		var foo FooStruct
-		err := yaml.Unmarshal([]byte(tc.s), &foo)
-		if tc.errMsg == "" {
+		err := yaml.Unmarshal([]byte(tc.marshaled), &foo)
+		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
-			c.Check(foo.Foo.String(), Equals, tc.val)
+			c.Check(foo.Foo.String(), Equals, tc.value)
 		} else {
-			c.Assert(err.Error(), Equals, tc.errMsg)
+			c.Assert(err.Error(), Equals, tc.errorMsg)
 		}
 	}
 }
@@ -389,4 +457,78 @@ uOgcXny1UlwtCUzlrSaP
 	c.Check(cfg3.Apt.Repositories["default"].Urls, HasLen, 3)
 	c.Check(cfg3.Apt.Repositories["extra"].Urls, HasLen, 0)
 
+}
+
+var proxyRulesContent = testutils.Reindent(`
+	http-proxy:
+	  policy: allow 
+	  rules:
+	    - dst: [ 1.2.3.4/16 ]
+	      access: deny
+`)
+
+func (t *configSuite) TestLoadHttpProxyRules(c *C) {
+	dir := c.MkDir()
+
+	emptyConfig := config.HttpProxyConfig{Policy: config.Deny, Rules: []config.Rule{}}
+	config.SetHttpProxyConfig(emptyConfig)
+
+	err := os.WriteFile(filepath.Join(dir, "acl.yaml"), proxyRulesContent, 0644)
+	c.Assert(err, IsNil)
+
+	err = config.LoadHttpProxyRules(dir)
+	c.Assert(err, IsNil)
+	cfg := config.GetHttpProxyConfig()
+	c.Assert(cfg.Policy, Equals, config.Allow)
+	c.Assert(cfg.Rules, DeepEquals, []config.Rule{{
+		Dst:    []config.IPNet{{net.IPNet{IP: net.IP{1, 2, 0, 0}, Mask: net.IPMask{255, 255, 0, 0}}}},
+		Access: config.Deny,
+	}})
+}
+
+func (t *configSuite) TestLoadHttpProxyRulesMissing(c *C) {
+	dir := c.MkDir()
+
+	emptyConfig := config.HttpProxyConfig{Policy: config.Deny, Rules: []config.Rule{}}
+	config.SetHttpProxyConfig(emptyConfig)
+
+	err := config.LoadHttpProxyRules(dir)
+	c.Assert(errors.Is(err, os.ErrNotExist), Equals, true)
+}
+
+var inspectorsConfigContent = testutils.Reindent(`
+	apt:
+	  repositories:
+	    default:
+	      urls:
+	        - http://archive.ubuntu.com/ubuntu
+`)
+
+func (t *configSuite) TestLoadInspectorsConfig(c *C) {
+	dir := c.MkDir()
+
+	emptyConfig := config.InspectorsConfig{}
+	config.SetInspectorsConfig(emptyConfig)
+
+	err := os.WriteFile(filepath.Join(dir, "inspectors.yaml"), inspectorsConfigContent, 0644)
+	c.Assert(err, IsNil)
+
+	err = config.LoadInspectorsConfig(dir)
+	c.Assert(err, IsNil)
+	cfg := config.GetInspectorsConfig()
+	c.Assert(cfg.Apt, DeepEquals, apt_cfg.AptInspectorConfig{
+		Repositories: map[string]apt_cfg.AptInspectorConfigRepository{"default": {
+			Urls: []glob.Glob{glob.MustCompile("http://archive.ubuntu.com/ubuntu")},
+		}},
+	})
+}
+
+func (t *configSuite) TestInspectorsConfigMissing(c *C) {
+	dir := c.MkDir()
+
+	emptyConfig := config.InspectorsConfig{}
+	config.SetInspectorsConfig(emptyConfig)
+
+	err := config.LoadInspectorsConfig(dir)
+	c.Assert(errors.Is(err, os.ErrNotExist), Equals, true)
 }
