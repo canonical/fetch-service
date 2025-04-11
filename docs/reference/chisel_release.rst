@@ -58,6 +58,7 @@ following rules:
 * It must have previously described file format.
 
 * The ``chisel.yaml`` file must have the following properties:
+
 	- a non-empty ``format`` field.
 	- a non-empty ``archives`` field.
 	- a non-empty ``components`` field for each ``archive``.
