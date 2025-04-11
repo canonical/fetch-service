@@ -29,29 +29,67 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/glob"
+	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
 	"github.com/canonical/fetch-service/inspectors/chisel"
-	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/chisel/config"
 	"github.com/canonical/fetch-service/inspectors/files"
+	"github.com/canonical/fetch-service/testutils"
+
+	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
+func getTestChiselConfig() config.ChiselInspectorConfig {
+	return config.ChiselInspectorConfig{
+		Urls: []glob.Glob{
+			glob.MustCompile("https://codeload.github.com:443/canonical/chisel-releases/**"),
+		},
+	}
+}
+
+var ubuntuArchivePubKey = testutils.PGPKeys["key-ubuntu-2018"]
+
+func getTestAptConfig() apt_cfg.AptInspectorConfig {
+	return apt_cfg.AptInspectorConfig{
+		Repositories: map[string]apt_cfg.AptInspectorConfigRepository{
+			"default": {
+				Urls:       []glob.Glob{glob.MustCompile("http://*.ubuntu.com/ubuntu")},
+				Dists:      []glob.Glob{glob.MustCompile("focal")},
+				Components: []glob.Glob{glob.MustCompile("main")},
+				PublicKey:  ubuntuArchivePubKey.PubKeyArmor,
+			},
+		},
+	}
+}
+
 func (s *chiselSuite) TestChiselReleaseInspectorID(c *C) {
-	ins := chisel.NewChiselReleaseInspector()
+	cfg := getTestChiselConfig()
+	aptCfg := getTestAptConfig()
+	ins := chisel.NewChiselReleaseInspector(cfg, aptCfg)
 	c.Assert(ins.ID(), Equals, "chisel.release")
 }
 
-func (s *chiselSuite) TestChiselReleaseInspectRequest(c *C) {
-	const baseURL = "https://codeload.github.com:443/canonical/chisel-releases/tar.gz/refs/heads"
+type releaseInspectRequestTest struct {
+	url     string
+	opinion opinions.OpinionKind
+}
 
-	for _, test := range []struct {
-		url     string
-		opinion opinions.OpinionKind
-	}{
-		{baseURL + "/ubuntu-22.04", opinions.Pending},
-		{"http://unknown.location/foo", opinions.Unknown},
-	} {
-		ins := chisel.NewChiselReleaseInspector()
+var releaseInspectRequestTests = []releaseInspectRequestTest{{
+	url:     "https://codeload.github.com:443/canonical/chisel-releases/tar.gz/refs/heads/ubuntu-22.04",
+	opinion: opinions.Pending,
+}, {
+	url:     "http://unknown.location/foo",
+	opinion: opinions.Unknown,
+}}
+
+func (s *chiselSuite) TestChiselReleaseInspectRequest(c *C) {
+	cfg := getTestChiselConfig()
+	aptCfg := getTestAptConfig()
+
+	for _, test := range releaseInspectRequestTests {
+		ins := chisel.NewChiselReleaseInspector(cfg, aptCfg)
 
 		a := metadata.NewArtifact()
 		a.CurrentDownload.URL = test.url
@@ -86,84 +124,75 @@ var chiselReleaseArtifactTests = []chiselReleaseArtifactTest{{
 	summary: "Valid archive",
 	files: map[string]string{
 		"chisel.yaml": "testdata/chisel.yaml.sample",
-		"slices/":     "",
 	},
 	mimetype: "application/gzip",
 	metadata: metadata.Metadata{
 		Type:        "application/x.canonical.chisel.release",
-		Name:        "ubuntu-20.04",
+		Name:        "chisel-release",
 		Version:     "v1",
 		Description: "Chisel release file for ubuntu-20.04",
 		Vendor:      "Canonical",
 	},
 	approved: true,
 }, {
-	summary: "Missing files: slices directory",
-	files: map[string]string{
-		"chisel.yaml": "testdata/chisel.yaml.sample",
-	},
-	mimetype: "application/gzip",
-}, {
-	summary: "Missing files: chisel.yaml",
-	files: map[string]string{
-		"slices/": "",
-	},
-	mimetype: "application/gzip",
-}, {
-	summary: "Missing files: chisel.yaml",
-	files: map[string]string{
-		"slices/": "",
-	},
+	summary:  "Missing files: chisel.yaml",
+	files:    map[string]string{},
 	mimetype: "application/gzip",
 }, {
 	summary: "Invalid chisel.yaml: missing fields",
 	files: map[string]string{
 		"chisel.yaml": "testdata/chisel.yaml.invalid.missing",
-		"slices/":     "",
 	},
 	mimetype: "application/gzip",
-	err:      "cannot parse chisel.yaml: invalid chisel.yaml: missing fields",
+	err:      "invalid chisel.yaml: missing fields",
 }, {
 	summary: "Invalid chisel.yaml: missing fields in archive",
 	files: map[string]string{
 		"chisel.yaml": "testdata/chisel.yaml.invalid.archive.missing",
-		"slices/":     "",
 	},
 	mimetype: "application/gzip",
-	err:      `cannot parse chisel.yaml: invalid chisel.yaml: archive "ubuntu" has missing fields`,
+	err:      `invalid chisel.yaml: archive "ubuntu" has missing fields`,
 }, {
 	summary: "Invalid chisel.yaml: undefined pubkey in archive",
 	files: map[string]string{
 		"chisel.yaml": "testdata/chisel.yaml.invalid.archive.pubkey-undefined",
-		"slices/":     "",
 	},
 	mimetype: "application/gzip",
-	err:      `cannot parse chisel.yaml: invalid chisel.yaml: archive "ubuntu" pubkey "foo" undefined`,
+	err:      `invalid chisel.yaml: archive "ubuntu" pubkey "foo" undefined`,
 }, {
 	summary: "Invalid chisel.yaml: missing fields in pubkey",
 	files: map[string]string{
 		"chisel.yaml": "testdata/chisel.yaml.invalid.pubkey.missing",
-		"slices/":     "",
 	},
 	mimetype: "application/gzip",
-	err:      `cannot parse chisel.yaml: invalid chisel.yaml: pubkey "ubuntu-archive-key-2018" has missing fields`,
+	err:      `invalid chisel.yaml: pubkey "ubuntu-archive-key-2018" has missing fields`,
+}, {
+	summary: "Invalid chisel.yaml: pubkey not present in APT config",
+	files: map[string]string{
+		"chisel.yaml": "testdata/chisel.yaml.invalid.pubkey-absent-in-apt-config",
+	},
+	mimetype: "application/gzip",
+	err:      `invalid chisel.yaml: no public key is present in APT configuration`,
 }, {
 	summary: "Invalid mimetype",
 	files: map[string]string{
 		"chisel.yaml": "testdata/chisel.yaml.invalid.missing",
-		"slices/":     "",
 	},
 	mimetype: "text/plain",
+	err:      "", // We do not recognize this artifact.
 }}
 
 func (s *chiselSuite) TestChiselReleaseInspectArtifact(c *C) {
 	const release = "ubuntu-20.04"
 	const rootDir = "chisel-releases-" + release
 
+	cfg := getTestChiselConfig()
+	aptCfg := getTestAptConfig()
+
 	for _, test := range chiselReleaseArtifactTests {
 		c.Logf("Summary: %s", test.summary)
 
-		ins := chisel.NewChiselReleaseInspector()
+		ins := chisel.NewChiselReleaseInspector(cfg, aptCfg)
 
 		// Prepare artifact.
 		a := metadata.NewArtifact()
@@ -172,9 +201,6 @@ func (s *chiselSuite) TestChiselReleaseInspectArtifact(c *C) {
 			Opinion: opinions.Pending,
 			Reason:  "some reason",
 		}
-		inspection.Annotate(Annotation{
-			"release": release,
-		})
 		a.RequestInspection[ins.ID()] = inspection
 
 		// Create the artifact file.
