@@ -59,14 +59,14 @@ following rules:
 
 * The ``chisel.yaml`` file must have the following properties:
 
-	- a non-empty ``format`` field.
-	- a non-empty ``archives`` field.
-	- a non-empty ``components`` field for each ``archive``.
-	- a non-empty ``suites`` field for each ``archive``.
-	- a non-empty ``public-keys`` field for each ``archive``.
-	- a non-empty ``public-keys`` field.
-  - a non-empty ``id`` field for each ``public-keys`` entry.
-  - a non-empty and valid ``armor`` field for each ``public-keys`` entry.
+  * a non-empty ``format`` field.
+  * a non-empty ``archives`` field.
+  * a non-empty ``components`` field for each ``archive``.
+  * a non-empty ``suites`` field for each ``archive``.
+  * a non-empty ``public-keys`` field for each ``archive``.
+  * a non-empty ``public-keys`` field.
+  * a non-empty ``id`` field for each ``public-keys`` entry.
+  * a non-empty and valid ``armor`` field for each ``public-keys`` entry.
 
 * At least one of the public keys defined in ``public-keys`` must match any of
   the repository public keys in ``apt`` configuration.
