@@ -10,7 +10,7 @@ makes use of cryptographic processes.
 Server certificate
 ------------------
 
-The Fetch Service makes use of a X.509 certificate to set up the proxy server and
+The Fetch Service makes use of a `X.509 certificate`_ to set up the proxy server and
 communicate with clients on their requests. The service can use any correctly-configured
 certificate, but for convenience the Fetch Service snap creates a certificate during
 installation using the ``openssl`` utility present on the core22 snap. The
@@ -37,6 +37,7 @@ is validated by the Fetch Service via the `github.com/ProtonMail/go-crypto`_ Go
 library.
 
 .. _GoProxy: https://github.com/elazarl/goproxy
+.. _X.509 certificate: https://learn.microsoft.com/en-us/azure/iot-hub/reference-x509-certificates
 .. _crypto/tls: https://pkg.go.dev/crypto/tls
 .. _crypto/x509: https://pkg.go.dev/crypto/x509
 .. _github.com/ProtonMail/go-crypto: https://github.com/ProtonMail/go-crypto
