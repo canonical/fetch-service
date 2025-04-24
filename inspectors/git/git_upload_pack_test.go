@@ -340,6 +340,7 @@ func (s *uploadPackSuite) TestUploadPackInspectFetchArtifact(c *C) {
 		errmsg   string
 	}{
 		{"testdata/sourcepkg.raw", ""},
+		{"testdata/incorrect-git-object.raw", ""},
 		{"testdata/bad-data.raw", `strconv.ParseUint: parsing "not-": invalid syntax`},
 	} {
 		a := fakeGitArtifact()
