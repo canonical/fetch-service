@@ -35,6 +35,7 @@ import (
 	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
 	crafts_cfg "github.com/canonical/fetch-service/inspectors/craft/config"
 	git_cfg "github.com/canonical/fetch-service/inspectors/git/config"
+	oci_cfg "github.com/canonical/fetch-service/inspectors/oci/config"
 	snap_cfg "github.com/canonical/fetch-service/inspectors/snap/config"
 	"github.com/canonical/fetch-service/logger"
 )
@@ -271,6 +272,7 @@ type InspectorsConfig struct {
 	Git    git_cfg.GitInspectorConfig       `yaml:"git"`
 	Crafts crafts_cfg.CraftsInspectorConfig `yaml:"crafts"`
 	Snap   snap_cfg.SnapInspectorConfig     `yaml:"snap"`
+	Oci    oci_cfg.OciInspectorConfig       `yaml:"oci"`
 }
 
 func LoadInspectorsConfig(cfgdir string) error {
@@ -317,6 +319,9 @@ func GetInspectorsConfig() InspectorsConfig {
 		Apt: apt_cfg.AptInspectorConfig{
 			Repositories: map[string]apt_cfg.AptInspectorConfigRepository{},
 		},
+		Oci: oci_cfg.OciInspectorConfig{
+			Registries: map[string]oci_cfg.OciInspectorConfigRegistry{},
+		},
 	}
 
 	globalInspectorsConfigLock.Lock()
@@ -344,6 +349,13 @@ func GetInspectorsConfig() InspectorsConfig {
 		cfg.Snap.SnapDeclarationFilter[i] = snap_cfg.AssertionFilter{
 			Name:  v.Name,
 			Value: newFilterValue,
+		}
+	}
+
+	for k, v := range globalInspectorsConfig.Oci.Registries {
+		cfg.Oci.Registries[k] = oci_cfg.OciInspectorConfigRegistry{
+			Url:     v.Url,
+			AuthUrl: v.AuthUrl,
 		}
 	}
 

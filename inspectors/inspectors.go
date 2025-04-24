@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 
 	"github.com/gabriel-vasile/mimetype"
+	ociSpec "github.com/opencontainers/image-spec/specs-go/v1"
 
 	"github.com/canonical/fetch-service/inspectors/apt"
 	"github.com/canonical/fetch-service/inspectors/cargo"
@@ -36,6 +37,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/gomod"
 	"github.com/canonical/fetch-service/inspectors/maven"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
+	"github.com/canonical/fetch-service/inspectors/oci"
 	"github.com/canonical/fetch-service/inspectors/pip"
 	"github.com/canonical/fetch-service/inspectors/snap"
 	"github.com/canonical/fetch-service/logger"
@@ -50,6 +52,8 @@ func init() {
 	mimetype.Lookup("application/x-gzip").Extend(apt.AptPackagesDetector, mimetypes.AptPackages, "")
 	mimetype.Lookup("application/x-xz").Extend(apt.AptTranslationDetector, mimetypes.AptTranslation, "")
 	mimetype.Lookup("application/octet-stream").Extend(snap.SquashFsDetector, mimetypes.SquashFs, "")
+	mimetype.Lookup("application/json").Extend(oci.OciImageIndexDetector, ociSpec.MediaTypeImageIndex, "")
+	mimetype.Lookup("application/json").Extend(oci.OciImageManifestDetector, ociSpec.MediaTypeImageManifest, "")
 	mimetype.Lookup("text/plain").Extend(snap.AssertionDetector, mimetypes.Assertion, ".assert")
 }
 
@@ -101,6 +105,9 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		// maven
 		maven.NewJarInspector(),
 		maven.NewPomInspector(),
+
+		// oci
+		oci.NewOciInspector(cfg.Oci),
 
 		// default inspector
 		// must be the last inspector to run
