@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -38,13 +38,15 @@ import (
 	"github.com/canonical/fetch-service/testutils"
 )
 
-type wheelSuite struct{}
+type wheelSuite struct {
+	slog logger.Logger
+}
 
 func (t *wheelSuite) SetUpTest(c *C) {
 	testlogger.Init(logger.InfoLevel)
 }
 
-var _ = Suite(&wheelSuite{})
+var _ = Suite(&wheelSuite{logger.NewSessionLogger("test")})
 
 func Test(t *testing.T) { TestingT(t) }
 
@@ -184,7 +186,7 @@ func (s *wheelSuite) TestWheelReadMetadata(c *C) {
 	a.SetRequestPending(ins, "test")
 
 	notes := pip.NewWheelNotes()
-	err = pip.ReadWheelMetadata(ins, f, int64(f.Len()), a, notes)
+	err = pip.ReadWheelMetadata(ins, f, int64(f.Len()), a, notes, s.slog)
 	c.Assert(err, IsNil)
 	c.Assert(a.Metadata.Name, Equals, "trololo")
 	c.Assert(a.Metadata.Version, Equals, "3.14159")

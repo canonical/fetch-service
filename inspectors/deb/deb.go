@@ -39,6 +39,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/apt/config"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
+	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/utils"
 )
 
@@ -60,7 +61,9 @@ func (ins *DebInspector) InspectRequest(a RequestArtifact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	if info, err := config.NewDebPackageUrlInfo(u, &ins.config); err == nil {
+	slog := a.Logger()
+
+	if info, err := config.NewDebPackageUrlInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for deb package").Annotate(
 			Annotation{
 				"repository":   info.Repository,
@@ -80,9 +83,10 @@ func (ins *DebInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) e
 		return nil
 	}
 
+	slog := a.Logger()
 	var md ArtifactMetadata
 
-	if err := ins.readDebMetadata(f, &md); err != nil {
+	if err := ins.readDebMetadata(f, &md, slog); err != nil {
 		a.SetArtifactMetadata(md)
 		a.SetResponseRejected(ins, err.Error())
 	} else {
@@ -94,7 +98,7 @@ func (ins *DebInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) e
 }
 
 // readDebMetadata reads metadata from the deb control file.
-func (ins *DebInspector) readDebMetadata(f io.Reader, md *ArtifactMetadata) error {
+func (ins *DebInspector) readDebMetadata(f io.Reader, md *ArtifactMetadata, slog logger.Logger) error {
 	af := ar.NewReader(f)
 
 	for {
@@ -139,7 +143,7 @@ func (ins *DebInspector) readDebMetadata(f io.Reader, md *ArtifactMetadata) erro
 			if err != nil {
 				return err
 			}
-			if err = ins.parseDataTar(zf, md); err != nil {
+			if err = ins.parseDataTar(zf, md, slog); err != nil {
 				return err
 			}
 		case "data.tar.xz":
@@ -147,7 +151,7 @@ func (ins *DebInspector) readDebMetadata(f io.Reader, md *ArtifactMetadata) erro
 			if err != nil {
 				return err
 			}
-			if err = ins.parseDataTar(zf, md); err != nil {
+			if err = ins.parseDataTar(zf, md, slog); err != nil {
 				return err
 			}
 		case "data.tar.zst", "data.tar.zstd":
@@ -155,7 +159,7 @@ func (ins *DebInspector) readDebMetadata(f io.Reader, md *ArtifactMetadata) erro
 			if err != nil {
 				return err
 			}
-			if err = ins.parseDataTar(zf, md); err != nil {
+			if err = ins.parseDataTar(zf, md, slog); err != nil {
 				return err
 			}
 		}
@@ -248,7 +252,7 @@ func parseControl(tf io.Reader, md *ArtifactMetadata) error {
 	return nil
 }
 
-func (ins DebInspector) parseDataTar(zf io.Reader, md *ArtifactMetadata) error {
+func (ins DebInspector) parseDataTar(zf io.Reader, md *ArtifactMetadata, slog logger.Logger) error {
 	copyright := regexp.MustCompile(`^\./usr/share/doc/[^/]+/copyright$`)
 
 	tf := tar.NewReader(zf)
@@ -262,7 +266,7 @@ func (ins DebInspector) parseDataTar(zf io.Reader, md *ArtifactMetadata) error {
 		}
 		switch {
 		case copyright.MatchString(h.Name):
-			err = ins.parseCopyright(tf, md)
+			err = ins.parseCopyright(tf, md, slog)
 			if err != nil {
 				return err
 			}
@@ -272,7 +276,7 @@ func (ins DebInspector) parseDataTar(zf io.Reader, md *ArtifactMetadata) error {
 	return nil
 }
 
-func (ins DebInspector) parseCopyright(tf io.Reader, md *ArtifactMetadata) error {
+func (ins DebInspector) parseCopyright(tf io.Reader, md *ArtifactMetadata, slog logger.Logger) error {
 	sc := bufio.NewScanner(tf)
 	sc.Split(bufio.ScanLines)
 
@@ -312,7 +316,7 @@ func (ins DebInspector) parseCopyright(tf io.Reader, md *ArtifactMetadata) error
 	t.Flush()
 	temp.Close()
 
-	md.License, err = utils.GetLicense(temp.Name())
+	md.License, err = utils.GetLicense(temp.Name(), slog)
 	if err != nil {
 		return err
 	}

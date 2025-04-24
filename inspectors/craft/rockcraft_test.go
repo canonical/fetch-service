@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -42,9 +42,11 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 )
 
-type rockcraftSuite struct{}
+type rockcraftSuite struct {
+	slog logger.Logger
+}
 
-var _ = Suite(&rockcraftSuite{})
+var _ = Suite(&rockcraftSuite{logger.NewSessionLogger("test")})
 
 func (t *rockcraftSuite) SetUpTest(c *C) {
 	testlogger.Init(logger.InfoLevel)
@@ -181,9 +183,9 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtifact(c *C) {
 		defer f.Close()
 
 		checkoutPath := c.MkDir()
-		err = git.UnpackObjects(f, checkoutPath)
+		err = git.UnpackObjects(f, checkoutPath, s.slog)
 		c.Assert(err, IsNil)
-		err = git.Checkout(checkoutPath, "d9c2c0282d81a993c0011113996b541a1ef1ebc7")
+		err = git.Checkout(checkoutPath, "d9c2c0282d81a993c0011113996b541a1ef1ebc7", s.slog)
 		c.Assert(err, IsNil)
 
 		a := createTestRockcraftArtifact(checkoutPath)

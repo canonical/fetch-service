@@ -38,13 +38,15 @@ import (
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
-type debSuite struct{}
+type debSuite struct {
+	slog logger.Logger
+}
 
 func (t *debSuite) SetUpTest(c *C) {
 	testlogger.Init(logger.InfoLevel)
 }
 
-var _ = Suite(&debSuite{})
+var _ = Suite(&debSuite{logger.NewSessionLogger("test")})
 
 func Test(t *testing.T) { TestingT(t) }
 
@@ -241,7 +243,7 @@ func (s *debSuite) TestReadDebMetadata(c *C) {
 
 		am := ArtifactMetadata{}
 		ins := deb.NewDebInspector(getTestAptConfig())
-		err = deb.DebInspectorReadDebMetadata(ins, r, &am)
+		err = deb.DebInspectorReadDebMetadata(ins, r, &am, s.slog)
 		if tc.errMsg == "" {
 			c.Assert(err, IsNil)
 			c.Check(am.Name, Equals, tc.name)

@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -83,6 +83,65 @@ func SetLogFile(logPath string) error {
 	}
 	log.SetOutput(logFile)
 	return nil
+}
+
+type Logger interface {
+	Info(v ...interface{})
+	Infof(format string, v ...interface{})
+	Warning(v ...interface{})
+	Warningf(format string, v ...interface{})
+	Error(v ...interface{})
+	Errorf(format string, v ...interface{})
+	Debug(v ...interface{})
+	Debugf(format string, v ...interface{})
+}
+
+type SessionLogger struct {
+	prefix string
+}
+
+func NewSessionLogger(sid string) SessionLogger {
+	return SessionLogger{prefix: sessionFormat(sid)}
+}
+
+func sessionFormat(sid string) string {
+	return fmt.Sprintf("[%s] ", sid)
+}
+
+func (slog SessionLogger) Info(v ...interface{}) {
+	args := []interface{}{slog.prefix}
+	Info(append(args, v...)...)
+}
+
+func (slog SessionLogger) Infof(format string, v ...interface{}) {
+	Infof(slog.prefix+format, v...)
+}
+
+func (slog SessionLogger) Warning(v ...interface{}) {
+	args := []interface{}{slog.prefix}
+	Warning(append(args, v...)...)
+}
+
+func (slog SessionLogger) Warningf(format string, v ...interface{}) {
+	Warningf(slog.prefix+format, v...)
+}
+
+func (slog SessionLogger) Error(v ...interface{}) {
+	args := []interface{}{slog.prefix}
+	Error(append(args, v...)...)
+}
+
+func (slog SessionLogger) Errorf(format string, v ...interface{}) {
+	Errorf(slog.prefix+format, v...)
+}
+
+func (slog SessionLogger) Debug(v ...interface{}) {
+	args := []interface{}{slog.prefix}
+	Debug(append(args, v...)...)
+}
+
+func (slog SessionLogger) Debugf(format string, v ...interface{}) {
+	Debugf(slog.prefix+format, v...)
 }
 
 // Info logs informational messages.

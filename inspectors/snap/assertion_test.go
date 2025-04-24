@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright (C) 2024 Canonical Ltd
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -71,7 +71,7 @@ func (t *snapSuite) TestAccountAssertion(c *C) {
 		"validation: certified\n"+
 		"sign-key-sha3-384: -CvQKAwRQ5h3Ffn10FILJoEZUXOv6km9FwA80-Rcj-f-6jadQ89VRswHNiEB9Lxk"))
 
-	err := snap.CanonicalAccount.VerifySignature()
+	err := snap.CanonicalAccount.VerifySignature(t.slog)
 	c.Assert(err, IsNil)
 }
 
@@ -131,7 +131,7 @@ func (t *snapSuite) TestAccountKeyAssertion(c *C) {
 		"ZCd383NzlzkXK+vAdvTi40HPiM9FYOp6g8JTs5TTdx2/qs/SWFC8AkahIQmH0IpFBJep2JKl2kyr\n"+
 		"FZMvASkHA9bR/UuXDvbMzsUmT/xnERZosQaZgFEO\n"))
 
-	err := snap.CanonicalRootAccountKey.VerifySignature()
+	err := snap.CanonicalRootAccountKey.VerifySignature(t.slog)
 	c.Assert(err, IsNil)
 }
 
@@ -203,12 +203,12 @@ Rh44mJJaAnoLgbFiXdyAD/lOOMwt
 		"timestamp: 2023-10-27T17:42:03.206069Z\n"+
 		"sign-key-sha3-384: BWDEoaqyr25nF5SNCvEv2v7QnM9QsfCc0PBMYD_i2NGSQ32EF2d4D0hqUel3m8ul"))
 
-	err = assert.VerifySignature()
+	err = assert.VerifySignature(t.slog)
 	c.Assert(err, IsNil)
 
 	// Tamper with content
 	assert.Content[30] = 42
-	err = assert.VerifySignature()
+	err = assert.VerifySignature(t.slog)
 	c.Assert(err, ErrorMatches, ".*invalid signature: RSA verification failure")
 }
 
@@ -264,7 +264,7 @@ UXHaql1tEmG8xpLx+/SE8jFRqo/b
 		"52Xbnz9riko6L1rNefbDUQGWFRfU8kOmCckknGH28PxwpIxlMymOTGDEvDkP4B86Gan7cpdSIt75\n"+
 		"UXHaql1tEmG8xpLx+/SE8jFRqo/b\n"))
 
-	err = assert.VerifySignature()
+	err = assert.VerifySignature(t.slog)
 	c.Assert(err, IsNil)
 }
 
@@ -330,6 +330,6 @@ wGVm0wR2xbVTB4tKHlD6KJXc0unK
 		"5aZ4ondJYabrk41d4SdgSah8LF0MmlTlmXgV87cCZArmWjD0NP2tLjfTpDqSfg4Oobr4qU9GDUpQ\n"+
 		"wGVm0wR2xbVTB4tKHlD6KJXc0unK\n"))
 
-	err = assert.VerifySignature()
+	err = assert.VerifySignature(t.slog)
 	c.Assert(err, IsNil)
 }

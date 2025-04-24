@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -128,9 +128,11 @@ func getSessionIdHeader(r *http.Request) (string, error) {
 
 // localDownload stores the response body locally.
 func localDownload(resp *http.Response, a *metadata.Artifact, tempfile io.WriteCloser) error {
+	slog := a.Logger()
+
 	// download file for local buffering
 	resp.Body = NewLocalDownloadHandler(resp, a)
-	logger.Debugf("downloading %s...", resp.Request.URL)
+	slog.Debugf("downloading %s", resp.Request.URL)
 	size, err := io.Copy(tempfile, resp.Body)
 	if err != nil {
 		return err
@@ -163,7 +165,7 @@ type LocalDownloadHandler struct {
 }
 
 func NewLocalDownloadHandler(resp *http.Response, a *metadata.Artifact) *LocalDownloadHandler {
-	logger.Debugf("create new proxy downloader")
+	logger.Debugf("proxy: create new proxy downloader")
 
 	return &LocalDownloadHandler{
 		a:      a,

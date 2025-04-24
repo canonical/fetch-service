@@ -91,6 +91,8 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 		return nil
 	}
 
+	slog := a.Logger()
+
 	digest, err := computeDigest(f)
 	if err != nil {
 		return fmt.Errorf("cannot compute digest: %w", err)
@@ -106,7 +108,7 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 	}
 
 	// Retrieve snap-revision assertion
-	snapRevisionAssertion, err := downloadSnapRevisionAssertion(snapSha3_384)
+	snapRevisionAssertion, err := downloadSnapRevisionAssertion(snapSha3_384, slog)
 	if err != nil {
 		return fmt.Errorf("cannot retrieve snap-revision assertion: %w", err)
 	}
@@ -135,7 +137,7 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 		)
 		return nil
 	}
-	if err := snapRevisionAssertion.VerifySignature(); err != nil {
+	if err := snapRevisionAssertion.VerifySignature(slog); err != nil {
 		a.SetResponseRejected(ins, "snap-revision assertion has invalid signature").Annotate(
 			Annotation{
 				"error-msg":                      err.Error(),
@@ -146,7 +148,7 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 	}
 
 	// Retrieve the snap-declaration assertion
-	snapDeclarationAssertion, err := downloadSnapDeclarationAssertion(snapId)
+	snapDeclarationAssertion, err := downloadSnapDeclarationAssertion(snapId, slog)
 	if err != nil {
 		return fmt.Errorf("cannot retrieve snap-declaration assertion: %w", err)
 	}
@@ -161,7 +163,7 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 		return nil
 	}
 
-	if err := snapDeclarationAssertion.VerifySignature(); err != nil {
+	if err := snapDeclarationAssertion.VerifySignature(slog); err != nil {
 		a.SetResponseRejected(ins, "snap-declaration assertion has invalid signature").Annotate(
 			Annotation{
 				"error-msg":                         err.Error(),
@@ -172,11 +174,11 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 	}
 
 	// Obtain the account assertion
-	accountAssertion, err := downloadAccountAssertion(publisherId)
+	accountAssertion, err := downloadAccountAssertion(publisherId, slog)
 	if err != nil {
 		return fmt.Errorf("cannot retrieve account assertion: %w", err)
 	}
-	if err := accountAssertion.VerifySignature(); err != nil {
+	if err := accountAssertion.VerifySignature(slog); err != nil {
 		a.SetResponseRejected(ins, "account assertion has invalid signature").Annotate(
 			Annotation{
 				"error-msg":                err.Error(),
@@ -216,7 +218,7 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 		StoreRevision: snapRevisionAssertion.SnapRevision(),
 	})
 
-	if err := checkSnapDeclarationFilter(ins.config, snapDeclarationAssertion); err != nil {
+	if err := checkSnapDeclarationFilter(ins.config, snapDeclarationAssertion, slog); err != nil {
 		a.SetResponseRejected(ins, "failure on snap-declaration assertion attribute check").Annotate(
 			Annotation{
 				"error-msg":                         err.Error(),
@@ -239,32 +241,32 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 
 var downloadSnapRevisionAssertion = downloadSnapRevisionAssertionImpl
 
-func downloadSnapRevisionAssertionImpl(snapSha3_384 string) (*assertion, error) {
+func downloadSnapRevisionAssertionImpl(snapSha3_384 string, slog logger.Logger) (*assertion, error) {
 	url := fmt.Sprintf("https://api.snapcraft.io/v2/assertions/snap-revision/%s?max-format=0", snapSha3_384)
-	return downloadAssertion(url)
+	return downloadAssertion(url, slog)
 }
 
 var downloadSnapDeclarationAssertion = downloadSnapDeclarationAssertionImpl
 
-func downloadSnapDeclarationAssertionImpl(snapId string) (*assertion, error) {
+func downloadSnapDeclarationAssertionImpl(snapId string, slog logger.Logger) (*assertion, error) {
 	url := fmt.Sprintf("https://api.snapcraft.io/v2/assertions/snap-declaration/16/%s?max-format=5", snapId)
-	return downloadAssertion(url)
+	return downloadAssertion(url, slog)
 }
 
 var downloadAccountAssertion = downloadAccountAssertionImpl
 
-func downloadAccountAssertionImpl(publisherId string) (*assertion, error) {
+func downloadAccountAssertionImpl(publisherId string, slog logger.Logger) (*assertion, error) {
 	url := fmt.Sprintf("https://api.snapcraft.io/v2/assertions/account/%s?max-format=5", publisherId)
-	return downloadAssertion(url)
+	return downloadAssertion(url, slog)
 }
 
-func downloadAccountKeyAssertion(signKey string) (*assertion, error) {
+func downloadAccountKeyAssertion(signKey string, slog logger.Logger) (*assertion, error) {
 	url := fmt.Sprintf("https://api.snapcraft.io/v2/assertions/account-key/%s?max-format=1", signKey)
-	return downloadAssertion(url)
+	return downloadAssertion(url, slog)
 }
 
-func downloadAssertion(url string) (*assertion, error) {
-	logger.Debugf("download assertion: %s", url)
+func downloadAssertion(url string, slog logger.Logger) (*assertion, error) {
+	slog.Debugf("download assertion: %s", url)
 
 	client := http.Client{
 		Transport: &http.Transport{},
@@ -290,16 +292,16 @@ func downloadAssertion(url string) (*assertion, error) {
 
 	assert, err := newAssertion(data)
 	if err == nil {
-		logger.Debugf("assertion: %+v", assert.Header)
+		slog.Debugf("assertion: %+v", assert.Header)
 	}
 
 	return assert, err
 }
 
-func checkSnapDeclarationFilter(cfg config.SnapInspectorConfig, assert *assertion) error {
+func checkSnapDeclarationFilter(cfg config.SnapInspectorConfig, assert *assertion, slog logger.Logger) error {
 	for _, v := range cfg.SnapDeclarationFilter {
 		declared, ok := assert.Header[v.Name]
-		logger.Debugf("snap-declaration filter: (%s, %v)", v.Name, v.Value)
+		slog.Debugf("snap-declaration filter: (%s, %v)", v.Name, v.Value)
 		if !ok {
 			// attribute not found
 			return fmt.Errorf("attribute '%s' not found in the snap-declaration assertion", v.Name)
@@ -307,7 +309,7 @@ func checkSnapDeclarationFilter(cfg config.SnapInspectorConfig, assert *assertio
 
 		match := false
 		for _, allowed := range v.Value {
-			logger.Debugf("snap-declaration filter: check if %s == %s", declared, allowed)
+			slog.Debugf("snap-declaration filter: check if %s == %s", declared, allowed)
 			if declared == allowed {
 				match = true
 				break
