@@ -9,6 +9,7 @@ Placeholder description!
 
    howto/index
    reference/index
+   explanation/index
    changelog
 
 Indices and tables
