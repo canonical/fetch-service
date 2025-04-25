@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -29,11 +29,14 @@ import (
 
 	"github.com/canonical/fetch-service/glob"
 	"github.com/canonical/fetch-service/inspectors/apt/config"
+	"github.com/canonical/fetch-service/logger"
 )
 
-type configSuite struct{}
+type configSuite struct {
+	slog logger.Logger
+}
 
-var _ = Suite(&configSuite{})
+var _ = Suite(&configSuite{logger.NewSessionLogger("test")})
 
 func Test(t *testing.T) { TestingT(t) }
 
@@ -114,7 +117,7 @@ func (t *configSuite) TestInReleaseUrlInfo(c *C) {
 		c.Assert(err, IsNil)
 
 		cfg := getTestAptConfig()
-		info, err := config.NewInReleaseUrlInfo(u, &cfg)
+		info, err := config.NewInReleaseUrlInfo(u, &cfg, t.slog)
 
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
@@ -194,7 +197,7 @@ func (t *configSuite) TestPackagesUrlInfo(c *C) {
 		c.Assert(err, IsNil)
 
 		cfg := getTestAptConfig()
-		info, err := config.NewPackagesUrlInfo(u, &cfg)
+		info, err := config.NewPackagesUrlInfo(u, &cfg, t.slog)
 
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
@@ -283,7 +286,7 @@ func (t *configSuite) TestTranslationUrlInfo(c *C) {
 		c.Assert(err, IsNil)
 
 		cfg := getTestAptConfig()
-		info, err := config.NewTranslationUrlInfo(u, &cfg)
+		info, err := config.NewTranslationUrlInfo(u, &cfg, t.slog)
 
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
@@ -346,7 +349,7 @@ func (t *configSuite) TestDebPackageUrlInfo(c *C) {
 		c.Assert(err, IsNil)
 
 		cfg := getTestAptConfig()
-		info, err := config.NewDebPackageUrlInfo(u, &cfg)
+		info, err := config.NewDebPackageUrlInfo(u, &cfg, t.slog)
 
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil, Commentf("%+v", tc))

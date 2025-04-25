@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -30,13 +30,15 @@ import (
 	"github.com/canonical/fetch-service/logger/testlogger"
 )
 
-type aptSuite struct{}
+type aptSuite struct {
+	slog logger.Logger
+}
 
 func (t *aptSuite) SetUpTest(c *C) {
 	testlogger.Init(logger.InfoLevel)
 }
 
-var _ = Suite(&aptSuite{})
+var _ = Suite(&aptSuite{logger.NewSessionLogger("test")})
 
 func Test(t *testing.T) { TestingT(t) }
 

@@ -107,6 +107,8 @@ func (ins *SnapAssertionInspector) InspectArtifact(f ArtifactReader, a ResponseA
 		return nil
 	}
 
+	slog := a.Logger()
+
 	buf, err := io.ReadAll(f)
 	if err != nil {
 		return err
@@ -120,7 +122,7 @@ func (ins *SnapAssertionInspector) InspectArtifact(f ArtifactReader, a ResponseA
 		return nil
 	}
 
-	if err := assert.VerifySignature(); err != nil {
+	if err := assert.VerifySignature(slog); err != nil {
 		a.SetResponseRejected(ins, "assertion signature verification failed").Annotate(
 			Annotation{
 				"assertion-type": assert.Type(),

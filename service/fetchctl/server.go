@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -92,10 +92,10 @@ func (cs *Server) Start() error {
 			var reply []byte
 			dec := json.NewDecoder(fd)
 			if err := dec.Decode(&op); err != nil {
-				logger.Errorf("[fetchctl] cannot unmarshal operation request: %s", err)
+				logger.Errorf("fetchctl: cannot unmarshal operation request: %s", err)
 				reply = buildReply("error", err.Error())
 			} else {
-				logger.Infof("[fetchctl] operation requested: %s", op.Operation)
+				logger.Infof("fetchctl: operation requested: %s", op.Operation)
 				msg := messages.NewFetchCtl(op.Operation, op.Type, op.ValidateOnly, []byte(op.Payload))
 				cs.ch <- msg
 				res := <-msg.Rch
@@ -104,10 +104,10 @@ func (cs *Server) Start() error {
 
 			_, err = fd.Write(reply)
 			if err != nil {
-				logger.Errorf("[fetchctl] cannot write fetchtl reply: %s", err)
+				logger.Errorf("fetchctl: cannot write fetchtl reply: %s", err)
 			}
 			if err := fd.Close(); err != nil {
-				logger.Errorf("[fetchctl] cannot close connection: %s", err)
+				logger.Errorf("fetchctl: cannot close connection: %s", err)
 			}
 		}
 

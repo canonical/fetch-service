@@ -31,13 +31,16 @@ import (
 	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/snap"
 	"github.com/canonical/fetch-service/inspectors/snap/config"
+	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
-type snapSuite struct{}
+type snapSuite struct {
+	slog logger.Logger
+}
 
-var _ = Suite(&snapSuite{})
+var _ = Suite(&snapSuite{logger.NewSessionLogger("test")})
 
 func Test(t *testing.T) { TestingT(t) }
 
@@ -47,7 +50,7 @@ func getTestSnapInspectorConfig() config.SnapInspectorConfig {
 	}
 }
 
-func fakeAccountAssertion(signKey string) (*snap.Assertion, error) {
+func fakeAccountAssertion(signKey string, slog logger.Logger) (*snap.Assertion, error) {
 	data, err := os.ReadFile("testdata/account.assert")
 	if err != nil {
 		return nil, err
@@ -55,7 +58,7 @@ func fakeAccountAssertion(signKey string) (*snap.Assertion, error) {
 	return snap.NewAssertion(data)
 }
 
-func fakeSnapRevisionAssertion(snapSha3_384 string) (*snap.Assertion, error) {
+func fakeSnapRevisionAssertion(snapSha3_384 string, slog logger.Logger) (*snap.Assertion, error) {
 	data, err := os.ReadFile("testdata/snap-revision.assert")
 	if err != nil {
 		return nil, err
@@ -63,7 +66,7 @@ func fakeSnapRevisionAssertion(snapSha3_384 string) (*snap.Assertion, error) {
 	return snap.NewAssertion(data)
 }
 
-func fakeSnapDeclarationAssertion(snapSha3_384 string) (*snap.Assertion, error) {
+func fakeSnapDeclarationAssertion(snapSha3_384 string, slog logger.Logger) (*snap.Assertion, error) {
 	data, err := os.ReadFile("testdata/snap-declaration.assert")
 	if err != nil {
 		return nil, err
@@ -264,17 +267,17 @@ func (s *snapSuite) TestSnapArtifactInspectorError(c *C) {
 			})
 			defer restorer()
 		case "revision-assertion-download":
-			restorer := snap.MockDownloadSnapRevisionAssertion(func(s string) (*snap.Assertion, error) {
+			restorer := snap.MockDownloadSnapRevisionAssertion(func(s string, slog logger.Logger) (*snap.Assertion, error) {
 				return nil, errors.New("assertion download error")
 			})
 			defer restorer()
 		case "declaration-assertion-download":
-			restorer := snap.MockDownloadSnapDeclarationAssertion(func(s string) (*snap.Assertion, error) {
+			restorer := snap.MockDownloadSnapDeclarationAssertion(func(s string, slog logger.Logger) (*snap.Assertion, error) {
 				return nil, errors.New("assertion download error")
 			})
 			defer restorer()
 		case "account-assertion-download":
-			restorer := snap.MockDownloadAccountAssertion(func(s string) (*snap.Assertion, error) {
+			restorer := snap.MockDownloadAccountAssertion(func(s string, slog logger.Logger) (*snap.Assertion, error) {
 				return nil, errors.New("assertion download error")
 			})
 			defer restorer()
@@ -345,7 +348,7 @@ func (s *snapSuite) TestSnapArtifactInspectorReject(c *C) {
 
 		switch tc.rejectCase {
 		case "snap-revision-signature-mismatch":
-			restorer := snap.MockDownloadSnapRevisionAssertion(func(s string) (*snap.Assertion, error) {
+			restorer := snap.MockDownloadSnapRevisionAssertion(func(s string, _ logger.Logger) (*snap.Assertion, error) {
 				ast := &snap.Assertion{
 					Signature: []byte("invalid-signature"),
 					Header: map[string]string{
@@ -358,7 +361,7 @@ func (s *snapSuite) TestSnapArtifactInspectorReject(c *C) {
 			})
 			defer restorer()
 		case "digest-mismatch":
-			restorer := snap.MockDownloadSnapRevisionAssertion(func(s string) (*snap.Assertion, error) {
+			restorer := snap.MockDownloadSnapRevisionAssertion(func(s string, _ logger.Logger) (*snap.Assertion, error) {
 				ast := &snap.Assertion{
 					Header: map[string]string{
 						"snap-size":     "8192",
@@ -369,7 +372,7 @@ func (s *snapSuite) TestSnapArtifactInspectorReject(c *C) {
 			})
 			defer restorer()
 		case "snap-size-mismatch":
-			restorer := snap.MockDownloadSnapRevisionAssertion(func(s string) (*snap.Assertion, error) {
+			restorer := snap.MockDownloadSnapRevisionAssertion(func(s string, _ logger.Logger) (*snap.Assertion, error) {
 				ast := &snap.Assertion{
 					Header: map[string]string{
 						"snap-size": "123",
@@ -379,7 +382,7 @@ func (s *snapSuite) TestSnapArtifactInspectorReject(c *C) {
 			})
 			defer restorer()
 		case "missing-snap-id":
-			restorer := snap.MockDownloadSnapRevisionAssertion(func(s string) (*snap.Assertion, error) {
+			restorer := snap.MockDownloadSnapRevisionAssertion(func(s string, _ logger.Logger) (*snap.Assertion, error) {
 				ast := &snap.Assertion{
 					Header: map[string]string{
 						"snap-size":     "8192",
@@ -390,7 +393,7 @@ func (s *snapSuite) TestSnapArtifactInspectorReject(c *C) {
 			})
 			defer restorer()
 		case "snap-declaration-signature-mismatch":
-			restorer := snap.MockDownloadSnapDeclarationAssertion(func(s string) (*snap.Assertion, error) {
+			restorer := snap.MockDownloadSnapDeclarationAssertion(func(s string, _ logger.Logger) (*snap.Assertion, error) {
 				ast := &snap.Assertion{
 					Signature: []byte("invalid-signature"),
 					Header: map[string]string{
@@ -401,7 +404,7 @@ func (s *snapSuite) TestSnapArtifactInspectorReject(c *C) {
 			})
 			defer restorer()
 		case "missing-publisher-id":
-			restorer := snap.MockDownloadSnapDeclarationAssertion(func(s string) (*snap.Assertion, error) {
+			restorer := snap.MockDownloadSnapDeclarationAssertion(func(s string, _ logger.Logger) (*snap.Assertion, error) {
 				ast := &snap.Assertion{
 					Header: map[string]string{},
 				}
@@ -409,7 +412,7 @@ func (s *snapSuite) TestSnapArtifactInspectorReject(c *C) {
 			})
 			defer restorer()
 		case "account-signature-mismatch":
-			restorer := snap.MockDownloadAccountAssertion(func(s string) (*snap.Assertion, error) {
+			restorer := snap.MockDownloadAccountAssertion(func(s string, _ logger.Logger) (*snap.Assertion, error) {
 				ast := &snap.Assertion{
 					Signature: []byte("invalid-signature"),
 				}
@@ -544,7 +547,7 @@ func (s *snapSuite) TestCheckSnapDeclarationFilter(c *C) {
 		a, err := snap.NewAssertion([]byte(declarationAssertion))
 		c.Assert(err, IsNil)
 
-		err = snap.CheckSnapDeclarationFilter(cfg, a)
+		err = snap.CheckSnapDeclarationFilter(cfg, a, s.slog)
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
 		} else {
