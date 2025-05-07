@@ -1,8 +1,8 @@
 summary: Snap configuration
 
 prepare: |
-  # install package from develoment environment
-  snap install "$PROJECT_PATH"/spread/fetch-service_*.snap --dangerous
+  # install package from development environment
+  snap install "$CRAFT_ARTIFACT" --dangerous
 
 restore: |
   snap remove fetch-service --purge

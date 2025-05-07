@@ -17,7 +17,7 @@ execute: |
   test -f "$CONFDIR/acl.yaml"
 
   # install package from develoment environment
-  snap install "$PROJECT_PATH"/spread/fetch-service_*.snap --dangerous
+  snap install "$CRAFT_ARTIFACT" --dangerous
 
   # confirm that the default configuration file was removed
   test ! -f "$CONFDIR/inspectors.yaml"
