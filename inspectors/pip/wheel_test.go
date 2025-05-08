@@ -167,7 +167,7 @@ func (s *wheelSuite) TestWheelReadMetadata(c *C) {
 		"Author: Poppy Bolger\n"+
 		"Author-email: contact@foobar.com\n"+
 		"Random-tag: doesn't matter\n"+
-		"License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)\n"+
+		"Classifier: License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)\n"+
 		"\n"+
 		"Lorem ipsum dolor sit amet,\n"+
 		"consectetur adipiscing elit.\n")
