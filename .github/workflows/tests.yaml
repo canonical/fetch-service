@@ -33,12 +33,7 @@ jobs:
           find spread -name task.yaml | xargs spread/tools/utils/spread-shellcheck -v
 
   unit-tests:
-    strategy:
-      matrix:
-        os:
-          - [jammy, amd64]
-          - [noble, amd64]
-    runs-on: ${{ matrix.os }}
+    runs-on: [noble, amd64]
     steps:
       - name: Install dependencies
         run: |
