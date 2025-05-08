@@ -31,23 +31,19 @@ jobs:
           shellcheck spread/.extension
           spread/tools/utils/spread-shellcheck -v spread.yaml
           find spread -name task.yaml | xargs spread/tools/utils/spread-shellcheck -v
+
   unit-tests:
     strategy:
       matrix:
         os:
           - [jammy, amd64]
           - [noble, amd64]
-
     runs-on: ${{ matrix.os }}
     steps:
       - name: Install dependencies
         run: |
-          set -x
-          sudo apt update
-          sudo apt install -y cpanminus gcc make shellcheck
-          sudo cpanm --notest https://cpan.metacpan.org/authors/id/J/JO/JONASS/Regexp-Pattern-License-v3.9.3.tar.gz  # 3.11.1 doesn't work!
-          sudo cpanm --notest https://cpan.metacpan.org/authors/id/P/PE/PEVANS/Syntax-Keyword-Try-0.27.tar.gz
-          sudo cpanm --notest https://cpan.metacpan.org/authors/id/J/JO/JONASS/App-Licensecheck-v3.3.9.tar.gz
+          sudo apt-get update
+          sudo apt-get install -y licensecheck
       - name: Checkout code
         uses: actions/checkout@v4
         with:
