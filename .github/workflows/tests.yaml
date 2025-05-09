@@ -98,6 +98,5 @@ jobs:
           name: snap
       - name: Run spread tests
         run: |
-          export CI=1  # in case the self-hosted builder doesn't set the CI variable
           snapcraft pack --verbose  # remove once craft-application issue #752 is fixed
           snapcraft test --verbose
