@@ -31,23 +31,14 @@ jobs:
           shellcheck spread/.extension
           spread/tools/utils/spread-shellcheck -v spread.yaml
           find spread -name task.yaml | xargs spread/tools/utils/spread-shellcheck -v
-  tests:
-    strategy:
-      matrix:
-        os:
-          - [jammy, amd64]
-          - [noble, amd64]
 
-    runs-on: ${{ matrix.os }}
+  unit-tests:
+    runs-on: [noble, amd64]
     steps:
       - name: Install dependencies
         run: |
-          set -x
-          sudo apt update
-          sudo apt install -y cpanminus gcc make shellcheck
-          sudo cpanm --notest https://cpan.metacpan.org/authors/id/J/JO/JONASS/Regexp-Pattern-License-v3.9.3.tar.gz  # 3.11.1 doesn't work!
-          sudo cpanm --notest https://cpan.metacpan.org/authors/id/P/PE/PEVANS/Syntax-Keyword-Try-0.27.tar.gz
-          sudo cpanm --notest https://cpan.metacpan.org/authors/id/J/JO/JONASS/App-Licensecheck-v3.3.9.tar.gz
+          sudo apt-get update
+          sudo apt-get install -y licensecheck
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -65,6 +56,7 @@ jobs:
       - name: Run unit tests
         run: |
           go test -race ./...
+
   snap-build:
     runs-on: [noble, amd64]
     steps:
@@ -80,7 +72,8 @@ jobs:
         with:
           name: snap
           path: ${{ steps.snap.outputs.snap }}
-  spread-tests:
+
+  snap-test:
     strategy:
       matrix:
         os:
@@ -90,24 +83,20 @@ jobs:
       - snap-build
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Set up Go  # XXX to build spread
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.22'
-      - name: Install spread  # XXX: spread to be bundled with snapcraft
+      - name: Install dependencies
         run: |
-          git clone --depth 1 -b master --single-branch https://github.com/canonical/spread
-          cd spread
-          go install ./cmd/spread
+          sudo snap install snapcraft --classic --channel=latest/edge
+          sudo snap install lxd  # remove once we can test a pre-built snap
+          lxd init --auto
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Download snap artifact
         uses: actions/download-artifact@v4
         with:
           name: snap
-      - name: Copy snap to tests dir
-        run: cp *.snap spread/
       - name: Run spread tests
         run: |
-          source /etc/os-release
-          ~/go/bin/spread -v "ci:${ID}-${VERSION_ID}"
+          snapcraft pack --verbose  # remove once craft-application issue #752 is fixed
+          snapcraft test --verbose

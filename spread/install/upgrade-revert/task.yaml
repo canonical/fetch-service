@@ -22,7 +22,7 @@ execute: |
   cp i1.yaml "$CONF"
 
   # install package from develoment environment
-  snap install "$PROJECT_PATH"/spread/fetch-service_*.snap --dangerous
+  snap install "$CRAFT_ARTIFACT" --dangerous
 
   # check if configuration is kept
   cp "$CONF" i2.yaml  # yq from snap can't access the original location
