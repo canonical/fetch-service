@@ -375,6 +375,68 @@ func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
 	})
 }
 
+type aptReleaseCommandsValidationTest struct {
+	isListed     bool   // Whether the Commands file is listed in the Release file.
+	rejectReason string // The reason to reject this artifact, if any.
+}
+
+var aptReleaseCommandsValidationTests = []aptReleaseCommandsValidationTest{{
+	isListed:     true,
+	rejectReason: "",
+}, {
+	isListed:     false,
+	rejectReason: "Commands file not listed in Release file",
+}}
+
+func (s *aptSuite) TestAptReleaseCommandsValidation(c *C) {
+	for _, tc := range aptReleaseCommandsValidationTests {
+		sha256_rel, _ := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
+		sha256_cmd, _ := digests.NewSha256Digest("6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf")
+
+		a := metadata.NewArtifact()
+		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf"
+		a.Metadata.Type = mimetypes.AptCommands
+		a.Metadata.Sha256 = sha256_cmd
+		a.Metadata.Size = 1337
+
+		f := strings.NewReader("fake content")
+		rf := apt.ReleaseFile{
+			Sha256: sha256_rel,
+			Vendor: "Canonical",
+			Files:  map[digests.Sha256Digest]apt.ReleaseEntry{},
+		}
+
+		if tc.isListed {
+			rf.Files[sha256_cmd] = apt.ReleaseEntry{
+				Size: 1337,
+				Name: "main/cnf/Commands-amd64.xz",
+			}
+		}
+
+		ins := apt.NewAptReleaseInspector(getTestAptConfig())
+		a.SetRequestPending(ins, "test")
+		ins.SetRelease(map[string]apt.ReleaseFile{"http://archive.ubuntu.com/ubuntu/dists/jammy": rf})
+		err := ins.InspectArtifact(f, a)
+		c.Assert(err, IsNil)
+
+		if tc.rejectReason == "" {
+			c.Assert(a.Approved(), Equals, true)
+			c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
+				Opinion: opinions.Approved,
+				Reason:  "Commands file listed in Release",
+				Annotations: Annotation{
+					"file-path":    "main/cnf/Commands-amd64.xz",
+					"release-file": "9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6",
+					"vendor":       "Canonical",
+				},
+			})
+		} else {
+			c.Assert(a.Approved(), Equals, false)
+			c.Assert(a.ResponseInspection["apt.release"].Reason, Equals, tc.rejectReason)
+		}
+	}
+}
+
 func (s *aptSuite) TestAptReleaseSignature(c *C) {
 	a := metadata.NewArtifact()
 	a.RequestInspection = metadata.InspectionMap{
