@@ -98,5 +98,4 @@ jobs:
           name: snap
       - name: Run spread tests
         run: |
-          snapcraft pack --verbose  # remove once craft-application issue #752 is fixed
           snapcraft test --verbose
