@@ -31,6 +31,7 @@ import (
 
 	"github.com/canonical/fetch-service/glob"
 	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
+	oci_cfg "github.com/canonical/fetch-service/inspectors/oci/config"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/service/config"
@@ -324,6 +325,12 @@ snap:
     - name: publisher-id
       value: [canonical]
 
+oci:
+  registries:
+    default:
+      url: https://oci.registry:443
+      auth-url: https://auth.oci.registry:443/*
+
 apt:
   repositories:
     default:
@@ -383,6 +390,13 @@ func (t *configSuite) TestGetSetInspectorsConfig(c *C) {
 	c.Check(cfg.Crafts.Urls, HasLen, 1)
 	c.Check(cfg.Crafts.Urls[0], DeepEquals, glob.MustCompile("https://sourcecraft.test:443/**"))
 
+	c.Check(cfg.Oci.Registries, DeepEquals, map[string]oci_cfg.OciInspectorConfigRegistry{
+		"default": {
+			Url:     glob.MustCompile("https://oci.registry:443"),
+			AuthUrl: glob.MustCompile("https://auth.oci.registry:443/*"),
+		},
+	})
+
 	c.Check(cfg.Apt.Repositories, DeepEquals, map[string]apt_cfg.AptInspectorConfigRepository{
 		"default": {
 			Urls: []glob.Glob{
@@ -431,6 +445,7 @@ uOgcXny1UlwtCUzlrSaP
 	// Verify that loaded config is a copy
 	cfg.Git.Urls = []glob.Glob{}
 	cfg.Crafts.Urls = []glob.Glob{}
+	// Apt
 	entry, ok := cfg.Apt.Repositories["default"]
 	c.Assert(ok, Equals, true)
 	entry.Urls = []glob.Glob{
@@ -440,12 +455,19 @@ uOgcXny1UlwtCUzlrSaP
 	}
 	cfg.Apt.Repositories["default"] = entry
 	cfg.Apt.Repositories["extra"] = apt_cfg.AptInspectorConfigRepository{}
+	// Oci
+	ociEntry, ok := cfg.Oci.Registries["default"]
+	c.Assert(ok, Equals, true)
+	ociEntry.Url = glob.MustCompile("a")
+	cfg.Oci.Registries["default"] = ociEntry
+	cfg.Oci.Registries["extra"] = oci_cfg.OciInspectorConfigRegistry{}
 
 	cfg2 := config.GetInspectorsConfig()
 	c.Check(cfg2.Git.Urls, HasLen, 1)
 	c.Check(cfg2.Crafts.Urls, HasLen, 1)
 	c.Check(cfg2.Apt.Repositories, HasLen, 1)
 	c.Check(cfg2.Apt.Repositories["default"].Urls, HasLen, 2)
+	c.Check(cfg2.Oci.Registries, HasLen, 1)
 
 	// Store the modified configuration
 	config.SetInspectorsConfig(cfg)
@@ -456,12 +478,13 @@ uOgcXny1UlwtCUzlrSaP
 	c.Check(cfg3.Crafts.Urls, HasLen, 0)
 	c.Check(cfg3.Apt.Repositories["default"].Urls, HasLen, 3)
 	c.Check(cfg3.Apt.Repositories["extra"].Urls, HasLen, 0)
-
+	c.Check(cfg3.Oci.Registries, HasLen, 2)
+	c.Check(cfg3.Oci.Registries["default"].Url.G.Match("a"), Equals, true)
 }
 
 var proxyRulesContent = testutils.Reindent(`
 	http-proxy:
-	  policy: allow 
+	  policy: allow
 	  rules:
 	    - dst: [ 1.2.3.4/16 ]
 	      access: deny
