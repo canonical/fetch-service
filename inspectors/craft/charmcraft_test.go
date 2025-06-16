@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024-2025 Canonical Ltd.
+ * Copyright 2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -14,7 +14,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
  */
 
 package craft_test
@@ -34,26 +33,26 @@ import (
 	"github.com/canonical/fetch-service/inspectors/craft"
 	"github.com/canonical/fetch-service/inspectors/craft/config"
 	"github.com/canonical/fetch-service/inspectors/files"
-	"github.com/canonical/fetch-service/inspectors/git"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
+	"github.com/gabriel-vasile/mimetype"
 )
 
-type rockcraftSuite struct {
+type charmcraftSuite struct {
 	slog logger.Logger
 }
 
-var _ = Suite(&rockcraftSuite{logger.NewSessionLogger("test")})
+var _ = Suite(&charmcraftSuite{logger.NewSessionLogger("test")})
 
-func (t *rockcraftSuite) SetUpTest(c *C) {
+func (t *charmcraftSuite) SetUpTest(c *C) {
 	testlogger.Init(logger.InfoLevel)
 }
 
-func RockcraftTest(t *testing.T) { TestingT(t) }
+func CharmcraftTest(t *testing.T) { TestingT(t) }
 
-func getTestRockcraftConfig() config.CraftsInspectorConfig {
+func getTestCharmcraftConfig() config.CraftsInspectorConfig {
 	return config.CraftsInspectorConfig{
 		Urls: []glob.Glob{
 			glob.MustCompile("https://github.com:443/**"),
@@ -62,26 +61,73 @@ func getTestRockcraftConfig() config.CraftsInspectorConfig {
 	}
 }
 
-func (s *rockcraftSuite) TestRockcraftInspectorInterface(c *C) {
+func (s *charmcraftSuite) TestCharmcraftInspectorInterface(c *C) {
 	var iface Inspector
-	ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
+	ins := craft.NewCharmcraftInspector(getTestCharmcraftConfig())
 	c.Assert(ins, Implements, &iface)
 
 }
 
-func (s *rockcraftSuite) TestUploadPackInspectorID(c *C) {
-	ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
-	c.Assert(ins.ID(), Equals, "craft.rockcraft")
+func (s *charmcraftSuite) TestUploadPackInspectorID(c *C) {
+	ins := craft.NewCharmcraftInspector(getTestCharmcraftConfig())
+	c.Assert(ins.ID(), Equals, "craft.charmcraft")
 
 }
 
-func loadTestRockcraftArtifactData() (*files.ArtifactFile, error) {
-	git_capture := filepath.Join("testdata", "rockcraftpkg.raw")
-	file, err := files.OpenArtifactFile(git_capture)
+func createTestCharmcraftArtifact(checkoutPath string) *metadata.Artifact {
+	a := metadata.NewArtifact()
+	a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
+	a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
+	a.Request.Body = io.NopCloser(strings.NewReader("0014command=fetch\n0000"))
+	a.MimeType = mimetype.Lookup("application/octet-stream")
+	a.RequestInspection = metadata.InspectionMap{
+		"git.upload-pack": &Inspection{
+			Opinion: opinions.Pending,
+			Reason:  "valid URL for charmcraft upload-pack",
+			Annotations: Annotation{
+				"client-request": []string{
+					"command=fetch",
+					"agent=git/2.34.1",
+					"object-format=sha1",
+					"",
+					"thin-pack",
+					"no-progress",
+					"include-tag",
+					"ofs-delta",
+					"deepen 1",
+					"want 10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
+					"done",
+				},
+				"repository": "https://my.repo/foo",
+				"command":    "fetch",
+				"project":    "bump2version",
+				"protocol":   "version=2",
+				"wants": []string{
+					"10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
+				},
+				"is-shallow": true,
+			},
+		},
+	}
+	a.ResponseInspection = metadata.InspectionMap{
+		"git.upload-pack": &Inspection{
+			Opinion: opinions.Unknown,
+			Reason:  "",
+			Annotations: Annotation{
+				"git-checkout-path": checkoutPath,
+			},
+		},
+	}
+	return a
+}
+
+func loadTestCharmcraftArtifactData() (*files.ArtifactFile, error) {
+	sourcepkg_file := filepath.Join("testdata", "sourcepkg.raw")
+	file, err := files.OpenArtifactFile(sourcepkg_file)
 	return file, err
 }
 
-func (s *rockcraftSuite) TestInspectRockcraftGitRequest(c *C) {
+func (s *charmcraftSuite) TestInspectCharmcraftGitRequest(c *C) {
 	for _, tc := range []struct {
 		url      string
 		approved bool
@@ -99,7 +145,7 @@ func (s *rockcraftSuite) TestInspectRockcraftGitRequest(c *C) {
 		{"https://git.launchpad.com:443/project/git-upload-pack", false},
 		{"https://git.lpad.net:443/~user/project/+git/project/git-upload-pack", false},
 	} {
-		ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
+		ins := craft.NewCharmcraftInspector(getTestCharmcraftConfig())
 		a := metadata.NewArtifact()
 		a.CurrentDownload.URL = tc.url
 		a.CurrentDownload.RequestHeader = map[string][]string{
@@ -123,82 +169,75 @@ func (s *rockcraftSuite) TestInspectRockcraftGitRequest(c *C) {
 	}
 }
 
-func (s *rockcraftSuite) TestRockcraftGitInspectArtifact(c *C) {
+func (s *charmcraftSuite) TestCharmcraftGitInspectArtifact(c *C) {
 	for _, tc := range []struct {
 		opinion opinions.OpinionKind
 		reason  string
 	}{
-		{opinions.Approved, "rockcraft repository found"},
+		{opinions.Approved, "charmcraft repository found"},
 	} {
-		f, err := loadTestRockcraftArtifactData()
-		c.Assert(err, IsNil)
-		defer f.Close()
-
-		checkoutPath := c.MkDir()
-		err = git.UnpackObjects(f, checkoutPath, s.slog)
-		c.Assert(err, IsNil)
-		err = git.Checkout(checkoutPath, "d9c2c0282d81a993c0011113996b541a1ef1ebc7", s.slog)
-		c.Assert(err, IsNil)
-
+		checkoutPath := filepath.Join("testdata", "charmcraft-checkout")
 		a := createTestCraftArtifact(checkoutPath)
 
-		f, err = loadTestRockcraftArtifactData()
-		c.Assert(err, IsNil)
-		defer f.Close()
-
-		ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
-		err = ins.InspectArtifact(f, a)
+		ins := craft.NewCharmcraftInspector(getTestCharmcraftConfig())
+		dummy_file, err := files.OpenArtifactFile(filepath.Join(checkoutPath, "charmcraft.yaml"))
+		// make sure the test file exists
 		c.Assert(err, IsNil)
 
-		inspection := a.ResponseInspection["craft.rockcraft"]
+		err = ins.InspectArtifact(dummy_file, a)
+		c.Assert(err, IsNil)
+
+		inspection := a.ResponseInspection["craft.charmcraft"]
 		c.Assert(inspection.Opinion, Equals, tc.opinion)
 		c.Assert(inspection.Reason, Equals, tc.reason)
 
 		if tc.opinion == opinions.Approved {
-			c.Check(a.Metadata.Type, Equals, "application/x.canonical.rockcraft")
-			c.Check(a.Metadata.Name, Equals, "charmcraft-core22")
-			c.Check(a.Metadata.Version, Equals, "3.1.2")
-			c.Check(a.Metadata.Description, Equals, "Pack Ubuntu 22.04 charms")
-			// FIXME: add more fields to test data
+			c.Check(a.Metadata.Type, Equals, "application/x.canonical.charmcraft")
+			c.Check(a.Metadata.Name, Equals, "sample-charmcraft-project")
+			c.Check(a.Metadata.Version, Equals, "")
+			c.Check(a.Metadata.Description, Equals, "A very short one-line summary of the charm.")
 		}
 	}
 }
 
-func (s *rockcraftSuite) TestRockcraftGitInspectArtifactMissingRockcraftYaml(c *C) {
+func (s *charmcraftSuite) TestCharmcraftGitInspectArtifactMissingCharmcraftYaml(c *C) {
 	tc := struct {
-		is_shallow bool
-		opinion    opinions.OpinionKind
-		reason     string
+		opinion opinions.OpinionKind
+		reason  string
 	}{
-		true,
 		opinions.Unknown,
-		"git repository does not contain a rockcraft.yaml file",
+		"git repository does not contain a charmcraft.yaml file",
 	}
-	a := createTestCraftArtifact(c.MkDir())
-	f, err := loadTestRockcraftArtifactData()
+	restorer := craft.MockOsStat(func(string) (os.FileInfo, error) {
+		return nil, os.ErrNotExist
+	})
+	defer restorer()
+
+	a := createTestCharmcraftArtifact(c.MkDir())
+	f, err := loadTestCharmcraftArtifactData()
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
+	ins := craft.NewCharmcraftInspector(getTestCharmcraftConfig())
 
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 
-	inspection := a.ResponseInspection["craft.rockcraft"]
+	inspection := a.ResponseInspection["craft.charmcraft"]
 	c.Assert(inspection.Opinion, Equals, tc.opinion)
 	c.Assert(inspection.Reason, Equals, tc.reason)
 }
 
-func (s *rockcraftSuite) TestRockcraftGitInspectArtifactUnreadableRockcraftYaml(c *C) {
+func (s *charmcraftSuite) TestCharmcraftGitInspectArtifactUnreadableCharmcraftYaml(c *C) {
 	tc := struct {
 		opinion opinions.OpinionKind
 		reason  string
 	}{
 		opinions.Rejected,
-		"cannot open rockcraft.yaml file",
+		"cannot open charmcraft.yaml file",
 	}
 
-	f, err := loadTestRockcraftArtifactData()
+	f, err := loadTestCharmcraftArtifactData()
 	c.Assert(err, IsNil)
 	defer f.Close()
 
@@ -208,33 +247,33 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtifactUnreadableRockcraftYaml(
 	defer restorer()
 
 	checkoutPath := c.MkDir()
-	_, err = os.Create(filepath.Join(checkoutPath, "rockcraft.yaml"))
+	_, err = os.Create(filepath.Join(checkoutPath, "charmcraft.yaml"))
 	c.Assert(err, IsNil)
 	a := createTestSnapcraftArtifact(checkoutPath)
 
-	ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
+	ins := craft.NewCharmcraftInspector(getTestCharmcraftConfig())
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 
-	inspection := a.ResponseInspection["craft.rockcraft"]
+	inspection := a.ResponseInspection["craft.charmcraft"]
 	c.Assert(inspection.Opinion, Equals, tc.opinion)
 	c.Assert(inspection.Reason, Equals, tc.reason)
 }
 
-func (s *rockcraftSuite) TestRockcraftGitInspectArtifactUnableToDecodeRockcraftYaml(c *C) {
+func (s *charmcraftSuite) TestCharmcraftGitInspectArtifactUnableToDecodeCharmcraftYaml(c *C) {
 	tc := struct {
 		opinion opinions.OpinionKind
 		reason  string
 	}{
 		opinions.Rejected,
-		"cannot decode rockcraft.yaml",
+		"cannot decode charmcraft.yaml",
 	}
-	f, err := loadTestRockcraftArtifactData()
+	f, err := loadTestCharmcraftArtifactData()
 	c.Assert(err, IsNil)
 	defer f.Close()
 
 	restorer := craft.MockOsOpen(func(string) (*os.File, error) {
-		temp, _ := os.CreateTemp("", "rockcraft-empty.yaml")
+		temp, _ := os.CreateTemp("", "charmcraft-empty.yaml")
 		defer temp.Close()
 		defer os.Remove(temp.Name())
 		return os.Open(temp.Name())
@@ -242,16 +281,16 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtifactUnableToDecodeRockcraftY
 	defer restorer()
 
 	checkoutPath := c.MkDir()
-	_, err = os.Create(filepath.Join(checkoutPath, "rockcraft.yaml"))
+	_, err = os.Create(filepath.Join(checkoutPath, "charmcraft.yaml"))
 	c.Assert(err, IsNil)
 
 	a := createTestCraftArtifact(checkoutPath)
 
-	ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
+	ins := craft.NewCharmcraftInspector(getTestCharmcraftConfig())
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 
-	inspection := a.ResponseInspection["craft.rockcraft"]
+	inspection := a.ResponseInspection["craft.charmcraft"]
 	c.Assert(inspection.Opinion, Equals, tc.opinion)
 	c.Assert(inspection.Reason, Equals, tc.reason)
 }

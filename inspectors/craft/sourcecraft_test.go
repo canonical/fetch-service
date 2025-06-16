@@ -188,7 +188,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifact(c *C) {
 		err = git.Checkout(checkoutPath, "10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad", s.slog)
 		c.Assert(err, IsNil)
 
-		a := createTestRockcraftArtifact(checkoutPath)
+		a := createTestCraftArtifact(checkoutPath)
 
 		f, err = loadTestSourcecraftArtifactData()
 		c.Assert(err, IsNil)
@@ -296,7 +296,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifactUnableToDecodeSource
 	_, err = os.Create(filepath.Join(checkoutPath, "sourcecraft.yaml"))
 	c.Assert(err, IsNil)
 
-	a := createTestRockcraftArtifact(checkoutPath)
+	a := createTestCraftArtifact(checkoutPath)
 
 	ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
 	err = ins.InspectArtifact(f, a)
