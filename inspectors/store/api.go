@@ -39,17 +39,17 @@ import (
 )
 
 type StoreApiRevisionInfo struct {
-	sha3_384 string // SHA3-384
-	size     uint64 // File size
-	revision string // Revision number
-	channel  string // Channel name
+	Sha3_384 string // SHA3-384
+	Size     uint64 // File size
+	Revision string // Revision number
+	Channel  string // Channel name
 }
 
 type StoreApiInfo struct {
-	ptype     string // Package type
-	id        string // Package ID
-	publisher string // Package publisher
-	rinfo     []StoreApiRevisionInfo
+	Type      string // Package type
+	ID        string // Package ID
+	Publisher string // Package publisher
+	RevInfo   []StoreApiRevisionInfo
 }
 
 type StoreApiInspector struct {
@@ -65,14 +65,21 @@ func NewStoreApiInspector(cfg config.StoreInspectorConfig) *StoreApiInspector {
 	}
 }
 
-func (ins *StoreApiInspector) findStoreAPIInfo(sha3_384 string) (*StoreApiInfo, string, string) {
+func (ins *StoreApiInspector) setStoreApiInfo(pkgid string, ainfo *StoreApiInfo) {
+	ins.idsLock.Lock()
+	defer ins.idsLock.Unlock()
+
+	ins.ids[pkgid] = ainfo
+}
+
+func (ins *StoreApiInspector) findStoreApiInfo(sha3_384 string) (*StoreApiInfo, string, string) {
 	ins.idsLock.Lock()
 	defer ins.idsLock.Unlock()
 
 	for _, info := range ins.ids {
-		for _, rinfo := range info.rinfo {
-			if rinfo.sha3_384 == sha3_384 {
-				return info, rinfo.revision, rinfo.channel
+		for _, rinfo := range info.RevInfo {
+			if rinfo.Sha3_384 == sha3_384 {
+				return info, rinfo.Revision, rinfo.Channel
 			}
 		}
 	}
@@ -205,23 +212,23 @@ func (ins *StoreApiInspector) InspectArtifact(f ArtifactReader, a ResponseArtifa
 			"publisher":  info.Metadata.Publisher.DisplayName,
 		})
 
-	ins.idsLock.Lock()
-	defer ins.idsLock.Unlock()
-
-	ins.ids[info.PackageID] = &StoreApiInfo{
-		ptype:     pkgType,
-		id:        info.PackageID,
-		publisher: info.Metadata.Publisher.DisplayName,
+	ainfo := &StoreApiInfo{
+		Type:      pkgType,
+		ID:        info.PackageID,
+		Publisher: info.Metadata.Publisher.DisplayName,
 	}
 
 	for _, cinfo := range info.ChannelMap {
-		ins.ids[info.PackageID].rinfo = append(ins.ids[info.PackageID].rinfo, StoreApiRevisionInfo{
-			sha3_384: cinfo.Revision.Download.Sha3_384,
-			revision: strconv.Itoa(cinfo.Revision.Revision),
-			channel:  cinfo.Channel.Name,
+		ainfo.RevInfo = append(ainfo.RevInfo, StoreApiRevisionInfo{
+			Sha3_384: cinfo.Revision.Download.Sha3_384,
+			Size:     uint64(cinfo.Revision.Download.Size),
+			Revision: strconv.Itoa(cinfo.Revision.Revision),
+			Channel:  cinfo.Channel.Name,
 		})
 
 	}
+
+	ins.setStoreApiInfo(info.PackageID, ainfo)
 
 	return nil
 }
@@ -264,14 +271,14 @@ func (ins *StoreApiInspector) validateBldBin(f ArtifactReader, a ResponseArtifac
 				return err
 			}
 
-			ainfo, rev, channel := ins.findStoreAPIInfo(sha3_384)
+			ainfo, rev, channel := ins.findStoreApiInfo(sha3_384)
 			if ainfo != nil {
-				if ainfo.ptype == "bins" {
+				if ainfo.Type == "bins" {
 					// Setting as Unknown to avoid approval in case the bld bin inspector
 					// doesn't recognize the format.
 					a.SetResponseUnknown(ins, "file digest matches store API bin request").Annotate(
 						Annotation{
-							"package-id": ainfo.id,
+							"package-id": ainfo.ID,
 							"revision":   rev,
 							"digest":     sha3_384,
 							"channel":    channel,
@@ -281,8 +288,8 @@ func (ins *StoreApiInspector) validateBldBin(f ArtifactReader, a ResponseArtifac
 				} else {
 					a.SetResponseRejected(ins, "file digest matches a request for a different package type").Annotate(
 						Annotation{
-							"package-id": ainfo.id,
-							"type":       ainfo.ptype,
+							"package-id": ainfo.ID,
+							"type":       ainfo.Type,
 							"digest":     sha3_384,
 							"channel":    channel,
 						},
