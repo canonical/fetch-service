@@ -280,6 +280,30 @@ var translationUrlInfoTests = []translationUrlInfoTest{{
 	errorMsg: "invalid repository: https://esm.ubuntu.com:443/other-repo/ubuntu",
 }}
 
+func (t *configSuite) TestTranslationUrlInfo(c *C) {
+	for _, tc := range translationUrlInfoTests {
+		u, err := url.Parse(tc.url)
+		c.Assert(err, IsNil)
+
+		cfg := getTestAptConfig()
+		info, err := config.NewTranslationUrlInfo(u, &cfg, t.slog)
+
+		if tc.errorMsg == "" {
+			c.Assert(err, IsNil)
+			c.Assert(info, DeepEquals, &config.TranslationUrlInfo{
+				CfgName:    tc.conf,
+				Origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
+				Repository: tc.repo,
+				Dist:       tc.series,
+				Component:  "main",
+				Digest:     "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+			})
+		} else {
+			c.Assert(err, ErrorMatches, tc.errorMsg)
+		}
+	}
+}
+
 type commandsUrlInfoTest struct {
 	url      string // The request URL
 	conf     string // The repository configuration entry
