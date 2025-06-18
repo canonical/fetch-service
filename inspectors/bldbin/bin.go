@@ -133,6 +133,7 @@ func (ins *BldBinInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 	return nil
 }
 
+// ReadMetadata reads and decodes the bin metadata.yaml file.
 func ReadMetadata(f io.Reader) (*BldBinMetadata, error) {
 	var binmd BldBinMetadata
 	decoder := yaml.NewDecoder(f)
