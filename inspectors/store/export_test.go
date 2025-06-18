@@ -25,3 +25,6 @@ var (
 	StoreApiInspectorSetStoreApiInfo  = (*StoreApiInspector).setStoreApiInfo
 	StoreApiInspectorFindStoreApiInfo = (*StoreApiInspector).findStoreApiInfo
 )
+
+type StoreApiInfo = storeApiInfo
+type StoreApiRevisionInfo = storeApiRevisionInfo

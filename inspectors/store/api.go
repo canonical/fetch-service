@@ -38,41 +38,41 @@ import (
 	"github.com/canonical/fetch-service/inspectors/store/config"
 )
 
-type StoreApiRevisionInfo struct {
+type storeApiRevisionInfo struct {
 	Sha3_384 string // SHA3-384
 	Size     uint64 // File size
 	Revision string // Revision number
 	Channel  string // Channel name
 }
 
-type StoreApiInfo struct {
+type storeApiInfo struct {
 	Type      string // Package type
 	ID        string // Package ID
 	Publisher string // Package publisher
-	RevInfo   []StoreApiRevisionInfo
+	RevInfo   []storeApiRevisionInfo
 }
 
 type StoreApiInspector struct {
 	config  config.StoreInspectorConfig
-	ids     map[string]*StoreApiInfo // Map from IDs to file information
+	ids     map[string]*storeApiInfo // Map from IDs to file information
 	idsLock sync.Mutex
 }
 
 func NewStoreApiInspector(cfg config.StoreInspectorConfig) *StoreApiInspector {
 	return &StoreApiInspector{
 		config: cfg,
-		ids:    map[string]*StoreApiInfo{},
+		ids:    map[string]*storeApiInfo{},
 	}
 }
 
-func (ins *StoreApiInspector) setStoreApiInfo(pkgid string, ainfo *StoreApiInfo) {
+func (ins *StoreApiInspector) setStoreApiInfo(pkgid string, ainfo *storeApiInfo) {
 	ins.idsLock.Lock()
 	defer ins.idsLock.Unlock()
 
 	ins.ids[pkgid] = ainfo
 }
 
-func (ins *StoreApiInspector) findStoreApiInfo(sha3_384 string) (*StoreApiInfo, string, string) {
+func (ins *StoreApiInspector) findStoreApiInfo(sha3_384 string) (*storeApiInfo, string, string) {
 	ins.idsLock.Lock()
 	defer ins.idsLock.Unlock()
 
@@ -212,14 +212,14 @@ func (ins *StoreApiInspector) InspectArtifact(f ArtifactReader, a ResponseArtifa
 			"publisher":  info.Metadata.Publisher.DisplayName,
 		})
 
-	ainfo := &StoreApiInfo{
+	ainfo := &storeApiInfo{
 		Type:      pkgType,
 		ID:        info.PackageID,
 		Publisher: info.Metadata.Publisher.DisplayName,
 	}
 
 	for _, cinfo := range info.ChannelMap {
-		ainfo.RevInfo = append(ainfo.RevInfo, StoreApiRevisionInfo{
+		ainfo.RevInfo = append(ainfo.RevInfo, storeApiRevisionInfo{
 			Sha3_384: cinfo.Revision.Download.Sha3_384,
 			Size:     uint64(cinfo.Revision.Download.Size),
 			Revision: strconv.Itoa(cinfo.Revision.Revision),

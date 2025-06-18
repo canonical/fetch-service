@@ -132,14 +132,11 @@ func (s *storeSuite) TestStoreApiArtifactInspector(c *C) {
 	c.Check(ainfo.Type, Equals, "bins")
 	c.Check(ainfo.Publisher, Equals, "Imani Pelton")
 	c.Check(ainfo.ID, Equals, "w0VWGQnkqH0EDK7aOda6x9ZP5rHsAT4b")
-	c.Check(ainfo.RevInfo, DeepEquals, []store.StoreApiRevisionInfo{
-		{
-			Sha3_384: sha,
-			Size:     858288,
-			Revision: "1",
-			Channel:  "latest/edge",
-		},
-	})
+	c.Check(ainfo.RevInfo, HasLen, 1)
+	c.Check(ainfo.RevInfo[0].Sha3_384, Equals, sha)
+	c.Check(ainfo.RevInfo[0].Size, Equals, uint64(858288))
+	c.Check(ainfo.RevInfo[0].Revision, Equals, "1")
+	c.Check(ainfo.RevInfo[0].Channel, Equals, "latest/edge")
 	c.Check(revision, Equals, "1")
 	c.Check(channel, Equals, "latest/edge")
 }
