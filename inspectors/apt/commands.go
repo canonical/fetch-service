@@ -143,7 +143,6 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	}
 
 	sc := bufio.NewScanner(r)
-	sc.Split(bufio.ScanLines)
 
 	// some lines can be really long
 	buf := make([]byte, 0, 64*1024)
