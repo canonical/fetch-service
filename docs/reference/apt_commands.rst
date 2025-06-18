@@ -25,7 +25,7 @@ including official ``*.archive.ubuntu.com`` mirrors, ``security.ubuntu.com``,
 and HTTPS requests to ``esm.ubuntu.com``.
 
 The commands file path is expected to match the regular expression
-``^/ubuntu/dists/[\w-]+/[\w-]+/i18n/by-hash/SHA256/[0-9a-f]{64}$``.
+``^/ubuntu/dists/[\w-]+/[\w-]+/cnf/by-hash/SHA256/[0-9a-f]{64}$``.
 
 File format
 -----------
