@@ -20,9 +20,8 @@ None.
 Request verification
 --------------------
 
-The APT commands inspector accepts HTTP requests to the Ubuntu archive,
-including official ``*.archive.ubuntu.com`` mirrors, ``security.ubuntu.com``,
-and HTTPS requests to ``esm.ubuntu.com``.
+The APT commands inspector accepts HTTP requests to the repositories
+configured in the ``apt.repositories.<name>`` entry in ``inspectors.yaml``.
 
 The commands file path is expected to match the regular expression
 ``^/ubuntu/dists/[\w-]+/[\w-]+/cnf/by-hash/SHA256/[0-9a-f]{64}$``.
