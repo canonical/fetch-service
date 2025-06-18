@@ -186,35 +186,39 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		return nil
 	}
 
-	// Parse package list
+	sc.Scan() // Skip empty line
+
+	// Parse package list and count entries
 	for sc.Scan() {
 		line := sc.Text()
 
 		if strings.HasPrefix(line, "name: ") {
 			if state_name {
-				a.SetResponseRejected(ins, "misplaced name field in commands file")
+				a.SetResponseRejected(ins, "duplicate name field in commands file")
 				return nil
 			}
 			state_name = true
 			continue
 		} else if strings.HasPrefix(line, "version: ") {
-			if !state_name {
-				a.SetResponseRejected(ins, "version field without name field")
+			if state_version {
+				a.SetResponseRejected(ins, "duplicate version field in commands file")
 				return nil
 			}
 			state_version = true
 			continue
 		} else if strings.HasPrefix(line, "commands: ") {
-			if !state_name || !state_version {
-				a.SetResponseRejected(ins, "commands field without name or version fields")
+			if state_commands {
+				a.SetResponseRejected(ins, "duplicate commands field in commands file")
 				return nil
 			}
 			state_commands = true
 			continue
 		} else if len(line) == 0 { // item ends
-			if state_commands {
-				item_count++
+			if !state_name || !state_version || !state_commands {
+				a.SetResponseRejected(ins, "ill-formed entry in commands file")
+				return nil
 			}
+			item_count++
 			state_name = false
 			state_version = false
 			state_commands = false
