@@ -1,5 +1,5 @@
 The APT commands file inspector
-==================================
+===============================
 
 The APT commands inspector verifies the APT repository's Commands
 files.
