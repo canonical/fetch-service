@@ -44,7 +44,7 @@ Acceptance criteria
 To be approved, the artifacts examined by this inspector must comply
 to the following rules:
 
-* The ``Commands-<lang>.xz`` file must match the format described in the
+* The ``Commands-<arch>.xz`` file must match the format described in the
   previous section.
 * The deb file must match an entry in a previously downloaded Packages
   file.
@@ -53,7 +53,7 @@ to the following rules:
 Rejection reasons
 -----------------
 
-The ``Commands-<lang>.xz`` file is rejected if:
+The ``Commands-<arch>.xz`` file is rejected if:
 
 * Expected fields are missing.
 
@@ -71,7 +71,7 @@ The following pieces of metadata are extracted by the APT packages file
    Field         Used  Data source
    ============  ====  ============================================
    type          Yes   ``application/x.apt.commands``
-   name          Yes   ``Commands-<lang>``
+   name          Yes   ``Commands``
    version       Yes   ``InRelease`` field ``Codename``
    description
    vendor        Yes   ``InRelease`` field ``Origin``
