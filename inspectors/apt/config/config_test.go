@@ -280,23 +280,75 @@ var translationUrlInfoTests = []translationUrlInfoTest{{
 	errorMsg: "invalid repository: https://esm.ubuntu.com:443/other-repo/ubuntu",
 }}
 
-func (t *configSuite) TestTranslationUrlInfo(c *C) {
-	for _, tc := range translationUrlInfoTests {
+type commandsUrlInfoTest struct {
+	url      string // The request URL
+	conf     string // The repository configuration entry
+	repo     string // The repository name (URL scheme and origin)
+	series   string // The distribution series
+	errorMsg string // The error message, if any
+}
+
+var commandsUrlInfoTests = []commandsUrlInfoTest{{
+	url:      "http://archive.ubuntu.com/ubuntu/dists/focal/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
+	conf:     "default",
+	repo:     "http://archive.ubuntu.com/ubuntu",
+	series:   "focal",
+	errorMsg: "",
+}, {
+	url:      "http://archive.not-ubuntu.com/ubuntu/dists/focal/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
+	conf:     "none",
+	repo:     "http://archive.not-ubuntu.com/ubuntu",
+	series:   "focal",
+	errorMsg: "invalid repository: .*",
+}, {
+	url:      "http://archive.ubuntu.com/ubuntu/dists/focal/main/binary-amd64/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
+	conf:     "none",
+	repo:     "http://archive.ubuntu.com/ubuntu",
+	series:   "focal",
+	errorMsg: "invalid commands URL path: .*",
+}, {
+	url:      "http://archive.ubuntu.com/ubuntu/dists/jammy/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
+	conf:     "none",
+	repo:     "http://archive.ubuntu.com/ubuntu",
+	series:   "jammy",
+	errorMsg: "invalid series: jammy",
+}, {
+	url:      "http://archive.ubuntu.com/ubuntu/dists/focal/universe/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
+	conf:     "none",
+	repo:     "http://archive.ubuntu.com/ubuntu",
+	series:   "focal",
+	errorMsg: "invalid component: universe",
+}, {
+	url:      "https://esm.ubuntu.com:443/fips-preview/ubuntu/dists/noble/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
+	conf:     "esm",
+	repo:     "https://esm.ubuntu.com:443/fips-preview/ubuntu",
+	series:   "noble",
+	errorMsg: "",
+}, {
+	url:      "https://esm.ubuntu.com:443/other-repo/ubuntu/dists/noble/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
+	conf:     "none",
+	repo:     "https://esm.ubuntu.com/other-repo/ubuntu",
+	series:   "noble",
+	errorMsg: "invalid repository: https://esm.ubuntu.com:443/other-repo/ubuntu",
+}}
+
+func (t *configSuite) TestCommandsUrlInfo(c *C) {
+	for _, tc := range commandsUrlInfoTests {
 		u, err := url.Parse(tc.url)
 		c.Assert(err, IsNil)
 
 		cfg := getTestAptConfig()
-		info, err := config.NewTranslationUrlInfo(u, &cfg, t.slog)
+		info, err := config.NewCommandsUrlInfo(u, &cfg, t.slog)
 
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
-			c.Assert(info, DeepEquals, &config.TranslationUrlInfo{
+			c.Assert(info, DeepEquals, &config.CommandsUrlInfo{
 				CfgName:    tc.conf,
 				Origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 				Repository: tc.repo,
 				Dist:       tc.series,
 				Component:  "main",
-				Digest:     "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
+				Digest:     "6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
 			})
 		} else {
 			c.Assert(err, ErrorMatches, tc.errorMsg)
