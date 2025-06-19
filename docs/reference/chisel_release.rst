@@ -1,7 +1,6 @@
 The Chisel release inspector
 ============================
 
-
 The Chisel release inspector verifies the `chisel-releases repository`_'s
 tarball download request and response artifact.
 
