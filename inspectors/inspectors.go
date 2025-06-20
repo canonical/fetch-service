@@ -50,6 +50,7 @@ func init() {
 	mimetype.Lookup("application/x-xz").Extend(apt.AptPackagesDetector, mimetypes.AptPackages, "")
 	mimetype.Lookup("application/x-gzip").Extend(apt.AptPackagesDetector, mimetypes.AptPackages, "")
 	mimetype.Lookup("application/x-xz").Extend(apt.AptTranslationDetector, mimetypes.AptTranslation, "")
+	mimetype.Lookup("application/x-xz").Extend(apt.AptCommandsDetector, mimetypes.AptCommands, "")
 	mimetype.Lookup("application/octet-stream").Extend(snap.SquashFsDetector, mimetypes.SquashFs, "")
 	mimetype.Lookup("text/plain").Extend(snap.AssertionDetector, mimetypes.Assertion, ".assert")
 }
@@ -87,6 +88,7 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		apt.NewAptReleaseInspector(cfg.Apt),
 		apt.NewAptPackagesInspector(cfg.Apt),
 		apt.NewAptTranslationInspector(cfg.Apt),
+		apt.NewAptCommandsInspector(cfg.Apt),
 
 		// git
 		git.NewSmartQueryInspector(cfg.Git),
