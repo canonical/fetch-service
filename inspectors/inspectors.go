@@ -73,6 +73,7 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		store.NewStoreApiInspector(cfg.Store),
 
 		// bld bin
+		// must run after store API
 		bldbin.NewBldBinInspector(cfg.BldBin),
 
 		// python
