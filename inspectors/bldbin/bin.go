@@ -96,7 +96,7 @@ func (ins *BldBinInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 		}
 
 		if h.Name == "./metadata.yaml" {
-			slog.Debug("bld bin metadata found")
+			slog.Debug("metadata.yaml file found")
 			binmd, err := ReadMetadata(tf)
 			if err != nil {
 				return err
