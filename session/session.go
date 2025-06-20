@@ -246,15 +246,15 @@ func (s *Session) AddArtifact(a *metadata.Artifact) {
 
 // HasArtifact verifies whether the given digest corresponds
 // to an artifact downloaded in this session.
-func (s *Session) HasArtifact(sha1 digests.Sha256Digest) bool {
-	_, ok := s.A[sha1]
+func (s *Session) HasArtifact(sha256 digests.Sha256Digest) bool {
+	_, ok := s.A[sha256]
 	return ok
 }
 
 // ArtifactResult obtains the result from a previous HasArtifact
 // inspection, or Rejected if it was not previously inspected.
-func (s *Session) ArtifactResult(sha1 digests.Sha256Digest) opinions.OpinionKind {
-	a, ok := s.A[sha1]
+func (s *Session) ArtifactResult(sha256 digests.Sha256Digest) opinions.OpinionKind {
+	a, ok := s.A[sha256]
 	if !ok {
 		return opinions.Rejected
 	}
@@ -273,12 +273,8 @@ var osMkdirAll = os.MkdirAll
 
 // SaveData writes the artifact data corresponding to the given
 // digest to the asset spool.
-func (s *Session) SaveData(digest digests.Sha256Digest) error {
-	a, ok := s.A[digest]
-	if !ok {
-		return fmt.Errorf("metadata for artifact %s not available", digest)
-	}
-
+// func (s *Session) SaveData(digest digests.Sha256Digest) error {
+func (s *Session) SaveData(a *metadata.Artifact) error {
 	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
 	if err := osMkdirAll(filepath.Dir(dest), 0755); err != nil {
 		s.removeTempFile(a.Tempfile)
@@ -328,7 +324,9 @@ func (s *Session) SaveMetadata(digest digests.Sha256Digest) error {
 
 func (s *Session) removeTempFile(name string) {
 	if err := os.Remove(name); err != nil {
-		s.Logger.Warningf("cannot remove temporary file %s: %s", name, err)
+		if !os.IsNotExist(err) {
+			s.Logger.Warningf("cannot remove temporary file %s: %s", name, err)
+		}
 	}
 }
 

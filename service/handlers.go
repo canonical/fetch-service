@@ -46,7 +46,10 @@ func handleMessages(svc *Service, msg interface{}) {
 		handleRequestInspection(v)
 
 	case messages.ResponseInspection:
-		handleResponseInspection(v)
+		handleResponseInspection(v, svc.ch)
+
+	case messages.CompleteInspection:
+		handleCompleteInspection(v)
 
 	case messages.CreateSession:
 		handleCreateSession(v, svc.opt.Spool, svc.opt.PermissiveMode, svc)
@@ -91,7 +94,7 @@ func handleRequestInspection(v messages.RequestInspection) {
 	}(s, v.A)
 }
 
-func handleResponseInspection(v messages.ResponseInspection) {
+func handleResponseInspection(v messages.ResponseInspection, ch chan interface{}) {
 	sessionId := v.A.SessionId
 	digest := v.A.Metadata.Sha256
 	slog := v.A.Logger()
@@ -110,6 +113,11 @@ func handleResponseInspection(v messages.ResponseInspection) {
 	dl := v.A.CurrentDownload
 	slog.Infof("%s %s: %s (%s)", dl.Method, dl.URL, dl.Status, dl.ContentType)
 
+	// Reuse the result of a previous inspection if the artifact is already added
+	// to the current session (meaning that there is a complete inspection of
+	// the same artifac). Otherwise save the temporary file to the file spool
+	// for inspection. Files are added to the spool only if they're not already
+	// there.
 	if s.HasArtifact(digest) {
 		slog.Infof("artifact %s already downloaded", digest)
 		s.AddDownload(v.A.CurrentDownload)
@@ -120,21 +128,43 @@ func handleResponseInspection(v messages.ResponseInspection) {
 			v.Rch <- nil
 		}
 		return
+	} else {
+		if err := s.SaveData(v.A); err != nil {
+			v.Rch <- err
+			return
+		}
 	}
 
-	// Add metadata to session
-	s.AddArtifact(v.A)
-	if err := s.SaveData(digest); err != nil {
+	// No previous inspection of this artifact is complete, so run the response
+	// inspectors on the artifact file saved to the spool. Inspectors run
+	// asynchronously and will add the artifact to the session on completion. If
+	// the artifact has already been added to the session, add a new download
+	// entry to the existing artifact.
+	go func(s *session.Session, a *metadata.Artifact, ch chan interface{}) {
+		err := runResponseInspection(s, a)
+
+		// Add artifact to session after inspection
+		cinsp := messages.NewCompleteInspection(v.A)
+		ch <- cinsp
+		<-cinsp.Rch
+
 		v.Rch <- err
-		return
-	}
 
+	}(s, v.A, ch)
+}
+
+func handleCompleteInspection(v messages.CompleteInspection) {
+	digest := v.A.Metadata.Sha256
+	s := session.GetSession(v.A.SessionId)
+	if !s.HasArtifact(digest) {
+		s.AddArtifact(v.A)
+
+	}
 	s.AddDownload(v.A.CurrentDownload)
 
-	// Run response inspectors
-	go func(s *session.Session, a *metadata.Artifact) {
-		v.Rch <- runResponseInspection(s, a)
-	}(s, v.A)
+	slog := v.A.Logger()
+	slog.Infof("artifact %s inspection complete", digest)
+	v.Rch <- nil
 }
 
 func handleCreateSession(v messages.CreateSession, spoolDir string, permissiveMode bool, svc *Service) {

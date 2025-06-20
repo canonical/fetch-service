@@ -86,6 +86,18 @@ func NewResponseInspection(a *metadata.Artifact) ResponseInspection {
 	}
 }
 
+type CompleteInspection struct {
+	Rch chan error         // Handler response channel
+	A   *metadata.Artifact // Artifact and download metadata
+}
+
+func NewCompleteInspection(a *metadata.Artifact) CompleteInspection {
+	return CompleteInspection{
+		Rch: make(chan error, 1),
+		A:   a,
+	}
+}
+
 // Session creation
 
 type SessionCredentials struct {
