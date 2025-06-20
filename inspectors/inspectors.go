@@ -27,6 +27,7 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 
 	"github.com/canonical/fetch-service/inspectors/apt"
+	"github.com/canonical/fetch-service/inspectors/bldbin"
 	"github.com/canonical/fetch-service/inspectors/cargo"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/craft"
@@ -38,6 +39,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/inspectors/pip"
 	"github.com/canonical/fetch-service/inspectors/snap"
+	"github.com/canonical/fetch-service/inspectors/store"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
 	"github.com/canonical/fetch-service/service/config"
@@ -67,6 +69,13 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		snap.NewSnapAssertionInspector(),
 		snap.NewSnapInfoInspector(),
 		snap.NewSnapRefreshInspector(),
+
+		// store API
+		store.NewStoreApiInspector(cfg.Store),
+
+		// bld bin
+		// must run after store API
+		bldbin.NewBldBinInspector(cfg.BldBin),
 
 		// python
 		pip.NewSimpleIndexInspector(),
