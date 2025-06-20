@@ -45,4 +45,5 @@ const (
 	AccountAssertion           = "application/x.ubuntu.assertion.account"
 	AccountKeyAssertion        = "application/x.ubuntu.assertion.account-key"
 	RustCrate                  = "application/x.rust.crate"
+	ChiselRelease              = "application/x.canonical.chisel.release"
 )
