@@ -21,7 +21,6 @@ package store
 
 import (
 	"archive/tar"
-	"crypto/sha3"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -31,6 +30,7 @@ import (
 	"sync"
 
 	"github.com/xi2/xz"
+	"golang.org/x/crypto/sha3"
 
 	"github.com/canonical/fetch-service/inspectors/bldbin"
 	. "github.com/canonical/fetch-service/inspectors/common"
