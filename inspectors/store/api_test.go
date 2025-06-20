@@ -175,6 +175,7 @@ func (s *storeSuite) TestValidateBin(c *C) {
 	a.Metadata.Size = 2156
 
 	f, err := files.OpenArtifactFile("testdata/starcraft-test-2.0.0.tar.xz")
+	c.Assert(err, IsNil)
 
 	ainfo := &store.StoreApiInfo{
 		Type:      "bins",
