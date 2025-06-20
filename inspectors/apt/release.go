@@ -167,6 +167,10 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		return ins.validateTranslationFile(f, a)
 	}
 
+	if a.MimetypeIs(mimetypes.AptCommands) {
+		return ins.validateCommandsFile(f, a)
+	}
+
 	if !a.MimetypeIs("text/plain") {
 		return nil // not a Release file
 	}
@@ -460,6 +464,58 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ArtifactReader, a Resp
 	}
 
 	a.SetResponseApproved(ins, "Translation file listed in Release").Annotate(
+		Annotation{
+			"file-path":    entry.Name,
+			"release-file": ins.release[repo].Sha256.String(),
+			"vendor":       rel.Vendor,
+		},
+	)
+
+	return nil
+}
+
+// validateCommandsFile examines InRelease files and validates Commands-<arch>
+// files against InRelease entries.
+func (ins *AptReleaseInspector) validateCommandsFile(f ArtifactReader, a ResponseArtifact) error {
+	slog := a.Logger()
+	slog.Debug("validate commands file")
+
+	u, err := url.Parse(a.DownloadURL())
+	if err != nil {
+		return fmt.Errorf("cannot parse URL: %s", err)
+	}
+
+	slog.Debugf("commands file path: %s", u.Path)
+	info, err := apt_cfg.NewCommandsUrlInfo(u, &ins.config, slog)
+	if err != nil {
+		a.SetResponseRejected(ins, "invalid path for commands file")
+		return nil
+	}
+
+	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
+	rel, ok := ins.release[repo]
+	if !ok {
+		a.SetResponseRejected(ins, "Repository Release data not found")
+		return nil
+	}
+
+	entry, ok := rel.Files[a.Sha256()]
+	if !ok {
+		a.SetResponseRejected(ins, "Commands file not listed in Release file")
+		return nil
+	}
+	slog.Debugf("release entry: %+v", entry)
+
+	if int64(entry.Size) != a.Size() {
+		a.SetResponseRejected(ins, "Commands file size mismatch").Annotate(
+			Annotation{
+				"expected-size": entry.Size,
+			},
+		)
+		return nil
+	}
+
+	a.SetResponseApproved(ins, "Commands file listed in Release").Annotate(
 		Annotation{
 			"file-path":    entry.Name,
 			"release-file": ins.release[repo].Sha256.String(),

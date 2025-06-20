@@ -2,9 +2,9 @@ The APT release file inspector
 ==============================
 
 The APT release inspector examines different types of artifacts. Besides
-the Ubuntu archive InRelease file, it verifies Packages.xz and Translation
-files are correctly listed in the InRelease file with a matching file
-digest.
+the Ubuntu archive InRelease file, it verifies whether Packages.xz, Translation,
+and Commands files are correctly listed in the InRelease file with a matching
+file digest.
 
 Inspector ID
 ------------
@@ -51,6 +51,8 @@ to the following rules:
   of the same repository.
 * The ``Translation-<lang>.xz`` file must match an entry in the
   ``InRelease`` file of the same repository.
+* The ``Commands-<arch>.xz`` file must match an entry in the ``InRelease``
+  file of the same repository.
 
 
 Rejection reasons
@@ -62,7 +64,8 @@ The ``InRelease`` file is rejected if:
 * The expected fields are not found.
 * The file entries cannot be parsed.
 
-The ``Packages.xz`` and ``Translation-<lang>.xz`` are rejected if:
+The ``Packages.xz`, ``Translation-<lang>.xz``, or ``Commands-<arch>.xz``
+files are rejected if:
 
 * They're download before the repository's ``InRelease`` file.
 * The files don't match the listing in the repository's ``InRelease``

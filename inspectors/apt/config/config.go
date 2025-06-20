@@ -242,6 +242,42 @@ func NewTranslationUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logg
 	return info, nil
 }
 
+type CommandsUrlInfo struct {
+	CfgName    string // Configuration entry name
+	Origin     string // HTTP scheme and host
+	Repository string // Apt repository root
+	Dist       string // Repository dist name
+	Component  string // Repository component
+	Digest     string // Digest from by-hash URL
+}
+
+func NewCommandsUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger) (*CommandsUrlInfo, error) {
+	name, repo, dist, err := checkRepositoryAndDist(cfg, u, slog)
+	if err != nil {
+		return nil, err
+	}
+
+	component, err := checkComponent(cfg, name, u, slog)
+	if err != nil {
+		return nil, err
+	}
+
+	reCommands := regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/cnf/by-hash/SHA256/([0-9a-f]{64})$`)
+	m := reCommands.FindStringSubmatch(u.Path)
+	if len(m) != 2 {
+		return nil, fmt.Errorf("invalid commands URL path: %s", u.Path)
+	}
+	info := &CommandsUrlInfo{
+		CfgName:    name,
+		Origin:     utils.NormalizedOrigin(u),
+		Repository: repo,
+		Dist:       dist,
+		Component:  component,
+		Digest:     m[1],
+	}
+	return info, nil
+}
+
 type DebPackageUrlInfo struct {
 	CfgName      string // Configuration entry name
 	Origin       string // HTTP scheme and host
