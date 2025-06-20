@@ -236,6 +236,7 @@ func (s *storeSuite) TestValidateBinNoRequest(c *C) {
 	a.Metadata.Size = 2156
 
 	f, err := files.OpenArtifactFile("testdata/starcraft-test-2.0.0.tar.xz")
+	c.Assert(err, IsNil)
 
 	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig())
 	err = ins.InspectArtifact(f, a)
