@@ -85,9 +85,8 @@ func (ins *BldBinInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 	slog := a.Logger()
 
 	tf := tar.NewReader(xr)
-	metadataFound := false
 
-	for !metadataFound {
+	for {
 		h, err := tf.Next()
 		if err != nil {
 			if err == io.EOF {
@@ -96,8 +95,7 @@ func (ins *BldBinInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 			return err
 		}
 
-		switch h.Name {
-		case "./metadata.yaml":
+		if h.Name == "./metadata.yaml" {
 			slog.Debug("bld bin metadata found")
 			binmd, err := ReadMetadata(tf)
 			if err != nil {
@@ -126,7 +124,7 @@ func (ins *BldBinInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 			a.SetArtifactMetadata(md)
 			a.SetResponseApproved(ins, "bin package metadata parsed")
 
-			metadataFound = true
+			break
 		}
 	}
 
