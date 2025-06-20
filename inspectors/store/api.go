@@ -49,7 +49,7 @@ type storeApiInfo struct {
 	Type      string // Package type
 	ID        string // Package ID
 	Publisher string // Package publisher
-	RevInfo   []storeApiRevisionInfo
+	RevInfo   map[string]storeApiRevisionInfo
 }
 
 type StoreApiInspector struct {
@@ -77,10 +77,9 @@ func (ins *StoreApiInspector) findStoreApiInfo(sha3_384 string) (*storeApiInfo, 
 	defer ins.idsLock.Unlock()
 
 	for _, info := range ins.ids {
-		for _, rinfo := range info.RevInfo {
-			if rinfo.Sha3_384 == sha3_384 {
-				return info, rinfo.Revision, rinfo.Channel
-			}
+		rinfo, ok := info.RevInfo[sha3_384]
+		if ok {
+			return info, rinfo.Revision, rinfo.Channel
 		}
 	}
 	return nil, "0", ""
@@ -216,15 +215,17 @@ func (ins *StoreApiInspector) InspectArtifact(f ArtifactReader, a ResponseArtifa
 		Type:      pkgType,
 		ID:        info.PackageID,
 		Publisher: info.Metadata.Publisher.DisplayName,
+		RevInfo:   map[string]storeApiRevisionInfo{},
 	}
 
 	for _, cinfo := range info.ChannelMap {
-		ainfo.RevInfo = append(ainfo.RevInfo, storeApiRevisionInfo{
-			Sha3_384: cinfo.Revision.Download.Sha3_384,
+		sha3_384 := cinfo.Revision.Download.Sha3_384
+		ainfo.RevInfo[sha3_384] = storeApiRevisionInfo{
+			Sha3_384: sha3_384,
 			Size:     uint64(cinfo.Revision.Download.Size),
 			Revision: strconv.Itoa(cinfo.Revision.Revision),
 			Channel:  cinfo.Channel.Name,
-		})
+		}
 
 	}
 

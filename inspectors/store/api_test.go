@@ -133,10 +133,10 @@ func (s *storeSuite) TestStoreApiArtifactInspector(c *C) {
 	c.Check(ainfo.Publisher, Equals, "Imani Pelton")
 	c.Check(ainfo.ID, Equals, "w0VWGQnkqH0EDK7aOda6x9ZP5rHsAT4b")
 	c.Check(ainfo.RevInfo, HasLen, 1)
-	c.Check(ainfo.RevInfo[0].Sha3_384, Equals, sha)
-	c.Check(ainfo.RevInfo[0].Size, Equals, uint64(858288))
-	c.Check(ainfo.RevInfo[0].Revision, Equals, "1")
-	c.Check(ainfo.RevInfo[0].Channel, Equals, "latest/edge")
+	c.Check(ainfo.RevInfo[sha].Sha3_384, Equals, sha)
+	c.Check(ainfo.RevInfo[sha].Size, Equals, uint64(858288))
+	c.Check(ainfo.RevInfo[sha].Revision, Equals, "1")
+	c.Check(ainfo.RevInfo[sha].Channel, Equals, "latest/edge")
 	c.Check(revision, Equals, "1")
 	c.Check(channel, Equals, "latest/edge")
 }
@@ -180,10 +180,12 @@ func (s *storeSuite) TestValidateBin(c *C) {
 		Type:      "bins",
 		ID:        "pkgid",
 		Publisher: "publisher",
-		RevInfo: []store.StoreApiRevisionInfo{
-			{
+		RevInfo: map[string]store.StoreApiRevisionInfo{
+			testDigest: {
 				Sha3_384: testDigest,
 				Size:     2156,
+				Revision: "1",
+				Channel:  "latest/stable",
 			},
 		},
 	}
