@@ -92,7 +92,7 @@ func (ins *BldBinInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 			if err == io.EOF {
 				break
 			}
-			return err
+			return nil // We don't recognize this artifact
 		}
 
 		if h.Name == "./metadata.yaml" {
