@@ -167,7 +167,7 @@ func (s *wheelSuite) TestWheelReadMetadata(c *C) {
 		"Author: Poppy Bolger\n"+
 		"Author-email: contact@foobar.com\n"+
 		"Random-tag: doesn't matter\n"+
-		"License: 3-Clause BSD\n"+
+		"Classifier: License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)\n"+
 		"\n"+
 		"Lorem ipsum dolor sit amet,\n"+
 		"consectetur adipiscing elit.\n")
@@ -194,7 +194,7 @@ func (s *wheelSuite) TestWheelReadMetadata(c *C) {
 	c.Assert(a.Metadata.Vendor, Equals, "Poppy Bolger")
 	c.Assert(a.Metadata.Author, Equals, "Poppy Bolger")
 	c.Assert(a.Metadata.AuthorEmail, Equals, "contact@foobar.com")
-	c.Assert(a.Metadata.License, Equals, "BSD-3-Clause")
+	c.Assert(a.Metadata.License, Equals, "GPL-3.0-or-later")
 }
 
 func (s *wheelSuite) TestReadWheelRecord(c *C) {

@@ -1,0 +1,49 @@
+{
+    "channel-map": [
+        {
+            "channel": {
+                "name": "latest/edge",
+                "platform": {
+                    "architecture": "amd64",
+                    "channel": "24.04",
+                    "name": "ubuntu"
+                },
+                "released-at": "2025-04-02T15:49:35.973052+00:00",
+                "risk": "edge",
+                "track": "latest"
+            },
+            "revision": {
+                "created-at": "2025-04-02T15:48:08.249793+00:00",
+                "download": {
+                    "sha3-384": "b162cad83a53c5190a249ed0fd3b80c5ff89454654541efe918bbe23883d47541b1bb0a572b994caa828c8982dcf0bdd",
+                    "size": 858288,
+                    "url": "https://api.staging.snapcraft.io/api/v1/bins/download/w0VWGQnkqH0EDK7aOda6x9ZP5rHsAT4b_1.bin"
+                },
+                "platforms": [
+                    {
+                        "architecture": "amd64",
+                        "channel": "24.04",
+                        "name": "ubuntu"
+                    }
+                ],
+                "revision": 1,
+                "version": "6457c14"
+            }
+        }
+    ],
+    "default-track": null,
+    "metadata": {
+        "contact": "",
+        "description": "A small utility to modify the dynamic linker and RPATH of ELF executables.\n",
+        "license": "unset",
+        "publisher": {
+            "display-name": "Imani Pelton",
+            "id": "Hy3LJZkXTzqVmTK6NLJwQf0mxwkdiY8E",
+            "username": "bepri-staging",
+            "validation": "unproven"
+        },
+        "summary": "A small utility to modify ELF executables."
+    },
+    "name": "starcraft-patchelf",
+    "package-id": "w0VWGQnkqH0EDK7aOda6x9ZP5rHsAT4b"
+}
