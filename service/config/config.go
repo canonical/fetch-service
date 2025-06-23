@@ -33,9 +33,11 @@ import (
 
 	"github.com/canonical/fetch-service/glob"
 	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
+	bldbin_cfg "github.com/canonical/fetch-service/inspectors/bldbin/config"
 	crafts_cfg "github.com/canonical/fetch-service/inspectors/craft/config"
 	git_cfg "github.com/canonical/fetch-service/inspectors/git/config"
 	snap_cfg "github.com/canonical/fetch-service/inspectors/snap/config"
+	store_cfg "github.com/canonical/fetch-service/inspectors/store/config"
 	"github.com/canonical/fetch-service/logger"
 )
 
@@ -271,6 +273,8 @@ type InspectorsConfig struct {
 	Git    git_cfg.GitInspectorConfig       `yaml:"git"`
 	Crafts crafts_cfg.CraftsInspectorConfig `yaml:"crafts"`
 	Snap   snap_cfg.SnapInspectorConfig     `yaml:"snap"`
+	Store  store_cfg.StoreInspectorConfig   `yaml:"store"`
+	BldBin bldbin_cfg.BldBinInspectorConfig `yaml:"bldbin"`
 }
 
 func LoadInspectorsConfig(cfgdir string) error {
@@ -336,6 +340,12 @@ func GetInspectorsConfig() InspectorsConfig {
 
 	cfg.Crafts.Urls = make([]glob.Glob, len(globalInspectorsConfig.Crafts.Urls))
 	copy(cfg.Crafts.Urls, globalInspectorsConfig.Crafts.Urls)
+
+	cfg.Store.Urls = make([]glob.Glob, len(globalInspectorsConfig.Store.Urls))
+	copy(cfg.Store.Urls, globalInspectorsConfig.Store.Urls)
+
+	cfg.BldBin.Urls = make([]glob.Glob, len(globalInspectorsConfig.BldBin.Urls))
+	copy(cfg.BldBin.Urls, globalInspectorsConfig.BldBin.Urls)
 
 	cfg.Snap.SnapDeclarationFilter = make([]snap_cfg.AssertionFilter, len(globalInspectorsConfig.Snap.SnapDeclarationFilter))
 	for i, v := range globalInspectorsConfig.Snap.SnapDeclarationFilter {

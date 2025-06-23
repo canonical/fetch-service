@@ -2,6 +2,8 @@ name: Sync to Launchpad
 
 on:
   push:
+concurrency:
+  group: ${{ github.workflow }}
 
 jobs:
   sync:
@@ -11,7 +13,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: true
       - name: Sync to Launchpad
         run: |
+          git branch --set-upstream-to=origin/$(git rev-parse --abbrev-ref HEAD)
+          git branch -r | grep -v '\->' | grep -v $(git rev-parse --abbrev-ref HEAD) | while read remote; do git branch --track "${remote#origin/}" "$remote"; done
+          git fetch --all
+          git pull --all
           git remote add launchpad https://lengau:${{ secrets.LP_TOKEN }}@git.launchpad.net/fetch-service
-          git push --all --force launchpad
+          git push --mirror --force launchpad
+          git push --tags --force launchpad

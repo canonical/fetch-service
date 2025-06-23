@@ -14,15 +14,16 @@ usage() {
 prepare() {
 	case "$SPREAD_SYSTEM" in
 	fedora*)
-		dnf update
-		dnf install -y snapd
+		dnf update -y
+		dnf install -y snapd curl jq
 		while ! snap install snapd; do
 			echo "waiting for snapd..."
 			sleep 2
 		done
 		;;
-	ubuntu* | debian*)
+	ubuntu*)
 		apt update
+		apt install -y curl jq
 		;;
 	esac
 
@@ -71,17 +72,14 @@ allocate_lxdvm() {
 	lxc launch --vm \
 		"${image}" \
 		"${VM_NAME}" \
-		-c cloud-init.user-data="$(cat spread/cloud-config.yaml)" \
-		-c user.user-data="$(cat spread/cloud-config.yaml)" \
 		-c limits.cpu="${CPU}" \
 		-c limits.memory="${MEM}GiB" \
 		-d root,size="${DISK}GiB"
 
-	lxc exec "${VM_NAME}" -- cloud-init status --long --wait || :
-
-	# Wait for the spread user
-	while ! lxc exec "${VM_NAME}" -- id -u spread &>/dev/null; do sleep 0.5; done
-	lxc exec "${VM_NAME}" -- rm -f /etc/ssh/sshd_config.d/60-cloudimg-settings.conf
+	while ! lxc exec "${VM_NAME}" -- true &>/dev/null; do sleep 0.5; done
+	lxc exec "${VM_NAME}" -- sed -i 's/^\s*#\?\s*\(PermitRootLogin\|PasswordAuthentication\)\>.*/\1 yes/' /etc/ssh/sshd_config
+	lxc exec "${VM_NAME}" -- bash -c "if [ -d /etc/ssh/sshd_config.d ]; then echo -e 'PermitRootLogin yes\nPasswordAuthentication yes' > /etc/ssh/sshd_config.d/00-spread.conf; fi"
+	lxc exec "${VM_NAME}" -- bash -c "echo root:${SPREAD_PASSWORD} | sudo chpasswd || true"
 
 	# Print the instance address to stdout
 	ADDR=""
@@ -90,7 +88,7 @@ allocate_lxdvm() {
 }
 
 discard_lxdvm() {
-	instance_name="$(lxc ls -f csv | grep "$SPREAD_SYSTEM_ADDRESS" | cut -f1 -d",")"
+	instance_name="$(lxc ls -f csv | grep ",$SPREAD_SYSTEM_ADDRESS " | cut -f1 -d",")"
 	lxc delete -f "$instance_name"
 }
 
@@ -99,15 +97,12 @@ allocate_ci() {
 		echo "This backend is intended to be used only in CI systems."
 		exit 1
 	fi
-	sudo sed -i "s|#PasswordAuthentication yes|PasswordAuthentication yes|g" /etc/ssh/sshd_config
-	sudo sed -i "s|KbdInteractiveAuthentication no|KbdInteractiveAuthentication yes|g" /etc/ssh/sshd_config
-	sudo rm -f /etc/ssh/sshd_config.d/60-cloudimg-settings.conf
+	sudo sed -i 's/^\s*#\?\s*\(PermitRootLogin\|PasswordAuthentication\)\>.*/\1 yes/' /etc/ssh/sshd_config
+	if [ -d /etc/ssh/sshd_config.d ]; then echo -e 'PermitRootLogin yes\nPasswordAuthentication yes' | sudo tee /etc/ssh/sshd_config.d/00-spread.conf; fi
 	sudo systemctl daemon-reload
 	sudo systemctl restart ssh
 
-	sudo useradd spread -s /bin/bash -m || true
-	echo "spread:spread" | sudo chpasswd || true
-	echo 'spread ALL=(ALL) NOPASSWD:ALL ' | sudo tee /etc/sudoers.d/99-spread-user || true
+	echo "root:${SPREAD_PASSWORD}" | sudo chpasswd || true
 
 	# Print the instance address to stdout
 	echo localhost >&3
