@@ -106,6 +106,9 @@ var bldbinArtifactInspectorTests = []bldbinArtifactInspectorTest{{
 }, {
 	filename: "testdata/invalid-bin.tar.xz",
 	approved: false,
+}, {
+	filename: "testdata/Packages.xz",
+	approved: false,
 }}
 
 func (s *bldbinSuite) TestBldBinArtifactInspector(c *C) {
@@ -125,6 +128,7 @@ func (s *bldbinSuite) TestBldBinArtifactInspector(c *C) {
 		c.Assert(a.Approved(), Equals, tc.approved)
 
 		if tc.approved {
+			c.Check(a.ResponseApproved(), Equals, true)
 			c.Check(a.Metadata.Name, Equals, "starcraft-test")
 			c.Check(a.Metadata.Version, Equals, "2.0.0")
 			c.Check(a.Metadata.Description, Equals, "Package used in Starcraft tests")
@@ -132,6 +136,10 @@ func (s *bldbinSuite) TestBldBinArtifactInspector(c *C) {
 			c.Check(a.Metadata.Author, Equals, "")
 			c.Check(a.Metadata.License, Equals, "GPL-3.0-or-later")
 			c.Check(a.Metadata.Architecture, Equals, "amd64")
+		} else {
+			// We don't recognize this artifact
+			c.Check(a.ResponseApproved(), Equals, false)
+			c.Check(a.ResponseRejected(), Equals, false)
 		}
 	}
 }
