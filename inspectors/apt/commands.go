@@ -226,8 +226,9 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	}
 
 	md := ArtifactMetadata{
-		Type: mimetypes.AptCommands,
-		Name: "Commands",
+		Type:        mimetypes.AptCommands,
+		Name:        "Commands",
+		Description: "Commands list for command-not-found",
 	}
 
 	// the file should be also annotated by the release inspector
