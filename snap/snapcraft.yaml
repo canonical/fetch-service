@@ -55,6 +55,8 @@ parts:
       - git
     build-snaps:
       - go
+    stage-packages:
+      - git
     plugin: go
     source: .
     override-build: |
