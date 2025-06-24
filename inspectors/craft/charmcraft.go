@@ -108,15 +108,15 @@ func (ins *CharmcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 			"git repository does not contain a charmcraft.yaml file")
 		return nil
 	}
-	yamldata_filereader, err := osOpen(charmcraftYamlPath)
+	yamlFile, err := osOpen(charmcraftYamlPath)
 	if err != nil {
 		a.SetResponseRejected(ins, "cannot open charmcraft.yaml file")
 		return nil
 	}
-	defer yamldata_filereader.Close()
+	defer yamlFile.Close()
 
 	var data charmcraftYaml
-	dec := yaml.NewDecoder(yamldata_filereader)
+	dec := yaml.NewDecoder(yamlFile)
 	if err := dec.Decode(&data); err != nil {
 		a.SetResponseRejected(ins, "cannot decode charmcraft.yaml")
 		return nil

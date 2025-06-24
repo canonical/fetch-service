@@ -32,13 +32,31 @@ import (
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/craft"
 	"github.com/canonical/fetch-service/inspectors/craft/config"
-	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
 	"github.com/gabriel-vasile/mimetype"
 )
+
+type DummyReader struct{}
+
+func (d DummyReader) Len() int {
+	panic("Unexpected call to Len()")
+}
+
+func (d DummyReader) Read(p []byte) (n int, err error) {
+	panic("Unexpected call to Read()")
+}
+
+func (d DummyReader) Seek(offset int64, whence int) (int64, error) {
+	panic("Unexpected call to Seek()")
+
+}
+func (d DummyReader) ReadAt(p []byte, off int64) (n int, err error) {
+	panic("Unexpected call to ReadAt()")
+
+}
 
 type charmcraftSuite struct {
 	slog logger.Logger
@@ -121,30 +139,28 @@ func createTestCharmcraftArtifact(checkoutPath string) *metadata.Artifact {
 	return a
 }
 
-func loadTestCharmcraftArtifactData() (*files.ArtifactFile, error) {
-	sourcepkg_file := filepath.Join("testdata", "sourcepkg.raw")
-	file, err := files.OpenArtifactFile(sourcepkg_file)
-	return file, err
+type charmcraftInspectRequestTest struct {
+	url      string
+	approved bool
+}
+
+var charmcraftInspectRequestTests = []charmcraftInspectRequestTest{
+	{"https://github.com:443/user/project.git/git-upload-pack", true},
+	{"https://git.launchpad.net:443/project/git-upload-pack", true},
+	{"https://git.launchpad.net:443/~user/project/+git/project/git-upload-pack", true},
+	{"https://github.com:443/user/project/git-upload-pack", true},
+	{"https://invalid.com:443/user/project.git/git-upload-pack", false},
+	{"http://github.com/user/project.git/git-upload-pack", false},
+	{"https://gothub.com:443/user/project.git/git-upload-pack", false},
+	{"ahttps://github.com:443/user/project.git/git-upload-pack", false},
+	{"https://github.com:443/user/project.git/git-upload-packs", false},
+	{"https://github.com:443/user/project.git/something-else", false},
+	{"https://git.launchpad.com:443/project/git-upload-pack", false},
+	{"https://git.lpad.net:443/~user/project/+git/project/git-upload-pack", false},
 }
 
 func (s *charmcraftSuite) TestInspectCharmcraftGitRequest(c *C) {
-	for _, tc := range []struct {
-		url      string
-		approved bool
-	}{
-		{"https://github.com:443/user/project.git/git-upload-pack", true},
-		{"https://git.launchpad.net:443/project/git-upload-pack", true},
-		{"https://git.launchpad.net:443/~user/project/+git/project/git-upload-pack", true},
-		{"https://github.com:443/user/project/git-upload-pack", true},
-		{"https://invalid.com:443/user/project.git/git-upload-pack", false},
-		{"http://github.com/user/project.git/git-upload-pack", false},
-		{"https://gothub.com:443/user/project.git/git-upload-pack", false},
-		{"ahttps://github.com:443/user/project.git/git-upload-pack", false},
-		{"https://github.com:443/user/project.git/git-upload-packs", false},
-		{"https://github.com:443/user/project.git/something-else", false},
-		{"https://git.launchpad.com:443/project/git-upload-pack", false},
-		{"https://git.lpad.net:443/~user/project/+git/project/git-upload-pack", false},
-	} {
+	for _, tc := range charmcraftInspectRequestTests {
 		ins := craft.NewCharmcraftInspector(getTestCharmcraftConfig())
 		a := metadata.NewArtifact()
 		a.CurrentDownload.URL = tc.url
@@ -170,108 +186,63 @@ func (s *charmcraftSuite) TestInspectCharmcraftGitRequest(c *C) {
 }
 
 func (s *charmcraftSuite) TestCharmcraftGitInspectArtifact(c *C) {
-	for _, tc := range []struct {
-		opinion opinions.OpinionKind
-		reason  string
-	}{
-		{opinions.Approved, "charmcraft repository found"},
-	} {
-		checkoutPath := filepath.Join("testdata", "charmcraft-checkout")
-		a := createTestCraftArtifact(checkoutPath)
+	checkoutPath := filepath.Join("testdata", "charmcraft-checkout")
+	a := createTestCraftArtifact(checkoutPath)
 
-		ins := craft.NewCharmcraftInspector(getTestCharmcraftConfig())
-		dummy_file, err := files.OpenArtifactFile(filepath.Join(checkoutPath, "charmcraft.yaml"))
-		// make sure the test file exists
-		c.Assert(err, IsNil)
+	ins := craft.NewCharmcraftInspector(getTestCharmcraftConfig())
 
-		err = ins.InspectArtifact(dummy_file, a)
-		c.Assert(err, IsNil)
+	err := ins.InspectArtifact(DummyReader{}, a)
+	c.Assert(err, IsNil)
 
-		inspection := a.ResponseInspection["craft.charmcraft"]
-		c.Assert(inspection.Opinion, Equals, tc.opinion)
-		c.Assert(inspection.Reason, Equals, tc.reason)
+	inspection := a.ResponseInspection["craft.charmcraft"]
+	c.Assert(inspection.Opinion, Equals, opinions.Approved)
+	c.Assert(inspection.Reason, Equals, "charmcraft repository found")
 
-		if tc.opinion == opinions.Approved {
-			c.Check(a.Metadata.Type, Equals, "application/x.canonical.charmcraft")
-			c.Check(a.Metadata.Name, Equals, "sample-charmcraft-project")
-			c.Check(a.Metadata.Version, Equals, "")
-			c.Check(a.Metadata.Description, Equals, "A very short one-line summary of the charm.")
-		}
-	}
+	c.Check(a.Metadata.Type, Equals, "application/x.canonical.charmcraft")
+	c.Check(a.Metadata.Name, Equals, "sample-charmcraft-project")
+	c.Check(a.Metadata.Version, Equals, "")
+	c.Check(a.Metadata.Description, Equals, "A very short one-line summary of the charm.")
 }
 
 func (s *charmcraftSuite) TestCharmcraftGitInspectArtifactMissingCharmcraftYaml(c *C) {
-	tc := struct {
-		opinion opinions.OpinionKind
-		reason  string
-	}{
-		opinions.Unknown,
-		"git repository does not contain a charmcraft.yaml file",
-	}
 	restorer := craft.MockOsStat(func(string) (os.FileInfo, error) {
 		return nil, os.ErrNotExist
 	})
 	defer restorer()
 
 	a := createTestCharmcraftArtifact(c.MkDir())
-	f, err := loadTestCharmcraftArtifactData()
-	c.Assert(err, IsNil)
-	defer f.Close()
 
 	ins := craft.NewCharmcraftInspector(getTestCharmcraftConfig())
 
-	err = ins.InspectArtifact(f, a)
+	err := ins.InspectArtifact(DummyReader{}, a)
 	c.Assert(err, IsNil)
 
 	inspection := a.ResponseInspection["craft.charmcraft"]
-	c.Assert(inspection.Opinion, Equals, tc.opinion)
-	c.Assert(inspection.Reason, Equals, tc.reason)
+	c.Assert(inspection.Opinion, Equals, opinions.Unknown)
+	c.Assert(inspection.Reason, Equals, "git repository does not contain a charmcraft.yaml file")
 }
 
 func (s *charmcraftSuite) TestCharmcraftGitInspectArtifactUnreadableCharmcraftYaml(c *C) {
-	tc := struct {
-		opinion opinions.OpinionKind
-		reason  string
-	}{
-		opinions.Rejected,
-		"cannot open charmcraft.yaml file",
-	}
-
-	f, err := loadTestCharmcraftArtifactData()
-	c.Assert(err, IsNil)
-	defer f.Close()
-
 	restorer := craft.MockOsOpen(func(string) (*os.File, error) {
 		return nil, os.ErrNotExist
 	})
 	defer restorer()
 
 	checkoutPath := c.MkDir()
-	_, err = os.Create(filepath.Join(checkoutPath, "charmcraft.yaml"))
+	_, err := os.Create(filepath.Join(checkoutPath, "charmcraft.yaml"))
 	c.Assert(err, IsNil)
 	a := createTestSnapcraftArtifact(checkoutPath)
 
 	ins := craft.NewCharmcraftInspector(getTestCharmcraftConfig())
-	err = ins.InspectArtifact(f, a)
+	err = ins.InspectArtifact(DummyReader{}, a)
 	c.Assert(err, IsNil)
 
 	inspection := a.ResponseInspection["craft.charmcraft"]
-	c.Assert(inspection.Opinion, Equals, tc.opinion)
-	c.Assert(inspection.Reason, Equals, tc.reason)
+	c.Assert(inspection.Opinion, Equals, opinions.Rejected)
+	c.Assert(inspection.Reason, Equals, "cannot open charmcraft.yaml file")
 }
 
 func (s *charmcraftSuite) TestCharmcraftGitInspectArtifactUnableToDecodeCharmcraftYaml(c *C) {
-	tc := struct {
-		opinion opinions.OpinionKind
-		reason  string
-	}{
-		opinions.Rejected,
-		"cannot decode charmcraft.yaml",
-	}
-	f, err := loadTestCharmcraftArtifactData()
-	c.Assert(err, IsNil)
-	defer f.Close()
-
 	restorer := craft.MockOsOpen(func(string) (*os.File, error) {
 		temp, _ := os.CreateTemp("", "charmcraft-empty.yaml")
 		defer temp.Close()
@@ -281,16 +252,28 @@ func (s *charmcraftSuite) TestCharmcraftGitInspectArtifactUnableToDecodeCharmcra
 	defer restorer()
 
 	checkoutPath := c.MkDir()
-	_, err = os.Create(filepath.Join(checkoutPath, "charmcraft.yaml"))
+	_, err := os.Create(filepath.Join(checkoutPath, "charmcraft.yaml"))
 	c.Assert(err, IsNil)
 
 	a := createTestCraftArtifact(checkoutPath)
 
 	ins := craft.NewCharmcraftInspector(getTestCharmcraftConfig())
-	err = ins.InspectArtifact(f, a)
+	err = ins.InspectArtifact(DummyReader{}, a)
 	c.Assert(err, IsNil)
 
 	inspection := a.ResponseInspection["craft.charmcraft"]
-	c.Assert(inspection.Opinion, Equals, tc.opinion)
-	c.Assert(inspection.Reason, Equals, tc.reason)
+	c.Assert(inspection.Opinion, Equals, opinions.Rejected)
+	c.Assert(inspection.Reason, Equals, "cannot decode charmcraft.yaml")
+}
+
+func (s *charmcraftSuite) TestCharmcraftGitInspectArtifactNoGitCheckout(c *C) {
+	a := createTestCraftArtifact("")
+
+	ins := craft.NewCharmcraftInspector(getTestCharmcraftConfig())
+	err := ins.InspectArtifact(DummyReader{}, a)
+	c.Assert(err, IsNil)
+
+	inspection := a.ResponseInspection["craft.charmcraft"]
+	c.Assert(inspection.Opinion, Equals, opinions.Unknown)
+	c.Assert(inspection.Reason, Equals, "no git checkout found")
 }
