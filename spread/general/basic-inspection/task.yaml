@@ -61,6 +61,7 @@ execute: |
   jq -r '(.artifacts[].metadata | select(.name=="hello")).type' session_report.json | MATCH "application/vnd.debian.binary-package"
   jq -r '(.artifacts[].metadata | select(.name=="hello")).sha256' session_report.json | MATCH "24e6cc07c34cb53fedce7e1e82a501111e5da2a7f8e3125a7e7b32ad18db00f7"
   jq -r '(.artifacts[] | select(.metadata.name=="hello")).result' session_report.json | MATCH "Rejected"
+  jq -r '(.artifacts[] | select(.metadata.name=="hello")).metadata.license' session_report.json | MATCH "GPL"
 
   curl -sf -X DELETE "http://craft:craft@localhost:9999/session/${session_id}"
 

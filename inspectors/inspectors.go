@@ -27,6 +27,7 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 
 	"github.com/canonical/fetch-service/inspectors/apt"
+	"github.com/canonical/fetch-service/inspectors/bldbin"
 	"github.com/canonical/fetch-service/inspectors/cargo"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/craft"
@@ -38,6 +39,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/inspectors/pip"
 	"github.com/canonical/fetch-service/inspectors/snap"
+	"github.com/canonical/fetch-service/inspectors/store"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
 	"github.com/canonical/fetch-service/service/config"
@@ -48,6 +50,7 @@ func init() {
 	mimetype.Lookup("application/x-xz").Extend(apt.AptPackagesDetector, mimetypes.AptPackages, "")
 	mimetype.Lookup("application/x-gzip").Extend(apt.AptPackagesDetector, mimetypes.AptPackages, "")
 	mimetype.Lookup("application/x-xz").Extend(apt.AptTranslationDetector, mimetypes.AptTranslation, "")
+	mimetype.Lookup("application/x-xz").Extend(apt.AptCommandsDetector, mimetypes.AptCommands, "")
 	mimetype.Lookup("application/octet-stream").Extend(snap.SquashFsDetector, mimetypes.SquashFs, "")
 	mimetype.Lookup("text/plain").Extend(snap.AssertionDetector, mimetypes.Assertion, ".assert")
 }
@@ -67,6 +70,13 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		snap.NewSnapInfoInspector(),
 		snap.NewSnapRefreshInspector(),
 
+		// store API
+		store.NewStoreApiInspector(cfg.Store),
+
+		// bld bin
+		// must run after store API
+		bldbin.NewBldBinInspector(cfg.BldBin),
+
 		// python
 		pip.NewSimpleIndexInspector(),
 		pip.NewWheelInspector(),
@@ -78,6 +88,7 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		apt.NewAptReleaseInspector(cfg.Apt),
 		apt.NewAptPackagesInspector(cfg.Apt),
 		apt.NewAptTranslationInspector(cfg.Apt),
+		apt.NewAptCommandsInspector(cfg.Apt),
 
 		// git
 		git.NewSmartQueryInspector(cfg.Git),
