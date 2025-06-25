@@ -17,6 +17,23 @@ suites:
       snap set fetch-service permissive=true
       snap set fetch-service control.auth=craft:craft
 
+  spread/inspectors/:
+    summary: Inspector smoke tests
+    prepare: |
+      snap install "$CRAFT_ARTIFACT" --dangerous
+      snap set fetch-service permissive=true
+      snap set fetch-service control.auth=craft:craft
+      mkdir -p /usr/local/share/ca-certicates
+      cp /var/snap/fetch-service/current/local-ca.crt /usr/local/share/ca-certificates
+      update-ca-certificates
+    prepare-each: |
+      snap stop fetch-service
+      snap start fetch-service
+      sleep 5
+      fetch-service.fetchctl version
+    restore-each: |
+      snap stop fetch-service
+
   spread/install/:
     summary: Snap install and upgrade tests
     systems:
