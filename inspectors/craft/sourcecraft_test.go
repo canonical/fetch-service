@@ -41,6 +41,56 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 )
 
+func createTestCraftArtifact(checkoutPath string) *metadata.Artifact {
+	a := metadata.NewArtifact()
+	a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
+	a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
+	a.Request.Body = io.NopCloser(strings.NewReader("0014command=fetch\n0000"))
+	a.MimeType = mimetype.Lookup("application/octet-stream")
+	a.RequestInspection = metadata.InspectionMap{
+		"git.upload-pack": &Inspection{
+			Opinion: opinions.Pending,
+			Reason:  "valid URL for craft upload-pack",
+			Annotations: Annotation{
+				"client-request": []string{
+					"command=fetch",
+					"agent=git/2.45.2",
+					"object-format=sha1",
+					"",
+					"thin-pack",
+					"no-progress",
+					"include-tag",
+					"ofs-delta",
+					"deepen 1",
+					"want d9c2c0282d81a993c0011113996b541a1ef1ebc7",
+					"done",
+				},
+				"repository": "https://github.com:443/lengau/charmcraft-rocks",
+				"command":    "fetch",
+				"project":    "charmcraft-core22",
+				"protocol":   "version=2",
+				"wants": []string{
+					"d9c2c0282d81a993c0011113996b541a1ef1ebc7",
+				},
+				"is-shallow": true,
+			},
+		},
+	}
+
+	annot := Annotation{}
+	if len(checkoutPath) > 0 {
+		annot["git-checkout-path"] = checkoutPath
+	}
+	a.ResponseInspection = metadata.InspectionMap{
+		"git.upload-pack": &Inspection{
+			Opinion:     opinions.Unknown,
+			Reason:      "",
+			Annotations: annot,
+		},
+	}
+	return a
+}
+
 type sourcecraftSuite struct {
 	slog logger.Logger
 }
@@ -188,7 +238,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifact(c *C) {
 		err = git.Checkout(checkoutPath, "10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad", s.slog)
 		c.Assert(err, IsNil)
 
-		a := createTestRockcraftArtifact(checkoutPath)
+		a := createTestCraftArtifact(checkoutPath)
 
 		f, err = loadTestSourcecraftArtifactData()
 		c.Assert(err, IsNil)
@@ -296,7 +346,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifactUnableToDecodeSource
 	_, err = os.Create(filepath.Join(checkoutPath, "sourcecraft.yaml"))
 	c.Assert(err, IsNil)
 
-	a := createTestRockcraftArtifact(checkoutPath)
+	a := createTestCraftArtifact(checkoutPath)
 
 	ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
 	err = ins.InspectArtifact(f, a)

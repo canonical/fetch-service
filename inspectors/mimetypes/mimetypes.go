@@ -31,6 +31,7 @@ const (
 	GitUploadPackAdvertisement = "application/x.git.upload-pack-advertisement"
 	GitUploadPackLsRef         = "application/x.git.upload-pack-result.ls-ref"
 	GitUploadPackFetch         = "application/x.git.upload-pack-result.fetch"
+	Charmcraft                 = "application/x.canonical.charmcraft"
 	Rockcraft                  = "application/x.canonical.rockcraft"
 	Snapcraft                  = "application/x.canonical.snapcraft"
 	Sourcecraft                = "application/x.canonical.sourcecraft"

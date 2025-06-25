@@ -99,6 +99,7 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		craft.NewSourcecraftInspector(cfg.Crafts),
 		craft.NewRockcraftInspector(cfg.Crafts),
 		craft.NewSnapcraftInspector(cfg.Crafts),
+		craft.NewCharmcraftInspector(cfg.Crafts),
 
 		// go
 		// must run after git

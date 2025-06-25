@@ -39,7 +39,6 @@ import (
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
-	"github.com/gabriel-vasile/mimetype"
 )
 
 type rockcraftSuite struct {
@@ -74,53 +73,6 @@ func (s *rockcraftSuite) TestUploadPackInspectorID(c *C) {
 	ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
 	c.Assert(ins.ID(), Equals, "craft.rockcraft")
 
-}
-
-func createTestRockcraftArtifact(checkoutPath string) *metadata.Artifact {
-	a := metadata.NewArtifact()
-	a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
-	a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
-	a.Request.Body = io.NopCloser(strings.NewReader("0014command=fetch\n0000"))
-	a.MimeType = mimetype.Lookup("application/octet-stream")
-	a.RequestInspection = metadata.InspectionMap{
-		"git.upload-pack": &Inspection{
-			Opinion: opinions.Pending,
-			Reason:  "valid URL for rockcraft upload-pack",
-			Annotations: Annotation{
-				"client-request": []string{
-					"command=fetch",
-					"agent=git/2.45.2",
-					"object-format=sha1",
-					"",
-					"thin-pack",
-					"no-progress",
-					"include-tag",
-					"ofs-delta",
-					"deepen 1",
-					"want d9c2c0282d81a993c0011113996b541a1ef1ebc7",
-					"done",
-				},
-				"repository": "https://github.com:443/lengau/charmcraft-rocks",
-				"command":    "fetch",
-				"project":    "charmcraft-core22",
-				"protocol":   "version=2",
-				"wants": []string{
-					"d9c2c0282d81a993c0011113996b541a1ef1ebc7",
-				},
-				"is-shallow": true,
-			},
-		},
-	}
-	a.ResponseInspection = metadata.InspectionMap{
-		"git.upload-pack": &Inspection{
-			Opinion: opinions.Unknown,
-			Reason:  "",
-			Annotations: Annotation{
-				"git-checkout-path": checkoutPath,
-			},
-		},
-	}
-	return a
 }
 
 func loadTestRockcraftArtifactData() (*files.ArtifactFile, error) {
@@ -188,7 +140,7 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtifact(c *C) {
 		err = git.Checkout(checkoutPath, "d9c2c0282d81a993c0011113996b541a1ef1ebc7", s.slog)
 		c.Assert(err, IsNil)
 
-		a := createTestRockcraftArtifact(checkoutPath)
+		a := createTestCraftArtifact(checkoutPath)
 
 		f, err = loadTestRockcraftArtifactData()
 		c.Assert(err, IsNil)
@@ -222,7 +174,7 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtifactMissingRockcraftYaml(c *
 		opinions.Unknown,
 		"git repository does not contain a rockcraft.yaml file",
 	}
-	a := createTestRockcraftArtifact(c.MkDir())
+	a := createTestCraftArtifact(c.MkDir())
 	f, err := loadTestRockcraftArtifactData()
 	c.Assert(err, IsNil)
 	defer f.Close()
@@ -293,7 +245,7 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtifactUnableToDecodeRockcraftY
 	_, err = os.Create(filepath.Join(checkoutPath, "rockcraft.yaml"))
 	c.Assert(err, IsNil)
 
-	a := createTestRockcraftArtifact(checkoutPath)
+	a := createTestCraftArtifact(checkoutPath)
 
 	ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
 	err = ins.InspectArtifact(f, a)
