@@ -403,7 +403,6 @@ func (t *serviceSuite) TestEvaluateRequestInspection(c *C) {
 type responseInspectionTest struct {
 	sessionExists bool   // Whether the session was created
 	hasArtifact   bool   // Whether the artifact has already been downloaded
-	inspComplete  bool   // Whether the artifact has completed inspection
 	policy        string // The inspection policy (strict or permissive)
 	errMsg        string // The expected error message, if any
 }
