@@ -236,7 +236,7 @@ func (p *HttpProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) 
 	slog := a.Logger()
 
 	var err error
-	resp.Body, err = NewFileDownloadHandler(resp, a, p.spool, p.ch)
+	body, err := NewFileDownloadHandler(resp, a, p.spool, p.ch)
 	if err != nil {
 		if a.Tempfile != "" {
 			os.Remove(a.Tempfile)
@@ -249,7 +249,10 @@ func (p *HttpProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) 
 		return internalErrorResponse(resp.Request, "Cannot handle file downloads")
 	}
 
-	return resp
+	newResp := copyHttpResponse(resp)
+	newResp.Body = body
+
+	return newResp
 }
 
 func httpResponse(req *http.Request, code int, msg []byte) *http.Response {
@@ -308,4 +311,16 @@ func copyHeader(data map[string][]string) map[string][]string {
 		c[k] = vv
 	}
 	return c
+}
+
+func copyHttpResponse(r *http.Response) *http.Response {
+	if r == nil {
+		return nil
+	}
+
+	newResp := *r
+	newResp.Body = nil
+	newResp.Header = copyHeader(r.Header)
+
+	return &newResp
 }

@@ -29,6 +29,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"time"
 
 	"github.com/canonical/fetch-service/logger"
@@ -43,10 +44,9 @@ import (
 // of downloaded contents and stores downloaded data and contextual
 // metadata in the designated local file spool.
 type FileDownloadHandler struct {
-	ch       chan interface{}   // service message channel
-	a        *metadata.Artifact // artifact metadata
-	tempfile *os.File           // copy of streamed data
-	body     io.ReadCloser      // response body
+	ch   chan interface{}   // service message channel
+	a    *metadata.Artifact // artifact metadata
+	body io.ReadCloser      // response body
 }
 
 func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool string, ch chan interface{}) (*FileDownloadHandler, error) {
@@ -68,33 +68,97 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool str
 	a.Tempfile = tempfile.Name()
 	a.AssetDir = assetDir
 	a.SessionCacheDir = cacheDir
+	slog := a.Logger()
 
-	if err = localDownload(resp, a, tempfile); err != nil {
-		return nil, err
+	// Create a pipe to pass the response body. The file download handler
+	// is only used if the response from the server is 200.
+	pr, pw, err := os.Pipe()
+	if err != nil {
+		return nil, fmt.Errorf("cannot create body data pipe: %w", err)
 	}
 
-	respIns := messages.NewResponseInspection(a)
-	ch <- respIns
-	select {
-	case err := <-respIns.Rch:
+	slog.Debugf("original server response: %+v\n", resp)
+	dch := make(chan error, 1)
+
+	var bgDownload atomic.Uint32 // Set when the file is downloaded or inspected in background.
+	bgDownload.Store(0)
+
+	// Execute the local download and inspection in parallel. This will feed the
+	// user download pipe with the locally buffered data, and block until the
+	// original client downloads the file.
+	go func(dch chan error, pw io.WriteCloser, slog logger.Logger) {
+		// Start downloading the data. If it takes less than 5 seconds, return
+		// immediately. Otherwise return 200 OK and send the data when it's
+		// downloaded and passed inspection, or close the reader if it was
+		// rejected.
+		defer pw.Close()
+
+		if err = localDownload(resp, a, tempfile); err != nil {
+			slog.Warningf("local download error: %s", err)
+			pw.Close()
+			dch <- err
+			if bgDownload.Load() > 0 {
+				pr.Close()
+			}
+			return
+		}
+
+		slog.Debug("request inspection")
+		respIns := messages.NewResponseInspection(a)
+		ch <- respIns
+		select {
+		case err := <-respIns.Rch: // Wait for the inspection to finish and get its result.
+			slog.Debugf("local inspection result: %v", err)
+			if err != nil {
+				dch <- err
+				if bgDownload.Load() > 0 {
+					pr.Close()
+				}
+				return
+			}
+		case <-time.After(insTimeout): // Inspection took too long, something wrong happened.
+			slog.Warning("inspection request timeout")
+			dch <- fmt.Errorf("inspection of artifact %s timed out", a.Metadata.Sha256)
+			if bgDownload.Load() > 0 {
+				pr.Close()
+			}
+			return
+		}
+
+		filename := fmt.Sprintf("%s.data", a.Metadata.Sha256)
+		buffer, err := os.Open(filepath.Join(assetDir, filename))
 		if err != nil {
+			dch <- fmt.Errorf("cannot open asset file: %w", err)
+			if bgDownload.Load() > 0 {
+				pr.Close()
+			}
+			return
+		}
+
+		dch <- nil // Download completed successfully.
+		io.Copy(pw, buffer)
+	}(dch, pw, slog)
+
+	select {
+	case err := <-dch:
+		// We have a response in less than 5 seconds, return it.
+		if err != nil {
+			// Download or inspection failed, return the error. If the download and
+			// inspection ran in the background, also close the reading end of the
+			// pipe before returning.
 			return nil, err
 		}
-	case <-time.After(insTimeout):
-		return nil, fmt.Errorf("inspection of artifact %s timed out", a.Metadata.Sha256)
-	}
-
-	filename := fmt.Sprintf("%s.data", a.Metadata.Sha256)
-	buffer, err := os.Open(filepath.Join(assetDir, filename))
-	if err != nil {
-		return nil, fmt.Errorf("cannot open asset file: %w", err)
+		// Download succeeded, return its data.
+	case <-time.After(5 * time.Second):
+		// This is a long download, keep downloading it but return an HTTP header
+		// so the client will not time out waiting for a response.
+		bgDownload.Store(1)
 	}
 
 	h := &FileDownloadHandler{
-		ch:       ch,
-		a:        a,
-		tempfile: tempfile,
-		body:     buffer,
+		ch:   ch,
+		a:    a,
+		body: pr, // The client will get the body from the reading side of the pipe.
 	}
 
 	return h, nil
@@ -131,8 +195,8 @@ func localDownload(resp *http.Response, a *metadata.Artifact, tempfile io.WriteC
 	slog := a.Logger()
 
 	// download file for local buffering
-	resp.Body = NewLocalDownloadHandler(resp, a)
 	slog.Debugf("downloading %s", resp.Request.URL)
+	resp.Body = NewLocalDownloadHandler(resp, a)
 	size, err := io.Copy(tempfile, resp.Body)
 	if err != nil {
 		return err
@@ -141,6 +205,7 @@ func localDownload(resp *http.Response, a *metadata.Artifact, tempfile io.WriteC
 	if err := resp.Body.Close(); err != nil {
 		return err
 	}
+	slog.Debugf("finished downloading %s", resp.Request.URL)
 
 	if size != a.Metadata.Size {
 		return fmt.Errorf("file size mismatch (%d, expected %d)", size, a.Metadata.Size)
