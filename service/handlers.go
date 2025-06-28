@@ -115,7 +115,7 @@ func handleResponseInspection(v messages.ResponseInspection, ch chan interface{}
 
 	// Reuse the result of a previous inspection if the artifact is already added
 	// to the current session (meaning that there is a complete inspection of
-	// the same artifac). Otherwise save the temporary file to the file spool
+	// the same artifact). Otherwise save the temporary file to the file spool
 	// for inspection. Files are added to the spool only if they're not already
 	// there.
 	if s.HasArtifact(digest) {
