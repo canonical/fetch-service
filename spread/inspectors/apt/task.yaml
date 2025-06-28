@@ -1,0 +1,48 @@
+summary: Test the apt inspector
+
+prepare: |
+  rm -f ./*.json
+  apt update -y
+  apt-get install -y command-not-found
+  apt-get remove -y --purge fortune
+  # Remove once we have an inspector for Components.yml
+  apt-get remove -y --purge appstream
+
+restore: |
+  rm -f ./*.json
+  rm -f /etc/apt/apt.conf.d/99proxy
+  apt-get remove -y --purge fortune
+
+execute: |
+  # shellcheck disable=SC1091
+  . ../utils.sh
+
+  # create strict session
+  read -r session_id token < <(create_session strict)
+
+  # set up proxy
+  export http_proxy="http://${session_id}:${token}@localhost:9988"
+  export https_proxy="http://${session_id}:${token}@localhost:9988"
+
+  #echo "Acquire::http::Proxy \"$http_proxy\";" > /etc/apt/apt.conf.d/99proxy
+  #echo "Acquire::https::Proxy \"$https_proxy\";" >> /etc/apt/apt.conf.d/99proxy
+
+  rm -Rf /var/lib/apt/lists
+  apt-get update
+  apt-get install -y fortune-mod
+
+  unset http_proxy
+  unset https_proxy
+  rm -f /etc/apt/apt.conf.d/99proxy
+
+  revoke_token "$session_id" "$token"
+  get_session_report "$session_id" > session_report.json
+  python3 -mjson.tool session_report.json
+
+  /usr/games/fortune
+
+  jq -r '(.artifacts[].metadata | select(.type=="application/vnd.debian.binary-package")).name' session_report.json | MATCH "fortune-mod"
+  jq -r '.artifacts[].result' session_report.json | NOMATCH "Rejected"
+
+  delete_session "$session_id"
+  delete_resources "$session_id"
