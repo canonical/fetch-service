@@ -271,9 +271,7 @@ func (s *Session) AddDownload(di metadata.Download) {
 
 var osMkdirAll = os.MkdirAll
 
-// SaveData writes the artifact data corresponding to the given
-// digest to the asset spool.
-// func (s *Session) SaveData(digest digests.Sha256Digest) error {
+// SaveData moves the artifact file to the asset spool.
 func (s *Session) SaveData(a *metadata.Artifact) error {
 	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
 	if err := osMkdirAll(filepath.Dir(dest), 0755); err != nil {
