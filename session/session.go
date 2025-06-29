@@ -273,27 +273,23 @@ var osMkdirAll = os.MkdirAll
 
 // SaveData moves the artifact file to the asset spool.
 func (s *Session) SaveData(a *metadata.Artifact) error {
+	defer s.removeTempFile(a.Tempfile)
+
 	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
 	if err := osMkdirAll(filepath.Dir(dest), 0755); err != nil {
-		s.removeTempFile(a.Tempfile)
 		return err
 	}
 
 	// Save file data only if it doesn't exist already
 	if _, err := os.Stat(dest); err != nil {
-		if os.IsNotExist(err) {
-			// Move temporary file to spool
-			if err := utils.MoveFile(a.Tempfile, dest); err != nil {
-				s.removeTempFile(a.Tempfile)
-				return err
-			}
-		} else {
-			s.removeTempFile(a.Tempfile)
+		if !os.IsNotExist(err) {
 			return err
 		}
-	} else {
-		// Remove temporary file if it already exists
-		s.removeTempFile(a.Tempfile)
+
+		// Move temporary file to spool
+		if err := utils.MoveFile(a.Tempfile, dest); err != nil {
+			return err
+		}
 	}
 
 	return nil
