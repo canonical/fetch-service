@@ -253,16 +253,28 @@ func (t *sessionSuite) TestAddInvalidDownload(c *C) {
 	s.AddDownload(di)
 }
 
+type saveDataTest struct {
+	artifactAdded bool   // Whether the artifact exists in the session
+	mkdirFail     bool   // Whether spool directory creation fails
+	errMsg        string // The expected error message, if any
+}
+
+var saveDataTests = []saveDataTest{{
+	artifactAdded: true,
+	mkdirFail:     false,
+	errMsg:        "",
+}, {
+	artifactAdded: false,
+	mkdirFail:     false,
+	errMsg:        "",
+}, {
+	artifactAdded: true,
+	mkdirFail:     true,
+	errMsg:        "cannot create dir",
+}}
+
 func (t *sessionSuite) TestSaveData(c *C) {
-	for _, tc := range []struct {
-		artifactAdded bool
-		mkdirFail     bool
-		errMsg        string
-	}{
-		{true, false, ""},
-		{false, false, "metadata for artifact .* not available"},
-		{true, true, "cannot create dir"},
-	} {
+	for _, tc := range saveDataTests {
 		session.MockOsMkdirAll(func(path string, perm os.FileMode) error {
 			if tc.mkdirFail {
 				return errors.New("cannot create dir")
@@ -284,15 +296,16 @@ func (t *sessionSuite) TestSaveData(c *C) {
 		a.Metadata.Name = "test-metadata"
 		a.Metadata.Sha256 = h
 
+		// The temporary file exists for every downloaded artifact
+		content := []byte("hello world")
+		err := os.WriteFile(tempfile, content, 0644)
+		c.Assert(err, IsNil)
+
 		if tc.artifactAdded {
 			s.AddArtifact(a)
-
-			content := []byte("hello world")
-			err := os.WriteFile(tempfile, content, 0644)
-			c.Assert(err, IsNil)
 		}
 
-		err := s.SaveData(h)
+		err = s.SaveData(a)
 		if tc.errMsg == "" {
 			c.Assert(err, IsNil)
 
