@@ -33,6 +33,9 @@ var (
 	EvaluateResponseInspection    = evaluateResponseInspection
 	LoadHttpProxyRulesOrDefault   = loadHttpProxyRulesOrDefault
 	LoadInspectorsConfigOrDefault = loadInspectorsConfigOrDefault
+
+	HandleResponseInspection = handleResponseInspection
+	HandleCompleteInspection = handleCompleteInspection
 )
 
 func MockNewHttpProxy(mock func(int, string, []byte, []byte, chan interface{}) (*proxy.HttpProxy, error)) (restorer func()) {
