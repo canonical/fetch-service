@@ -2,6 +2,18 @@
 Changelog
 *********
 
+0.8.0 (2025-07-01)
+------------------
+
+- feat: add charmcraft inspector (#397)
+- feat: add store api and bld bin package inspectors (#398, #400)
+- feat: add apt commands file inspector (#395, #402)
+- feat: add session-aware logging support (#371)
+- fix: prevent races in cached inspection results (#409)
+- fix(apt): use separate esm repository configuration (#410)
+- fix(deps): update module github.com/protonmail/go-crypto to v1.3.0 (#390)
+- fix(deps): update golang.org/x/net to 0.38.0 (#387)
+
 0.7.0 (2025-04-08)
 ------------------
 
