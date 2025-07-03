@@ -322,5 +322,14 @@ func copyHttpResponse(r *http.Response) *http.Response {
 	newResp.Body = nil
 	newResp.Header = copyHeader(r.Header)
 
+	if r.Trailer != nil {
+		newResp.Trailer = make(http.Header, len(r.Trailer))
+		for k, v := range r.Trailer {
+			vv := make([]string, len(v))
+			copy(vv, v)
+			newResp.Trailer[k] = vv
+		}
+	}
+
 	return &newResp
 }
