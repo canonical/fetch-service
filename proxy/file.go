@@ -136,7 +136,10 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool str
 		}
 
 		dch <- nil // Download completed successfully.
-		io.Copy(pw, buffer)
+		_, err = io.Copy(pw, buffer)
+		if err != nil {
+			slog.Warningf("response body copy error: %v", err)
+		}
 	}(dch, pw, slog)
 
 	select {
