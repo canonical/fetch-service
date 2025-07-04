@@ -155,6 +155,11 @@ var snapAssertionArtifactInspectorTests = []snapAssertionArtifactInspectorTest{{
 	reason:   "valid snap assertion",
 	filetype: "application/x.ubuntu.assertion.snap-declaration",
 }, {
+	filename: "testdata/snap-declaration-2.assert",
+	approved: true,
+	reason:   "valid snap assertion",
+	filetype: "application/x.ubuntu.assertion.snap-declaration",
+}, {
 	filename: "testdata/account.assert",
 	approved: true,
 	reason:   "valid snap assertion",
