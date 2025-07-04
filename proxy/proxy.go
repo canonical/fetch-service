@@ -177,7 +177,7 @@ func (p *HttpProxy) processRoundTrip(req *http.Request, ctx *goproxy.ProxyCtx) (
 // processRequest handles HTTP requests to the server.
 func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
 	logger.Debugf("proxy: process request: %s", req.URL.String())
-	requestHeader := copyHeader(req.Header)
+	requestHeader := copyHttpHeader(req.Header)
 
 	if ctx.UserData != nil {
 		sessionId, ok := ctx.UserData.(string)
@@ -303,16 +303,18 @@ func forbiddenResponse(r *http.Request, msg string) *http.Response {
 	return goproxy.NewResponse(r, goproxy.ContentTypeText, http.StatusForbidden, msg)
 }
 
-// copyHeader deepcopies HTTP header maps.
-func copyHeader(data map[string][]string) map[string][]string {
-	c := make(map[string][]string, len(data))
-	for k, v := range data {
-		vv := append([]string{}, v...)
-		c[k] = vv
+// copyHttpHeader deepcopies HTTP header maps.
+func copyHttpHeader(h http.Header) http.Header {
+	c := make(http.Header, len(h))
+	for k, v := range h {
+		val := make([]string, len(v))
+		copy(val, v)
+		c[k] = val
 	}
 	return c
 }
 
+// copyHttpResponse deepcopies HTTP responses.
 func copyHttpResponse(r *http.Response) *http.Response {
 	if r == nil {
 		return nil
@@ -320,16 +322,8 @@ func copyHttpResponse(r *http.Response) *http.Response {
 
 	newResp := *r
 	newResp.Body = nil
-	newResp.Header = copyHeader(r.Header)
-
-	if r.Trailer != nil {
-		newResp.Trailer = make(http.Header, len(r.Trailer))
-		for k, v := range r.Trailer {
-			vv := make([]string, len(v))
-			copy(vv, v)
-			newResp.Trailer[k] = vv
-		}
-	}
+	newResp.Header = copyHttpHeader(r.Header)
+	newResp.Trailer = copyHttpHeader(r.Trailer)
 
 	return &newResp
 }
