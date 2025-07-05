@@ -38,6 +38,9 @@ import (
 	"github.com/canonical/fetch-service/service/messages"
 )
 
+// Time to wait before switching to background download.
+const bgTimeout = 5 * time.Second
+
 // FileDownloadHandler creates local copies of downloaded files.
 //
 // This ReadCloser implementation computes sha1 and sha256 digests
@@ -85,7 +88,7 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool str
 	// Execute the local download and inspection in parallel. This will feed the
 	// user download pipe with the locally buffered data, and block until the
 	// original client downloads the file.
-	go func(dch chan error, pw io.WriteCloser, slog logger.Logger) {
+	go func() {
 		// Start downloading the data. If it takes less than 5 seconds, return
 		// immediately. Otherwise return 200 OK and send the data when it's
 		// downloaded and passed inspection, or close the reader if it was
@@ -124,6 +127,8 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool str
 			return
 		}
 
+		// Open the asset file and pipe the contents to the response body
+		// being read by the original client.
 		filename := fmt.Sprintf("%s.data", a.Metadata.Sha256)
 		buffer, err := os.Open(filepath.Join(assetDir, filename))
 		if err != nil {
@@ -139,7 +144,7 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool str
 		if err != nil {
 			slog.Warningf("response body copy error: %v", err)
 		}
-	}(dch, pw, slog)
+	}()
 
 	select {
 	case err := <-dch:
@@ -151,10 +156,11 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool str
 			return nil, err
 		}
 		// Download succeeded, return its data.
-	case <-time.After(5 * time.Second):
+	case <-time.After(bgTimeout):
 		// This is a long download, keep downloading it but return an HTTP header
 		// so the client will not time out waiting for a response.
 		bgDownload.Store(true)
+		slog.Info("switch to background artifact download and inspection")
 	}
 
 	h := &FileDownloadHandler{
