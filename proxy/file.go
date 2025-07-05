@@ -80,8 +80,7 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool str
 	slog.Debugf("original server response: %+v\n", resp)
 	dch := make(chan error, 1)
 
-	var bgDownload atomic.Uint32 // Set when the file is downloaded or inspected in background.
-	bgDownload.Store(0)
+	var bgDownload atomic.Bool // Set when the file is downloaded or inspected in background.
 
 	// Execute the local download and inspection in parallel. This will feed the
 	// user download pipe with the locally buffered data, and block until the
@@ -97,7 +96,7 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool str
 			slog.Warningf("local download error: %s", err)
 			pw.Close()
 			dch <- err
-			if bgDownload.Load() > 0 {
+			if bgDownload.Load() {
 				pr.Close()
 			}
 			return
@@ -111,7 +110,7 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool str
 			slog.Debugf("local inspection result: %v", err)
 			if err != nil {
 				dch <- err
-				if bgDownload.Load() > 0 {
+				if bgDownload.Load() {
 					pr.Close()
 				}
 				return
@@ -119,7 +118,7 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool str
 		case <-time.After(insTimeout): // Inspection took too long, something wrong happened.
 			slog.Warning("inspection request timeout")
 			dch <- fmt.Errorf("inspection of artifact %s timed out", a.Metadata.Sha256)
-			if bgDownload.Load() > 0 {
+			if bgDownload.Load() {
 				pr.Close()
 			}
 			return
@@ -129,7 +128,7 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool str
 		buffer, err := os.Open(filepath.Join(assetDir, filename))
 		if err != nil {
 			dch <- fmt.Errorf("cannot open asset file: %w", err)
-			if bgDownload.Load() > 0 {
+			if bgDownload.Load() {
 				pr.Close()
 			}
 			return
@@ -155,7 +154,7 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool str
 	case <-time.After(5 * time.Second):
 		// This is a long download, keep downloading it but return an HTTP header
 		// so the client will not time out waiting for a response.
-		bgDownload.Store(1)
+		bgDownload.Store(true)
 	}
 
 	h := &FileDownloadHandler{
