@@ -1,0 +1,59 @@
+summary: Download timeouts
+
+environment:
+  POLICY/strict: strict
+  #POLICY/permissive: permissive
+
+systems:
+  - ubuntu-24.04
+
+prepare: |
+  snap remove --purge go
+  rm -f ./*.json /var/lib/snap/cache/*
+
+restore: |
+  snap unset system proxy.http
+  snap unset system proxy.https
+  snap remove --purge go
+  rm -f ./*.json /var/lib/snap/cache/*
+
+execute: |
+  # shellcheck disable=SC1091
+  . ../utils.sh
+
+  # create session
+  read -r session_id token < <(create_session "$POLICY")
+
+  # set up proxy
+  snap set system proxy.http="http://${session_id}:${token}@localhost:9988"
+  snap set system proxy.https="http://${session_id}:${token}@localhost:9988"
+
+  ip route
+  IFACE=$(ip route | awk '/^default/ {print $5; exit}')
+  tc qdisc add dev $IFACE handle ffff: ingress
+  tc filter add dev enp5s0 parent ffff: protocol ip u32 match u32 0 0 police rate 10mbit burst 100k drop flowid :1
+
+  before=$(date +%s)
+  snap install go --classic
+  after=$(date +%s)
+  duration=$((after - before))
+
+  echo "Snap install completed in $duration seconds"
+
+  tc qdisc del dev $IFACE ingress
+
+  test -f /snap/go/current/meta/snap.yaml 
+
+  if [ "$duration" -lt 60 ]; then
+      echo "Installation completed in less than 60s"
+      false
+  fi
+
+  revoke_token "$session_id" "$token"
+  get_session_report "$session_id" > session_report.json
+  python3 -mjson.tool session_report.json
+
+  jq -r '(.artifacts[].metadata | select(.name=="go")).type' session_report.json | MATCH "application/x.canonical.snap-package"
+
+  delete_session "$session_id"
+  delete_resources "$session_id"

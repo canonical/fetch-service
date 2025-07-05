@@ -26,6 +26,7 @@ suites:
       mkdir -p /usr/local/share/ca-certicates
       cp /var/snap/fetch-service/current/local-ca.crt /usr/local/share/ca-certificates
       update-ca-certificates
+      systemctl restart snapd
     prepare-each: |
       snap stop fetch-service
       snap start fetch-service
