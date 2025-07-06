@@ -8,6 +8,7 @@ environment:
   POLICY/permissive: permissive
 
 prepare: |
+  apt install -y ethtool
   snap remove --purge go
   rm -f ./*.json /var/lib/snapd/cache/*
 
@@ -29,8 +30,10 @@ execute: |
   snap set system proxy.https="http://${session_id}:${token}@localhost:9988"
 
   # limit bandwidth to force the download to happen in the background
+  modprobe sch_ingress
   ip route
   IFACE=$(ip route | awk '/^default/ {print $5; exit}')
+  ethtool "$IFACE"
   tc qdisc replace dev "$IFACE" handle ffff: ingress
   tc filter add dev "$IFACE" parent ffff: protocol ip u32 match u32 0 0 police rate 15mbit burst 100k drop flowid :1
 
