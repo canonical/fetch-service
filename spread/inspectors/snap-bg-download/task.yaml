@@ -29,15 +29,22 @@ execute: |
   snap set system proxy.https="http://${session_id}:${token}@localhost:9988"
 
   # limit bandwidth to force the download to happen in the background
-  modprobe sch_ingress
+  modprobe ifb numifbs=1
+  ip link set dev ifb0 up
   ip route
   IFACE=$(ip route | awk '/^default/ {print $5; exit}')
   tc qdisc show dev "$IFACE"
   tc qdisc replace dev "$IFACE" handle ffff: ingress
+  tc filter add dev "$IFACE" parent ffff: protocol ip u32 match u32 0 0 action mirred egress redirect dev ifb0
+  tc qdisc add dev ifb0 root handle 1: htb default 10
+  tc class add dev ifb0 parent 1: classid 1:10 htb rate 10mbit
+
   tc filter add dev "$IFACE" parent ffff: protocol ip u32 match u32 0 0 police rate 15mbit burst 100k drop flowid :1
+  dmesg | tail -10
 
   cleanup() {
     tc qdisc del dev "$IFACE" ingress
+    tc qdisc del dev ifb0 root
   }
   trap cleanup EXIT
 
