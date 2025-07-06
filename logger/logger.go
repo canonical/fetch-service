@@ -46,7 +46,7 @@ type Level int
 var (
 	logLevel Level
 	logFile  *os.File
-	logLock  sync.Mutex
+	logLock  sync.RWMutex
 )
 
 // Init sets up the logging system.
@@ -212,7 +212,7 @@ func Debugf(format string, v ...interface{}) {
 }
 
 func atLeastLogLevel(lv Level) bool {
-	logLock.Lock()
-	defer logLock.Unlock()
+	logLock.RLock()
+	defer logLock.RUnlock()
 	return logLevel >= lv
 }

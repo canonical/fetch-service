@@ -150,9 +150,7 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool str
 	case err := <-dch:
 		// We have a response in less than 5 seconds, return it.
 		if err != nil {
-			// Download or inspection failed, return the error. If the download and
-			// inspection ran in the background, also close the reading end of the
-			// pipe before returning.
+			// Download or inspection failed, return the error.
 			return nil, err
 		}
 		// Download succeeded, return its data.
