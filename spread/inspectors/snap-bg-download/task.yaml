@@ -32,7 +32,7 @@ execute: |
   ip route
   IFACE=$(ip route | awk '/^default/ {print $5; exit}')
   tc qdisc add dev "$IFACE" handle ffff: ingress
-  tc filter add dev "$IFACE" parent ffff: protocol ip u32 match u32 0 0 police rate 8mbit burst 100k drop flowid :1
+  tc filter add dev "$IFACE" parent ffff: protocol ip u32 match u32 0 0 police rate 15mbit burst 100k drop flowid :1
 
   cleanup() {
     tc qdisc del dev "$IFACE" ingress
@@ -49,8 +49,8 @@ execute: |
   test -f /snap/go/current/meta/snap.yaml 
 
   # make sure this was a slow download
-  if [ "$duration" -lt 60 ]; then
-      echo "Installation completed in less than 60s"
+  if [ "$duration" -lt 40 ]; then
+      echo "Installation completed in less than 40s"
       false
   fi
 
