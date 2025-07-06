@@ -31,11 +31,11 @@ execute: |
   # limit bandwidth to force the download to happen in the background
   ip route
   IFACE=$(ip route | awk '/^default/ {print $5; exit}')
-  tc qdisc add dev $IFACE handle ffff: ingress
-  tc filter add dev enp5s0 parent ffff: protocol ip u32 match u32 0 0 police rate 8mbit burst 100k drop flowid :1
+  tc qdisc add dev "$IFACE" handle ffff: ingress
+  tc filter add dev "$IFACE" parent ffff: protocol ip u32 match u32 0 0 police rate 8mbit burst 100k drop flowid :1
 
   cleanup() {
-    tc qdisc del dev $IFACE ingress
+    tc qdisc del dev "$IFACE" ingress
   }
   trap cleanup EXIT
 
