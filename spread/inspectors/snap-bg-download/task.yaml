@@ -1,11 +1,11 @@
 summary: Download and inspect in background
 
+systems:
+  - ubuntu-24.04
+
 environment:
   POLICY/strict: strict
   POLICY/permissive: permissive
-
-systems:
-  - ubuntu-24.04
 
 prepare: |
   snap remove --purge go
@@ -31,7 +31,7 @@ execute: |
   # limit bandwidth to force the download to happen in the background
   ip route
   IFACE=$(ip route | awk '/^default/ {print $5; exit}')
-  tc qdisc add dev "$IFACE" handle ffff: ingress
+  tc qdisc replace dev "$IFACE" handle ffff: ingress
   tc filter add dev "$IFACE" parent ffff: protocol ip u32 match u32 0 0 police rate 15mbit burst 100k drop flowid :1
 
   cleanup() {
