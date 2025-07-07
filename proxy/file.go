@@ -97,7 +97,6 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool str
 
 		if err = localDownload(resp, a, tempfile); err != nil {
 			slog.Warningf("local download error: %s", err)
-			pw.Close()
 			dch <- err
 			if bgDownload.Load() {
 				pr.Close()
@@ -138,6 +137,7 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool str
 			}
 			return
 		}
+		defer buffer.Close()
 
 		dch <- nil // Download completed successfully.
 		_, err = io.Copy(pw, buffer)
