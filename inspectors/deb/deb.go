@@ -89,11 +89,21 @@ func (ins *DebInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) e
 	if err := ins.readDebMetadata(f, &md, slog); err != nil {
 		a.SetArtifactMetadata(md)
 		a.SetResponseRejected(ins, err.Error())
-	} else {
-		a.SetArtifactMetadata(md)
-		a.SetResponseApproved(ins, "deb package successfully parsed")
+		return nil
 	}
 
+	a.SetArtifactMetadata(md)
+	valid, ok := a.ResponseBoolAnnotation("apt.packages", "packages-is-valid")
+	if !ok {
+		a.SetResponseRejected(ins, "deb file not verified against Packages file")
+		return nil
+	}
+	if !valid {
+		a.SetResponseRejected(ins, "deb file listed in invalid Packages file")
+		return nil
+	}
+
+	a.SetResponseApproved(ins, "deb package successfully parsed and listed in valid Packages file")
 	return nil
 }
 

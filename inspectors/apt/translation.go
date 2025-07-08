@@ -228,7 +228,7 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 		Name: "Translation",
 	}
 
-	// the file should be also annotated by the release inspector
+	// The file should be also annotated by the release inspector.
 	vendor, ok := a.ResponseStringAnnotation("apt.release", "vendor")
 	if ok {
 		md.Vendor = vendor
@@ -236,12 +236,18 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 	}
 
 	a.SetArtifactMetadata(md)
-	a.SetResponseApproved(ins, "translation file successfully parsed").Annotate(
-		Annotation{
-			"translation-language": lang,
-			"translation-count":    item_count,
-		},
-	)
+
+	notes := Annotation{
+		"translation-language": lang,
+		"translation-count":    item_count,
+	}
+
+	_, ok = a.ResponseStringAnnotation("apt.release", "release-file")
+	if ok {
+		a.SetResponseApproved(ins, "translation file successfully parsed").Annotate(notes)
+	} else {
+		a.SetResponseRejected(ins, "translation file not verified against release file").Annotate(notes)
+	}
 
 	return nil
 }

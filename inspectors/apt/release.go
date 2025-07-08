@@ -151,6 +151,21 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 		} else {
 			a.SetRequestRejected(ins, "attempt to download translation file before Release").Annotate(notes)
 		}
+	} else if info, err := apt_cfg.NewCommandsUrlInfo(u, &ins.config, slog); err == nil {
+		// check if we already have downloaded InReleases from this repo
+		notes := Annotation{
+			"origin":     info.Origin,
+			"repository": info.Repository,
+			"dist":       info.Dist,
+			"component":  info.Component,
+		}
+		repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
+
+		if _, ok := ins.release[repo]; ok {
+			a.SetRequestPending(ins, "valid URL for commands file").Annotate(notes)
+		} else {
+			a.SetRequestRejected(ins, "attempt to download commands file before Release").Annotate(notes)
+		}
 	}
 
 	return nil
@@ -410,7 +425,7 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a Respons
 	}
 	slog.Debugf("release entry: %+v", entry)
 
-	a.SetResponseApproved(ins, "Packages file listed in Release").Annotate(
+	a.SetResponseUnknown(ins, "Packages file listed in Release").Annotate(
 		Annotation{
 			"file-path":    entry.Name,
 			"release-file": ins.release[repo].Sha256.String(),
@@ -463,7 +478,7 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ArtifactReader, a Resp
 		return nil
 	}
 
-	a.SetResponseApproved(ins, "Translation file listed in Release").Annotate(
+	a.SetResponseUnknown(ins, "Translation file listed in Release").Annotate(
 		Annotation{
 			"file-path":    entry.Name,
 			"release-file": ins.release[repo].Sha256.String(),
@@ -515,7 +530,7 @@ func (ins *AptReleaseInspector) validateCommandsFile(f ArtifactReader, a Respons
 		return nil
 	}
 
-	a.SetResponseApproved(ins, "Commands file listed in Release").Annotate(
+	a.SetResponseUnknown(ins, "Commands file listed in Release").Annotate(
 		Annotation{
 			"file-path":    entry.Name,
 			"release-file": ins.release[repo].Sha256.String(),

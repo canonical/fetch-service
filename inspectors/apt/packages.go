@@ -201,13 +201,17 @@ type AptPackagesInspector struct {
 	packages     map[string]map[string]*aptPackages // maps origin to Packages file data
 	packagesLock sync.Mutex
 
+	validated     map[digests.Sha256Digest]struct{} // set of validated Packages
+	validatedLock sync.Mutex
+
 	config apt_cfg.AptInspectorConfig
 }
 
 func NewAptPackagesInspector(cfg apt_cfg.AptInspectorConfig) *AptPackagesInspector {
 	return &AptPackagesInspector{
-		packages: make(map[string]map[string]*aptPackages),
-		config:   cfg,
+		packages:  make(map[string]map[string]*aptPackages),
+		validated: make(map[digests.Sha256Digest]struct{}),
+		config:    cfg,
 	}
 }
 
@@ -306,11 +310,16 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		return nil
 	}
 
-	a.SetResponseApproved(ins, "packages file successfully parsed").Annotate(
-		Annotation{
-			"package-count": num,
-		},
-	)
+	notes := Annotation{"package-count": num}
+	releaseDigest, ok := a.ResponseStringAnnotation("apt.release", "release-file")
+
+	if ok {
+		notes["release-file"] = releaseDigest
+		ins.validatePackages(a.Sha256())
+		a.SetResponseApproved(ins, "packages file successfully parsed").Annotate(notes)
+	} else {
+		a.SetResponseRejected(ins, "packages file not verified against release file").Annotate(notes)
+	}
 
 	pkg.entriesLock.Lock()
 	defer pkg.entriesLock.Unlock()
@@ -318,6 +327,19 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	pkg.entries = entries
 
 	return nil
+}
+
+func (ins *AptPackagesInspector) validatePackages(sha256 digests.Sha256Digest) {
+	ins.validatedLock.Lock()
+	defer ins.validatedLock.Unlock()
+	ins.validated[sha256] = struct{}{}
+}
+
+func (ins *AptPackagesInspector) isValidPackages(sha256 digests.Sha256Digest) bool {
+	ins.validatedLock.Lock()
+	defer ins.validatedLock.Unlock()
+	_, ok := ins.validated[sha256]
+	return ok
 }
 
 func parsePackages(r io.Reader, entries map[digests.Sha256Digest]aptPackagesEntry, slog logger.Logger) (int, error) {
@@ -425,23 +447,30 @@ func (ins *AptPackagesInspector) validateDebianPackage(f ArtifactReader, a Respo
 	for _, pkg := range ins.packages[origin] {
 		entry, ok := pkg.getPackagesEntry(a.Sha256())
 		if ok {
+			packagesIsValid := ins.isValidPackages(pkg.sha256)
+
 			notes := Annotation{
 				"packages-name":         entry.Pkg,           // package name in the Packages file
 				"packages-version":      entry.Version,       // package version in the Packages file
 				"packages-architecture": entry.Architecture,  // package architecture in the Packages file
 				"packages-size":         entry.Size,          // package size in the Packages file
 				"packages-file":         pkg.sha256.String(), // digest of the validating Packages file
+				"packages-is-valid":     packagesIsValid,     // packages file validated against Release
 				"dist":                  pkg.dist,            // dist from packages file
 				"component":             info.Component,      // component from URL
 			}
 
-			if a.Size() != entry.Size {
+			// Check if the packages file listing this deb was validated
+			if !packagesIsValid {
+				a.SetResponseRejected(ins, "artifact listed in invalid Packages file").Annotate(notes)
+			} else if a.Size() != entry.Size {
 				a.SetResponseRejected(ins, "artifact size does not match Packages entry").Annotate(notes)
 			} else if info.Architecture != entry.Architecture {
 				a.SetResponseRejected(ins, "URL architecture does not match Packages entry").Annotate(notes)
 			} else {
-				a.SetResponseApproved(ins, "deb file matches packages entry").Annotate(notes)
+				a.SetResponseUnknown(ins, "deb file matches packages entry").Annotate(notes)
 			}
+
 			return nil
 		}
 	}
