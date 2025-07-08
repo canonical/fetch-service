@@ -39,7 +39,15 @@ func AssertionDetector(raw []byte, limit uint32) bool {
 		return false
 	}
 
-	return strings.HasPrefix(lines[0], "type:") && strings.HasPrefix(lines[1], "authority-id:")
+	hasAuthID := false
+	for i := range lines {
+		if strings.HasPrefix(lines[i], "authority-id:") {
+			hasAuthID = true
+			break
+		}
+	}
+
+	return strings.HasPrefix(lines[0], "type:") && hasAuthID
 }
 
 // SnapAssertionInspector examines assertion requests and files.

@@ -48,14 +48,23 @@ var snapAssertionDetectorTests = []snapAssertionDetectorTest{{
 	content:  "type: my-assertion-type\nauthority-id: the-authority-id and some more filler data but staying at just two lines which is not enough for this to work\n",
 	detected: false,
 }, {
+	content:  "type: my-assertion-type\nformat: 1\nsome more filler data to get to the miminum size we consider valid for an assertion file, and then more data.\n",
+	detected: false,
+}, {
+	content:  "type: my-assertion-type\nformat: 1\nmention authority-id and some more filler data to get to the miminum size we consider valid for an assertion file\n",
+	detected: false,
+}, {
 	content:  "type: my-assertion-type\nauthority-id: the-authority-id\nsome more filler data to get to the miminum size we consider valid for an assertion file\n",
+	detected: true,
+}, {
+	content:  "type: my-assertion-type\nformat: 1\nauthority-id: the-authority-id\nsome more filler data to get to the miminum size we consider valid for an assertion file\n",
 	detected: true,
 }}
 
 func (s *snapSuite) TestSnapAssertionDetector(c *C) {
 	for _, tc := range snapAssertionDetectorTests {
 		res := snap.AssertionDetector([]byte(tc.content), 1024)
-		c.Assert(res, Equals, tc.detected)
+		c.Assert(res, Equals, tc.detected, Commentf("test case: %+v", tc))
 	}
 }
 
@@ -151,6 +160,11 @@ var snapAssertionArtifactInspectorTests = []snapAssertionArtifactInspectorTest{{
 	filetype: "application/x.ubuntu.assertion.snap-revision",
 }, {
 	filename: "testdata/snap-declaration.assert",
+	approved: true,
+	reason:   "valid snap assertion",
+	filetype: "application/x.ubuntu.assertion.snap-declaration",
+}, {
+	filename: "testdata/snap-declaration-2.assert",
 	approved: true,
 	reason:   "valid snap assertion",
 	filetype: "application/x.ubuntu.assertion.snap-declaration",
