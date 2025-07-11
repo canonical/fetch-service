@@ -44,9 +44,9 @@ suites:
     prepare: |
       snap install yq
     restore: |
-      snap remove fetch-service --purge
+      snap remove fetch-service --purge --terminate
     prepare-each: |
-      snap remove fetch-service --purge
+      snap remove fetch-service --purge --terminate
     
 exclude:
   - .git
