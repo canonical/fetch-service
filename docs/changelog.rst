@@ -2,6 +2,12 @@
 Changelog
 *********
 
+0.8.1 (2025-07-11)
+------------------
+
+- fix: address download timeout issues (#412)
+- fix snap declaration assertion parsing (#414)
+
 0.8.0 (2025-07-02)
 ------------------
 
