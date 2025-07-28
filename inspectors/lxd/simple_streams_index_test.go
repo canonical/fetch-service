@@ -1,0 +1,238 @@
+// -*- Mode: Go; indent-tabs-mode: t -*-
+
+/*
+ * Copyright 2025 Canonical Ltd.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+package lxd_test
+
+import (
+	"strings"
+	"testing"
+
+	. "gopkg.in/check.v1"
+
+	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/files"
+	"github.com/canonical/fetch-service/inspectors/lxd"
+	"github.com/canonical/fetch-service/inspectors/mimetypes"
+	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/logger/testlogger"
+	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/metadata/opinions"
+	"github.com/gabriel-vasile/mimetype"
+)
+
+type simpleStreamIndexSuite struct {
+	slog logger.Logger
+}
+
+func (t *simpleStreamIndexSuite) SetUpTest(c *C) {
+	testlogger.Init(logger.DebugLevel)
+}
+
+var _ = Suite(&simpleStreamIndexSuite{logger.NewSessionLogger("test")})
+
+func Test(t *testing.T) { TestingT(t) }
+
+func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInterface(c *C) {
+	var iface Inspector
+	ins := lxd.NewSimpleStreamsIndexInspector()
+	c.Assert(ins, Implements, &iface)
+
+}
+
+func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorID(c *C) {
+	ins := lxd.NewSimpleStreamsIndexInspector()
+	c.Assert(ins.ID(), Equals, "lxd.simple-streams.index")
+}
+
+type simpleStreamIndexInspectRequestTest struct {
+	url     string
+	pending bool
+	stream  string
+}
+
+var simpleStreamIndexInspectRequestTests = []simpleStreamIndexInspectRequestTest{
+	{
+		url:     "https://cloud-images.ubuntu.com/daily/streams/v1/index.json",
+		pending: true,
+		stream:  "daily",
+	},
+	{
+		url:     "https://cloud-images.ubuntu.com/releases/streams/v1/index.json",
+		pending: true,
+		stream:  "releases",
+	},
+	{
+		url:     "https://cloud-images.ubuntu.com/buildd/daily/streams/v1/index.json",
+		pending: true,
+		stream:  "buildd/daily",
+	},
+	{
+		url:     "https://example.com/streams/v1/index.json",
+		pending: false,
+		stream:  "",
+	},
+	{
+		url:     "https://cloud-images.ubuntu.com/daily/streams/v1/other.json",
+		pending: false,
+		stream:  "",
+	},
+	{
+		url:     "https://cloud-images.ubuntu.com/daily/index.json",
+		pending: false,
+		stream:  "",
+	},
+}
+
+func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectRequest(c *C) {
+	ins := lxd.NewSimpleStreamsIndexInspector()
+
+	for _, test := range simpleStreamIndexInspectRequestTests {
+		a := metadata.NewArtifact()
+		a.CurrentDownload = metadata.Download{URL: test.url}
+
+		err := ins.InspectRequest(a)
+		c.Assert(err, IsNil, Commentf("test case: %+v", test))
+
+		insp, ok := a.RequestInspection[ins.ID()]
+		c.Assert(ok, Equals, test.pending, Commentf("URL %s should have pending=%v", test.url, test.pending))
+
+		if test.pending {
+			c.Assert(insp.Opinion, Equals, opinions.Pending)
+			stream, ok := insp.Annotations["stream"]
+			c.Assert(ok, Equals, true, Commentf("Stream annotation should be present for %s", test.url))
+			c.Assert(stream, Equals, test.stream, Commentf("Stream should match for %s", test.url))
+		}
+	}
+}
+
+func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifact(c *C) {
+	ins := lxd.NewSimpleStreamsIndexInspector()
+	a := metadata.NewArtifact()
+	a.MimeType = mimetype.Lookup("application/json")
+	a.CurrentDownload = metadata.Download{URL: "https://cloud-images.ubuntu.com/buildd/daily/streams/v1/index.json"}
+
+	// Set up the request inspection first (required for InspectArtifact)
+	err := ins.InspectRequest(a)
+	c.Assert(err, IsNil)
+
+	f, err := files.OpenArtifactFile("testdata/index.json")
+	c.Assert(err, IsNil)
+	defer f.Close()
+
+	err = ins.InspectArtifact(f, a)
+	c.Assert(err, IsNil)
+	c.Assert(a.Approved(), Equals, true)
+	c.Check(a.Metadata.Type, Equals, mimetypes.SimpleStreams)
+	c.Check(a.Metadata.Name, Equals, "Simplestreams Index")
+	c.Check(a.Metadata.Description, Equals, "SimpleStreams Index for buildd/daily")
+
+	insp, ok := a.ResponseInspection[ins.ID()]
+	c.Assert(ok, Equals, true)
+	c.Assert(insp.Opinion, Equals, opinions.Approved)
+
+	downloadPaths, ok := insp.Annotations["download-paths"]
+	c.Assert(ok, Equals, true)
+	expectedPaths := []string{"streams/v1/com.ubuntu.cloud:daily:download.json"}
+	c.Assert(downloadPaths, DeepEquals, expectedPaths)
+}
+
+func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifactWrongMimetype(c *C) {
+	ins := lxd.NewSimpleStreamsIndexInspector()
+	a := metadata.NewArtifact()
+	a.MimeType = mimetype.Lookup("application/plain")
+	a.CurrentDownload = metadata.Download{URL: "https://cloud-images.ubuntu.com/buildd/daily/streams/v1/index.json"}
+
+	err := ins.InspectRequest(a)
+	c.Assert(err, IsNil)
+
+	f := strings.NewReader(`{"format": "index:1.0"}`)
+	err = ins.InspectArtifact(f, a)
+	c.Assert(err, IsNil)
+	c.Assert(a.Approved(), Equals, false)
+}
+
+func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifactNoRequestAnnotation(c *C) {
+	ins := lxd.NewSimpleStreamsIndexInspector()
+	a := metadata.NewArtifact()
+	a.MimeType = mimetype.Lookup("application/json")
+
+	f, err := files.OpenArtifactFile("testdata/index.json")
+	c.Assert(err, IsNil)
+	defer f.Close()
+
+	err = ins.InspectArtifact(f, a)
+	c.Assert(err, IsNil)
+	c.Assert(a.Approved(), Equals, false)
+}
+
+type simpleStreamIndexInvalidArtifactTest struct {
+	json string
+	log  string
+}
+
+var simpleStreamIndexInvalidArtifactTests = []simpleStreamIndexInvalidArtifactTest{
+	{
+		json: `{"format": "index:2.0", "index": {}}`,
+		log:  "invalid index format index:2.0",
+	},
+	{
+		json: `{
+		"format": "index:1.0",
+		"index": {
+			"test": {
+				"datatype": "invalid-type",
+				"format": "products:1.0",
+				"path": "test.json"
+			}
+		}
+	}`,
+		log: "invalid datatype invalid-type",
+	},
+	{
+		json: `{
+		"format": "index:1.0",
+		"index": {
+			"test": {
+				"datatype": "image-downloads",
+				"format": "products:2.0",
+				"path": "test.json"
+			}
+		}
+	}`,
+		log: "invalid product format products:2.0",
+	},
+}
+
+func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifactInvalidFormat(c *C) {
+	ins := lxd.NewSimpleStreamsIndexInspector()
+	a := metadata.NewArtifact()
+	a.MimeType = mimetype.Lookup("application/json")
+	a.CurrentDownload = metadata.Download{URL: "https://cloud-images.ubuntu.com/buildd/daily/streams/v1/index.json"}
+
+	err := ins.InspectRequest(a)
+	c.Assert(err, IsNil)
+
+	for _, test := range simpleStreamIndexInvalidArtifactTests {
+		f := strings.NewReader(test.json)
+		err = ins.InspectArtifact(f, a)
+		c.Assert(err, IsNil)
+		c.Assert(a.Approved(), Equals, false)
+		c.Assert(testlogger.Contains(test.log), Equals, true, Commentf("%s %s", test.json, testlogger.Contents()))
+	}
+}

@@ -40,3 +40,8 @@ func Init(lv logger.Level) {
 func Contains(msg string) bool {
 	return bytes.Contains(logBuffer.Bytes(), []byte(msg))
 }
+
+// Return contents of the log buffer.
+func Contents() string {
+	return logBuffer.String()
+}
