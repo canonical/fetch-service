@@ -30,7 +30,6 @@ import (
 	"github.com/canonical/fetch-service/inspectors/lxd"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/logger"
-	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
 	"github.com/gabriel-vasile/mimetype"
@@ -40,9 +39,7 @@ type simpleStreamIndexSuite struct {
 	slog logger.Logger
 }
 
-func (t *simpleStreamIndexSuite) SetUpTest(c *C) {
-	testlogger.Init(logger.DebugLevel)
-}
+func (t *simpleStreamIndexSuite) SetUpTest(c *C) {}
 
 var _ = Suite(&simpleStreamIndexSuite{logger.NewSessionLogger("test")})
 
@@ -68,17 +65,17 @@ type simpleStreamIndexInspectRequestTest struct {
 
 var simpleStreamIndexInspectRequestTests = []simpleStreamIndexInspectRequestTest{
 	{
-		url:     "https://cloud-images.ubuntu.com/daily/streams/v1/index.json",
+		url:     "https://cloud-images.ubuntu.com:443/daily/streams/v1/index.json",
 		pending: true,
 		stream:  "daily",
 	},
 	{
-		url:     "https://cloud-images.ubuntu.com/releases/streams/v1/index.json",
+		url:     "https://cloud-images.ubuntu.com:443/releases/streams/v1/index.json",
 		pending: true,
 		stream:  "releases",
 	},
 	{
-		url:     "https://cloud-images.ubuntu.com/buildd/daily/streams/v1/index.json",
+		url:     "https://cloud-images.ubuntu.com:443/buildd/daily/streams/v1/index.json",
 		pending: true,
 		stream:  "buildd/daily",
 	},
@@ -88,12 +85,12 @@ var simpleStreamIndexInspectRequestTests = []simpleStreamIndexInspectRequestTest
 		stream:  "",
 	},
 	{
-		url:     "https://cloud-images.ubuntu.com/daily/streams/v1/other.json",
+		url:     "https://cloud-images.ubuntu.com:443/daily/streams/v1/other.json",
 		pending: false,
 		stream:  "",
 	},
 	{
-		url:     "https://cloud-images.ubuntu.com/daily/index.json",
+		url:     "https://cloud-images.ubuntu.com:443/daily/index.json",
 		pending: false,
 		stream:  "",
 	},
@@ -107,10 +104,10 @@ func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectRequest(c *C) {
 		a.CurrentDownload = metadata.Download{URL: test.url}
 
 		err := ins.InspectRequest(a)
-		c.Assert(err, IsNil, Commentf("test case: %+v", test))
+		c.Assert(err, IsNil)
 
-		insp, ok := a.RequestInspection[ins.ID()]
-		c.Assert(ok, Equals, test.pending, Commentf("URL %s should have pending=%v", test.url, test.pending))
+		insp := a.RequestInspection[ins.ID()]
+		c.Assert(a.RequestPending(), Equals, test.pending)
 
 		if test.pending {
 			c.Assert(insp.Opinion, Equals, opinions.Pending)
@@ -125,11 +122,12 @@ func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifact(c *C) {
 	ins := lxd.NewSimpleStreamsIndexInspector()
 	a := metadata.NewArtifact()
 	a.MimeType = mimetype.Lookup("application/json")
-	a.CurrentDownload = metadata.Download{URL: "https://cloud-images.ubuntu.com/buildd/daily/streams/v1/index.json"}
+	a.CurrentDownload = metadata.Download{URL: "https://cloud-images.ubuntu.com:443/buildd/daily/streams/v1/index.json"}
 
 	// Set up the request inspection first (required for InspectArtifact)
 	err := ins.InspectRequest(a)
 	c.Assert(err, IsNil)
+	c.Assert(a.RequestPending(), Equals, true)
 
 	f, err := files.OpenArtifactFile("testdata/index.json")
 	c.Assert(err, IsNil)
@@ -156,10 +154,11 @@ func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifactWrongMim
 	ins := lxd.NewSimpleStreamsIndexInspector()
 	a := metadata.NewArtifact()
 	a.MimeType = mimetype.Lookup("application/plain")
-	a.CurrentDownload = metadata.Download{URL: "https://cloud-images.ubuntu.com/buildd/daily/streams/v1/index.json"}
+	a.CurrentDownload = metadata.Download{URL: "https://cloud-images.ubuntu.com:443/buildd/daily/streams/v1/index.json"}
 
 	err := ins.InspectRequest(a)
 	c.Assert(err, IsNil)
+	c.Assert(a.RequestPending(), Equals, true)
 
 	f := strings.NewReader(`{"format": "index:1.0"}`)
 	err = ins.InspectArtifact(f, a)
@@ -175,6 +174,7 @@ func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifactNoReques
 	f, err := files.OpenArtifactFile("testdata/index.json")
 	c.Assert(err, IsNil)
 	defer f.Close()
+	c.Assert(a.RequestPending(), Equals, false)
 
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
@@ -182,14 +182,14 @@ func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifactNoReques
 }
 
 type simpleStreamIndexInvalidArtifactTest struct {
-	json string
-	log  string
+	json   string
+	reason string
 }
 
 var simpleStreamIndexInvalidArtifactTests = []simpleStreamIndexInvalidArtifactTest{
 	{
-		json: `{"format": "index:2.0", "index": {}}`,
-		log:  "invalid index format index:2.0",
+		json:   `{"format": "index:2.0", "index": {}}`,
+		reason: "invalid index format index:2.0",
 	},
 	{
 		json: `{
@@ -202,7 +202,7 @@ var simpleStreamIndexInvalidArtifactTests = []simpleStreamIndexInvalidArtifactTe
 			}
 		}
 	}`,
-		log: "invalid datatype invalid-type",
+		reason: "invalid datatype invalid-type",
 	},
 	{
 		json: `{
@@ -215,7 +215,7 @@ var simpleStreamIndexInvalidArtifactTests = []simpleStreamIndexInvalidArtifactTe
 			}
 		}
 	}`,
-		log: "invalid product format products:2.0",
+		reason: "invalid product format products:2.0",
 	},
 }
 
@@ -223,16 +223,23 @@ func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifactInvalidF
 	ins := lxd.NewSimpleStreamsIndexInspector()
 	a := metadata.NewArtifact()
 	a.MimeType = mimetype.Lookup("application/json")
-	a.CurrentDownload = metadata.Download{URL: "https://cloud-images.ubuntu.com/buildd/daily/streams/v1/index.json"}
+	a.CurrentDownload = metadata.Download{URL: "https://cloud-images.ubuntu.com:443/buildd/daily/streams/v1/index.json"}
 
 	err := ins.InspectRequest(a)
 	c.Assert(err, IsNil)
+	c.Assert(a.RequestPending(), Equals, true)
 
 	for _, test := range simpleStreamIndexInvalidArtifactTests {
 		f := strings.NewReader(test.json)
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
-		c.Assert(a.Approved(), Equals, false)
-		c.Assert(testlogger.Contains(test.log), Equals, true, Commentf("%s %s", test.json, testlogger.Contents()))
+		c.Assert(a.Rejected(), Equals, true)
+
+		c.Check(a.ResponseInspection, DeepEquals, metadata.InspectionMap{
+			"lxd.simple-streams.index": &Inspection{
+				Opinion: opinions.Rejected,
+				Reason:  test.reason,
+			},
+		})
 	}
 }

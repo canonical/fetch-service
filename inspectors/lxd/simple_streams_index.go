@@ -29,7 +29,7 @@ import (
 )
 
 var (
-	indexRequestURL = regexp.MustCompile(`^https://cloud-images.ubuntu.com/([\w-\/]+)/streams/v1/index.json$`)
+	indexRequestURL = regexp.MustCompile(`^https://cloud-images.ubuntu.com:443/([\w-\/]+)/streams/v1/index.json$`)
 )
 
 const (
@@ -99,23 +99,23 @@ func (ins *SimpleStreamsIndexInspector) InspectArtifact(f ArtifactReader, a Resp
 
 	// Verify this is a format the inspector understands
 	if b.Format != indexFormat {
-		slog.Debugf("invalid index format %s", b.Format)
+		a.SetResponseRejected(ins, fmt.Sprintf("invalid index format %s", b.Format))
 		return nil
 	}
 
-	var download_paths = make([]string, 0, len(b.Index))
+	var downloadPaths = make([]string, 0, len(b.Index))
 	// Check that the Datatype is what we expect
 	// com.ubuntu.cloud:daily:download
 	for _, v := range b.Index {
 		if v.Format != productFormat {
-			slog.Debugf("invalid product format %s", v.Format)
+			a.SetResponseRejected(ins, fmt.Sprintf("invalid product format %s", v.Format))
 			return nil
 		}
 		if v.Datatype != dataType {
-			slog.Debugf("invalid datatype %s", v.Datatype)
+			a.SetResponseRejected(ins, fmt.Sprintf("invalid datatype %s", v.Datatype))
 			return nil
 		}
-		download_paths = append(download_paths, v.Path)
+		downloadPaths = append(downloadPaths, v.Path)
 	}
 
 	a.SetArtifactMetadata(ArtifactMetadata{
@@ -123,9 +123,9 @@ func (ins *SimpleStreamsIndexInspector) InspectArtifact(f ArtifactReader, a Resp
 		Name:        "Simplestreams Index",
 		Description: fmt.Sprintf("SimpleStreams Index for %s", stream),
 	})
-	a.SetResponseApproved(ins, "valid snap API info endpoint response").Annotate(
+	a.SetResponseApproved(ins, "valid Simple Streams index file").Annotate(
 		Annotation{
-			"download-paths": download_paths,
+			"download-paths": downloadPaths,
 		})
 
 	return nil
