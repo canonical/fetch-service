@@ -96,17 +96,17 @@ func (ins *SimpleStreamsIndexInspector) InspectArtifact(f ArtifactReader, a Resp
 	if err := decoder.Decode(&b); err != nil {
 		return nil // we don't recognize this artifact
 	}
-	a.SetArtifactMetadata(ArtifactMetadata{
-		Type:        mimetypes.SimpleStreams,
-		Name:        "Simplestreams Index",
-		Description: fmt.Sprintf("SimpleStreams Index for %s", stream),
-	})
 
 	// Verify this is a format the inspector understands
 	if b.Format != indexFormat {
 		a.SetResponseRejected(ins, "invalid index file").Annotate(Annotation{"format": b.Format})
 		return nil
 	}
+	a.SetArtifactMetadata(ArtifactMetadata{
+		Type:        mimetypes.SimpleStreams,
+		Name:        "Simplestreams Index",
+		Description: fmt.Sprintf("SimpleStreams Index for %s", stream),
+	})
 
 	var downloadPaths = make([]string, 0, len(b.Index))
 	// Check that the Datatype is what we expect
