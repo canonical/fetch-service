@@ -97,8 +97,10 @@ func NewAptReleaseInspector(cfg apt_cfg.AptInspectorConfig) *AptReleaseInspector
 	}
 }
 
+const aptReleaseInspectorID = "apt.release"
+
 func (ins *AptReleaseInspector) ID() string {
-	return "apt.release"
+	return aptReleaseInspectorID
 }
 
 // AptReleaseInspector verifies if the request is valid for the types of

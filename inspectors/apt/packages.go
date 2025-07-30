@@ -289,7 +289,7 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	}
 
 	// the file should be also annotated by the release inspector
-	vendor, ok := a.ResponseStringAnnotation("apt.release", "vendor")
+	vendor, ok := a.ResponseStringAnnotation(aptReleaseInspectorID, "vendor")
 	if ok {
 		md.Author = vendor
 		md.Vendor = vendor
@@ -311,7 +311,7 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	}
 
 	notes := Annotation{"package-count": num}
-	releaseDigest, ok := a.ResponseStringAnnotation("apt.release", "release-file")
+	releaseDigest, ok := a.ResponseStringAnnotation(aptReleaseInspectorID, "release-file")
 
 	if ok {
 		notes["release-file"] = releaseDigest
