@@ -49,4 +49,5 @@ const (
 	RustCrate                  = "application/x.rust.crate"
 	StoreAPI                   = "application/x.canonical.store-api"
 	BldBinPackage              = "application/x.canonical.bld-bin-package"
+	LxdRootfs                  = "application/x.canonical.lxd.rootfs"
 )

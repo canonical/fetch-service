@@ -22,14 +22,10 @@ package lxd
 import (
 	"encoding/json"
 	"fmt"
-	"regexp"
+	"net/url"
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
-)
-
-var (
-	indexRequestURL = regexp.MustCompile(`^https://cloud-images.ubuntu.com:443/([\w-\/]+)/streams/v1/index.json$`)
 )
 
 const (
@@ -50,18 +46,22 @@ func (SimpleStreamsIndexInspector) ID() string {
 }
 
 func (ins *SimpleStreamsIndexInspector) InspectRequest(a RequestArtifact) error {
-	m := indexRequestURL.FindStringSubmatch(a.DownloadURL())
-	if len(m) > 1 {
-		// Annotate the stream as it comes from cloud images
-		a.SetRequestPending(ins, "valid Simple Streams index URL").Annotate(
-			Annotation{
-				"match":  indexRequestURL,
-				"stream": m[1],
-			},
-		)
+	u, err := url.Parse(a.DownloadURL())
+	if err != nil {
+		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	return nil
+	info, err := NewSimpleStreamsIndexUrlInfo(u)
+	if err != nil {
+		return nil
+	}
+
+	a.SetRequestPending(ins, "valid Simple Streams index URL").Annotate(
+		Annotation{
+			"stream": info.Stream,
+		},
+	)
+	return nil // we don't recognize this request
 }
 
 type simpleStreamsIndex struct {
