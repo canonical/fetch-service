@@ -262,7 +262,7 @@ func NewCommandsUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger)
 		return nil, err
 	}
 
-	reCommands := regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/cnf/Commands-[\w-]+$`)
+	reCommands := regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/cnf/Commands-[\.\w-]+$`)
 	digest := ""
 
 	if !reCommands.MatchString(u.Path) {

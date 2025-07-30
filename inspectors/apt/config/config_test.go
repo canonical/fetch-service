@@ -380,6 +380,24 @@ func (t *configSuite) TestCommandsUrlInfo(c *C) {
 	}
 }
 
+func (t *configSuite) TestCommandsUrlInfoByName(c *C) {
+	u, err := url.Parse("http://archive.ubuntu.com/ubuntu/dists/focal/main/cnf/Commands-amd64.xz")
+	c.Assert(err, IsNil)
+
+	cfg := getTestAptConfig()
+	info, err := config.NewCommandsUrlInfo(u, &cfg, t.slog)
+
+	c.Assert(err, IsNil)
+	c.Assert(info, DeepEquals, &config.CommandsUrlInfo{
+		CfgName:    "default",
+		Origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
+		Repository: "http://archive.ubuntu.com/ubuntu",
+		Dist:       "focal",
+		Component:  "main",
+		Digest:     "",
+	})
+}
+
 type debPackageUrlInfoTest struct {
 	url      string // The request URL
 	conf     string // The repository configuration entry
