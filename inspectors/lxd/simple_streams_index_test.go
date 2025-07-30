@@ -182,20 +182,31 @@ func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifactNoReques
 	c.Assert(a.Approved(), Equals, false)
 }
 
+func (s *simpleStreamIndexSuite) TestInvalidIndexFormat(c *C) {
+
+	ins := lxd.NewSimpleStreamsIndexInspector()
+	a := metadata.NewArtifact()
+	a.MimeType = mimetype.Lookup("application/json")
+	a.CurrentDownload = metadata.Download{URL: "https://cloud-images.ubuntu.com:443/buildd/daily/streams/v1/index.json"}
+
+	err := ins.InspectRequest(a)
+	c.Assert(err, IsNil)
+	c.Assert(a.RequestPending(), Equals, true)
+
+	f := strings.NewReader(`{"format": "index:2.0"}`)
+	err = ins.InspectArtifact(f, a)
+	c.Assert(err, IsNil)
+	c.Assert(a.Approved(), Equals, false)
+	_, ok := a.ResponseInspection[ins.ID()]
+	c.Assert(ok, Equals, false)
+}
+
 type simpleStreamIndexInvalidArtifactTest struct {
 	json        string
 	annotations map[string]any
 }
 
 var simpleStreamIndexInvalidArtifactTests = []simpleStreamIndexInvalidArtifactTest{
-	{
-		json:        `{"format": "index:2.0", "index": {}}`,
-		annotations: map[string]any{"format": "index:2.0"},
-	},
-	{
-		json:        `{"no-format": "index:2.0", "index": {}}`,
-		annotations: map[string]any{"format": ""},
-	},
 	{
 		json: `{
 		"format": "index:1.0",

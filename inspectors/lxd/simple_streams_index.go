@@ -99,7 +99,7 @@ func (ins *SimpleStreamsIndexInspector) InspectArtifact(f ArtifactReader, a Resp
 
 	// Verify this is a format the inspector understands
 	if b.Format != indexFormat {
-		a.SetResponseRejected(ins, "invalid index file").Annotate(Annotation{"format": b.Format})
+		slog.Debugf(fmt.Sprintf("unsupported format when parsing index.json %s", b.Format))
 		return nil
 	}
 	a.SetArtifactMetadata(ArtifactMetadata{
