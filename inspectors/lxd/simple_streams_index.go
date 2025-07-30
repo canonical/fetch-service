@@ -53,7 +53,7 @@ func (ins *SimpleStreamsIndexInspector) InspectRequest(a RequestArtifact) error 
 	m := indexRequestURL.FindStringSubmatch(a.DownloadURL())
 	if len(m) > 1 {
 		// Annotate the stream as it comes from cloud images
-		a.SetRequestPending(ins, "cloud image").Annotate(
+		a.SetRequestPending(ins, "valid Simple Streams index URL").Annotate(
 			Annotation{
 				"match":  indexRequestURL,
 				"stream": m[1],
@@ -99,7 +99,7 @@ func (ins *SimpleStreamsIndexInspector) InspectArtifact(f ArtifactReader, a Resp
 
 	// Verify this is a format the inspector understands
 	if b.Format != indexFormat {
-		a.SetResponseRejected(ins, fmt.Sprintf("invalid index format %s", b.Format))
+		a.SetResponseRejected(ins, "invalid index file").Annotate(Annotation{"format": b.Format})
 		return nil
 	}
 
@@ -108,11 +108,11 @@ func (ins *SimpleStreamsIndexInspector) InspectArtifact(f ArtifactReader, a Resp
 	// com.ubuntu.cloud:daily:download
 	for _, v := range b.Index {
 		if v.Format != productFormat {
-			a.SetResponseRejected(ins, fmt.Sprintf("invalid product format %s", v.Format))
+			a.SetResponseRejected(ins, "invalid index file").Annotate(Annotation{"index.format": v.Format})
 			return nil
 		}
 		if v.Datatype != dataType {
-			a.SetResponseRejected(ins, fmt.Sprintf("invalid datatype %s", v.Datatype))
+			a.SetResponseRejected(ins, "invalid index file").Annotate(Annotation{"index.datatype": v.Datatype})
 			return nil
 		}
 		downloadPaths = append(downloadPaths, v.Path)

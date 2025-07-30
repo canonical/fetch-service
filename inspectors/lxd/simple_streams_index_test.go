@@ -110,6 +110,7 @@ func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectRequest(c *C) {
 		c.Assert(a.RequestPending(), Equals, test.pending)
 
 		if test.pending {
+			c.Assert(insp.Reason, Equals, "valid Simple Streams index URL")
 			c.Assert(insp.Opinion, Equals, opinions.Pending)
 			stream, ok := insp.Annotations["stream"]
 			c.Assert(ok, Equals, true, Commentf("Stream annotation should be present for %s", test.url))
@@ -182,14 +183,14 @@ func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifactNoReques
 }
 
 type simpleStreamIndexInvalidArtifactTest struct {
-	json   string
-	reason string
+	json        string
+	annotations map[string]any
 }
 
 var simpleStreamIndexInvalidArtifactTests = []simpleStreamIndexInvalidArtifactTest{
 	{
-		json:   `{"format": "index:2.0", "index": {}}`,
-		reason: "invalid index format index:2.0",
+		json:        `{"format": "index:2.0", "index": {}}`,
+		annotations: map[string]any{"format": "index:2.0"},
 	},
 	{
 		json: `{
@@ -202,7 +203,7 @@ var simpleStreamIndexInvalidArtifactTests = []simpleStreamIndexInvalidArtifactTe
 			}
 		}
 	}`,
-		reason: "invalid datatype invalid-type",
+		annotations: map[string]any{"index.datatype": "invalid-type"},
 	},
 	{
 		json: `{
@@ -215,7 +216,7 @@ var simpleStreamIndexInvalidArtifactTests = []simpleStreamIndexInvalidArtifactTe
 			}
 		}
 	}`,
-		reason: "invalid product format products:2.0",
+		annotations: map[string]any{"index.format": "products:2.0"},
 	},
 }
 
@@ -237,8 +238,9 @@ func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifactInvalidF
 
 		c.Check(a.ResponseInspection, DeepEquals, metadata.InspectionMap{
 			"lxd.simple-streams.index": &Inspection{
-				Opinion: opinions.Rejected,
-				Reason:  test.reason,
+				Opinion:     opinions.Rejected,
+				Reason:      "invalid index file",
+				Annotations: test.annotations,
 			},
 		})
 	}
