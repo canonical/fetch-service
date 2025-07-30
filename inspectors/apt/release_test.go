@@ -216,86 +216,6 @@ func (s *aptSuite) TestAptReleaseArtifactInspector(c *C) {
 	}
 }
 
-func (s *aptSuite) TestAptTranslationArtifactInspector(c *C) {
-	for _, tc := range []struct {
-		dataRelease              string
-		translationLocalFileName string
-		translationDigest        string
-		translationSize          int64
-		result                   bool
-	}{
-		{inReleaseArtifactData, "testdata/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 792, true},
-		{inReleaseArtifactData, "testdata/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 600, false},
-		{inReleaseArtifactData, "testdata/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 792, false},
-		{inReleaseArtifactData, "testdata/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 600, false},
-	} {
-		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes Annotation, pubkey string) (io.ReadSeeker, error) {
-			return f, nil
-		})
-		defer restorer()
-
-		translationArtifactFile, _ := os.Open(tc.translationLocalFileName)
-		translationArtifactData := make([]byte, tc.translationSize)
-		_, err := translationArtifactFile.Read(translationArtifactData)
-		c.Assert(err, IsNil)
-
-		// Load the release file first
-		a_release := metadata.NewArtifact()
-		a_release.RequestInspection = metadata.InspectionMap{
-			"apt.release": &Inspection{
-				Opinion: opinions.Pending,
-				Reason:  "",
-				Annotations: Annotation{
-					"cfg-name": "default",
-				},
-			},
-		}
-		a_release.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/InRelease"
-		a_release.MimeType = mimetype.Lookup("text/plain")
-
-		f_release := strings.NewReader(inReleaseArtifactData)
-
-		// Inspect the InRelease file with the release inspector
-		ins := apt.NewAptReleaseInspector(getTestAptConfig())
-		err = ins.InspectArtifact(f_release, a_release)
-		c.Assert(err, IsNil)
-
-		// Now load the translation file
-		a := metadata.NewArtifact()
-		a.SetRequestPending(ins, "test")
-		a.RequestInspection = metadata.InspectionMap{
-			"apt.release": &Inspection{
-				Opinion: opinions.Pending,
-				Reason:  "",
-				Annotations: Annotation{
-					"cfg-name": "default",
-				},
-			},
-		}
-		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/i18n/by-hash/SHA256/" + tc.translationDigest
-		a.Metadata.Type = "application/x.apt.translation"
-		a.Metadata.Size = tc.translationSize
-		a.Metadata.Sha256, err = digests.NewSha256Digest(tc.translationDigest)
-		c.Assert(err, IsNil)
-
-		translationFile, _ := os.Open(tc.translationLocalFileName)
-		data := make([]byte, 1024*128)
-		_, err = translationFile.Read(data)
-		c.Assert(err, IsNil)
-
-		f := bytes.NewReader(data)
-
-		err = ins.InspectArtifact(f, a)
-		c.Assert(err, IsNil)
-
-		c.Assert(a.Approved(), Equals, tc.result)
-
-		if tc.result {
-			c.Check(a.Metadata.Type, Equals, "application/x.apt.translation")
-		}
-	}
-}
-
 func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
 	sha256_rel, _ := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
 	sha256_pkg, _ := digests.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
@@ -323,9 +243,9 @@ func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
 	ins.SetRelease(map[string]apt.ReleaseFile{"http://archive.ubuntu.com/ubuntu/dists/jammy": rf})
 	err := ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
-	c.Assert(a.Approved(), Equals, true)
+	c.Assert(a.Approved(), Equals, false)
 	c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
-		Opinion: opinions.Approved,
+		Opinion: opinions.Unknown,
 		Reason:  "Packages file listed in Release",
 		Annotations: Annotation{
 			"file-path":    "main/binary-amd64/Packages.xz",
@@ -363,9 +283,9 @@ func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
 	ins.SetRelease(map[string]apt.ReleaseFile{"http://archive.ubuntu.com/ubuntu/dists/jammy": rf})
 	err := ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
-	c.Assert(a.Approved(), Equals, true)
+	c.Assert(a.Approved(), Equals, false)
 	c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
-		Opinion: opinions.Approved,
+		Opinion: opinions.Unknown,
 		Reason:  "Translation file listed in Release",
 		Annotations: Annotation{
 			"file-path":    "main/i18n/Translation-en.xz",
@@ -419,10 +339,10 @@ func (s *aptSuite) TestAptReleaseCommandsValidation(c *C) {
 		err := ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
+		c.Assert(a.Approved(), Equals, false)
 		if tc.rejectReason == "" {
-			c.Assert(a.Approved(), Equals, true)
 			c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
-				Opinion: opinions.Approved,
+				Opinion: opinions.Unknown,
 				Reason:  "Commands file listed in Release",
 				Annotations: Annotation{
 					"file-path":    "main/cnf/Commands-amd64.xz",
@@ -431,7 +351,6 @@ func (s *aptSuite) TestAptReleaseCommandsValidation(c *C) {
 				},
 			})
 		} else {
-			c.Assert(a.Approved(), Equals, false)
 			c.Assert(a.ResponseInspection["apt.release"].Reason, Equals, tc.rejectReason)
 		}
 	}

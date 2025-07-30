@@ -239,14 +239,20 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	}
 
 	a.SetArtifactMetadata(md)
-	a.SetResponseApproved(ins, "commands file successfully parsed").Annotate(
-		Annotation{
-			"suite":     suite,
-			"component": component,
-			"arch":      arch,
-			"count":     item_count,
-		},
-	)
+
+	notes := Annotation{
+		"suite":     suite,
+		"component": component,
+		"arch":      arch,
+		"count":     item_count,
+	}
+
+	_, ok = a.ResponseStringAnnotation("apt.release", "release-file")
+	if ok {
+		a.SetResponseApproved(ins, "commands file successfully parsed").Annotate(notes)
+	} else {
+		a.SetResponseRejected(ins, "commands file not verified against release file").Annotate(notes)
+	}
 
 	return nil
 }

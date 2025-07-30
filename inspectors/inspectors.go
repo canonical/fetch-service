@@ -83,12 +83,12 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		pip.NewSdistInspector(),
 		pip.NewMetadataInspector(),
 
-		// deb packages
-		deb.NewDebInspector(cfg.Apt),
+		// Apt and deb packages
 		apt.NewAptReleaseInspector(cfg.Apt),
 		apt.NewAptPackagesInspector(cfg.Apt),
 		apt.NewAptTranslationInspector(cfg.Apt),
 		apt.NewAptCommandsInspector(cfg.Apt),
+		deb.NewDebInspector(cfg.Apt),
 
 		// git
 		git.NewSmartQueryInspector(cfg.Git),

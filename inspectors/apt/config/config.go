@@ -262,10 +262,16 @@ func NewCommandsUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger)
 		return nil, err
 	}
 
-	reCommands := regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/cnf/by-hash/SHA256/([0-9a-f]{64})$`)
-	m := reCommands.FindStringSubmatch(u.Path)
-	if len(m) != 2 {
-		return nil, fmt.Errorf("invalid commands URL path: %s", u.Path)
+	reCommands := regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/cnf/Commands-[\.\w-]+$`)
+	digest := ""
+
+	if !reCommands.MatchString(u.Path) {
+		reCommandsByHash := regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/cnf/by-hash/SHA256/([0-9a-f]{64})$`)
+		m := reCommandsByHash.FindStringSubmatch(u.Path)
+		if len(m) != 2 {
+			return nil, fmt.Errorf("invalid commands URL path: %s", u.Path)
+		}
+		digest = m[1]
 	}
 	info := &CommandsUrlInfo{
 		CfgName:    name,
@@ -273,7 +279,7 @@ func NewCommandsUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger)
 		Repository: repo,
 		Dist:       dist,
 		Component:  component,
-		Digest:     m[1],
+		Digest:     digest,
 	}
 	return info, nil
 }
