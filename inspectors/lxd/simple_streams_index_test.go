@@ -96,7 +96,7 @@ var simpleStreamIndexInspectRequestTests = []simpleStreamIndexInspectRequestTest
 	},
 }
 
-func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectRequest(c *C) {
+func (s *simpleStreamIndexSuite) TestSimpleStreamsIndexInspectorInspectRequest(c *C) {
 	ins := lxd.NewSimpleStreamsIndexInspector()
 
 	for _, test := range simpleStreamIndexInspectRequestTests {
@@ -183,7 +183,6 @@ func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifactNoReques
 }
 
 func (s *simpleStreamIndexSuite) TestInvalidIndexFormat(c *C) {
-
 	ins := lxd.NewSimpleStreamsIndexInspector()
 	a := metadata.NewArtifact()
 	a.MimeType = mimetype.Lookup("application/json")
