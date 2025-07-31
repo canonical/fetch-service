@@ -138,8 +138,8 @@ func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifact(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
 	c.Check(a.Metadata.Type, Equals, mimetypes.SimpleStreams)
-	c.Check(a.Metadata.Name, Equals, "Simplestreams Index")
-	c.Check(a.Metadata.Description, Equals, "SimpleStreams Index for buildd/daily")
+	c.Check(a.Metadata.Name, Equals, "Simple Streams Index")
+	c.Check(a.Metadata.Description, Equals, "Simple Streams Index for buildd/daily")
 
 	insp, ok := a.ResponseInspection[ins.ID()]
 	c.Assert(ok, Equals, true)

@@ -29,7 +29,7 @@ execute: |
   get_session_report "$session_id" > session_report.json
   python3 -mjson.tool session_report.json
 
-  jq -r '(.artifacts[].metadata | select(.name=="Simplestreams Index")).type' session_report.json | MATCH "application/x.canonical.simplestreams"
+  jq -r '(.artifacts[].metadata | select(.name=="Simple Streams Index")).type' session_report.json | MATCH "application/x.canonical.simplestreams"
 
   delete_session "$session_id"
   delete_resources "$session_id"

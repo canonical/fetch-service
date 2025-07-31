@@ -89,7 +89,7 @@ func (ins *SimpleStreamsIndexInspector) InspectArtifact(f ArtifactReader, a Resp
 	if !ok {
 		return nil
 	}
-	slog.Debugf("parsing index for stream %s", stream)
+	slog.Debugf("parsing Simple Streams Index for stream %s", stream)
 
 	decoder := json.NewDecoder(f)
 	var b simpleStreamsIndex
@@ -104,8 +104,8 @@ func (ins *SimpleStreamsIndexInspector) InspectArtifact(f ArtifactReader, a Resp
 	}
 	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:        mimetypes.SimpleStreams,
-		Name:        "Simplestreams Index",
-		Description: fmt.Sprintf("SimpleStreams Index for %s", stream),
+		Name:        "Simple Streams Index",
+		Description: fmt.Sprintf("Simple Streams Index for %s", stream),
 	})
 
 	var downloadPaths = make([]string, 0, len(b.Index))
