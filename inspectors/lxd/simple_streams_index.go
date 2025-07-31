@@ -109,8 +109,6 @@ func (ins *SimpleStreamsIndexInspector) InspectArtifact(f ArtifactReader, a Resp
 	})
 
 	var downloadPaths = make([]string, 0, len(b.Index))
-	// Check that the Datatype is what we expect
-	// com.ubuntu.cloud:daily:download
 	for _, v := range b.Index {
 		if v.Format != productFormat {
 			a.SetResponseRejected(ins, "invalid index file").Annotate(Annotation{"index.format": v.Format})
