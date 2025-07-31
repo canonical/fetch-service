@@ -14,7 +14,7 @@ execute: |
   . ../utils.sh
 
   # create permissive session
-  read -r session_id token < <(create_session permissive)
+  read -r session_id token < <(create_session strict)
 
   # set up proxy
   export http_proxy="http://${session_id}:${token}@localhost:9988"
