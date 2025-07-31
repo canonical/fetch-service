@@ -1,0 +1,35 @@
+summary: Test the lxd inspector
+
+systems:
+  - -ubuntu-24.04
+
+prepare: |
+  rm -f ./*.json
+
+restore: |
+  rm -f ./*.json
+
+execute: |
+  # shellcheck disable=SC1091
+  . ../utils.sh
+
+  # create permissive session
+  read -r session_id token < <(create_session strict)
+
+  # set up proxy
+  export http_proxy="http://${session_id}:${token}@localhost:9988"
+  export https_proxy="http://${session_id}:${token}@localhost:9988"
+
+  wget https://cloud-images.ubuntu.com/buildd/daily/streams/v1/index.json
+
+  unset http_proxy
+  unset https_proxy
+
+  revoke_token "$session_id" "$token"
+  get_session_report "$session_id" > session_report.json
+  python3 -mjson.tool session_report.json
+
+  jq -r '(.artifacts[].metadata | select(.name=="Simple Streams Index")).type' session_report.json | MATCH "application/x.canonical.simplestreams"
+
+  delete_session "$session_id"
+  delete_resources "$session_id"

@@ -35,6 +35,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/git"
 	"github.com/canonical/fetch-service/inspectors/gomod"
+	"github.com/canonical/fetch-service/inspectors/lxd"
 	"github.com/canonical/fetch-service/inspectors/maven"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/inspectors/pip"
@@ -112,6 +113,9 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		// maven
 		maven.NewJarInspector(),
 		maven.NewPomInspector(),
+
+		// lxd
+		lxd.NewSimpleStreamsIndexInspector(),
 
 		// default inspector
 		// must be the last inspector to run
