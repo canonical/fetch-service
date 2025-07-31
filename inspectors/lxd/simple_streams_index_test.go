@@ -45,14 +45,14 @@ var _ = Suite(&simpleStreamIndexSuite{logger.NewSessionLogger("test")})
 
 func Test(t *testing.T) { TestingT(t) }
 
-func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInterface(c *C) {
+func (s *simpleStreamIndexSuite) TestSimpleStreamsIndexInspectorInterface(c *C) {
 	var iface Inspector
 	ins := lxd.NewSimpleStreamsIndexInspector()
 	c.Assert(ins, Implements, &iface)
 
 }
 
-func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorID(c *C) {
+func (s *simpleStreamIndexSuite) TestSimpleStreamsIndexInspectorID(c *C) {
 	ins := lxd.NewSimpleStreamsIndexInspector()
 	c.Assert(ins.ID(), Equals, "lxd.simple-streams.index")
 }
@@ -119,7 +119,7 @@ func (s *simpleStreamIndexSuite) TestSimpleStreamsIndexInspectorInspectRequest(c
 	}
 }
 
-func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifact(c *C) {
+func (s *simpleStreamIndexSuite) TestSimpleStreamsIndexInspectorInspectArtifact(c *C) {
 	ins := lxd.NewSimpleStreamsIndexInspector()
 	a := metadata.NewArtifact()
 	a.MimeType = mimetype.Lookup("application/json")
@@ -151,7 +151,7 @@ func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifact(c *C) {
 	c.Assert(downloadPaths, DeepEquals, expectedPaths)
 }
 
-func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifactWrongMimetype(c *C) {
+func (s *simpleStreamIndexSuite) TestSimpleStreamsIndexInspectorInspectArtifactWrongMimetype(c *C) {
 	ins := lxd.NewSimpleStreamsIndexInspector()
 	a := metadata.NewArtifact()
 	a.MimeType = mimetype.Lookup("application/plain")
@@ -167,7 +167,7 @@ func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifactWrongMim
 	c.Assert(a.Approved(), Equals, false)
 }
 
-func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifactNoRequestAnnotation(c *C) {
+func (s *simpleStreamIndexSuite) TestSimpleStreamsIndexInspectorInspectArtifactNoRequestAnnotation(c *C) {
 	ins := lxd.NewSimpleStreamsIndexInspector()
 	a := metadata.NewArtifact()
 	a.MimeType = mimetype.Lookup("application/json")
@@ -234,17 +234,18 @@ var simpleStreamIndexInvalidArtifactTests = []simpleStreamIndexInvalidArtifactTe
 	},
 }
 
-func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifactInvalidFormat(c *C) {
+func (s *simpleStreamIndexSuite) TestSimpleStreamsIndexInspectorInspectArtifactInvalidFormat(c *C) {
 	ins := lxd.NewSimpleStreamsIndexInspector()
-	a := metadata.NewArtifact()
-	a.MimeType = mimetype.Lookup("application/json")
-	a.CurrentDownload = metadata.Download{URL: "https://cloud-images.ubuntu.com:443/buildd/daily/streams/v1/index.json"}
-
-	err := ins.InspectRequest(a)
-	c.Assert(err, IsNil)
-	c.Assert(a.RequestPending(), Equals, true)
 
 	for _, test := range simpleStreamIndexInvalidArtifactTests {
+		a := metadata.NewArtifact()
+		a.MimeType = mimetype.Lookup("application/json")
+		a.CurrentDownload = metadata.Download{URL: "https://cloud-images.ubuntu.com:443/buildd/daily/streams/v1/index.json"}
+
+		err := ins.InspectRequest(a)
+		c.Assert(err, IsNil)
+		c.Assert(a.RequestPending(), Equals, true)
+
 		f := strings.NewReader(test.json)
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
@@ -260,7 +261,7 @@ func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifactInvalidF
 	}
 }
 
-func (s *simpleStreamIndexSuite) TestSimpleIndexInspectorInspectArtifactNotJSON(c *C) {
+func (s *simpleStreamIndexSuite) TestSimpleStreamsIndexInspectorInspectArtifactNotJSON(c *C) {
 	ins := lxd.NewSimpleStreamsIndexInspector()
 	a := metadata.NewArtifact()
 	a.MimeType = mimetype.Lookup("application/json")
