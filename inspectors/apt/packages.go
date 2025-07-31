@@ -405,8 +405,13 @@ func (ins *AptPackagesInspector) addPackages(origin, packagesPath string, data *
 	if ins.packages[origin] == nil {
 		ins.packages[origin] = map[string]*aptPackages{}
 	}
-	slog.Debugf("adding packages origin %q, %q", origin, packagesPath)
-	ins.packages[origin][packagesPath] = data
+
+	// Don't overwrite existing data
+	_, ok := ins.packages[origin][packagesPath]
+	if !ok {
+		slog.Debugf("adding packages origin %q, %q", origin, packagesPath)
+		ins.packages[origin][packagesPath] = data
+	}
 }
 
 func (ins *AptPackagesInspector) getPackages(origin, packagesPath string, slog logger.Logger) (*aptPackages, bool) {
