@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -117,7 +117,7 @@ func (s *rootfsSuite) TestInspectArtifact(c *C) {
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
-	c.Check(a.Metadata.Type, Equals, "application/x.canonical.lxd.rootfs")
+	c.Check(a.Metadata.Type, Equals, "application/x.canonical.lxd-rootfs")
 	c.Check(a.Metadata.Name, Equals, "LXD rootfs image")
 	c.Check(a.Metadata.Version, Equals, "1751220536")
 	c.Check(a.Metadata.Description, Equals, "Ubuntu buildd noble amd64")

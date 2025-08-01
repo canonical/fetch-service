@@ -53,7 +53,7 @@ func (ins *SimpleStreamsIndexInspector) InspectRequest(a RequestArtifact) error 
 
 	info, err := NewSimpleStreamsIndexUrlInfo(u)
 	if err != nil {
-		return nil
+		return nil // we don't recognize this request
 	}
 
 	a.SetRequestPending(ins, "valid Simple Streams index URL").Annotate(

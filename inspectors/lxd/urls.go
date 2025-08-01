@@ -41,7 +41,7 @@ var (
 )
 
 type SimpleStreamsIndexUrlInfo struct {
-	Stream string // The image series
+	Stream string // The stream portion of the URL
 }
 
 func NewSimpleStreamsIndexUrlInfo(u *url.URL) (*SimpleStreamsIndexUrlInfo, error) {
