@@ -154,10 +154,13 @@ func (s *aptSuite) TestPackagesInspectArtifact(c *C) {
 		a.Metadata.Sha256 = h2
 		a.Metadata.Type = "application/x.apt.packages"
 		a.MimeType = mimetype.Lookup("application/x.apt.packages")
-		a.RequestInspection[ins.ID()] = &Inspection{
-			Opinion: opinions.Pending,
-			Reason:  "some reason",
-		}
+		a.SetRequestPending(ins, "some reason").Annotate(
+			Annotation{
+				"dist":         "jammy",
+				"component":    "main",
+				"architecture": "amd64",
+			},
+		)
 		a.ResponseInspection["apt.release"] = &Inspection{
 			Opinion: opinions.Unknown,
 			Reason:  "some reason",
