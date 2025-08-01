@@ -143,12 +143,11 @@ var packagesInspectArtifactTests = []packagesInspectArtifactTest{{
 func (s *aptSuite) TestPackagesInspectArtifact(c *C) {
 	for _, tc := range packagesInspectArtifactTests {
 		ins := apt.NewAptPackagesInspector(getAptInspectorConfig())
+		h2, _ := digests.NewSha256Digest(tc.digest)
 
 		// simulate InRelease entry
-		data := apt.NewAptPackages("http://myserver", "jammy", "main", "amd64")
+		data := apt.NewAptPackages(h2, "http://myserver", "jammy", "main", "amd64")
 		apt.AptPackagesInspectorAddPackages(ins, "http://myserver", "/path/Packages.xz", data, s.slog)
-
-		h2, _ := digests.NewSha256Digest(tc.digest)
 
 		a := metadata.NewArtifact()
 		a.CurrentDownload.URL = "http://myserver/path/Packages.xz"

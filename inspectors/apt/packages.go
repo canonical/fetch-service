@@ -173,8 +173,9 @@ type aptPackages struct {
 	entriesLock sync.Mutex
 }
 
-func newAptPackages(origin, dist, component, architecture string) *aptPackages {
+func newAptPackages(sha256 digests.Sha256Digest, origin, dist, component, architecture string) *aptPackages {
 	return &aptPackages{
+		sha256:       sha256,
 		origin:       origin,
 		dist:         dist,
 		component:    component,
@@ -236,8 +237,6 @@ func (ins *AptPackagesInspector) InspectRequest(a RequestArtifact) error {
 				"architecture": info.Architecture,
 			},
 		)
-		packages := newAptPackages(info.Origin, info.Dist, info.Component, info.Architecture)
-		ins.addPackages(info.Origin, u.Path, packages, a.Logger())
 	} else if info, err := apt_cfg.NewDebPackageUrlInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for deb package").Annotate(
 			Annotation{
@@ -267,25 +266,29 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	origin := utils.NormalizedOrigin(u)
-	pkg, ok := ins.getPackages(origin, u.Path, a.Logger())
+	dist, ok := a.RequestStringAnnotation(ins.ID(), "dist")
 	if !ok {
-		return fmt.Errorf("inconsistent package state: '%s', '%s'", origin, u.Path)
+		return fmt.Errorf("inconsistent request annotation: missing dist")
 	}
-	pkg.sha256 = a.Sha256()
+	component, ok := a.RequestStringAnnotation(ins.ID(), "component")
+	if !ok {
+		return fmt.Errorf("inconsistent request annotation: missing component")
+	}
+	architecture, ok := a.RequestStringAnnotation(ins.ID(), "architecture")
+	if !ok {
+		return fmt.Errorf("inconsistent request annotation: missing architecture")
+	}
 
-	// Add packages list to inspector state
-	r, err := compressedReader(f)
-	if err != nil {
-		return err
-	}
+	origin := utils.NormalizedOrigin(u)
+	pkg := newAptPackages(a.Sha256(), origin, dist, component, architecture)
+	ins.addPackages(origin, u.Path, pkg, a.Logger())
 
 	md := ArtifactMetadata{
 		Type:         mimetypes.AptPackages,
 		Name:         "Packages",
-		Version:      pkg.dist,
-		Description:  fmt.Sprintf("%s %s Packages file", pkg.dist, pkg.component),
-		Architecture: pkg.architecture,
+		Version:      dist,
+		Description:  fmt.Sprintf("%s %s Packages file", dist, component),
+		Architecture: architecture,
 	}
 
 	// the file should be also annotated by the release inspector
@@ -296,6 +299,12 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	}
 
 	a.SetArtifactMetadata(md)
+
+	// Add packages list to inspector state
+	r, err := compressedReader(f)
+	if err != nil {
+		return err
+	}
 
 	var num int
 	entries := map[digests.Sha256Digest]aptPackagesEntry{}
@@ -406,12 +415,8 @@ func (ins *AptPackagesInspector) addPackages(origin, packagesPath string, data *
 		ins.packages[origin] = map[string]*aptPackages{}
 	}
 
-	// Don't overwrite existing data
-	_, ok := ins.packages[origin][packagesPath]
-	if !ok {
-		slog.Debugf("adding packages origin %q, %q", origin, packagesPath)
-		ins.packages[origin][packagesPath] = data
-	}
+	slog.Debugf("adding packages origin %q, %q", origin, packagesPath)
+	ins.packages[origin][packagesPath] = data
 }
 
 func (ins *AptPackagesInspector) getPackages(origin, packagesPath string, slog logger.Logger) (*aptPackages, bool) {
