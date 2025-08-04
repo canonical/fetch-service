@@ -116,6 +116,7 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 
 		// lxd
 		lxd.NewSimpleStreamsIndexInspector(),
+		lxd.NewRootfsInspector(),
 
 		// default inspector
 		// must be the last inspector to run
