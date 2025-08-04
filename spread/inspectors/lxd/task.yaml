@@ -1,8 +1,5 @@
 summary: Test the lxd inspector
 
-systems:
-  - ubuntu-24.04
-
 prepare: |
   rm -f ./*.json
   snap install lxd
