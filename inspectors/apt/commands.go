@@ -232,7 +232,7 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	}
 
 	// the file should be also annotated by the release inspector
-	vendor, ok := a.ResponseStringAnnotation("apt.release", "vendor")
+	vendor, ok := a.ResponseStringAnnotation(aptReleaseInspectorID, "vendor")
 	if ok {
 		md.Vendor = vendor
 		md.Author = vendor
@@ -247,7 +247,7 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		"count":     item_count,
 	}
 
-	_, ok = a.ResponseStringAnnotation("apt.release", "release-file")
+	_, ok = a.ResponseStringAnnotation(aptReleaseInspectorID, "release-file")
 	if ok {
 		a.SetResponseApproved(ins, "commands file successfully parsed").Annotate(notes)
 	} else {
