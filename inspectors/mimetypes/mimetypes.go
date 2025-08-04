@@ -35,6 +35,7 @@ const (
 	Rockcraft                  = "application/x.canonical.rockcraft"
 	Snapcraft                  = "application/x.canonical.snapcraft"
 	Sourcecraft                = "application/x.canonical.sourcecraft"
+	SimpleStreams              = "application/x.canonical.simplestreams"
 	GoModuleGit                = "application/x.go.module.git-repo"
 	SquashFs                   = "application/x.squashfs"
 	SnapPackage                = "application/x.canonical.snap-package"
@@ -48,4 +49,5 @@ const (
 	RustCrate                  = "application/x.rust.crate"
 	StoreAPI                   = "application/x.canonical.store-api"
 	BldBinPackage              = "application/x.canonical.bld-bin-package"
+	LxdRootfs                  = "application/x.canonical.lxd-rootfs"
 )
