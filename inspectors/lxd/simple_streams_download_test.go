@@ -281,7 +281,6 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectImageMissi
 	c.Assert(ad.Rejected(), Equals, true)
 	c.Check(ad.Metadata.Type, Equals, mimetypes.SimpleStreamsProduct)
 
-	// oisdjof
 	insp, ok := ad.ResponseInspection[ins.ID()]
 	c.Assert(ok, Equals, true)
 	c.Assert(insp.Opinion, Equals, opinions.Rejected)
