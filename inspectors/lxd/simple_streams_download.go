@@ -100,7 +100,7 @@ func (ins *SimpleStreamsDownloadInspector) InspectRequest(a RequestArtifact) err
 
 	pinfo, err := NewProductItemUrlInfo(u)
 	if err == nil {
-		a.SetRequestPending(ins, "valid Simple Streams product intem URL").Annotate(
+		a.SetRequestPending(ins, "valid Simple Streams product item URL").Annotate(
 			Annotation{
 				"product-name": pinfo.Name,
 			},
