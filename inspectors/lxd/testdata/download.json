@@ -16,104 +16,6 @@
       "supported": false,
       "version": "20.04",
       "versions": {
-        "20250526": {
-          "items": {
-            "disk1.img": {
-              "ftype": "disk1.img",
-              "path": "focal/20250526/focal-server-cloudimg-amd64-disk1.img",
-              "sha256": "1cee9337b20cd2c226bc6fcf76e9d67937304d4aeb67ee82abdffcdf5a71ebcb",
-              "size": 326893568
-            },
-            "lxd.tar.xz": {
-              "combined_disk1-img_sha256": "01319e9014d2b035330e5e171e41de8f1ec3c69913e8bcf72cbab77e895a8ae7",
-              "ftype": "lxd.tar.xz",
-              "path": "focal/20250526/focal-server-cloudimg-amd64-lxd.tar.xz",
-              "sha256": "82412b8f5a8c9449a3e0f6e01f61f4b8663357484d835feebb795efa69406c97",
-              "size": 832
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "focal/20250526/focal-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "a288f566239c4caa3d6b7a828dc7cac6d5d26e3398adcb6dd2c8f8fa5a7dd57d",
-              "size": 4624
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "focal/20250526/focal-server-cloudimg-amd64-lxd_combined.tar.gz",
-              "sha256": "264e4cef9f5749388a83b460f70294d5d670544bee778357464047a853a1de49",
-              "size": 132327995
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "focal/20250526/focal-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "dc5cf43df19a5b4bb60d4a0178ca540b75b8bdb20833af7fca4061fdc7f1cdba",
-              "size": 8583
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "focal/20250526/focal-server-cloudimg-amd64-root.manifest",
-              "sha256": "a288f566239c4caa3d6b7a828dc7cac6d5d26e3398adcb6dd2c8f8fa5a7dd57d",
-              "size": 4624
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "focal/20250526/focal-server-cloudimg-amd64-root.tar.gz",
-              "sha256": "1ef795b78be3ca245ee2368bb9443b85e744e0ae92931ab16e77d54fc5b36510",
-              "size": 133262454
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-focal-daily-amd64-buildd-20250526"
-        },
-        "20250527": {
-          "items": {
-            "disk1.img": {
-              "ftype": "disk1.img",
-              "path": "focal/20250527/focal-server-cloudimg-amd64-disk1.img",
-              "sha256": "5210f0433095b3db6598ca9babddb0cee7407fc429e6e2992fa573f1910e1ade",
-              "size": 326762496
-            },
-            "lxd.tar.xz": {
-              "combined_disk1-img_sha256": "db8a4eca2a770f2b508217318d5b0d7b790320487cf2f81a2c52624c9adff034",
-              "ftype": "lxd.tar.xz",
-              "path": "focal/20250527/focal-server-cloudimg-amd64-lxd.tar.xz",
-              "sha256": "26f836207ef6a691862271574f7352fed43105c80dd2143ccac757eb1c196b39",
-              "size": 832
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "focal/20250527/focal-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "a288f566239c4caa3d6b7a828dc7cac6d5d26e3398adcb6dd2c8f8fa5a7dd57d",
-              "size": 4624
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "focal/20250527/focal-server-cloudimg-amd64-lxd_combined.tar.gz",
-              "sha256": "68bebe87dcb225b54926dfe0a118fbb63b149dc5a148093b5e5ad265c3390af6",
-              "size": 132325358
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "focal/20250527/focal-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "dc5cf43df19a5b4bb60d4a0178ca540b75b8bdb20833af7fca4061fdc7f1cdba",
-              "size": 8583
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "focal/20250527/focal-server-cloudimg-amd64-root.manifest",
-              "sha256": "a288f566239c4caa3d6b7a828dc7cac6d5d26e3398adcb6dd2c8f8fa5a7dd57d",
-              "size": 4624
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "focal/20250527/focal-server-cloudimg-amd64-root.tar.gz",
-              "sha256": "05b2455690ede265d5a0eaddaa590530be096bd330511becc1845c82d095d784",
-              "size": 133263091
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-focal-daily-amd64-buildd-20250527"
-        },
         "20250528": {
           "items": {
             "disk1.img": {
@@ -129,29 +31,11 @@
               "sha256": "27205e8820bdf98c446a1f4cb49fdfac5fbe1f538ae7e1f3002d7bf88a04a811",
               "size": 832
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "focal/20250528/focal-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "a288f566239c4caa3d6b7a828dc7cac6d5d26e3398adcb6dd2c8f8fa5a7dd57d",
-              "size": 4624
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "focal/20250528/focal-server-cloudimg-amd64-lxd_combined.tar.gz",
               "sha256": "484609275efdaec2d70abb3d26410453495db1cd2e8551c49800b6299adceb58",
               "size": 132326594
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "focal/20250528/focal-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "310a2a6d6f648c3662b202154aaa4d896e881de93d0eeda9c4e2f1b333981aaa",
-              "size": 8589
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "focal/20250528/focal-server-cloudimg-amd64-root.manifest",
-              "sha256": "a288f566239c4caa3d6b7a828dc7cac6d5d26e3398adcb6dd2c8f8fa5a7dd57d",
-              "size": 4624
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -178,29 +62,11 @@
               "sha256": "a4c8e0f8c618044ff8ec515ecff79479c9152a88939423cb72fa40eb7302ea47",
               "size": 832
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "focal/20250605/focal-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "a288f566239c4caa3d6b7a828dc7cac6d5d26e3398adcb6dd2c8f8fa5a7dd57d",
-              "size": 4624
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "focal/20250605/focal-server-cloudimg-amd64-lxd_combined.tar.gz",
               "sha256": "bd5d22a31ac9d0a692356a6ff91d9ee37b260382a632539eb1818427b1c875c5",
               "size": 132333773
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "focal/20250605/focal-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "0f042ef2428ec6add0d4b60227166f24e15856dfeebeaf88be7d17d01879f2c1",
-              "size": 8589
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "focal/20250605/focal-server-cloudimg-amd64-root.manifest",
-              "sha256": "a288f566239c4caa3d6b7a828dc7cac6d5d26e3398adcb6dd2c8f8fa5a7dd57d",
-              "size": 4624
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -227,29 +93,11 @@
               "sha256": "6fc30f30051d39dc8a4efd3e0ba34bd66eca169e3e1c4280d53571b4b6d80224",
               "size": 832
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "focal/20250606/focal-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "a288f566239c4caa3d6b7a828dc7cac6d5d26e3398adcb6dd2c8f8fa5a7dd57d",
-              "size": 4624
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "focal/20250606/focal-server-cloudimg-amd64-lxd_combined.tar.gz",
               "sha256": "150f401f8699de6f8c73b9cde927881cf6febe5e4a692de8ebe703bcb51f7666",
               "size": 132331114
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "focal/20250606/focal-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "0f042ef2428ec6add0d4b60227166f24e15856dfeebeaf88be7d17d01879f2c1",
-              "size": 8589
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "focal/20250606/focal-server-cloudimg-amd64-root.manifest",
-              "sha256": "a288f566239c4caa3d6b7a828dc7cac6d5d26e3398adcb6dd2c8f8fa5a7dd57d",
-              "size": 4624
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -274,104 +122,6 @@
       "supported": false,
       "version": "20.04",
       "versions": {
-        "20250526": {
-          "items": {
-            "disk1.img": {
-              "ftype": "disk1.img",
-              "path": "focal/20250526/focal-server-cloudimg-arm64-disk1.img",
-              "sha256": "4c5a631e2c0e5004e069ebd1c587c3a7f261216515c14750e854afdcced65157",
-              "size": 305790976
-            },
-            "lxd.tar.xz": {
-              "combined_disk1-img_sha256": "810a1c92d5bc10042eee553a7b8884d7db0934ae7d2d6fc4d86a85e77c09f171",
-              "ftype": "lxd.tar.xz",
-              "path": "focal/20250526/focal-server-cloudimg-arm64-lxd.tar.xz",
-              "sha256": "6c9774828b15610560413aad8664c77e32f6e496b769054d560ff0dd492f828c",
-              "size": 828
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "focal/20250526/focal-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "070e72e1b84bfcf31ac3e7d74db85a69273c054b828eadd78857c21f0fea23bf",
-              "size": 4585
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "focal/20250526/focal-server-cloudimg-arm64-lxd_combined.tar.gz",
-              "sha256": "bb2bf992f651c4c0e5d5513d35b82c0668d51a583de3406f647b69b687358f14",
-              "size": 122709855
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "focal/20250526/focal-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "e1d7b6909bbf68eb6f80e28aeb713dfda9a3a3c04302be49c99d3aa0df1715c1",
-              "size": 8353
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "focal/20250526/focal-server-cloudimg-arm64-root.manifest",
-              "sha256": "070e72e1b84bfcf31ac3e7d74db85a69273c054b828eadd78857c21f0fea23bf",
-              "size": 4585
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "focal/20250526/focal-server-cloudimg-arm64-root.tar.gz",
-              "sha256": "d123742a9700b9d162bc9c7885be1c593c240a86aad3d1b196bed27d5f0a9bbc",
-              "size": 123490094
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-focal-daily-arm64-buildd-20250526"
-        },
-        "20250527": {
-          "items": {
-            "disk1.img": {
-              "ftype": "disk1.img",
-              "path": "focal/20250527/focal-server-cloudimg-arm64-disk1.img",
-              "sha256": "4cedb3efda311138148bb47713cc268c95c1e04270edebc529818016594ed316",
-              "size": 305397760
-            },
-            "lxd.tar.xz": {
-              "combined_disk1-img_sha256": "51e008558f95ec89381e9346ff42d924792ee67f3521f48f1158340fdeacc5f7",
-              "ftype": "lxd.tar.xz",
-              "path": "focal/20250527/focal-server-cloudimg-arm64-lxd.tar.xz",
-              "sha256": "4b2e6c1aac3be0cf02c21fe30f120dc0b8697969e8d21f475347f40440f249ce",
-              "size": 828
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "focal/20250527/focal-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "070e72e1b84bfcf31ac3e7d74db85a69273c054b828eadd78857c21f0fea23bf",
-              "size": 4585
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "focal/20250527/focal-server-cloudimg-arm64-lxd_combined.tar.gz",
-              "sha256": "8fb7887855183064d3e76918fa7d43662995f4efc4acd21f95689330d1afb990",
-              "size": 122709059
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "focal/20250527/focal-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "e1d7b6909bbf68eb6f80e28aeb713dfda9a3a3c04302be49c99d3aa0df1715c1",
-              "size": 8353
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "focal/20250527/focal-server-cloudimg-arm64-root.manifest",
-              "sha256": "070e72e1b84bfcf31ac3e7d74db85a69273c054b828eadd78857c21f0fea23bf",
-              "size": 4585
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "focal/20250527/focal-server-cloudimg-arm64-root.tar.gz",
-              "sha256": "3dc58da31ab4d00010182869d52e5c08449dcd7209d03101a97809b3a3cbecec",
-              "size": 123489777
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-focal-daily-arm64-buildd-20250527"
-        },
         "20250528": {
           "items": {
             "disk1.img": {
@@ -387,29 +137,11 @@
               "sha256": "9ee21f9c41c759178b53e9379d2c2611c479417018f3d625ac615ae0353f3072",
               "size": 828
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "focal/20250528/focal-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "070e72e1b84bfcf31ac3e7d74db85a69273c054b828eadd78857c21f0fea23bf",
-              "size": 4585
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "focal/20250528/focal-server-cloudimg-arm64-lxd_combined.tar.gz",
               "sha256": "a35172469e875cfee5c9e3a73a08aa5fa08bee505089b2a6073304b51da6097d",
               "size": 122708815
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "focal/20250528/focal-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "94e3def64c9e5b120ab1417795c99aab68acf55634f7d0fbb88a7b00a3ccdcf6",
-              "size": 8359
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "focal/20250528/focal-server-cloudimg-arm64-root.manifest",
-              "sha256": "070e72e1b84bfcf31ac3e7d74db85a69273c054b828eadd78857c21f0fea23bf",
-              "size": 4585
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -436,29 +168,11 @@
               "sha256": "ca2062db635e49aabf52b390ba459e68b58762c91d7d766588e23b6b13f8d100",
               "size": 824
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "focal/20250605/focal-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "070e72e1b84bfcf31ac3e7d74db85a69273c054b828eadd78857c21f0fea23bf",
-              "size": 4585
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "focal/20250605/focal-server-cloudimg-arm64-lxd_combined.tar.gz",
               "sha256": "1a3f0607d867268c152c32dd19018b9189f695ed05a2f53b3e0f67ffd51e2da9",
               "size": 122708165
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "focal/20250605/focal-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "48e2c1a1c97328f976db992f63d6883c09f56f1693fb3ced5621ed8d84e7044d",
-              "size": 8359
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "focal/20250605/focal-server-cloudimg-arm64-root.manifest",
-              "sha256": "070e72e1b84bfcf31ac3e7d74db85a69273c054b828eadd78857c21f0fea23bf",
-              "size": 4585
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -485,29 +199,11 @@
               "sha256": "56c73e593392aad58b07880881da4a76a1d7ff41735fa2aa849c556e3573d3ca",
               "size": 828
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "focal/20250606/focal-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "070e72e1b84bfcf31ac3e7d74db85a69273c054b828eadd78857c21f0fea23bf",
-              "size": 4585
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "focal/20250606/focal-server-cloudimg-arm64-lxd_combined.tar.gz",
               "sha256": "e7fe2056d1213dda350eca74175b883ffd2a5744b6b9984db29d52c86aa65718",
               "size": 122708451
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "focal/20250606/focal-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "48e2c1a1c97328f976db992f63d6883c09f56f1693fb3ced5621ed8d84e7044d",
-              "size": 8359
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "focal/20250606/focal-server-cloudimg-arm64-root.manifest",
-              "sha256": "070e72e1b84bfcf31ac3e7d74db85a69273c054b828eadd78857c21f0fea23bf",
-              "size": 4585
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -532,78 +228,6 @@
       "supported": false,
       "version": "20.04",
       "versions": {
-        "20250526": {
-          "items": {
-            "lxd.tar.xz": {
-              "ftype": "lxd.tar.xz",
-              "path": "focal/20250526/focal-server-cloudimg-riscv64-lxd.tar.xz",
-              "sha256": "008c38cfb14bac0a488afe430cf2ec53c281563d3cc194c75016f472c8fea277",
-              "size": 828
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "focal/20250526/focal-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "4324e719f6dc16fee22e0019908bb95ebce5843ddccc1affd29bf0e08bea5721",
-              "size": 4580
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "focal/20250526/focal-server-cloudimg-riscv64-lxd_combined.tar.gz",
-              "sha256": "ef4cc7894078b50024e919337a7d5b8083d9124c6d939b306822809c794dbf81",
-              "size": 118319954
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "focal/20250526/focal-server-cloudimg-riscv64-root.manifest",
-              "sha256": "4324e719f6dc16fee22e0019908bb95ebce5843ddccc1affd29bf0e08bea5721",
-              "size": 4580
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "focal/20250526/focal-server-cloudimg-riscv64-root.tar.gz",
-              "sha256": "7b75b89a85efbff35b52d5e0d1b7d214c30a378fd812b681337d7a67116e5c5e",
-              "size": 119163029
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-focal-daily-riscv64-buildd-20250526"
-        },
-        "20250527": {
-          "items": {
-            "lxd.tar.xz": {
-              "ftype": "lxd.tar.xz",
-              "path": "focal/20250527/focal-server-cloudimg-riscv64-lxd.tar.xz",
-              "sha256": "bbb40a2b667359d80a1da74081f4b5132cc17bc10a6a56a45c0714a34ad061c2",
-              "size": 828
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "focal/20250527/focal-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "4324e719f6dc16fee22e0019908bb95ebce5843ddccc1affd29bf0e08bea5721",
-              "size": 4580
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "focal/20250527/focal-server-cloudimg-riscv64-lxd_combined.tar.gz",
-              "sha256": "4c6551e7a9c235f7c534969a338a487ac3238d9ce7b62519a708565e6633ef88",
-              "size": 118319860
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "focal/20250527/focal-server-cloudimg-riscv64-root.manifest",
-              "sha256": "4324e719f6dc16fee22e0019908bb95ebce5843ddccc1affd29bf0e08bea5721",
-              "size": 4580
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "focal/20250527/focal-server-cloudimg-riscv64-root.tar.gz",
-              "sha256": "1eace2ee674f7fd5da7011fde82ab1af5551aebebfec6b6d7492e0a39e816311",
-              "size": 119163429
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-focal-daily-riscv64-buildd-20250527"
-        },
         "20250528": {
           "items": {
             "lxd.tar.xz": {
@@ -612,23 +236,11 @@
               "sha256": "06659501b9fbefdf51b3e9f6a7177a4eb71fe33bbe0c67bc319a3b4aa46e307b",
               "size": 828
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "focal/20250528/focal-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "4324e719f6dc16fee22e0019908bb95ebce5843ddccc1affd29bf0e08bea5721",
-              "size": 4580
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "focal/20250528/focal-server-cloudimg-riscv64-lxd_combined.tar.gz",
               "sha256": "3719ebf80558bd861b47a3c12ce202670cc3f399509e4e43972d387534f96e4a",
               "size": 118320005
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "focal/20250528/focal-server-cloudimg-riscv64-root.manifest",
-              "sha256": "4324e719f6dc16fee22e0019908bb95ebce5843ddccc1affd29bf0e08bea5721",
-              "size": 4580
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -648,23 +260,11 @@
               "sha256": "711990f3e35b4dba7d725074b9afabbf996c90357bfb4f66750abe523311afb5",
               "size": 832
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "focal/20250605/focal-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "4324e719f6dc16fee22e0019908bb95ebce5843ddccc1affd29bf0e08bea5721",
-              "size": 4580
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "focal/20250605/focal-server-cloudimg-riscv64-lxd_combined.tar.gz",
               "sha256": "8377a2f7dde5b534a00f6722355dcfa1b2e80764f5dbfa988dec2fe5798e5c86",
               "size": 118321347
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "focal/20250605/focal-server-cloudimg-riscv64-root.manifest",
-              "sha256": "4324e719f6dc16fee22e0019908bb95ebce5843ddccc1affd29bf0e08bea5721",
-              "size": 4580
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -684,23 +284,11 @@
               "sha256": "81871b1983c63a1505b2c4dc76a50ab844ce66a4f2909f26b905f1ab4a1edd1c",
               "size": 828
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "focal/20250606/focal-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "4324e719f6dc16fee22e0019908bb95ebce5843ddccc1affd29bf0e08bea5721",
-              "size": 4580
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "focal/20250606/focal-server-cloudimg-riscv64-lxd_combined.tar.gz",
               "sha256": "475596a24b5d5058839db9bc2caa7f6f5f952254614be37a2a10ccd9cd4efed7",
               "size": 118322327
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "focal/20250606/focal-server-cloudimg-riscv64-root.manifest",
-              "sha256": "4324e719f6dc16fee22e0019908bb95ebce5843ddccc1affd29bf0e08bea5721",
-              "size": 4580
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -740,29 +328,11 @@
               "sha256": "8465df162c7c83d5c1948f223b52c2cb6801f55abf61f2c3d2ec69aef24dee64",
               "size": 408
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "jammy/20250621/jammy-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "e1291afd994353880b0e87c19a6e97466f4bde9702e0613408501451d90f76ce",
-              "size": 5104
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "jammy/20250621/jammy-server-cloudimg-amd64-lxd_combined.tar.gz",
               "sha256": "b30a183187a391e87c7752a4e52724f6cc66ddcc875f8e842d1937680f243d8c",
               "size": 167360038
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "jammy/20250621/jammy-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "ed59f2416de4f8c5da83c0fd6589ad344b4a438620d6e4bf2e87ec88f0af9167",
-              "size": 9131
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "jammy/20250621/jammy-server-cloudimg-amd64-root.manifest",
-              "sha256": "e1291afd994353880b0e87c19a6e97466f4bde9702e0613408501451d90f76ce",
-              "size": 5104
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -773,55 +343,6 @@
           },
           "label": "buildd daily",
           "pubname": "ubuntu-jammy-daily-amd64-buildd-20250621"
-        },
-        "20250622": {
-          "items": {
-            "disk1.img": {
-              "ftype": "disk1.img",
-              "path": "jammy/20250622/jammy-server-cloudimg-amd64-disk1.img",
-              "sha256": "a0bbf2e3e2d2c976afa56afdb658762114916021bec359bcd4063d59421d5b0a",
-              "size": 383081984
-            },
-            "lxd.tar.xz": {
-              "combined_disk1-img_sha256": "6d20533057195c016d0cd5e207cbcd80345afea95c6801736af0659dcea6f84c",
-              "ftype": "lxd.tar.xz",
-              "path": "jammy/20250622/jammy-server-cloudimg-amd64-lxd.tar.xz",
-              "sha256": "c542e0cba00c41aa49a7fc790d330f0883722a26f2cdaf0f8e226ecb2a6ded1d",
-              "size": 412
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "jammy/20250622/jammy-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "e1291afd994353880b0e87c19a6e97466f4bde9702e0613408501451d90f76ce",
-              "size": 5104
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "jammy/20250622/jammy-server-cloudimg-amd64-lxd_combined.tar.gz",
-              "sha256": "c39f643f29fb0cd2376b74ede334558afaa1089232d8439aa1024cc5c3a6664e",
-              "size": 167359551
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "jammy/20250622/jammy-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "ed59f2416de4f8c5da83c0fd6589ad344b4a438620d6e4bf2e87ec88f0af9167",
-              "size": 9131
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "jammy/20250622/jammy-server-cloudimg-amd64-root.manifest",
-              "sha256": "e1291afd994353880b0e87c19a6e97466f4bde9702e0613408501451d90f76ce",
-              "size": 5104
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "jammy/20250622/jammy-server-cloudimg-amd64-root.tar.gz",
-              "sha256": "4b095a7eb2b2a045a9cc9d7341946151a6e97dc2de2bb7bb0cd4dea10f2126d1",
-              "size": 168402877
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-jammy-daily-amd64-buildd-20250622"
         },
         "20250623": {
           "items": {
@@ -838,29 +359,11 @@
               "sha256": "11b34ba435930a831a2a7a14e29ffa7d49ade6579106f5de708f6f2f0ac0565b",
               "size": 412
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "jammy/20250623/jammy-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "e1291afd994353880b0e87c19a6e97466f4bde9702e0613408501451d90f76ce",
-              "size": 5104
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "jammy/20250623/jammy-server-cloudimg-amd64-lxd_combined.tar.gz",
               "sha256": "caee008589e9155ca86fde7c928755e9820b7490aeffb2e1e95bfb1fde288633",
               "size": 167358496
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "jammy/20250623/jammy-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "ed59f2416de4f8c5da83c0fd6589ad344b4a438620d6e4bf2e87ec88f0af9167",
-              "size": 9131
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "jammy/20250623/jammy-server-cloudimg-amd64-root.manifest",
-              "sha256": "e1291afd994353880b0e87c19a6e97466f4bde9702e0613408501451d90f76ce",
-              "size": 5104
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -887,29 +390,11 @@
               "sha256": "8fc09828ab053d94e0e7474c4ac8c70d36da22efa4414e9b22ded3a9a4e73ea9",
               "size": 412
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "jammy/20250624/jammy-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "e1291afd994353880b0e87c19a6e97466f4bde9702e0613408501451d90f76ce",
-              "size": 5104
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "jammy/20250624/jammy-server-cloudimg-amd64-lxd_combined.tar.gz",
               "sha256": "76a28e823196b3cbe4780c839b589c465ac22edd98a5ea76176550ab7cb3102d",
               "size": 167353768
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "jammy/20250624/jammy-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "ed59f2416de4f8c5da83c0fd6589ad344b4a438620d6e4bf2e87ec88f0af9167",
-              "size": 9131
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "jammy/20250624/jammy-server-cloudimg-amd64-root.manifest",
-              "sha256": "e1291afd994353880b0e87c19a6e97466f4bde9702e0613408501451d90f76ce",
-              "size": 5104
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -936,29 +421,11 @@
               "sha256": "4aa0847ab43c00d60d76df014d06085c6aa32ea49397865c141a2880dbe4b8eb",
               "size": 412
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "jammy/20250701/jammy-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "e1291afd994353880b0e87c19a6e97466f4bde9702e0613408501451d90f76ce",
-              "size": 5104
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "jammy/20250701/jammy-server-cloudimg-amd64-lxd_combined.tar.gz",
               "sha256": "5fa21a361ebfd69212277f49ede0a901ef539c42838b0d550bb65140f7221780",
               "size": 167359389
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "jammy/20250701/jammy-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "37b3a6e77621d4cd496a806abc11c658873f3dad34eedd3cf192c010a09a31e7",
-              "size": 9131
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "jammy/20250701/jammy-server-cloudimg-amd64-root.manifest",
-              "sha256": "e1291afd994353880b0e87c19a6e97466f4bde9702e0613408501451d90f76ce",
-              "size": 5104
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -983,104 +450,6 @@
       "supported": true,
       "version": "22.04",
       "versions": {
-        "20250621": {
-          "items": {
-            "disk1.img": {
-              "ftype": "disk1.img",
-              "path": "jammy/20250621/jammy-server-cloudimg-arm64-disk1.img",
-              "sha256": "a06181f9879e4130ca6ce33f10efdc7ac2588aed196225310b6213204d06358a",
-              "size": 366154240
-            },
-            "lxd.tar.xz": {
-              "combined_disk1-img_sha256": "a2282d702b8c0b2103d575ca356cfcd42c6a8b82fe8ab6415b39be2b6e2f7856",
-              "ftype": "lxd.tar.xz",
-              "path": "jammy/20250621/jammy-server-cloudimg-arm64-lxd.tar.xz",
-              "sha256": "22bdb488d407382027a292c1f038bece62527a90d0a44a7305d3790899dec194",
-              "size": 408
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "jammy/20250621/jammy-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "870d266021ee8f316772f78e7c643aa715fffa60e937874e57c16a86ab9df325",
-              "size": 5103
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "jammy/20250621/jammy-server-cloudimg-arm64-lxd_combined.tar.gz",
-              "sha256": "4371906f5449d45e14bf307b454fd4066a184576176c747f061d238b77591daa",
-              "size": 159907969
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "jammy/20250621/jammy-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "c6a548352992cee5e68ad5cefdc77d4159a97e760353e11cd5380b5f3739f481",
-              "size": 8953
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "jammy/20250621/jammy-server-cloudimg-arm64-root.manifest",
-              "sha256": "870d266021ee8f316772f78e7c643aa715fffa60e937874e57c16a86ab9df325",
-              "size": 5103
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "jammy/20250621/jammy-server-cloudimg-arm64-root.tar.gz",
-              "sha256": "946e447730060976bf8aa16de39fe764af4ed01f7801629835a13eea5178d165",
-              "size": 160848918
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-jammy-daily-arm64-buildd-20250621"
-        },
-        "20250622": {
-          "items": {
-            "disk1.img": {
-              "ftype": "disk1.img",
-              "path": "jammy/20250622/jammy-server-cloudimg-arm64-disk1.img",
-              "sha256": "45cbeedd63baf6cb5a9c877f34e98efbb4d80ab846a6f35fd0048bdd0775288f",
-              "size": 366154240
-            },
-            "lxd.tar.xz": {
-              "combined_disk1-img_sha256": "ddc09ec0840260ca80d622de0eca3d832183e64ef58489f0924c83fc08944bd7",
-              "ftype": "lxd.tar.xz",
-              "path": "jammy/20250622/jammy-server-cloudimg-arm64-lxd.tar.xz",
-              "sha256": "8d7ffe970b86b5644c56139079928ee7281ee58f06b077aac262719a78603d60",
-              "size": 412
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "jammy/20250622/jammy-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "870d266021ee8f316772f78e7c643aa715fffa60e937874e57c16a86ab9df325",
-              "size": 5103
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "jammy/20250622/jammy-server-cloudimg-arm64-lxd_combined.tar.gz",
-              "sha256": "8af573cb26582b50c03458a08a042d1bc304877b7a9bacc70f2949743b66d89a",
-              "size": 159909616
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "jammy/20250622/jammy-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "c6a548352992cee5e68ad5cefdc77d4159a97e760353e11cd5380b5f3739f481",
-              "size": 8953
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "jammy/20250622/jammy-server-cloudimg-arm64-root.manifest",
-              "sha256": "870d266021ee8f316772f78e7c643aa715fffa60e937874e57c16a86ab9df325",
-              "size": 5103
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "jammy/20250622/jammy-server-cloudimg-arm64-root.tar.gz",
-              "sha256": "99c068645f4a9253ea078aebe8aee07e88ebef01d15e9684a08cc56aeb639114",
-              "size": 160844527
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-jammy-daily-arm64-buildd-20250622"
-        },
         "20250623": {
           "items": {
             "disk1.img": {
@@ -1096,29 +465,11 @@
               "sha256": "4a8434a9f1e7fcf25681be8a0d15c5fcf44c76b773de9c367fb62b051a73d594",
               "size": 408
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "jammy/20250623/jammy-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "870d266021ee8f316772f78e7c643aa715fffa60e937874e57c16a86ab9df325",
-              "size": 5103
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "jammy/20250623/jammy-server-cloudimg-arm64-lxd_combined.tar.gz",
               "sha256": "5e64741ffd349114ee9e36bdd72e1274a11cd77224f88131b95d3c4b6b9c2303",
               "size": 159905650
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "jammy/20250623/jammy-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "c6a548352992cee5e68ad5cefdc77d4159a97e760353e11cd5380b5f3739f481",
-              "size": 8953
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "jammy/20250623/jammy-server-cloudimg-arm64-root.manifest",
-              "sha256": "870d266021ee8f316772f78e7c643aa715fffa60e937874e57c16a86ab9df325",
-              "size": 5103
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -1145,29 +496,11 @@
               "sha256": "543358d6bf29180a851395a8efcce2c8220e976d344ee53cac77f27481450e26",
               "size": 412
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "jammy/20250624/jammy-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "870d266021ee8f316772f78e7c643aa715fffa60e937874e57c16a86ab9df325",
-              "size": 5103
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "jammy/20250624/jammy-server-cloudimg-arm64-lxd_combined.tar.gz",
               "sha256": "8bf19eca9f5afd228f56b4a37fda1c6f712170f390b15275fab94f2499ee90f9",
               "size": 159906957
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "jammy/20250624/jammy-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "c6a548352992cee5e68ad5cefdc77d4159a97e760353e11cd5380b5f3739f481",
-              "size": 8953
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "jammy/20250624/jammy-server-cloudimg-arm64-root.manifest",
-              "sha256": "870d266021ee8f316772f78e7c643aa715fffa60e937874e57c16a86ab9df325",
-              "size": 5103
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -1194,29 +527,11 @@
               "sha256": "3c5ca747d80abeacd49680333dd13b471e42a14742c41f3fa3f4a12cc9850f7e",
               "size": 412
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "jammy/20250701/jammy-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "870d266021ee8f316772f78e7c643aa715fffa60e937874e57c16a86ab9df325",
-              "size": 5103
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "jammy/20250701/jammy-server-cloudimg-arm64-lxd_combined.tar.gz",
               "sha256": "b3b43ca83744d82704be440fd662025437a04df384c7bd7c7476f8ac53ccd0c5",
               "size": 159912342
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "jammy/20250701/jammy-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "c3041c85c1dd0465dde18ec30f794cd839b39c41aeccc809d9e6f1e94ff9a4cc",
-              "size": 8953
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "jammy/20250701/jammy-server-cloudimg-arm64-root.manifest",
-              "sha256": "870d266021ee8f316772f78e7c643aa715fffa60e937874e57c16a86ab9df325",
-              "size": 5103
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -1241,78 +556,6 @@
       "supported": true,
       "version": "22.04",
       "versions": {
-        "20250621": {
-          "items": {
-            "lxd.tar.xz": {
-              "ftype": "lxd.tar.xz",
-              "path": "jammy/20250621/jammy-server-cloudimg-riscv64-lxd.tar.xz",
-              "sha256": "02cf7c1a43dd06bc8d54418d103b24827b536e4bb2bd450dd393803740208312",
-              "size": 412
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "jammy/20250621/jammy-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "e06cd07f014f650c18c898c6b4de3e69bb4d9f2ebc99499bd8814efd183197c0",
-              "size": 5115
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "jammy/20250621/jammy-server-cloudimg-riscv64-lxd_combined.tar.gz",
-              "sha256": "dd7e8856dad7bbb1bb708fba0e70282e97a8f1af40eca369326fe1faa49327fa",
-              "size": 147080288
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "jammy/20250621/jammy-server-cloudimg-riscv64-root.manifest",
-              "sha256": "e06cd07f014f650c18c898c6b4de3e69bb4d9f2ebc99499bd8814efd183197c0",
-              "size": 5115
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "jammy/20250621/jammy-server-cloudimg-riscv64-root.tar.gz",
-              "sha256": "3945bb4f83492aae63e1af7e16422649752d9d9f94512c7f43df039c8a126ede",
-              "size": 148029483
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-jammy-daily-riscv64-buildd-20250621"
-        },
-        "20250622": {
-          "items": {
-            "lxd.tar.xz": {
-              "ftype": "lxd.tar.xz",
-              "path": "jammy/20250622/jammy-server-cloudimg-riscv64-lxd.tar.xz",
-              "sha256": "41325182ee52ea7932963aa2709ada997762e66d92c0a809f851cbfe74ffe568",
-              "size": 412
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "jammy/20250622/jammy-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "e06cd07f014f650c18c898c6b4de3e69bb4d9f2ebc99499bd8814efd183197c0",
-              "size": 5115
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "jammy/20250622/jammy-server-cloudimg-riscv64-lxd_combined.tar.gz",
-              "sha256": "95acab971f1ca6581176082ab3d9cefc180913fdc1cc2c30de9a101154fc1cf6",
-              "size": 147078507
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "jammy/20250622/jammy-server-cloudimg-riscv64-root.manifest",
-              "sha256": "e06cd07f014f650c18c898c6b4de3e69bb4d9f2ebc99499bd8814efd183197c0",
-              "size": 5115
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "jammy/20250622/jammy-server-cloudimg-riscv64-root.tar.gz",
-              "sha256": "920bab55aafcb59d978cc1c68542dba54471585729cb247670f162b0de781065",
-              "size": 148028873
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-jammy-daily-riscv64-buildd-20250622"
-        },
         "20250623": {
           "items": {
             "lxd.tar.xz": {
@@ -1321,23 +564,11 @@
               "sha256": "92595bf10b02ef1b11b6edf6fc4032696b58795ac4dc76a7178d313a6b50ae8c",
               "size": 412
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "jammy/20250623/jammy-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "e06cd07f014f650c18c898c6b4de3e69bb4d9f2ebc99499bd8814efd183197c0",
-              "size": 5115
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "jammy/20250623/jammy-server-cloudimg-riscv64-lxd_combined.tar.gz",
               "sha256": "33da64cfe7aa886980cae32a50a013679a087926c54e424d249801c1d15ce605",
               "size": 147078557
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "jammy/20250623/jammy-server-cloudimg-riscv64-root.manifest",
-              "sha256": "e06cd07f014f650c18c898c6b4de3e69bb4d9f2ebc99499bd8814efd183197c0",
-              "size": 5115
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -1357,23 +588,11 @@
               "sha256": "9df9299a7dc8eba38597a4c552aac891701a4db6d3cd33426754a567e6d0404d",
               "size": 412
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "jammy/20250624/jammy-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "e06cd07f014f650c18c898c6b4de3e69bb4d9f2ebc99499bd8814efd183197c0",
-              "size": 5115
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "jammy/20250624/jammy-server-cloudimg-riscv64-lxd_combined.tar.gz",
               "sha256": "7e11579e8dba695cc1588668df275f327b7ad9753ab89030c03ed331cbd0b4bc",
               "size": 147077185
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "jammy/20250624/jammy-server-cloudimg-riscv64-root.manifest",
-              "sha256": "e06cd07f014f650c18c898c6b4de3e69bb4d9f2ebc99499bd8814efd183197c0",
-              "size": 5115
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -1393,29 +612,11 @@
               "sha256": "355d05a6eb1d32856a65eb2f087b18480d6a2b50b49c34b9c6488b9f990bfe52",
               "size": 412
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "jammy/20250701/jammy-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "e06cd07f014f650c18c898c6b4de3e69bb4d9f2ebc99499bd8814efd183197c0",
-              "size": 5115
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "jammy/20250701/jammy-server-cloudimg-riscv64-lxd_combined.tar.gz",
               "sha256": "c9593a53f50879bdd56048e11ad1f86d5dc0e63d384923c5635515a8d97e7be0",
               "size": 147083703
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "jammy/20250701/jammy-server-cloudimg-riscv64.manifest",
-              "sha256": "22f6c9ecb47958ff150fed8578859faf421b153b2320e026709b7a63e8ff7382",
-              "size": 5088
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "jammy/20250701/jammy-server-cloudimg-riscv64-root.manifest",
-              "sha256": "e06cd07f014f650c18c898c6b4de3e69bb4d9f2ebc99499bd8814efd183197c0",
-              "size": 5115
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -1455,29 +656,11 @@
               "sha256": "ca11e45750a789bc2f84d6e79244876fc0dad71c7ebaf94142c53a107ddf06f4",
               "size": 404
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "kinetic/20230721/kinetic-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "c4659e0eae7c7b7a7b7cab3ac059a2f2e50312e2a35968858d7d1570969aac78",
-              "size": 5059
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "kinetic/20230721/kinetic-server-cloudimg-amd64-lxd_combined.tar.gz",
               "sha256": "8958943b77bb040de86c754dcfd64bb2486971efcbca87007aa62911dcbeb234",
               "size": 175710916
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "kinetic/20230721/kinetic-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "f7a7d970b995c5d97ba2f248d788159141f03e2d008671c9594c27a6498ea2a5",
-              "size": 8533
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "kinetic/20230721/kinetic-server-cloudimg-amd64-root.manifest",
-              "sha256": "c4659e0eae7c7b7a7b7cab3ac059a2f2e50312e2a35968858d7d1570969aac78",
-              "size": 5059
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -1517,29 +700,11 @@
               "sha256": "65f03924a82f8c146af0ecd4c84bd235d1e539b547c1735b423d6f5593e79d90",
               "size": 408
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "kinetic/20230721/kinetic-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "98f746965305eb9aa81464dd797cf1323135c7470bb2eaccc5a4f7e82d783639",
-              "size": 5058
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "kinetic/20230721/kinetic-server-cloudimg-arm64-lxd_combined.tar.gz",
               "sha256": "baf3d428e947c6e0486062a419a7326fffe28040c6ceaa79ea1d9e824709bfe4",
               "size": 165420956
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "kinetic/20230721/kinetic-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "c307b9abd4ce543c67111e6de26889f8f68788ffd651a7d27151ba22fdded0c4",
-              "size": 8362
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "kinetic/20230721/kinetic-server-cloudimg-arm64-root.manifest",
-              "sha256": "98f746965305eb9aa81464dd797cf1323135c7470bb2eaccc5a4f7e82d783639",
-              "size": 5058
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -1572,23 +737,11 @@
               "sha256": "47f70b58612b85325b67cb32f2642189a3a23086cbe470dbc55f8847df7b75e0",
               "size": 408
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "kinetic/20230721/kinetic-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "3d230b1f8ed6cf9173359822688920e133958d2b4fe50ec8ce6122697e6b7103",
-              "size": 5061
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "kinetic/20230721/kinetic-server-cloudimg-riscv64-lxd_combined.tar.gz",
               "sha256": "dfea7db30bf9055b0b5376c551b46a926e1399d4d6d30aa96b3b664c929d955b",
               "size": 151270997
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "kinetic/20230721/kinetic-server-cloudimg-riscv64-root.manifest",
-              "sha256": "3d230b1f8ed6cf9173359822688920e133958d2b4fe50ec8ce6122697e6b7103",
-              "size": 5061
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -1628,29 +781,11 @@
               "sha256": "0146214282d5807d1c8b74b36764161aa34257bf3b08771d8a142facfadfd75b",
               "size": 404
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "lunar/20240123/lunar-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "7eb3b4dc5521c2520a906626fac2d95abd74b41c2f812d9afd072671aa37b549",
-              "size": 5458
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "lunar/20240123/lunar-server-cloudimg-amd64-lxd_combined.tar.gz",
               "sha256": "c389889ea653c6baf71808aa16506f01a285322ed982df03ceeff6969584c7c0",
               "size": 178161242
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "lunar/20240123/lunar-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "ff5be7f1833d587447fe63b2fc16c1741e73b229e840c7284b34b0ffd7758ad1",
-              "size": 8920
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "lunar/20240123/lunar-server-cloudimg-amd64-root.manifest",
-              "sha256": "7eb3b4dc5521c2520a906626fac2d95abd74b41c2f812d9afd072671aa37b549",
-              "size": 5458
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -1675,104 +810,6 @@
       "supported": true,
       "version": "24.04",
       "versions": {
-        "20250621": {
-          "items": {
-            "disk1.img": {
-              "ftype": "disk1.img",
-              "path": "noble/20250621/noble-server-cloudimg-amd64-disk1.img",
-              "sha256": "c154a86bb5ff2c9022096baf1b3a8ec7083b10f0148a237241556f988aafdad5",
-              "size": 396428800
-            },
-            "lxd.tar.xz": {
-              "combined_disk1-img_sha256": "f562833867a28398fa8e4796519638864e8b285f2fec36ab37514e8563e9c65c",
-              "ftype": "lxd.tar.xz",
-              "path": "noble/20250621/noble-server-cloudimg-amd64-lxd.tar.xz",
-              "sha256": "b3ed188623d596e19e345b41715005bf3f3a48e62b026dc96c1a85b11a0f8446",
-              "size": 412
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "noble/20250621/noble-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "a03b830717adf90c257ce6c7cf0ae819a8b87ae10a7121561ad2689d2cf59d91",
-              "size": 6077
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "noble/20250621/noble-server-cloudimg-amd64-lxd_combined.tar.gz",
-              "sha256": "70f8f940b3aeee6d4eea122201024a7fbf1b7aaa91890bdca0ad71cada4424d9",
-              "size": 187592633
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "noble/20250621/noble-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "c697bf5979aac56f39779638811655ba4444cee59b07159514508448c38bbbc2",
-              "size": 9745
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "noble/20250621/noble-server-cloudimg-amd64-root.manifest",
-              "sha256": "a03b830717adf90c257ce6c7cf0ae819a8b87ae10a7121561ad2689d2cf59d91",
-              "size": 6077
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "noble/20250621/noble-server-cloudimg-amd64-root.tar.gz",
-              "sha256": "876fb3f6e7581addcc7afc92f130159d57e698ce591912a6be061edb4a05daba",
-              "size": 188835035
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-noble-daily-amd64-buildd-20250621"
-        },
-        "20250622": {
-          "items": {
-            "disk1.img": {
-              "ftype": "disk1.img",
-              "path": "noble/20250622/noble-server-cloudimg-amd64-disk1.img",
-              "sha256": "4eaebac52c42043eb5b02d1f749acd73d607fb3b59219348f234e56a2b84233e",
-              "size": 396166656
-            },
-            "lxd.tar.xz": {
-              "combined_disk1-img_sha256": "69b7dfe8501188227381d15e96ed711911d12914598842929dceaf62ad8a576c",
-              "ftype": "lxd.tar.xz",
-              "path": "noble/20250622/noble-server-cloudimg-amd64-lxd.tar.xz",
-              "sha256": "ffab8cfa23f0cc01f7ed146a97c1e61f23094cc77c5ab04620781168b154b367",
-              "size": 412
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "noble/20250622/noble-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "a03b830717adf90c257ce6c7cf0ae819a8b87ae10a7121561ad2689d2cf59d91",
-              "size": 6077
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "noble/20250622/noble-server-cloudimg-amd64-lxd_combined.tar.gz",
-              "sha256": "43318bb844720a6b0f7545e704e393f5c4123289149ac50d33353720628f0ef1",
-              "size": 187587817
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "noble/20250622/noble-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "c697bf5979aac56f39779638811655ba4444cee59b07159514508448c38bbbc2",
-              "size": 9745
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "noble/20250622/noble-server-cloudimg-amd64-root.manifest",
-              "sha256": "a03b830717adf90c257ce6c7cf0ae819a8b87ae10a7121561ad2689d2cf59d91",
-              "size": 6077
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "noble/20250622/noble-server-cloudimg-amd64-root.tar.gz",
-              "sha256": "f5cb6c3ab60d04676bcc3d89c2a9f0cf22afeb3376f8f463da0503a12514be11",
-              "size": 188838572
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-noble-daily-amd64-buildd-20250622"
-        },
         "20250623": {
           "items": {
             "disk1.img": {
@@ -1788,29 +825,11 @@
               "sha256": "15e78b5d3d5ce617ee6a98bdaa6959c9bde4b5a81b58b4a668e85d4ef4144898",
               "size": 408
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "noble/20250623/noble-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "a03b830717adf90c257ce6c7cf0ae819a8b87ae10a7121561ad2689d2cf59d91",
-              "size": 6077
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "noble/20250623/noble-server-cloudimg-amd64-lxd_combined.tar.gz",
               "sha256": "238a2c1a7667b810c013357b0f65cdc6fb8f1dac27c1f0ffa34c06f1e79f8c6e",
               "size": 187589819
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "noble/20250623/noble-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "c697bf5979aac56f39779638811655ba4444cee59b07159514508448c38bbbc2",
-              "size": 9745
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "noble/20250623/noble-server-cloudimg-amd64-root.manifest",
-              "sha256": "a03b830717adf90c257ce6c7cf0ae819a8b87ae10a7121561ad2689d2cf59d91",
-              "size": 6077
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -1837,29 +856,11 @@
               "sha256": "6bd6dbbd83512e91a4935a420d3449ca9297e2e994da376acc02595e31036ac8",
               "size": 412
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "noble/20250624/noble-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "a03b830717adf90c257ce6c7cf0ae819a8b87ae10a7121561ad2689d2cf59d91",
-              "size": 6077
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "noble/20250624/noble-server-cloudimg-amd64-lxd_combined.tar.gz",
               "sha256": "7c0f5062717ef4121819d6d30ad4174cd90fb7cb3b956de6c9a5ebad6b8642a4",
               "size": 187583149
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "noble/20250624/noble-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "c697bf5979aac56f39779638811655ba4444cee59b07159514508448c38bbbc2",
-              "size": 9745
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "noble/20250624/noble-server-cloudimg-amd64-root.manifest",
-              "sha256": "a03b830717adf90c257ce6c7cf0ae819a8b87ae10a7121561ad2689d2cf59d91",
-              "size": 6077
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -1886,29 +887,11 @@
               "sha256": "460e339d0a9f5f5b62924324dc2565895665bf0f9bd12cb18698b39b95db296f",
               "size": 408
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "noble/20250629/noble-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "a03b830717adf90c257ce6c7cf0ae819a8b87ae10a7121561ad2689d2cf59d91",
-              "size": 6077
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "noble/20250629/noble-server-cloudimg-amd64-lxd_combined.tar.gz",
               "sha256": "91a855f42836e3438b3ef4eecd0178cbc5efa96f2979f69e73e19625f817a38e",
               "size": 187584914
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "noble/20250629/noble-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "69d9a8e4d719f6941afbfdad974d37ec2996ae7dd117f1b000f6a15b6c6ee6cc",
-              "size": 9745
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "noble/20250629/noble-server-cloudimg-amd64-root.manifest",
-              "sha256": "a03b830717adf90c257ce6c7cf0ae819a8b87ae10a7121561ad2689d2cf59d91",
-              "size": 6077
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -1933,104 +916,6 @@
       "supported": true,
       "version": "24.04",
       "versions": {
-        "20250621": {
-          "items": {
-            "disk1.img": {
-              "ftype": "disk1.img",
-              "path": "noble/20250621/noble-server-cloudimg-arm64-disk1.img",
-              "sha256": "46a31f6d0bd1591cea18a304542669563aa80ecc745753445a2db4029492a9cd",
-              "size": 382453248
-            },
-            "lxd.tar.xz": {
-              "combined_disk1-img_sha256": "aaed389a0564505d3fb0daa927d459b64e2c8c7407afd13711f4bb16ef8a22a4",
-              "ftype": "lxd.tar.xz",
-              "path": "noble/20250621/noble-server-cloudimg-arm64-lxd.tar.xz",
-              "sha256": "94be7a3cfa8a6c3f78d35191e17c2808182e3cc4787d3180d906c88df7e8f60b",
-              "size": 408
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "noble/20250621/noble-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "67d5521050f4b9c2f4bc2feff1c8a356d3ceff51ac4088859e0f6541e9024eb0",
-              "size": 6044
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "noble/20250621/noble-server-cloudimg-arm64-lxd_combined.tar.gz",
-              "sha256": "1261f3b0740b9a6efb6025cd527d73b5535e864481356fe0115aa6902a163454",
-              "size": 181343453
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "noble/20250621/noble-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "56d0aa24e4aefa287be612add3a84cc080dcc70b9a86181dfffcea15f9f0ab2a",
-              "size": 9531
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "noble/20250621/noble-server-cloudimg-arm64-root.manifest",
-              "sha256": "67d5521050f4b9c2f4bc2feff1c8a356d3ceff51ac4088859e0f6541e9024eb0",
-              "size": 6044
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "noble/20250621/noble-server-cloudimg-arm64-root.tar.gz",
-              "sha256": "07d1d946a47eec2d1206467ef82bbed5169b19e81b348d428b9d64b7bb72e4e6",
-              "size": 182428824
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-noble-daily-arm64-buildd-20250621"
-        },
-        "20250622": {
-          "items": {
-            "disk1.img": {
-              "ftype": "disk1.img",
-              "path": "noble/20250622/noble-server-cloudimg-arm64-disk1.img",
-              "sha256": "5175709c1c1791a12a368b32d0ee932f6c6fbff3b7711365114eddc5d8bb7708",
-              "size": 382543360
-            },
-            "lxd.tar.xz": {
-              "combined_disk1-img_sha256": "66536a045f1d76f5c03e65e26661614b0862babb61de8c39927648c01321b5b0",
-              "ftype": "lxd.tar.xz",
-              "path": "noble/20250622/noble-server-cloudimg-arm64-lxd.tar.xz",
-              "sha256": "a3268e21e8aa0f16f2fc4e9a4353ed16fb460ee375774da0d3c4aff30da8e41f",
-              "size": 412
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "noble/20250622/noble-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "67d5521050f4b9c2f4bc2feff1c8a356d3ceff51ac4088859e0f6541e9024eb0",
-              "size": 6044
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "noble/20250622/noble-server-cloudimg-arm64-lxd_combined.tar.gz",
-              "sha256": "1be984c65c1e08bf5e63fd0506dc2b7c7b2c81c5e9223201ae7d9695471247e9",
-              "size": 181344400
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "noble/20250622/noble-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "56d0aa24e4aefa287be612add3a84cc080dcc70b9a86181dfffcea15f9f0ab2a",
-              "size": 9531
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "noble/20250622/noble-server-cloudimg-arm64-root.manifest",
-              "sha256": "67d5521050f4b9c2f4bc2feff1c8a356d3ceff51ac4088859e0f6541e9024eb0",
-              "size": 6044
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "noble/20250622/noble-server-cloudimg-arm64-root.tar.gz",
-              "sha256": "0acb2caf1e20fad00f44d54b48d111399046b2ce5a357d3a5471ca8f3b800df5",
-              "size": 182421428
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-noble-daily-arm64-buildd-20250622"
-        },
         "20250623": {
           "items": {
             "disk1.img": {
@@ -2046,29 +931,11 @@
               "sha256": "ec72063998f5e300de73dcb35ef4704ebdfd7b06341d67221b35dc378c6a79bb",
               "size": 408
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "noble/20250623/noble-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "67d5521050f4b9c2f4bc2feff1c8a356d3ceff51ac4088859e0f6541e9024eb0",
-              "size": 6044
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "noble/20250623/noble-server-cloudimg-arm64-lxd_combined.tar.gz",
               "sha256": "3c2ce63f60cb8afa41a7d70a66dd8d4d6d61c1dbf1b6e1d8c0a1ce0e8aeb7edc",
               "size": 181348316
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "noble/20250623/noble-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "56d0aa24e4aefa287be612add3a84cc080dcc70b9a86181dfffcea15f9f0ab2a",
-              "size": 9531
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "noble/20250623/noble-server-cloudimg-arm64-root.manifest",
-              "sha256": "67d5521050f4b9c2f4bc2feff1c8a356d3ceff51ac4088859e0f6541e9024eb0",
-              "size": 6044
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -2095,29 +962,11 @@
               "sha256": "bfaa0f26c2ea4e003b9e3cdffcfd0f7fe98ca627ffdf1756a87283a307c1c8c2",
               "size": 408
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "noble/20250624/noble-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "67d5521050f4b9c2f4bc2feff1c8a356d3ceff51ac4088859e0f6541e9024eb0",
-              "size": 6044
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "noble/20250624/noble-server-cloudimg-arm64-lxd_combined.tar.gz",
               "sha256": "9a12b1ffd16f96917252dc58d7e8ac91f0ccf49e76fff3278960d0f3711e82ab",
               "size": 181347531
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "noble/20250624/noble-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "56d0aa24e4aefa287be612add3a84cc080dcc70b9a86181dfffcea15f9f0ab2a",
-              "size": 9531
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "noble/20250624/noble-server-cloudimg-arm64-root.manifest",
-              "sha256": "67d5521050f4b9c2f4bc2feff1c8a356d3ceff51ac4088859e0f6541e9024eb0",
-              "size": 6044
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -2144,29 +993,11 @@
               "sha256": "601851e6cb3f7ed31ad7c0f2918e7c527e87bef53ffce711d239131365236a7b",
               "size": 412
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "noble/20250629/noble-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "67d5521050f4b9c2f4bc2feff1c8a356d3ceff51ac4088859e0f6541e9024eb0",
-              "size": 6044
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "noble/20250629/noble-server-cloudimg-arm64-lxd_combined.tar.gz",
               "sha256": "f209ea228d8d89ebabaf76b1b22b6b0c9ffb312b01f072a13c08133d3aa371ad",
               "size": 181338605
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "noble/20250629/noble-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "8d749591538621655909ee09df207a28bdbd27a1554e3be5a52b33321f6fefa0",
-              "size": 9531
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "noble/20250629/noble-server-cloudimg-arm64-root.manifest",
-              "sha256": "67d5521050f4b9c2f4bc2feff1c8a356d3ceff51ac4088859e0f6541e9024eb0",
-              "size": 6044
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -2191,78 +1022,6 @@
       "supported": true,
       "version": "24.04",
       "versions": {
-        "20250621": {
-          "items": {
-            "lxd.tar.xz": {
-              "ftype": "lxd.tar.xz",
-              "path": "noble/20250621/noble-server-cloudimg-riscv64-lxd.tar.xz",
-              "sha256": "0f88c5ff6ce4e303920a5c76a62a38f5156e09fc237d55bee3096fc0cc8dd643",
-              "size": 408
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "noble/20250621/noble-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "4e1d3bd593aadda1314741b5ac7207eb399d31786f41f1dc7fd6df74fbb4f2d0",
-              "size": 6055
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "noble/20250621/noble-server-cloudimg-riscv64-lxd_combined.tar.gz",
-              "sha256": "d326964c2cf6d42d06e4c08a6f1ded65f7c75a238ea5f6cc8467b9fe2d4c27e4",
-              "size": 178107493
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "noble/20250621/noble-server-cloudimg-riscv64-root.manifest",
-              "sha256": "4e1d3bd593aadda1314741b5ac7207eb399d31786f41f1dc7fd6df74fbb4f2d0",
-              "size": 6055
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "noble/20250621/noble-server-cloudimg-riscv64-root.tar.gz",
-              "sha256": "7c106c3acbe267c9566f098025d7fc82aafbd4455a16224e230fa21ba527380e",
-              "size": 179313585
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-noble-daily-riscv64-buildd-20250621"
-        },
-        "20250622": {
-          "items": {
-            "lxd.tar.xz": {
-              "ftype": "lxd.tar.xz",
-              "path": "noble/20250622/noble-server-cloudimg-riscv64-lxd.tar.xz",
-              "sha256": "007107e25e34d490c8a21c7df1ea4ab3a474274b9d7742cf9394154cce79ecd1",
-              "size": 412
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "noble/20250622/noble-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "4e1d3bd593aadda1314741b5ac7207eb399d31786f41f1dc7fd6df74fbb4f2d0",
-              "size": 6055
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "noble/20250622/noble-server-cloudimg-riscv64-lxd_combined.tar.gz",
-              "sha256": "21f516d6b0b7d928b6b60f6b35752a90a177bbb4f039b7954ce4678df360cb59",
-              "size": 178106606
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "noble/20250622/noble-server-cloudimg-riscv64-root.manifest",
-              "sha256": "4e1d3bd593aadda1314741b5ac7207eb399d31786f41f1dc7fd6df74fbb4f2d0",
-              "size": 6055
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "noble/20250622/noble-server-cloudimg-riscv64-root.tar.gz",
-              "sha256": "c5529114ff6e1464c5404ea0176b8bd41e7212313976e6f5da4e91e2e6f6ca38",
-              "size": 179309722
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-noble-daily-riscv64-buildd-20250622"
-        },
         "20250623": {
           "items": {
             "lxd.tar.xz": {
@@ -2271,23 +1030,11 @@
               "sha256": "c17919be3dfa9b8b61259fffc8ee234370ef5039bb796d4ca80b745446daa54e",
               "size": 412
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "noble/20250623/noble-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "4e1d3bd593aadda1314741b5ac7207eb399d31786f41f1dc7fd6df74fbb4f2d0",
-              "size": 6055
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "noble/20250623/noble-server-cloudimg-riscv64-lxd_combined.tar.gz",
               "sha256": "0c0edbe93cde20a41aff1a1304110a5222d0a631cad79e6979058be3cf5a0e8c",
               "size": 178109091
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "noble/20250623/noble-server-cloudimg-riscv64-root.manifest",
-              "sha256": "4e1d3bd593aadda1314741b5ac7207eb399d31786f41f1dc7fd6df74fbb4f2d0",
-              "size": 6055
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -2307,23 +1054,11 @@
               "sha256": "a9e65005b6be804fb453b430931e5adae6e106d0c9892d1bf8d0f87e59c9d347",
               "size": 412
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "noble/20250624/noble-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "4e1d3bd593aadda1314741b5ac7207eb399d31786f41f1dc7fd6df74fbb4f2d0",
-              "size": 6055
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "noble/20250624/noble-server-cloudimg-riscv64-lxd_combined.tar.gz",
               "sha256": "ddc1e3eea7cd22cfbd91479f85014953c23d67b0a2519973add7e800c3721002",
               "size": 178109281
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "noble/20250624/noble-server-cloudimg-riscv64-root.manifest",
-              "sha256": "4e1d3bd593aadda1314741b5ac7207eb399d31786f41f1dc7fd6df74fbb4f2d0",
-              "size": 6055
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -2343,29 +1078,11 @@
               "sha256": "0a1339b5425e01fc115e4e0314ea561436d42af44d979e55c8a4c4ced4e01cbe",
               "size": 412
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "noble/20250629/noble-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "4e1d3bd593aadda1314741b5ac7207eb399d31786f41f1dc7fd6df74fbb4f2d0",
-              "size": 6055
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "noble/20250629/noble-server-cloudimg-riscv64-lxd_combined.tar.gz",
               "sha256": "e9cbb91883605034a116675531393b16eecd99a4089454af85ba17075a4ce3a3",
               "size": 178104552
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "noble/20250629/noble-server-cloudimg-riscv64.manifest",
-              "sha256": "3ff3fdc12767d301f30ee07e7ee0badba24cc996d8640bdbbf9f71bbdab22e3c",
-              "size": 6026
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "noble/20250629/noble-server-cloudimg-riscv64-root.manifest",
-              "sha256": "4e1d3bd593aadda1314741b5ac7207eb399d31786f41f1dc7fd6df74fbb4f2d0",
-              "size": 6055
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -2390,104 +1107,6 @@
       "supported": true,
       "version": "25.04",
       "versions": {
-        "20250619": {
-          "items": {
-            "disk1.img": {
-              "ftype": "disk1.img",
-              "path": "plucky/20250619/plucky-server-cloudimg-amd64-disk1.img",
-              "sha256": "29b423fda78df09832171facfc3cf6b4f33a0e9d028346b75b80b785bae4a3d6",
-              "size": 420299776
-            },
-            "lxd.tar.xz": {
-              "combined_disk1-img_sha256": "11c8af1258e97024c220623cd7bf54bd592b774b74e963ef543c941df7aee2f6",
-              "ftype": "lxd.tar.xz",
-              "path": "plucky/20250619/plucky-server-cloudimg-amd64-lxd.tar.xz",
-              "sha256": "f04676f601d57daff90f54215c88a0b182d1c7187a1331204cb4938991ffcd54",
-              "size": 408
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "plucky/20250619/plucky-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "65e5e1507a7e19f07b0557cea02789dca3f147f352499d27d963b5b3796da042",
-              "size": 5425
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "plucky/20250619/plucky-server-cloudimg-amd64-lxd_combined.tar.gz",
-              "sha256": "053510754c639e3faeb474f390c15727ff3156e77cda9094bc31ba4c7da303b7",
-              "size": 195839809
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "plucky/20250619/plucky-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "cc8ae278df72a4bfa8b6a1200a77269b7ef677c2619d77709444ba55b1327fdf",
-              "size": 8851
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "plucky/20250619/plucky-server-cloudimg-amd64-root.manifest",
-              "sha256": "65e5e1507a7e19f07b0557cea02789dca3f147f352499d27d963b5b3796da042",
-              "size": 5425
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "plucky/20250619/plucky-server-cloudimg-amd64-root.tar.gz",
-              "sha256": "674a2f45977568dc0820da4a80fafb2866619ceda78d17cba607035a4aa1840d",
-              "size": 197248774
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-plucky-daily-amd64-buildd-20250619"
-        },
-        "20250622": {
-          "items": {
-            "disk1.img": {
-              "ftype": "disk1.img",
-              "path": "plucky/20250622/plucky-server-cloudimg-amd64-disk1.img",
-              "sha256": "3a065acfda4a656b86bcb414d687643b50d3bc62a7a90481e9773db368ec45eb",
-              "size": 420411392
-            },
-            "lxd.tar.xz": {
-              "combined_disk1-img_sha256": "0159873576d84c5798e06bec25e9b00f0da33e3f29531584ff829f63d8fdd216",
-              "ftype": "lxd.tar.xz",
-              "path": "plucky/20250622/plucky-server-cloudimg-amd64-lxd.tar.xz",
-              "sha256": "f92d76e9230321fcc917f4fc15728ae94378cf4053065bfd3b05dd5971fb0483",
-              "size": 404
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "plucky/20250622/plucky-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "65e5e1507a7e19f07b0557cea02789dca3f147f352499d27d963b5b3796da042",
-              "size": 5425
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "plucky/20250622/plucky-server-cloudimg-amd64-lxd_combined.tar.gz",
-              "sha256": "9b520ccb8c1adbd2a2b9d517fa94cf823d5bc9f51c56b9091d638003f3ce83f9",
-              "size": 195892621
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "plucky/20250622/plucky-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "cc8ae278df72a4bfa8b6a1200a77269b7ef677c2619d77709444ba55b1327fdf",
-              "size": 8851
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "plucky/20250622/plucky-server-cloudimg-amd64-root.manifest",
-              "sha256": "65e5e1507a7e19f07b0557cea02789dca3f147f352499d27d963b5b3796da042",
-              "size": 5425
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "plucky/20250622/plucky-server-cloudimg-amd64-root.tar.gz",
-              "sha256": "41c7dd3de7b63cfb5ae656305406d1729e889cc43891797ef83afa456071d3b2",
-              "size": 197302423
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-plucky-daily-amd64-buildd-20250622"
-        },
         "20250623": {
           "items": {
             "disk1.img": {
@@ -2503,29 +1122,11 @@
               "sha256": "b117cfc97c7cfafaaa1769226810e2af4374102a84314e4fe59d42d983e33ac7",
               "size": 408
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "plucky/20250623/plucky-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "65e5e1507a7e19f07b0557cea02789dca3f147f352499d27d963b5b3796da042",
-              "size": 5425
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "plucky/20250623/plucky-server-cloudimg-amd64-lxd_combined.tar.gz",
               "sha256": "685a4c9cab5b47ba7ce256f48a1f028ae7953586f02cfdd50813ab0938c7c484",
               "size": 195891021
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "plucky/20250623/plucky-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "cc8ae278df72a4bfa8b6a1200a77269b7ef677c2619d77709444ba55b1327fdf",
-              "size": 8851
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "plucky/20250623/plucky-server-cloudimg-amd64-root.manifest",
-              "sha256": "65e5e1507a7e19f07b0557cea02789dca3f147f352499d27d963b5b3796da042",
-              "size": 5425
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -2552,29 +1153,11 @@
               "sha256": "c52d05cdf3ad95ba57ff3080e4ef16ac59a58c75324eb4c7f4995e5f34beb3ac",
               "size": 404
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "plucky/20250624/plucky-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "65e5e1507a7e19f07b0557cea02789dca3f147f352499d27d963b5b3796da042",
-              "size": 5425
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "plucky/20250624/plucky-server-cloudimg-amd64-lxd_combined.tar.gz",
               "sha256": "ceb4c4463297e12da5df12f085a68974119e8346c0d580d808aea59ee9f7a5a1",
               "size": 195977093
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "plucky/20250624/plucky-server-cloudimg-amd64-disk1.manifest",
-              "sha256": "cc8ae278df72a4bfa8b6a1200a77269b7ef677c2619d77709444ba55b1327fdf",
-              "size": 8851
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "plucky/20250624/plucky-server-cloudimg-amd64-root.manifest",
-              "sha256": "65e5e1507a7e19f07b0557cea02789dca3f147f352499d27d963b5b3796da042",
-              "size": 5425
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -2601,29 +1184,11 @@
               "sha256": "d7028d263229aee6a26938101e3645d9772d1d684031a70da5887a990784cc19",
               "size": 404
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "plucky/20250630/plucky-server-cloudimg-amd64-lxd_combined.manifest",
-              "sha256": "65e5e1507a7e19f07b0557cea02789dca3f147f352499d27d963b5b3796da042",
-              "size": 5425
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "plucky/20250630/plucky-server-cloudimg-amd64-lxd_combined.tar.gz",
               "sha256": "5e56d63159389004853b1b3bd81148a5875d61f5651cab7bcde54b475b1b6830",
               "size": 196024312
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "plucky/20250630/plucky-server-cloudimg-amd64.manifest",
-              "sha256": "ed0c0f20f000ee46598439b521c89355bb00ba8b03fa5830a0a66f68ffa3b630",
-              "size": 6288
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "plucky/20250630/plucky-server-cloudimg-amd64-root.manifest",
-              "sha256": "65e5e1507a7e19f07b0557cea02789dca3f147f352499d27d963b5b3796da042",
-              "size": 5425
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -2648,104 +1213,6 @@
       "supported": true,
       "version": "25.04",
       "versions": {
-        "20250619": {
-          "items": {
-            "disk1.img": {
-              "ftype": "disk1.img",
-              "path": "plucky/20250619/plucky-server-cloudimg-arm64-disk1.img",
-              "sha256": "4fd7cfdf97f7869cc769adb52218a403d56b6fdbbddd9a45aadef6cadaddc145",
-              "size": 404957184
-            },
-            "lxd.tar.xz": {
-              "combined_disk1-img_sha256": "17b9e05e51de079dea088100293a7c359ef493e9052882abc09a8c79b4a0e98c",
-              "ftype": "lxd.tar.xz",
-              "path": "plucky/20250619/plucky-server-cloudimg-arm64-lxd.tar.xz",
-              "sha256": "f33001a2e4250c832e946e420b67238ba47ee2259070c64df7bd7886fd49ea2c",
-              "size": 408
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "plucky/20250619/plucky-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "aaa883f85bcfb916dca61c0410bd7d4d9b29ce85343ae5f5b005ae74ac92f372",
-              "size": 5392
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "plucky/20250619/plucky-server-cloudimg-arm64-lxd_combined.tar.gz",
-              "sha256": "64171ca45fccafa0e30d828a88c7be457f03ebd89ab07cba77c2b0c40ea57a70",
-              "size": 185900599
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "plucky/20250619/plucky-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "914ac7a23377e14b38fa06390e8affe3ee2f3107e37ca831e6a85418acc4c96a",
-              "size": 8642
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "plucky/20250619/plucky-server-cloudimg-arm64-root.manifest",
-              "sha256": "aaa883f85bcfb916dca61c0410bd7d4d9b29ce85343ae5f5b005ae74ac92f372",
-              "size": 5392
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "plucky/20250619/plucky-server-cloudimg-arm64-root.tar.gz",
-              "sha256": "fd0e2ddac133aa76153de36acddea18480cd04fcd2b44fd35c2d530d70e7a15b",
-              "size": 187143065
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-plucky-daily-arm64-buildd-20250619"
-        },
-        "20250622": {
-          "items": {
-            "disk1.img": {
-              "ftype": "disk1.img",
-              "path": "plucky/20250622/plucky-server-cloudimg-arm64-disk1.img",
-              "sha256": "e92d048a44720a785430451c0bb0e3d644ff9da65d6b8a2aef8915f3987129b1",
-              "size": 404820992
-            },
-            "lxd.tar.xz": {
-              "combined_disk1-img_sha256": "e64f919fe61afccda04eb69bc15f5c64615f4dc78ebda037ffc1b534afcc7540",
-              "ftype": "lxd.tar.xz",
-              "path": "plucky/20250622/plucky-server-cloudimg-arm64-lxd.tar.xz",
-              "sha256": "641f8067c1dda8b0c6b81df870d31abf1963ad259f96537269456f4a181e3ff9",
-              "size": 408
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "plucky/20250622/plucky-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "aaa883f85bcfb916dca61c0410bd7d4d9b29ce85343ae5f5b005ae74ac92f372",
-              "size": 5392
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "plucky/20250622/plucky-server-cloudimg-arm64-lxd_combined.tar.gz",
-              "sha256": "ab964decb44fcff7f4bf39b0420d5aeb12f6912b95491342c7380cb0f67f21e7",
-              "size": 185956284
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "plucky/20250622/plucky-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "914ac7a23377e14b38fa06390e8affe3ee2f3107e37ca831e6a85418acc4c96a",
-              "size": 8642
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "plucky/20250622/plucky-server-cloudimg-arm64-root.manifest",
-              "sha256": "aaa883f85bcfb916dca61c0410bd7d4d9b29ce85343ae5f5b005ae74ac92f372",
-              "size": 5392
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "plucky/20250622/plucky-server-cloudimg-arm64-root.tar.gz",
-              "sha256": "755300aa2de9e25d934b4aface7791aef2c45a5c677d715a1213fbf1fd4a4200",
-              "size": 187200744
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-plucky-daily-arm64-buildd-20250622"
-        },
         "20250623": {
           "items": {
             "disk1.img": {
@@ -2761,29 +1228,11 @@
               "sha256": "b2e1bd6e87b112b04fe112283dae7010cb7c19d2621937bd63355ac9237c21e3",
               "size": 408
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "plucky/20250623/plucky-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "aaa883f85bcfb916dca61c0410bd7d4d9b29ce85343ae5f5b005ae74ac92f372",
-              "size": 5392
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "plucky/20250623/plucky-server-cloudimg-arm64-lxd_combined.tar.gz",
               "sha256": "1e36e52459c293de8ed791eb464191fb1a58c81825066679fad02ced8d388de0",
               "size": 185955667
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "plucky/20250623/plucky-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "914ac7a23377e14b38fa06390e8affe3ee2f3107e37ca831e6a85418acc4c96a",
-              "size": 8642
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "plucky/20250623/plucky-server-cloudimg-arm64-root.manifest",
-              "sha256": "aaa883f85bcfb916dca61c0410bd7d4d9b29ce85343ae5f5b005ae74ac92f372",
-              "size": 5392
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -2810,29 +1259,11 @@
               "sha256": "2e3c19c863414e031135fdba18415d11dddcd12f4a6eb0423420c69a1afa6d22",
               "size": 408
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "plucky/20250624/plucky-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "aaa883f85bcfb916dca61c0410bd7d4d9b29ce85343ae5f5b005ae74ac92f372",
-              "size": 5392
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "plucky/20250624/plucky-server-cloudimg-arm64-lxd_combined.tar.gz",
               "sha256": "1a1fe8fbf102bf9ca8d30417573702fa02c0f7331ac0cce04bb84c17ea193379",
               "size": 186049098
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "plucky/20250624/plucky-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "914ac7a23377e14b38fa06390e8affe3ee2f3107e37ca831e6a85418acc4c96a",
-              "size": 8642
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "plucky/20250624/plucky-server-cloudimg-arm64-root.manifest",
-              "sha256": "aaa883f85bcfb916dca61c0410bd7d4d9b29ce85343ae5f5b005ae74ac92f372",
-              "size": 5392
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -2859,29 +1290,11 @@
               "sha256": "05e3281e38a9e43c8b6ec48dcf7be2dd8b9929daff443578bd9cef8fe3405ab3",
               "size": 408
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "plucky/20250630/plucky-server-cloudimg-arm64-lxd_combined.manifest",
-              "sha256": "aaa883f85bcfb916dca61c0410bd7d4d9b29ce85343ae5f5b005ae74ac92f372",
-              "size": 5392
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "plucky/20250630/plucky-server-cloudimg-arm64-lxd_combined.tar.gz",
               "sha256": "0e4fec2d227136eba5212884fab14ba1b8585b88f43e93ceeb21ff861da1c19c",
               "size": 186073934
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "plucky/20250630/plucky-server-cloudimg-arm64-disk1.manifest",
-              "sha256": "1ecd68b5ea278f6bcc26886d3c28d784288d4f52f17b9401fa05329311d6e77a",
-              "size": 8653
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "plucky/20250630/plucky-server-cloudimg-arm64-root.manifest",
-              "sha256": "aaa883f85bcfb916dca61c0410bd7d4d9b29ce85343ae5f5b005ae74ac92f372",
-              "size": 5392
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -2906,78 +1319,6 @@
       "supported": true,
       "version": "25.04",
       "versions": {
-        "20250619": {
-          "items": {
-            "lxd.tar.xz": {
-              "ftype": "lxd.tar.xz",
-              "path": "plucky/20250619/plucky-server-cloudimg-riscv64-lxd.tar.xz",
-              "sha256": "56591df49256dadb68fba0fa67ccfef1434940c059833e9641fec1a5d643bd55",
-              "size": 408
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "plucky/20250619/plucky-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "18b5f2f43c28233d1fe66b27cd47f60f4a8c83c9c71161ab9fc0f49128c58499",
-              "size": 5530
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "plucky/20250619/plucky-server-cloudimg-riscv64-lxd_combined.tar.gz",
-              "sha256": "acbf28eb0552d7567e2e57ae2b6438f1b7f98072fcb01f59824029282927586e",
-              "size": 222166164
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "plucky/20250619/plucky-server-cloudimg-riscv64-root.manifest",
-              "sha256": "18b5f2f43c28233d1fe66b27cd47f60f4a8c83c9c71161ab9fc0f49128c58499",
-              "size": 5530
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "plucky/20250619/plucky-server-cloudimg-riscv64-root.tar.gz",
-              "sha256": "17c3b34c65adcd27aa3dff5f373109bda85cdd853855eb96b0a496057cfee6ef",
-              "size": 224061769
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-plucky-daily-riscv64-buildd-20250619"
-        },
-        "20250622": {
-          "items": {
-            "lxd.tar.xz": {
-              "ftype": "lxd.tar.xz",
-              "path": "plucky/20250622/plucky-server-cloudimg-riscv64-lxd.tar.xz",
-              "sha256": "3ef926b1e6dceda34ee2999bc7e9a9b01460d46b30e4a1bd2fe2980c0746025e",
-              "size": 408
-            },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "plucky/20250622/plucky-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "18b5f2f43c28233d1fe66b27cd47f60f4a8c83c9c71161ab9fc0f49128c58499",
-              "size": 5530
-            },
-            "lxd_combined.tar.gz": {
-              "ftype": "lxd_combined.tar.gz",
-              "path": "plucky/20250622/plucky-server-cloudimg-riscv64-lxd_combined.tar.gz",
-              "sha256": "2bf5ed2a7d946424cbbca4f165a3a2e92f8397a84cba9c270a413c6a82bd61c8",
-              "size": 222208363
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "plucky/20250622/plucky-server-cloudimg-riscv64-root.manifest",
-              "sha256": "18b5f2f43c28233d1fe66b27cd47f60f4a8c83c9c71161ab9fc0f49128c58499",
-              "size": 5530
-            },
-            "root.tar.gz": {
-              "ftype": "root.tar.gz",
-              "path": "plucky/20250622/plucky-server-cloudimg-riscv64-root.tar.gz",
-              "sha256": "3d8d0e02ba5685bfcd04a1b39b2ad2dbfc3de1c22fdaf654b88fdd2ddd3d2362",
-              "size": 224113170
-            }
-          },
-          "label": "buildd daily",
-          "pubname": "ubuntu-plucky-daily-riscv64-buildd-20250622"
-        },
         "20250623": {
           "items": {
             "lxd.tar.xz": {
@@ -2986,23 +1327,11 @@
               "sha256": "750db1aee8ba88f3cf57f6008b0778f464cc687d0349ea1f3497698b21216497",
               "size": 408
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "plucky/20250623/plucky-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "18b5f2f43c28233d1fe66b27cd47f60f4a8c83c9c71161ab9fc0f49128c58499",
-              "size": 5530
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "plucky/20250623/plucky-server-cloudimg-riscv64-lxd_combined.tar.gz",
               "sha256": "ef8998edb89d8c1b78263565eaf01c5b1d249ff982988ba260e51114f6fb4217",
               "size": 222209008
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "plucky/20250623/plucky-server-cloudimg-riscv64-root.manifest",
-              "sha256": "18b5f2f43c28233d1fe66b27cd47f60f4a8c83c9c71161ab9fc0f49128c58499",
-              "size": 5530
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -3022,23 +1351,11 @@
               "sha256": "a1340976146b27c3009c698d65348ce461eb2e7f9fb5f80f72a5224094422cb8",
               "size": 408
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "plucky/20250624/plucky-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "18b5f2f43c28233d1fe66b27cd47f60f4a8c83c9c71161ab9fc0f49128c58499",
-              "size": 5530
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "plucky/20250624/plucky-server-cloudimg-riscv64-lxd_combined.tar.gz",
               "sha256": "bf2923a42ef5a374add151c3f1abb3567cda3d423aaf2f4573972276b1c114f8",
               "size": 222293909
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "plucky/20250624/plucky-server-cloudimg-riscv64-root.manifest",
-              "sha256": "18b5f2f43c28233d1fe66b27cd47f60f4a8c83c9c71161ab9fc0f49128c58499",
-              "size": 5530
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
@@ -3058,29 +1375,11 @@
               "sha256": "e16795de86c3669b805efed644048705953d4cb1d55ff785de01d30a0eaa53bd",
               "size": 412
             },
-            "lxd_combined.manifest": {
-              "ftype": "lxd_combined.manifest",
-              "path": "plucky/20250630/plucky-server-cloudimg-riscv64-lxd_combined.manifest",
-              "sha256": "18b5f2f43c28233d1fe66b27cd47f60f4a8c83c9c71161ab9fc0f49128c58499",
-              "size": 5530
-            },
             "lxd_combined.tar.gz": {
               "ftype": "lxd_combined.tar.gz",
               "path": "plucky/20250630/plucky-server-cloudimg-riscv64-lxd_combined.tar.gz",
               "sha256": "ca4fae51a32eabf6fe3023ea060350c06ffc1851ad613cb5255023b5fb368ef2",
               "size": 222314417
-            },
-            "manifest": {
-              "ftype": "manifest",
-              "path": "plucky/20250630/plucky-server-cloudimg-riscv64.manifest",
-              "sha256": "09439048f64232053e12020bb4ce75dd6695e276c1c3ed0276058d3efdab0ff6",
-              "size": 5429
-            },
-            "root.manifest": {
-              "ftype": "root.manifest",
-              "path": "plucky/20250630/plucky-server-cloudimg-riscv64-root.manifest",
-              "sha256": "18b5f2f43c28233d1fe66b27cd47f60f4a8c83c9c71161ab9fc0f49128c58499",
-              "size": 5530
             },
             "root.tar.gz": {
               "ftype": "root.tar.gz",
