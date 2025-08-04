@@ -1,13 +1,15 @@
 summary: Test the lxd inspector
 
 systems:
-  - -ubuntu-24.04
+  - ubuntu-24.04
 
 prepare: |
   rm -f ./*.json
+  snap install lxd
 
 restore: |
   rm -f ./*.json
+  snap remove --purge --terminate lxd
 
 execute: |
   # shellcheck disable=SC1091
@@ -20,8 +22,12 @@ execute: |
   export http_proxy="http://${session_id}:${token}@localhost:9988"
   export https_proxy="http://${session_id}:${token}@localhost:9988"
 
-  wget https://cloud-images.ubuntu.com/buildd/daily/streams/v1/index.json
-  wget https://cloud-images.ubuntu.com/buildd/daily/streams/v1/com.ubuntu.cloud:daily:download.json
+  lxd init --auto
+  lxc config set core.proxy_http $http_proxy
+  lxc config set core.proxy_https $https_proxy
+
+  lxc remote add craft-com.ubuntu.cloud-buildd-daily https://cloud-images.ubuntu.com/buildd/daily --protocol=simplestreams
+  lxc init craft-com.ubuntu.cloud-buildd-daily:core24
 
   unset http_proxy
   unset https_proxy

@@ -103,7 +103,7 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectRequest(c 
 		c.Assert(a.RequestPending(), Equals, test.pending, Commentf("%s", test.url))
 
 		if test.pending {
-			c.Assert(insp.Reason, Equals, "valid Simple Streams Download URL")
+			c.Assert(insp.Reason, Equals, "valid Simple Streams download request URL")
 			c.Assert(insp.Opinion, Equals, opinions.Pending)
 			stream, ok := insp.Annotations["stream"]
 			c.Assert(ok, Equals, true, Commentf("Stream annotation should be present for %s", test.url))
@@ -139,17 +139,18 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectArtifact(c
 	c.Assert(insp.Opinion, Equals, opinions.Approved)
 	images := insp.Annotations["product-items"].(map[string]string)
 	// Check for 1 value in images
-	sha256, ok := images["jammy/20250621/jammy-server-cloudimg-amd64-disk1.img"]
+	sha256, ok := images["jammy/20250621/jammy-server-cloudimg-amd64-lxd_combined.tar.gz"]
 	c.Assert(ok, Equals, true)
-	c.Assert(sha256, Equals, "2d06e9092ec19fbe3c04402a0c1a53ae7c0b1079b041e5b5988c8febaabe25d3")
+	c.Assert(sha256, Equals, "b30a183187a391e87c7752a4e52724f6cc66ddcc875f8e842d1937680f243d8c")
 
 	// The image
 	ad := metadata.NewArtifact()
 	ad.CurrentDownload = metadata.Download{
-		URL: "https://cloud-images.ubuntu.com:443/buildd/daily/jammy/20250621/jammy-server-cloudimg-amd64-disk1.img",
+		URL: "https://cloud-images.ubuntu.com:443/buildd/daily/jammy/20250621/jammy-server-cloudimg-amd64-lxd_combined.tar.gz",
 	}
-	expectedSha256, _ := digests.NewSha256Digest("2d06e9092ec19fbe3c04402a0c1a53ae7c0b1079b041e5b5988c8febaabe25d3")
+	expectedSha256, _ := digests.NewSha256Digest("b30a183187a391e87c7752a4e52724f6cc66ddcc875f8e842d1937680f243d8c")
 	ad.Metadata.Sha256 = expectedSha256
+	ad.MimeType = mimetype.Lookup("application/gzip")
 
 	// Set up the request inspection first (required for InspectArtifact)
 	err = ins.InspectRequest(ad)
@@ -158,14 +159,15 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectArtifact(c
 
 	err = ins.InspectArtifact(strings.NewReader("not json"), ad)
 	c.Assert(err, IsNil)
-	c.Check(ad.Approved(), Equals, true)
 
+	// The transactional inspection does not approve, but can reject
 	adInsp, ok := ad.ResponseInspection[ins.ID()]
 	c.Check(ok, Equals, true)
-	c.Check(adInsp.Opinion, Equals, opinions.Approved)
+	c.Check(adInsp.Opinion, Equals, opinions.Unknown)
+	c.Check(adInsp.Reason, Equals, "simple streams product item matches digest")
 	c.Check(adInsp.Annotations, DeepEquals, Annotation{
-		"product-item-path": "jammy/20250621/jammy-server-cloudimg-amd64-disk1.img",
-		"sha256":            "2d06e9092ec19fbe3c04402a0c1a53ae7c0b1079b041e5b5988c8febaabe25d3",
+		"product-item-path": "jammy/20250621/jammy-server-cloudimg-amd64-lxd_combined.tar.gz",
+		"sha256":            "b30a183187a391e87c7752a4e52724f6cc66ddcc875f8e842d1937680f243d8c",
 	})
 }
 
@@ -202,7 +204,7 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectArtifactMi
 	defer f.Close()
 
 	err = ins.InspectArtifact(f, a)
-	c.Assert(err, IsNil)
+	c.Assert(err, ErrorMatches, "missing stream in request annotations")
 	c.Assert(a.Approved(), Equals, false)
 	c.Check(a.Metadata.Type, Equals, "")
 }
@@ -264,9 +266,8 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectImageMissi
 
 	// Now test non existent image
 	ad := metadata.NewArtifact()
-	ad.CurrentDownload = metadata.Download{
-		URL: "https://cloud-images.ubuntu.com:443/buildd/daily/jammy/20250621/no-image-found.img",
-	}
+	ad.CurrentDownload = metadata.Download{URL: "https://cloud-images.ubuntu.com:443/buildd/daily/jammy/20250621/no-image-found.img"}
+	ad.MimeType = mimetype.Lookup("application/gzip")
 	expectedSha256, _ := digests.NewSha256Digest("2d06e9092ec19fbe3c04402a0c1a53ae7c0b1079b041e5b5988c8febaabe25d3")
 	ad.Metadata.Sha256 = expectedSha256
 
@@ -275,11 +276,12 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectImageMissi
 	// this will be false as we have no record of the image
 	c.Assert(ad.RequestPending(), Equals, false)
 
-	err = ins.InspectArtifact(strings.NewReader("not json"), ad)
+	err = ins.InspectArtifact(strings.NewReader("some unknown image"), ad)
 	c.Assert(err, IsNil)
 	c.Assert(ad.Rejected(), Equals, true)
 	c.Check(ad.Metadata.Type, Equals, mimetypes.SimpleStreamsProduct)
 
+	// oisdjof
 	insp, ok := ad.ResponseInspection[ins.ID()]
 	c.Assert(ok, Equals, true)
 	c.Assert(insp.Opinion, Equals, opinions.Rejected)
@@ -311,10 +313,11 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectImageSha25
 	// Now test image with wrong SHA256
 	ad := metadata.NewArtifact()
 	ad.CurrentDownload = metadata.Download{
-		URL: "https://cloud-images.ubuntu.com:443/buildd/daily/jammy/20250621/jammy-server-cloudimg-amd64-disk1.img",
+		URL: "https://cloud-images.ubuntu.com:443/buildd/daily/jammy/20250621/jammy-server-cloudimg-amd64-lxd_combined.tar.gz",
 	}
 	wrongSha256, _ := digests.NewSha256Digest("1111111111111111111111111111111111111111111111111111111111111111")
 	ad.Metadata.Sha256 = wrongSha256
+	ad.MimeType = mimetype.Lookup("application/gzip")
 
 	err = ins.InspectRequest(ad)
 	c.Assert(err, IsNil)
@@ -323,16 +326,15 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectImageSha25
 	err = ins.InspectArtifact(strings.NewReader("not json"), ad)
 	c.Assert(err, IsNil)
 	c.Assert(ad.Rejected(), Equals, true)
-	c.Check(ad.Metadata.Type, Equals, mimetypes.SimpleStreamsProduct)
 
 	insp, ok := ad.ResponseInspection[ins.ID()]
 	c.Assert(ok, Equals, true)
 	c.Assert(insp.Opinion, Equals, opinions.Rejected)
 	c.Assert(insp.Reason, Equals, "sha256 mismatch")
-	c.Check(insp.Annotations["expected-sha256"], Equals, "2d06e9092ec19fbe3c04402a0c1a53ae7c0b1079b041e5b5988c8febaabe25d3")
+	c.Check(insp.Annotations["expected-sha256"], Equals, "b30a183187a391e87c7752a4e52724f6cc66ddcc875f8e842d1937680f243d8c")
 	c.Check(insp.Annotations["product-item-sha256"], Equals, "1111111111111111111111111111111111111111111111111111111111111111")
 	c.Check(insp.Annotations, DeepEquals, Annotation{
-		"expected-sha256":     "2d06e9092ec19fbe3c04402a0c1a53ae7c0b1079b041e5b5988c8febaabe25d3",
+		"expected-sha256":     "b30a183187a391e87c7752a4e52724f6cc66ddcc875f8e842d1937680f243d8c",
 		"product-item-sha256": "1111111111111111111111111111111111111111111111111111111111111111",
 	})
 }

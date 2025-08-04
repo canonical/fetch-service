@@ -61,7 +61,7 @@ func (ins *SimpleStreamsIndexInspector) InspectRequest(a RequestArtifact) error 
 			"stream": info.Stream,
 		},
 	)
-	return nil // we don't recognize this request
+	return nil
 }
 
 type simpleStreamsIndex struct {

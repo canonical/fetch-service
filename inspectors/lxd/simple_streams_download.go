@@ -22,26 +22,27 @@ package lxd
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"regexp"
+	"strings"
 	"sync"
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 )
 
-var (
-	downloadRequestURL      = regexp.MustCompile(`^https://cloud-images.ubuntu.com:443/([\w-\/]+)/streams/v1/([\w-\.\/:]+):download.json$`)
-	downloadImageRequestURL = regexp.MustCompile(`^https://cloud-images.ubuntu.com:443/[\w-]+/[\w-]+/([\w-\/\.]+)$`)
-)
+var downloadImageRequestURL = regexp.MustCompile(`^/[\w-]+/[\w-]+/([\w-\/\.]+)$`)
 
 const (
+	simpleStreamsDownloadInspectorID = "lxd.simple-streams.download"
+
 	productItemPath   = "product-item-path"
 	productItemSha256 = "product-item-sha256"
 	productItems      = "product-items"
 )
 
 type SimpleStreamsDownloadInspector struct {
-	productItems     map[string]string
+	productItems     map[string]string // Map image file name to sha256 digest
 	productItemsLock sync.Mutex
 }
 
@@ -50,16 +51,24 @@ func NewSimpleStreamsDownloadInspector() *SimpleStreamsDownloadInspector {
 }
 
 func (ins *SimpleStreamsDownloadInspector) ID() string {
-	return "lxd.simple-streams.download"
+	return simpleStreamsDownloadInspectorID
 }
 
 func (ins *SimpleStreamsDownloadInspector) matchItemFromURL(downloadURL string) (string, error) {
+	u, err := url.Parse(downloadURL)
+	if err != nil {
+		return "", fmt.Errorf("cannot parse URL: %s", err)
+	}
+
+	ins.productItemsLock.Lock()
+	defer ins.productItemsLock.Unlock()
+
 	// Return early if no items computed
 	if ins.productItems == nil {
 		return "", fmt.Errorf("no items")
 	}
 
-	m := downloadImageRequestURL.FindStringSubmatch(downloadURL)
+	m := downloadImageRequestURL.FindStringSubmatch(u.Path)
 	if len(m) > 1 {
 		if _, ok := ins.productItems[m[1]]; ok {
 			return m[1], nil
@@ -72,35 +81,33 @@ func (ins *SimpleStreamsDownloadInspector) matchItemFromURL(downloadURL string) 
 }
 
 func (ins *SimpleStreamsDownloadInspector) InspectRequest(a RequestArtifact) error {
-	slog := a.Logger()
+	u, err := url.Parse(a.DownloadURL())
+	if err != nil {
+		return fmt.Errorf("cannot parse URL: %s", err)
+	}
 
-	m := downloadRequestURL.FindStringSubmatch(a.DownloadURL())
-	if len(m) > 1 {
-		// Annotate the stream as it comes from cloud images
-		a.SetRequestPending(ins, "valid Simple Streams Download URL").Annotate(
+	info, err := NewSimpleStreamsDownloadUrlInfo(u)
+	if err == nil {
+		a.SetRequestPending(ins, "valid Simple Streams download request URL").Annotate(
 			Annotation{
-				"match":  downloadRequestURL,
-				"stream": m[1],
+				"stream":        info.Stream,
+				productItemPath: info.ItemPath,
 			},
 		)
 		return nil
 	}
 
-	item, err := ins.matchItemFromURL(a.DownloadURL())
-	if err != nil {
-		slog.Debug(err)
+	pinfo, err := NewProductItemUrlInfo(u)
+	if err == nil {
+		a.SetRequestPending(ins, "valid Simple Streams product intem URL").Annotate(
+			Annotation{
+				"product-name": pinfo.Name,
+			},
+		)
 		return nil
 	}
 
-	a.SetRequestPending(ins, "valid Simple Streams Download URL").Annotate(
-		Annotation{
-			"match":         downloadImageRequestURL,
-			productItemPath: item,
-		},
-	)
-
 	return nil
-
 }
 
 type simpleStreamsDownload struct {
@@ -142,7 +149,9 @@ type simpleStreamsProductItem struct {
 func (ins *SimpleStreamsDownloadInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	slog := a.Logger()
 
-	if !a.MimetypeIs("application/json") {
+	if a.MimetypeIs("application/gzip") {
+		// Check if this is a product item.
+		// State was set when the download inspector ran,
 		itemPath, err := ins.matchItemFromURL(a.DownloadURL())
 		if err != nil {
 			slog.Debug(err)
@@ -153,9 +162,16 @@ func (ins *SimpleStreamsDownloadInspector) InspectArtifact(f ArtifactReader, a R
 		return nil
 	}
 
+	if !a.MimetypeIs("application/json") {
+		return nil // We don't recognize this artifact
+	}
+
+	// Inspect the download json,
+
 	stream, ok := a.RequestStringAnnotation(ins.ID(), "stream")
 	if !ok {
-		return nil
+		// The request inspector must have set a "stream" annotation.
+		return fmt.Errorf("missing stream in request annotations")
 	}
 	slog.Debugf("parsing Simple Streams Download for stream %s", stream)
 
@@ -192,13 +208,11 @@ func (ins *SimpleStreamsDownloadInspector) inspectProductItem(a ResponseArtifact
 	})
 
 	sha256, ok := ins.productItems[itemPath]
-
 	if !ok {
 		a.SetResponseRejected(ins, "sha256 missing for item").Annotate(Annotation{
 			productItemPath:   itemPath,
 			productItemSha256: a.Sha256().String(),
 		})
-
 		return nil
 	}
 
@@ -207,12 +221,11 @@ func (ins *SimpleStreamsDownloadInspector) inspectProductItem(a ResponseArtifact
 			"expected-sha256": sha256,
 			productItemSha256: a.Sha256().String(),
 		})
-
 		return nil
 
 	}
 
-	a.SetResponseApproved(ins, "valid Simple Streams Product item").Annotate(Annotation{
+	a.SetResponseUnknown(ins, "simple streams product item matches digest").Annotate(Annotation{
 		productItemPath: itemPath,
 		"sha256":        a.Sha256().String(),
 	})
@@ -244,6 +257,9 @@ func (ins *SimpleStreamsDownloadInspector) extractSupportedUbuntuImages(products
 
 		for _, version := range product.Versions {
 			for _, item := range version.Items {
+				if !strings.HasSuffix(item.Path, ".tar.gz") {
+					continue
+				}
 				if item.Path != "" && item.Sha256 != "" {
 					result[item.Path] = item.Sha256
 				}

@@ -35,7 +35,7 @@ const (
 	Rockcraft                  = "application/x.canonical.rockcraft"
 	Snapcraft                  = "application/x.canonical.snapcraft"
 	Sourcecraft                = "application/x.canonical.sourcecraft"
-	SimpleStreams              = "application/x.canonical.simplestreams"
+	SimpleStreams              = "application/x.canonical.simplestreams-index"
 	SimpleStreamsProduct       = "application/x.canonical.simplestreams-product"
 	GoModuleGit                = "application/x.go.module.git-repo"
 	SquashFs                   = "application/x.squashfs"
