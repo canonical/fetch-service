@@ -22,6 +22,7 @@ package lxd
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/url"
 	"regexp"
 	"strings"
@@ -116,7 +117,7 @@ type simpleStreamsDownload struct {
 	Datatype  string                                `json:"datatype"`
 	ContentId string                                `json:"content_id"`
 	License   string                                `json:"license"`
-	Creator   string                                `json:"Creator_id"`
+	Creator   string                                `json:"creator"`
 	Products  map[string]simpleStreamProductEntries `json:"products"`
 }
 
@@ -176,25 +177,25 @@ func (ins *SimpleStreamsDownloadInspector) InspectArtifact(f ArtifactReader, a R
 	slog.Debugf("parsing Simple Streams Download for stream %s", stream)
 
 	decoder := json.NewDecoder(f)
-	var b simpleStreamsDownload
-	if err := decoder.Decode(&b); err != nil {
+	var dl simpleStreamsDownload
+	if err := decoder.Decode(&dl); err != nil {
 		slog.Debug(err)
 		return nil // we don't recognize this artifact
 	}
 
-	if b.Format != productFormat {
-		slog.Debugf("unsupported format when parsing Simple Streams Download file %s", b.Format)
+	if dl.Format != productFormat {
+		slog.Debugf("unsupported format when parsing Simple Streams Download file %s", dl.Format)
 		return nil
 	}
 
 	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:        mimetypes.SimpleStreams,
 		Name:        "Simple Streams Download",
-		Description: fmt.Sprintf("Simple Streams Download for %s", b.ContentId),
+		Description: fmt.Sprintf("Simple Streams Download for %s", dl.ContentId),
 	})
 
 	a.SetResponseApproved(ins, "valid Simple Streams Download file").Annotate(
-		Annotation{productItems: ins.extractSupportedUbuntuImages(b.Products)},
+		Annotation{productItems: ins.extractSupportedUbuntuImages(dl.Products)},
 	)
 
 	return nil
@@ -236,9 +237,6 @@ func (ins *SimpleStreamsDownloadInspector) inspectProductItem(a ResponseArtifact
 // extractSupportedUbuntuImages creates a map of image paths to SHA256 values
 // for supported Ubuntu versions (24.04, 22.04, 20.04) from product entries
 func (ins *SimpleStreamsDownloadInspector) extractSupportedUbuntuImages(products map[string]simpleStreamProductEntries) map[string]string {
-	ins.productItemsLock.Lock()
-	defer ins.productItemsLock.Unlock()
-
 	result := make(map[string]string)
 	supportedVersions := map[string]bool{
 		"24.04": true,
@@ -267,12 +265,13 @@ func (ins *SimpleStreamsDownloadInspector) extractSupportedUbuntuImages(products
 		}
 	}
 
+	ins.productItemsLock.Lock()
+	defer ins.productItemsLock.Unlock()
+
 	if ins.productItems == nil {
 		ins.productItems = result
 	} else {
-		for k, v := range result {
-			ins.productItems[k] = v
-		}
+		maps.Copy(ins.productItems, result)
 	}
 
 	return result
