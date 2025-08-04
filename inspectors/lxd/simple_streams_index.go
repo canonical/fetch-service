@@ -103,7 +103,7 @@ func (ins *SimpleStreamsIndexInspector) InspectArtifact(f ArtifactReader, a Resp
 		return nil
 	}
 	a.SetArtifactMetadata(ArtifactMetadata{
-		Type:        mimetypes.SimpleStreams,
+		Type:        mimetypes.SimpleStreamsIndex,
 		Name:        "Simple Streams Index",
 		Description: fmt.Sprintf("Simple Streams Index for %s", stream),
 	})

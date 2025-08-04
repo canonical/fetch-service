@@ -28,7 +28,6 @@ import (
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/lxd"
-	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
@@ -137,7 +136,7 @@ func (s *simpleStreamIndexSuite) TestSimpleStreamsIndexInspectorInspectArtifact(
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
-	c.Check(a.Metadata.Type, Equals, mimetypes.SimpleStreams)
+	c.Check(a.Metadata.Type, Equals, "application/x.canonical.simplestreams-index")
 	c.Check(a.Metadata.Name, Equals, "Simple Streams Index")
 	c.Check(a.Metadata.Description, Equals, "Simple Streams Index for buildd/daily")
 

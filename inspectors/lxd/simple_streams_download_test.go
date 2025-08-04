@@ -27,7 +27,6 @@ import (
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/lxd"
-	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/digests"
@@ -130,7 +129,7 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectArtifact(c
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
-	c.Check(a.Metadata.Type, Equals, mimetypes.SimpleStreams)
+	c.Check(a.Metadata.Type, Equals, "application/x.canonical.simplestreams-products")
 	c.Check(a.Metadata.Name, Equals, "Simple Streams Download")
 	c.Check(a.Metadata.Description, Equals, "Simple Streams Download for com.ubuntu.cloud:daily:download")
 
@@ -279,7 +278,6 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectImageMissi
 	err = ins.InspectArtifact(strings.NewReader("some unknown image"), ad)
 	c.Assert(err, IsNil)
 	c.Assert(ad.Rejected(), Equals, true)
-	c.Check(ad.Metadata.Type, Equals, mimetypes.SimpleStreamsProduct)
 
 	insp, ok := ad.ResponseInspection[ins.ID()]
 	c.Assert(ok, Equals, true)

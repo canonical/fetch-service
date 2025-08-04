@@ -189,7 +189,7 @@ func (ins *SimpleStreamsDownloadInspector) InspectArtifact(f ArtifactReader, a R
 	}
 
 	a.SetArtifactMetadata(ArtifactMetadata{
-		Type:        mimetypes.SimpleStreams,
+		Type:        mimetypes.SimpleStreamsProducts,
 		Name:        "Simple Streams Download",
 		Description: fmt.Sprintf("Simple Streams Download for %s", dl.ContentId),
 	})
@@ -210,12 +210,6 @@ func (ins *SimpleStreamsDownloadInspector) getProductItemDigest(itemPath string)
 }
 
 func (ins *SimpleStreamsDownloadInspector) inspectProductItem(a ResponseArtifact, itemPath string) error {
-	a.SetArtifactMetadata(ArtifactMetadata{
-		Type:        mimetypes.SimpleStreamsProduct,
-		Name:        "Simple Streams Product Item",
-		Description: fmt.Sprintf("Simple Streams Product item from %s", itemPath),
-	})
-
 	digest, ok := ins.getProductItemDigest(itemPath)
 	if !ok {
 		a.SetResponseRejected(ins, "sha256 missing for item").Annotate(Annotation{
