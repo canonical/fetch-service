@@ -71,11 +71,11 @@ func (ins *SimpleStreamsDownloadInspector) matchItemFromURL(downloadURL string) 
 
 	m := downloadImageRequestURL.FindStringSubmatch(u.Path)
 	if len(m) > 1 {
-		if _, ok := ins.productItems[m[1]]; ok {
-			return m[1], nil
-		} else {
+		if _, ok := ins.productItems[m[1]]; !ok {
 			return m[1], fmt.Errorf("no item matching %s", downloadURL)
 		}
+
+		return m[1], nil
 	}
 
 	return "", fmt.Errorf("no item matching %s", downloadURL)
@@ -240,10 +240,10 @@ func (ins *SimpleStreamsDownloadInspector) inspectProductItem(a ResponseArtifact
 // for supported Ubuntu versions (24.04, 22.04, 20.04) from product entries
 func (ins *SimpleStreamsDownloadInspector) extractSupportedUbuntuImages(products map[string]simpleStreamProductEntries) map[string]string {
 	result := make(map[string]string)
-	supportedVersions := map[string]bool{
-		"24.04": true,
-		"22.04": true,
-		"20.04": true,
+	supportedVersions := map[string]struct{}{
+		"24.04": {},
+		"22.04": {},
+		"20.04": {},
 	}
 
 	for _, product := range products {
@@ -251,7 +251,7 @@ func (ins *SimpleStreamsDownloadInspector) extractSupportedUbuntuImages(products
 			continue
 		}
 
-		if !supportedVersions[product.Version] {
+		if _, ok := supportedVersions[product.Version]; !ok {
 			continue
 		}
 
