@@ -25,6 +25,7 @@ execute: |
 
   # Update once
   rm -Rf /var/lib/apt/lists
+  apt-cache clean
   apt-get update
 
   # Update again
