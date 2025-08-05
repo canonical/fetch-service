@@ -24,7 +24,7 @@ execute: |
   lxc config set core.proxy_http "$http_proxy"
   lxc config set core.proxy_https "$https_proxy"
 
-  lxc --project=snapcraft list --format=csv -cn | xargs lxc --project=snapcraft rm -f
+  lxc list --format=csv -cn | xargs lxc rm -f
   rm -Rf /var/snap/lxd/common/lxd/cache/*
   lxc remote add craft-com.ubuntu.cloud-buildd-daily https://cloud-images.ubuntu.com/buildd/daily --protocol=simplestreams
   lxc init craft-com.ubuntu.cloud-buildd-daily:core24
