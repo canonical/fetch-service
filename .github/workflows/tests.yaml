@@ -79,8 +79,8 @@ jobs:
         os:
           - [jammy, amd64]
           - [noble, amd64]
-    needs:
-      - snap-build
+    # needs:  # Re-enable this once we can test a prebuilt snap
+    #   - snap-build
     runs-on: ${{ matrix.os }}
     steps:
       - name: Install dependencies
