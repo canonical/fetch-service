@@ -419,25 +419,6 @@ func (ins *AptPackagesInspector) addPackages(origin, packagesPath string, data *
 	ins.packages[origin][packagesPath] = data
 }
 
-func (ins *AptPackagesInspector) getPackages(origin, packagesPath string, slog logger.Logger) (*aptPackages, bool) {
-	ins.packagesLock.Lock()
-	defer ins.packagesLock.Unlock()
-
-	slog.Debugf("retrieving packages origin %q, %q", origin, packagesPath)
-	pkg, ok := ins.packages[origin]
-	if !ok {
-		slog.Warningf("package origin %q is unknown", origin)
-		return nil, false
-	}
-	data, ok := pkg[packagesPath]
-	if !ok {
-		slog.Warningf("package path %q is unknown", packagesPath)
-		return nil, false
-	}
-
-	return data, true
-}
-
 // validateDebianPackage verifies if the deb package is listed in the
 // Packages.xz file. The package downloaded from the package pool.
 func (ins *AptPackagesInspector) validateDebianPackage(f ArtifactReader, a ResponseArtifact) error {
