@@ -20,6 +20,9 @@ execute: |
   export http_proxy="http://${session_id}:${token}@localhost:9988"
   export https_proxy="http://${session_id}:${token}@localhost:9988"
 
+  echo "Acquire::http::Proxy \"$http_proxy\";" > /etc/apt/apt.conf.d/99proxy
+  echo "Acquire::https::Proxy \"$https_proxy\";" >> /etc/apt/apt.conf.d/99proxy
+
   # Update once
   rm -Rf /var/lib/apt/lists
   apt-get update
