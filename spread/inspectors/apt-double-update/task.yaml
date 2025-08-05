@@ -6,8 +6,8 @@ prepare: |
 
 restore: |
   rm -f ./*.json
-  rm -f /etc/apt/apt.conf.d/99proxy
-  apt-get remove -y --purge fortune-mod
+  rm -f /etc/apt/apt.conf.d/zzz-fetch-service-proxy
+  dpkg --purge fortune-mod
 
 execute: |
   # shellcheck disable=SC1091
@@ -20,12 +20,12 @@ execute: |
   export http_proxy="http://${session_id}:${token}@localhost:9988"
   export https_proxy="http://${session_id}:${token}@localhost:9988"
 
-  echo "Acquire::http::Proxy \"$http_proxy\";" > /etc/apt/apt.conf.d/99proxy
-  echo "Acquire::https::Proxy \"$https_proxy\";" >> /etc/apt/apt.conf.d/99proxy
+  echo "Acquire::http::Proxy \"$http_proxy\";" > /etc/apt/apt.conf.d/zzz-fetch-service-proxy
+  echo "Acquire::https::Proxy \"$https_proxy\";" >> /etc/apt/apt.conf.d/zzz-fetch-service-proxy
 
   # Update once
   rm -Rf /var/lib/apt/lists
-  apt-cache clean
+  apt-get clean
   apt-get update
 
   # Update again
@@ -37,7 +37,7 @@ execute: |
 
   unset http_proxy
   unset https_proxy
-  rm -f /etc/apt/apt.conf.d/99proxy
+  rm -f /etc/apt/apt.conf.d/zzz-fetch-service-proxy
 
   revoke_token "$session_id" "$token"
   get_session_report "$session_id" > session_report.json
