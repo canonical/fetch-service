@@ -38,6 +38,7 @@ execute: |
 
   jq -r '(.artifacts[].metadata | select(.name=="Simple Streams Index")).type' session_report.json | MATCH "application/x.canonical.simplestreams-index"
   jq -r '(.artifacts[].metadata | select(.name=="Simple Streams Download")).type' session_report.json | MATCH "application/x.canonical.simplestreams-products"
+  jq -r '(.artifacts[].metadata | select(.name=="LXD rootfs image")).type' session_report.json | MATCH "application/x.canonical.lxd-rootfs"
 
   delete_session "$session_id"
   delete_resources "$session_id"
