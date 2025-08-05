@@ -143,22 +143,24 @@ var packagesInspectArtifactTests = []packagesInspectArtifactTest{{
 func (s *aptSuite) TestPackagesInspectArtifact(c *C) {
 	for _, tc := range packagesInspectArtifactTests {
 		ins := apt.NewAptPackagesInspector(getAptInspectorConfig())
+		h2, _ := digests.NewSha256Digest(tc.digest)
 
 		// simulate InRelease entry
-		data := apt.NewAptPackages("http://myserver", "jammy", "main", "amd64")
+		data := apt.NewAptPackages(h2, "http://myserver", "jammy", "main", "amd64")
 		apt.AptPackagesInspectorAddPackages(ins, "http://myserver", "/path/Packages.xz", data, s.slog)
-
-		h2, _ := digests.NewSha256Digest(tc.digest)
 
 		a := metadata.NewArtifact()
 		a.CurrentDownload.URL = "http://myserver/path/Packages.xz"
 		a.Metadata.Sha256 = h2
 		a.Metadata.Type = "application/x.apt.packages"
 		a.MimeType = mimetype.Lookup("application/x.apt.packages")
-		a.RequestInspection[ins.ID()] = &Inspection{
-			Opinion: opinions.Pending,
-			Reason:  "some reason",
-		}
+		a.SetRequestPending(ins, "some reason").Annotate(
+			Annotation{
+				"dist":         "jammy",
+				"component":    "main",
+				"architecture": "amd64",
+			},
+		)
 		a.ResponseInspection["apt.release"] = &Inspection{
 			Opinion: opinions.Unknown,
 			Reason:  "some reason",
