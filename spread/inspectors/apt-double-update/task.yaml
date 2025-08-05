@@ -34,8 +34,6 @@ execute: |
   # Install a package
   apt-get install -y fortune-mod
 
-  wget https://esm.ubuntu.com:443/apps/ubuntu/dists/jammy-apps-updates/InRelease
-
   unset http_proxy
   unset https_proxy
   rm -f /etc/apt/apt.conf.d/99proxy
