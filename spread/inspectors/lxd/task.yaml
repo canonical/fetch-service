@@ -26,13 +26,17 @@ execute: |
 
   lxc list --all-projects
   lxc list --format=csv -cn | xargs lxc rm -f
-  lxc list --project=snapcraft --format=csv -cn | xargs --project=snapcraft lxc rm -f
   lxc image list
   lxc image list --format=csv -cf | xargs lxc image rm
+  lxc project switch snapcraft
+  lxc list --format=csv -cn | xargs lxc rm -f
+  lxc image list
+  lxc image list --format=csv -cf | xargs lxc image rm
+  lxc project switch default
+
   ls -l /var/snap/lxd/common/lxd/images/
 
   rm -Rf /var/snap/lxd/common/lxd/cache/*
-  rm -f /var/snap/lxd/common/lxd/images/*
   lxc remote add craft-com.ubuntu.cloud-buildd-daily https://cloud-images.ubuntu.com/buildd/daily --protocol=simplestreams
   lxc init craft-com.ubuntu.cloud-buildd-daily:core24
 
