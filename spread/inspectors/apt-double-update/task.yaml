@@ -2,18 +2,14 @@ summary: Test the apt inspector
 
 prepare: |
   rm -f ./*.json
-  apt update -y
-  apt-get install -y command-not-found
-  apt-get remove -y --purge fortune
-  # Remove once we have an inspector for Components.yml
-  apt-get remove -y --purge appstream
+  dpkg --purge appstream command-not-found fortune-mod
   rm -Rf /var/lib/apt/lists
   rm -Rf /var/cache/apt/archives
 
 restore: |
   rm -f ./*.json
   rm -f /etc/apt/apt.conf.d/99proxy
-  apt-get remove -y --purge fortune
+  dpkg --purge fortune-mod
 
 execute: |
   # shellcheck disable=SC1091
@@ -29,10 +25,15 @@ execute: |
   echo "Acquire::http::Proxy \"$http_proxy\";" > /etc/apt/apt.conf.d/99proxy
   echo "Acquire::https::Proxy \"$https_proxy\";" >> /etc/apt/apt.conf.d/99proxy
 
+  # Update once
   apt-get update
-  apt-get install -y fortune-mod
 
-  wget https://esm.ubuntu.com:443/apps/ubuntu/dists/jammy-apps-updates/InRelease
+  # Update again
+  rm -Rf /var/lib/apt/lists
+  apt-get update
+
+  # Install a package
+  apt-get install -y fortune-mod
 
   unset http_proxy
   unset https_proxy
