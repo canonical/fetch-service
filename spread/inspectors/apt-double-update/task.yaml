@@ -3,6 +3,8 @@ summary: Test the apt inspector
 prepare: |
   rm -f ./*.json
   dpkg --purge appstream command-not-found fortune-mod
+  rm -Rf /var/lib/apt/lists
+  rm -Rf /var/cache/apt/archives
 
 restore: |
   rm -f ./*.json
@@ -24,8 +26,6 @@ execute: |
   echo "Acquire::https::Proxy \"$https_proxy\";" >> /etc/apt/apt.conf.d/99proxy
 
   # Update once
-  rm -Rf /var/lib/apt/lists
-  apt-get clean
   apt-get update
 
   # Update again

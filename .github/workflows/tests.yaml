@@ -98,4 +98,4 @@ jobs:
           name: snap
       - name: Run spread tests
         run: |
-          snapcraft test --verbose craft:...:spread/inspectors/apt-double-update
+          snapcraft test --verbose
