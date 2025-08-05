@@ -116,6 +116,7 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 
 		// lxd
 		lxd.NewSimpleStreamsIndexInspector(),
+		lxd.NewSimpleStreamsDownloadInspector(),
 		lxd.NewRootfsInspector(),
 
 		// default inspector
