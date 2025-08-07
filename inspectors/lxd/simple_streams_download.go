@@ -167,15 +167,6 @@ func (ins *SimpleStreamsDownloadInspector) InspectArtifact(f ArtifactReader, a R
 		return nil // We don't recognize this artifact
 	}
 
-	// Inspect the download json,
-
-	stream, ok := a.RequestStringAnnotation(ins.ID(), "stream")
-	if !ok {
-		// The request inspector must have set a "stream" annotation.
-		return fmt.Errorf("missing stream in request annotations")
-	}
-	slog.Debugf("parsing Simple Streams Download for stream %s", stream)
-
 	decoder := json.NewDecoder(f)
 	var dl simpleStreamsDownload
 	if err := decoder.Decode(&dl); err != nil {
@@ -183,10 +174,16 @@ func (ins *SimpleStreamsDownloadInspector) InspectArtifact(f ArtifactReader, a R
 		return nil // we don't recognize this artifact
 	}
 
-	if dl.Format != productFormat {
-		slog.Debugf("unsupported format when parsing Simple Streams Download file %s", dl.Format)
-		return nil
+	if dl.Format != productFormat || dl.Datatype == "" || dl.Updated == "" || dl.Products == nil {
+		return nil // we don't recognize this format
 	}
+
+	stream, ok := a.RequestStringAnnotation(ins.ID(), "stream")
+	if !ok {
+		// The request inspector must have set a "stream" annotation.
+		return fmt.Errorf("missing stream in request annotations")
+	}
+	slog.Debugf("parsing Simple Streams Download for stream %s", stream)
 
 	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:        mimetypes.SimpleStreamsProducts,
