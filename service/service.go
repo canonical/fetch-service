@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,6 +20,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -33,6 +34,18 @@ import (
 	"github.com/canonical/fetch-service/service/fetchctl"
 	"github.com/canonical/fetch-service/session"
 )
+
+const (
+	SnapConfigDir        = "${SNAP_DATA}/conf"
+	SnapSpoolDir         = "${SNAP_COMMON}/spool"
+	NonSnapConfigDir     = "/etc/fetch"
+	NonSnapSpoolDir      = "/var/lib/fetch"
+	SnapBundledConfigDir = "${SNAP}/conf"
+)
+
+func RunningFromSnap() bool {
+	return os.Getenv("SNAP") != "" && os.Getenv("SNAP_NAME") == "fetch-service"
+}
 
 // Service implements the fetch service main loop.
 type Service struct {
@@ -81,13 +94,13 @@ func New(opt *Options) (*Service, error) {
 
 // Start runs the fetch service dispatcher.
 func (svc *Service) Start() error {
-	err := config.LoadHttpProxyRules(svc.opt.Config)
-	if err != nil {
+	logger.Info("Loading service configuration...")
+
+	if err := loadHttpProxyRulesOrDefault(svc.opt.Config); err != nil {
 		return fmt.Errorf("cannot load proxy rules: %s", err)
 	}
 
-	err = config.LoadInspectorsConfig(svc.opt.Config)
-	if err != nil {
+	if err := loadInspectorsConfigOrDefault(svc.opt.Config); err != nil {
 		return fmt.Errorf("cannot load inspectors configuration: %s", err)
 	}
 
@@ -106,6 +119,37 @@ func (svc *Service) Start() error {
 	svc.tomb.Go(svc.dispatcher)
 
 	return nil
+}
+
+var (
+	configLoadHttpProxyRules   = config.LoadHttpProxyRules
+	configLoadInspectorsConfig = config.LoadInspectorsConfig
+)
+
+func loadHttpProxyRulesOrDefault(cfgdir string) error {
+	err := configLoadHttpProxyRules(cfgdir)
+	if errors.Is(err, os.ErrNotExist) {
+		if RunningFromSnap() {
+			err = configLoadHttpProxyRules(os.ExpandEnv(SnapBundledConfigDir))
+		} else {
+			logger.Infof("ACL configuration file does not exist in %s", cfgdir)
+			return nil
+		}
+	}
+	return err
+}
+
+func loadInspectorsConfigOrDefault(cfgdir string) error {
+	err := configLoadInspectorsConfig(cfgdir)
+	if errors.Is(err, os.ErrNotExist) {
+		if RunningFromSnap() {
+			err = configLoadInspectorsConfig(os.ExpandEnv(SnapBundledConfigDir))
+		} else {
+			logger.Infof("Inspectors configuration file does not exist in %s", cfgdir)
+			return nil
+		}
+	}
+	return err
 }
 
 var (
@@ -129,22 +173,22 @@ loop:
 			if svc.opt.IdleShutdown > 0 {
 				idleTimer.Reset(time.Duration(svc.opt.IdleShutdown) * time.Second)
 			}
-			logger.Infof("[service] received message: %T", msg)
+			logger.Infof("service: received message: %T", msg)
 
 			handleMessages(svc, msg)
 
 		case sessionId := <-session.ExpiredSessionId:
-			logger.Infof("[%s] session expired", sessionId)
+			logger.Infof("service: session %s expired", sessionId)
 			s := session.GetSession(sessionId)
 			if s == nil {
-				logger.Warningf("[service] session %s does not exist", sessionId)
+				logger.Warningf("service: session %s does not exist", sessionId)
 				break
 			}
 			if err := s.Finish(); err != nil {
-				logger.Errorf("[%s] cannot finish session: %s", sessionId, err)
+				logger.Errorf("service: cannot finish session %s: %s", sessionId, err)
 			}
 			if err := session.RemoveResources(svc.opt.Spool, sessionId); err != nil {
-				logger.Errorf("[%s] cannot remove session resources: %s", sessionId, err)
+				logger.Errorf("service: cannot remove session %s resources: %s", sessionId, err)
 			}
 			if svc.opt.IdleShutdown > 0 {
 				idleTimer.Reset(time.Duration(svc.opt.IdleShutdown) * time.Second)
@@ -202,4 +246,8 @@ func (svc *Service) Alive() bool {
 
 func (svc *Service) Dying() <-chan struct{} {
 	return svc.tomb.Dying()
+}
+
+func (svc *Service) Err() error {
+	return svc.tomb.Err()
 }

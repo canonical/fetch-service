@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -47,12 +47,14 @@ func (ins *SmartQueryInspector) InspectRequest(a RequestArtifact) error {
 		return nil
 	}
 
+	slog := a.Logger()
+
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	if info, err := config.NewSmartQueryUrlInfo(u, &ins.config); err == nil {
+	if info, err := config.NewSmartQueryUrlInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for git smart request").Annotate(
 			Annotation{
 				"server":   strings.SplitN(u.Host, ":", 2)[0],
@@ -112,13 +114,14 @@ func (ins *SmartQueryInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 }
 
 func (ins *SmartQueryInspector) decodeProtocol(f ArtifactReader, a ResponseArtifact) ([]string, error) {
-	msgs, err := decodeGitProtocol(f)
+	slog := a.Logger()
+	msgs, err := decodeGitProtocol(f, slog)
 	if err != nil {
 		a.SetResponseRejected(ins, "cannot decode git protocol").Annotate(
 			Annotation{"error-msg": err.Error()},
 		)
 	} else if len(msgs) == 1 && msgs[0] == "# service=git-upload-pack" {
-		msgs, err = decodeGitProtocol(f) // skip previous size+content
+		msgs, err = decodeGitProtocol(f, slog) // skip previous size+content
 		if err != nil {
 			a.SetResponseRejected(ins, "cannot decode pack advertisement").Annotate(
 				Annotation{"error-msg": err.Error()},

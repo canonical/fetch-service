@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -39,7 +39,7 @@ type InspectionMap map[string]*Inspection
 
 const (
 	MetadataVersionMajor = 0 // Updated when incompatible changes are made
-	MetadataVersionMinor = 1 // Existing fields not changed, may contain additional fields
+	MetadataVersionMinor = 2 // Existing fields not changed, may contain additional fields
 )
 
 // Artifact holds information about each downloaded file during
@@ -59,6 +59,7 @@ type Artifact struct {
 	MimeType           *mimetype.MIME       `json:"-"`                         // The artifact MIME type
 	Request            *http.Request        `json:"-"`                         // request handle for body content inspection
 
+	logger logger.Logger `json:"-"` // Session-aware log helper
 }
 
 func NewArtifact() *Artifact {
@@ -70,6 +71,7 @@ func NewArtifact() *Artifact {
 		Downloads:          []Download{},
 		CurrentDownload:    Download{},
 		Request:            nil,
+		logger:             logger.NewSessionLogger("no-session"),
 	}
 }
 
@@ -117,6 +119,7 @@ func (a *Artifact) SetArtifactMetadata(m ArtifactMetadata) {
 	a.Metadata.License = m.License
 	a.Metadata.Copyright = m.Copyright
 	a.Metadata.SourcePackage = m.SourcePackage
+	a.Metadata.StoreRevision = m.StoreRevision
 }
 
 func (a *Artifact) MimetypeIs(t string) bool {
@@ -137,7 +140,7 @@ func (a Artifact) Sha256() digests.Sha256Digest {
 // addInspection adds the inspector's opinion to the artifact's
 // inspection map.
 func (a *Artifact) addInspection(insp InspectionMap, inspName, id string, op opinions.OpinionKind, reason string, args ...any) *Inspection {
-	logger.Infof("%s: %s opinion set to %s (%s)", id, inspName, op.String(), reason)
+	a.logger.Infof("%s: %s opinion set to %s (%s)", id, inspName, op.String(), reason)
 	in := &Inspection{
 		Opinion: op,
 		Reason:  fmt.Sprintf(reason, args...),
@@ -321,4 +324,12 @@ func (a *Artifact) Rejected() bool {
 
 func (a *Artifact) CacheDir() string {
 	return a.SessionCacheDir
+}
+
+func (a *Artifact) Logger() logger.Logger {
+	return a.logger
+}
+
+func (a *Artifact) SetLogger(l logger.Logger) {
+	a.logger = l
 }

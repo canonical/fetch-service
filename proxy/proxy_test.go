@@ -136,7 +136,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 	os.Remove(u.A.Tempfile)
 
 	// check downloaded file information
-	c.Assert(v.A.MetadataVersion, Equals, "0.1")
+	c.Assert(v.A.MetadataVersion, Equals, "0.2")
 	c.Assert(u.A.Metadata.Sha1.String(), Equals, "d8c1f9634007b54c1e9aa3ba3b51395b643933c3")
 	c.Assert(u.A.Metadata.Sha256.String(), Equals, "750335248ccc68d07397e2b843d94fd1a164ddeca23892ca8398b5d528cd89eb")
 	c.Assert(u.A.Metadata.Size, Equals, int64(26600))
@@ -166,7 +166,7 @@ func (t *proxySuite) TestCopyHeader(c *C) {
 		{"key", []string{"a", "b", "c"}},
 	} {
 		data := map[string][]string{tc.key: tc.val}
-		newData := proxy.CopyHeader(data)
+		newData := proxy.CopyHttpHeader(data)
 		delete(data, tc.key)
 		c.Assert(data[tc.key], IsNil)
 		c.Assert(newData, Not(Equals), data)

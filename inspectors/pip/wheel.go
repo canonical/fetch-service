@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -34,6 +34,7 @@ import (
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
+	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/utils"
 )
@@ -57,7 +58,8 @@ func (ins *WheelInspector) InspectRequest(a RequestArtifact) error {
 	}
 
 	if checkWheelUrl(u) == nil {
-		a.SetRequestPending(ins, "request matches valid URL")
+		// Request marked as Unknown because it comes from the default pypi origin
+		a.SetRequestUnknown(ins, "unsupported origin")
 	}
 
 	return nil // we don't recognize this request
@@ -75,6 +77,8 @@ func (ins *WheelInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact)
 		return nil
 	}
 
+	slog := a.Logger()
+
 	// Check if zip file contains wheel files
 	if !utils.ZipMatches(f, int64(f.Len()), wheelPatterns) {
 		return nil
@@ -88,7 +92,7 @@ func (ins *WheelInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact)
 	size := int64(f.Len())
 	notes := newWheelNotes()
 
-	if err := readWheelMetadata(ins, f, size, a, notes); err != nil {
+	if err := readWheelMetadata(ins, f, size, a, notes, slog); err != nil {
 		return err
 	}
 
@@ -135,7 +139,7 @@ func processOpinion(ins *WheelInspector, a ResponseArtifact, notes *wheelNotes) 
 }
 
 // readWheelMetadata reads the wheel's METADATA file.
-func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a ResponseArtifact, notes *wheelNotes) error {
+func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a ResponseArtifact, notes *wheelNotes, slog logger.Logger) error {
 	z, err := zip.NewReader(f, size)
 	if err != nil {
 		return err
@@ -151,7 +155,7 @@ func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a Respons
 			}
 			defer zf.Close()
 
-			md, ver, err := scanWheelMetadata(zf)
+			md, ver, err := scanWheelMetadata(zf, slog)
 			if err != nil {
 				return err
 			}
@@ -178,7 +182,7 @@ func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a Respons
 }
 
 // scanWheelMetadata parses metadata entries from the given file.
-func scanWheelMetadata(zf io.ReadCloser) (ArtifactMetadata, string, error) {
+func scanWheelMetadata(zf io.ReadCloser, slog logger.Logger) (ArtifactMetadata, string, error) {
 	sc := bufio.NewScanner(zf)
 	sc.Split(bufio.ScanLines)
 
@@ -233,7 +237,7 @@ func scanWheelMetadata(zf io.ReadCloser) (ArtifactMetadata, string, error) {
 	t.Flush()
 	temp.Close()
 
-	license, err = utils.GetLicense(temp.Name())
+	license, err = utils.GetLicense(temp.Name(), slog)
 	if err != nil {
 		return ArtifactMetadata{}, mver, err
 	}

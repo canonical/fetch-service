@@ -2,6 +2,58 @@
 Changelog
 *********
 
+0.8.1 (2025-07-11)
+------------------
+
+- fix: address download timeout issues (#412)
+- fix snap declaration assertion parsing (#414)
+
+0.8.0 (2025-07-02)
+------------------
+
+- feat: add charmcraft inspector (#397)
+- feat: add store api and bld bin package inspectors (#398, #400)
+- feat: add apt commands file inspector (#395, #402)
+- feat: add session-aware logging support (#371)
+- fix: prevent races in cached inspection results (#409)
+- fix(apt): use separate esm repository configuration (#410)
+- fix(deps): update module github.com/protonmail/go-crypto to v1.3.0 (#390)
+- fix(deps): update golang.org/x/net to 0.38.0 (#387)
+
+0.7.0 (2025-04-08)
+------------------
+
+- feat!(config): default to bundled configuration (#370)
+- feat!: mark requests for external origins as unknown (#368)
+- fix(inspectors/apt): use correct esm archive url (#365)
+- fix(inspectors/apt): make InRelease description field optional (#334)
+- fix!(cli): return proper error codes on start error (#375)
+- fix(deps): update module github.com/klauspost/compress to v1.18.0 (#340)
+- fix(deps): update go-crypto to v1.1.5 (#348)
+- fix(deps): update module github.com/elazarl/goproxy to v1.7.2 (#349)
+- fix(deps): update module github.com/gabriel-vasile/mimetype to v1.4.8 (#297)
+
+0.6.1 (2025-02-21)
+------------------
+
+- feat(inspectors/apt): allow packages file download by name (#338)
+- fix(inspectors/snap): use version as assigned by vendor (#341)
+- fix(inspectors/deb): handle more compression methods (#339)
+- fix(inspectors/deb): remove incorrect metadata mapping (#328)
+- fix(deps): update module golang.org/x/net to v0.35.0 (#321)
+
+0.6.0 (2025-01-13)
+------------------
+
+- feat(proxy): validate session id from request header (#313)
+- fix: address tiobe security warnings (#307, #317)
+- fix(inspectors/deb): check scan return value (#312)
+- fix(inspectors/apt): rejection fix and additional tests (#308)
+- fix(deps): update module golang.org/x/net to v0.33.0 [security] (#318)
+- refactor(service): handle messages in separate functions (#315)
+- docs: local testing howto (#263)
+- chore!: change artefact spelling to artifact (#306)
+
 0.5.0 (2024-11-27)
 ------------------
 
@@ -28,7 +80,6 @@ Changelog
 - fix(deps): update module github.com/gabriel-vasile/mimetype to v1.4.6 (#270)
 - fix: add build-aux location for snapcraft project (#274)
 - tests: add initial spread testing (#269)
-
 
 0.4.0 (2024-10-14)
 ------------------

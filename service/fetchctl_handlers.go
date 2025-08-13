@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -62,20 +62,20 @@ func handleFetchCtl(v messages.FetchCtl, svc *Service) messages.FetchCtlResult {
 func fetchCtlUpdateConfig(v messages.FetchCtl, svc *Service) messages.FetchCtlResult {
 	err := configUpdateConfig(v.Type, v.ValidateOnly, v.Payload, svc.opt.Config)
 	if err != nil {
-		logger.Warningf("[service] %s update error: %s", v.Type, err.Error())
+		logger.Warningf("service: %s update error: %s", v.Type, err.Error())
 		return messages.FetchCtlResult{
 			Status:  "error",
 			Message: fmt.Sprintf("%s configuration update error", v.Type),
 		}
 	} else if v.ValidateOnly {
-		logger.Infof("[service] %s configuration validated", v.Type)
+		logger.Infof("service: %s configuration validated", v.Type)
 		return messages.FetchCtlResult{
 			Status:  "ok",
 			Message: "configuration validated",
 		}
 	}
 
-	logger.Infof("[service] %s configuration updated", v.Type)
+	logger.Infof("service: %s configuration updated", v.Type)
 	return messages.FetchCtlResult{
 		Status:  "ok",
 		Message: "configuration updated",
@@ -86,20 +86,20 @@ func fetchCtlUpdateConfig(v messages.FetchCtl, svc *Service) messages.FetchCtlRe
 func fetchCtlUpdateCert(v messages.FetchCtl, certPath, keyPath string) messages.FetchCtlResult {
 	err := proxyUpdateCert(v.ValidateOnly, v.Payload, certPath, keyPath)
 	if err != nil {
-		logger.Warningf("[service] certificate update error: %s", err.Error())
+		logger.Warningf("service: certificate update error: %s", err.Error())
 		return messages.FetchCtlResult{
 			Status:  "error",
 			Message: "certificate update error",
 		}
 	} else if v.ValidateOnly {
-		logger.Info("[service] proxy certificate updated")
+		logger.Info("service: proxy certificate updated")
 		return messages.FetchCtlResult{
 			Status:  "ok",
 			Message: "certificate validated",
 		}
 	}
 
-	logger.Info("[service] certificate updated")
+	logger.Info("service: certificate updated")
 	return messages.FetchCtlResult{
 		Status:  "ok",
 		Message: "proxy certificate updated",
@@ -121,7 +121,7 @@ func fetchCtlCreateSession(v messages.FetchCtl, svc *Service) messages.FetchCtlR
 	timeout := time.Duration(t) * time.Second
 	s := sessionNewWithId(parms[0], parms[1], svc.opt.Spool, timeout, permissive)
 
-	logger.Infof("[service] session %s created", s.Id)
+	logger.Infof("service: session %s created", s.Id)
 	svc.totalSessions++
 	return messages.FetchCtlResult{
 		Status:  "ok",

@@ -1,0 +1,54 @@
+type: snap-declaration
+format: 1
+authority-id: canonical
+revision: 14
+series: 16
+snap-id: uE3hSmGE91m9MpbDEnUWi2vpeumH6gmv
+plugs:
+  audio-record:
+    allow-auto-connection: true
+  bluez:
+    allow-auto-connection: true
+  browser-support:
+    allow-auto-connection: true
+  camera:
+    allow-auto-connection: true
+  cups-control:
+    allow-auto-connection: true
+  hardware-observe:
+    allow-auto-connection: true
+  joystick:
+    allow-auto-connection: true
+  pulseaudio:
+    allow-auto-connection: true
+  removable-media:
+    allow-auto-connection: true
+  system-packages-doc:
+    allow-auto-connection: true
+  u2f-devices:
+    allow-auto-connection: true
+publisher-id: 3exK2AGZeFDA5Qf9UIhBh3BUgeWE475y
+slots:
+  mpris:
+    allow-connection:
+      -
+        slot-attributes:
+          name: brave
+      -
+        slot-attributes:
+          name: chromium
+    deny-auto-connection: true
+snap-name: brave
+timestamp: 2023-11-14T16:15:01.251548Z
+sign-key-sha3-384: BWDEoaqyr25nF5SNCvEv2v7QnM9QsfCc0PBMYD_i2NGSQ32EF2d4D0hqUel3m8ul
+
+AcLBUgQAAQoABgUCZVOdBQAAViwQAMvYQTVp3bvugrErN5qR/yHovtJJE6HkvojbRP2DohtfOQcq
+Ytre+luVhM0dLtFPPzRozz9gujYtU79qe0oaLZODPkBJgoYqfLlHdFLn30tq6p2tWUjpGAiVDc6d
+Xseh02ntO2EXrBbDpZWXRJsiBgC3Dg8U3hWiKe1hupjBZmMZIoXkU5wCUmFosLJRQlMoiFf+Madm
+GzXpnmDjutcZ6CUq7E+Op23Zm15cRK9ZC70ifCQEocZ/LUK29HFbJG4eRD6UqqORwelK9FEZVnzm
+pUSAimRu6e+Ji987NuzzYjJaxiT3OFrHSOB9GXvlC139vj37BKs2LPaRhpn4qxfAAbe9j0DG8uev
+xe0vlrmNxyZI5Lrn9lAE2QUbwftCBTnK051oOgAEAiFoVoSPjbc1DszbZ5YyAVTbXf+RQKPMLfg0
+tiygOihreA8G/yHGofJPlqOqsvyK2CvLVe5Jl+kH0Imymfa3YjTIXhmAsb5zsW0VRKsO1b038y/p
+T+vtXgt+ZcxG8qQ8sC1s8faVGlSWvbIkY1YQMsSn2WjdBphHZ3v9n2zYlHR1jVO85X3Ms8QsAq9a
+FbeKDUIIaRBLzhGvQr/2dweKRospjZfRVQVXyl8VX6ypoipsJ8cPZi6TU0bigBaL3jhdGtWYnKyG
+ovZO8uDVqKqEuW+odm8Q7NHddUgk

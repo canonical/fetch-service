@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -114,7 +114,7 @@ func (ins testInspector2) ID() string {
 
 func (t *metadataSuite) TestNewArtifact(c *C) {
 	a := metadata.NewArtifact()
-	c.Check(a.MetadataVersion, Equals, "0.1")
+	c.Check(a.MetadataVersion, Equals, "0.2")
 	c.Check(a.RequestInspection, Not(IsNil))
 	c.Check(a.ResponseInspection, Not(IsNil))
 	c.Check(a.Metadata, Not(IsNil))

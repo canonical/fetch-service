@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -33,9 +33,11 @@ import (
 
 	"github.com/canonical/fetch-service/glob"
 	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
+	bldbin_cfg "github.com/canonical/fetch-service/inspectors/bldbin/config"
 	crafts_cfg "github.com/canonical/fetch-service/inspectors/craft/config"
 	git_cfg "github.com/canonical/fetch-service/inspectors/git/config"
 	snap_cfg "github.com/canonical/fetch-service/inspectors/snap/config"
+	store_cfg "github.com/canonical/fetch-service/inspectors/store/config"
 	"github.com/canonical/fetch-service/logger"
 )
 
@@ -171,12 +173,8 @@ func SetHttpProxyConfig(cfg HttpProxyConfig) {
 func LoadHttpProxyRules(cfgdir string) error {
 	cfgfile := filepath.Join(cfgdir, aclConfigFile)
 	if _, err := os.Stat(cfgfile); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			logger.Infof("ACL configuration file %s does not exist", cfgfile)
-			return nil
-		}
+		return err
 	}
-
 	logger.Infof("Load proxy rules from %s", cfgfile)
 
 	f, err := os.Open(cfgfile)
@@ -223,7 +221,7 @@ func UpdateConfig(optype string, dryRun bool, payload []byte, cfgdir string) err
 			if err := updateConfigFile(cfgdir, aclConfigFile, payload); err != nil {
 				return err
 			}
-			logger.Infof("[config] write ACL configuration file: %s", filepath.Join(cfgdir, aclConfigFile))
+			logger.Infof("config: write ACL configuration file: %s", filepath.Join(cfgdir, aclConfigFile))
 		}
 	case "inspectors":
 		cfg, err := decodeInspectorsConfig(r)
@@ -238,13 +236,17 @@ func UpdateConfig(optype string, dryRun bool, payload []byte, cfgdir string) err
 			if err := updateConfigFile(cfgdir, inspectorsConfigFile, payload); err != nil {
 				return err
 			}
-			logger.Infof("[config] write inspectors configuration file: %s", filepath.Join(cfgdir, inspectorsConfigFile))
+			logger.Infof("config: write inspectors configuration file: %s", filepath.Join(cfgdir, inspectorsConfigFile))
 		}
 	}
 	return nil
 }
 
 func updateConfigFile(cfgdir, filename string, payload []byte) error {
+	if err := os.MkdirAll(cfgdir, 0755); err != nil {
+		return err
+	}
+
 	cfgfile := filepath.Join(cfgdir, filename)
 	tmpfile := cfgfile + ".new"
 
@@ -271,15 +273,14 @@ type InspectorsConfig struct {
 	Git    git_cfg.GitInspectorConfig       `yaml:"git"`
 	Crafts crafts_cfg.CraftsInspectorConfig `yaml:"crafts"`
 	Snap   snap_cfg.SnapInspectorConfig     `yaml:"snap"`
+	Store  store_cfg.StoreInspectorConfig   `yaml:"store"`
+	BldBin bldbin_cfg.BldBinInspectorConfig `yaml:"bldbin"`
 }
 
 func LoadInspectorsConfig(cfgdir string) error {
 	cfgfile := filepath.Join(cfgdir, inspectorsConfigFile)
 	if _, err := os.Stat(cfgfile); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			logger.Infof("Inspectors configuration file %s does not exist", cfgfile)
-			return nil
-		}
+		return err
 	}
 
 	logger.Infof("Load inspectors configuration from %s", cfgfile)
@@ -339,6 +340,12 @@ func GetInspectorsConfig() InspectorsConfig {
 
 	cfg.Crafts.Urls = make([]glob.Glob, len(globalInspectorsConfig.Crafts.Urls))
 	copy(cfg.Crafts.Urls, globalInspectorsConfig.Crafts.Urls)
+
+	cfg.Store.Urls = make([]glob.Glob, len(globalInspectorsConfig.Store.Urls))
+	copy(cfg.Store.Urls, globalInspectorsConfig.Store.Urls)
+
+	cfg.BldBin.Urls = make([]glob.Glob, len(globalInspectorsConfig.BldBin.Urls))
+	copy(cfg.BldBin.Urls, globalInspectorsConfig.BldBin.Urls)
 
 	cfg.Snap.SnapDeclarationFilter = make([]snap_cfg.AssertionFilter, len(globalInspectorsConfig.Snap.SnapDeclarationFilter))
 	for i, v := range globalInspectorsConfig.Snap.SnapDeclarationFilter {

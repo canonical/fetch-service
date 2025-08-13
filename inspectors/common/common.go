@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -24,6 +24,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
@@ -63,6 +64,9 @@ type RequestArtifact interface {
 
 	// Save request for inspection
 	SetRequestBody(io.ReadCloser)
+
+	// Logging
+	Logger() logger.Logger
 }
 
 // ResponseArtifact is an interface with methods to be used on the
@@ -95,6 +99,9 @@ type ResponseArtifact interface {
 
 	// Fill metadata fields
 	SetArtifactMetadata(ArtifactMetadata)
+
+	// Logging
+	Logger() logger.Logger
 }
 
 // Inspector is the interface implemented by artifact metadata extractors.
@@ -160,4 +167,5 @@ type ArtifactMetadata struct {
 	License       string // The license the artifact is published under
 	Copyright     string // The copyright line, if available
 	SourcePackage string // The name of the source package that generated this artifact, if available.
+	StoreRevision string // The revision of the artifact assigned by the store, if any.
 }

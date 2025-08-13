@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -38,7 +38,7 @@ func SessionMetadataWritten(spoolDir, sessionId string) bool {
 }
 
 func LoadSessionMetadata(spoolDir, sessionId string) (*metadata.SessionMetadata, error) {
-	logger.Infof("[%s] load session metadata", sessionId)
+	logger.Infof("load session %s metadata", sessionId)
 
 	metadataPath := filepath.Join(spoolDir, sessionId, "session.json")
 
@@ -60,7 +60,7 @@ func LoadSessionMetadata(spoolDir, sessionId string) (*metadata.SessionMetadata,
 
 func RemoveResources(spoolDir, sessionId string) error {
 	sessionDir := filepath.Join(spoolDir, sessionId)
-	logger.Infof("[%s] removing session resources", sessionId)
+	logger.Infof("removing session %s resources", sessionId)
 	if err := os.RemoveAll(sessionDir); err != nil {
 		return err
 	}

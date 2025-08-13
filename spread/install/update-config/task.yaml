@@ -1,7 +1,7 @@
 summary: Fetchctl update config operations
 
 prepare: |
-  snap install "$PROJECT_PATH"/spread/fetch-service_*.snap --dangerous
+  snap install "$CRAFT_ARTIFACT" --dangerous
 
 restore: |
   snap remove fetch-service --purge
@@ -12,12 +12,15 @@ execute: |
   sleep 5  # give some time for the service to start
   fetch-service.fetchctl version
 
+  BUNDLED_INSP_CONF="/snap/fetch-service/current/conf/inspectors.yaml"
+  BUNDLED_ACL_CONF="/snap/fetch-service/current/conf/acl.yaml"
+
   INSP_CONF="/var/snap/fetch-service/current/conf/inspectors.yaml"
   ACL_CONF="/var/snap/fetch-service/current/conf/acl.yaml"
 
   # ----- Update inspectors configuration -----
   
-  cp "$INSP_CONF" i.yaml
+  cp "$BUNDLED_INSP_CONF" i.yaml
 
   entry=$(yq .apt.repositories.default.urls[0] i.yaml)
   [ "$entry" = "http://archive.ubuntu.com/ubuntu" ]
@@ -31,7 +34,7 @@ execute: |
 
   # ----- Update acl configuration -----
 
-  cp "$ACL_CONF" a.yaml
+  cp "$BUNDLED_ACL_CONF" a.yaml
   entry=$(yq .http-proxy.policy a.yaml)
   [ "$entry" = "allow" ]
 

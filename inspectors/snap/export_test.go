@@ -21,6 +21,8 @@ package snap
 
 import (
 	"io"
+
+	"github.com/canonical/fetch-service/logger"
 )
 
 var (
@@ -54,7 +56,7 @@ func MockEncodeDigest(mock func([]byte) (string, error)) (restorer func()) {
 	}
 }
 
-func MockDownloadSnapRevisionAssertion(mock func(string) (*assertion, error)) (restorer func()) {
+func MockDownloadSnapRevisionAssertion(mock func(string, logger.Logger) (*assertion, error)) (restorer func()) {
 	old := downloadSnapRevisionAssertion
 	downloadSnapRevisionAssertion = mock
 	return func() {
@@ -62,7 +64,7 @@ func MockDownloadSnapRevisionAssertion(mock func(string) (*assertion, error)) (r
 	}
 }
 
-func MockDownloadSnapDeclarationAssertion(mock func(string) (*assertion, error)) (restorer func()) {
+func MockDownloadSnapDeclarationAssertion(mock func(string, logger.Logger) (*assertion, error)) (restorer func()) {
 	old := downloadSnapDeclarationAssertion
 	downloadSnapDeclarationAssertion = mock
 	return func() {
@@ -70,7 +72,7 @@ func MockDownloadSnapDeclarationAssertion(mock func(string) (*assertion, error))
 	}
 }
 
-func MockDownloadAccountAssertion(mock func(string) (*assertion, error)) (restorer func()) {
+func MockDownloadAccountAssertion(mock func(string, logger.Logger) (*assertion, error)) (restorer func()) {
 	old := downloadAccountAssertion
 	downloadAccountAssertion = mock
 	return func() {

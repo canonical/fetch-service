@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -31,9 +31,11 @@ import (
 	"github.com/canonical/fetch-service/metadata"
 )
 
-type protocolSuite struct{}
+type protocolSuite struct {
+	slog logger.Logger
+}
 
-var _ = Suite(&protocolSuite{})
+var _ = Suite(&protocolSuite{logger.NewSessionLogger("test")})
 
 func (t *protocolSuite) SetUpTest(c *C) {
 	testlogger.Init(logger.InfoLevel)
@@ -79,7 +81,7 @@ func (s *protocolSuite) TestDecodeGitProtocolFail(c *C) {
 		{[]byte("0007foo0005!0000"), []string{"foo", "!"}, ""},                  // valid message with finalizer
 		{[]byte("0007foo000dpackfile\nstuff"), []string{"foo", "packfile"}, ""}, // end at packfile
 	} {
-		msgs, err := git.DecodeGitProtocol(bytes.NewReader(tc.data))
+		msgs, err := git.DecodeGitProtocol(bytes.NewReader(tc.data), s.slog)
 		if tc.errmsg == "" {
 			c.Assert(err, IsNil)
 		} else {

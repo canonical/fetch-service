@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright (C) 2024 Canonical Ltd
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -218,8 +218,8 @@ func parseHeaders(head []byte) (map[string]string, error) {
 
 // VerifySignature checks the integrity of the assertion's
 // signed content.
-func (assert assertion) VerifySignature() error {
-	logger.Debugf("verify assertion signature: %s", assert.Header)
+func (assert assertion) VerifySignature(slog logger.Logger) error {
+	slog.Debugf("verify assertion signature: %s", assert.Header)
 
 	// Obtain the assertion signature
 	signature, err := decodeSignature(assert.Signature)
@@ -239,12 +239,12 @@ func (assert assertion) VerifySignature() error {
 
 	if ok {
 		// Cached keys were already verified.
-		logger.Infof("account key %s is cached", signKey)
+		slog.Infof("account key %s is cached", signKey)
 		// Verify if content was signed with the cached key.
 		return utils.VerifySignature(cachedKey, signature, assert.Content)
 	}
 
-	logger.Debugf("verify assertion signature %s", signKey)
+	slog.Debugf("verify assertion signature %s", signKey)
 
 	// Check if the key is the Canonical account root key.
 	if signKey == CanonicalRootAccountKey.SignKey() {
@@ -253,13 +253,13 @@ func (assert assertion) VerifySignature() error {
 	}
 
 	// Retrieve signing account key
-	accountKeyAssertion, err := downloadAccountKeyAssertion(signKey)
+	accountKeyAssertion, err := downloadAccountKeyAssertion(signKey, slog)
 	if err != nil {
 		return fmt.Errorf("cannot retrieve account-key assertion: %w", err)
 	}
 
 	// Recursively check the account key assertion signature
-	if err := accountKeyAssertion.VerifySignature(); err != nil {
+	if err := accountKeyAssertion.VerifySignature(slog); err != nil {
 		return err
 	}
 
@@ -273,12 +273,12 @@ func (assert assertion) VerifySignature() error {
 	accountKeyCache[signKey] = key
 	accountKeyCacheMutex.Unlock()
 
-	logger.Infof("account key %s verified", signKey)
+	slog.Infof("account key %s verified", signKey)
 
 	// Finally verify if content signature is correct.
 	err = utils.VerifySignature(key, signature, assert.Content)
 	if err != nil {
-		logger.Warningf("%s assertion signature failed: %s", assert.Type(), err)
+		slog.Warningf("%s assertion signature failed: %s", assert.Type(), err)
 		return err
 	}
 

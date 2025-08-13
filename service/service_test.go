@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -400,6 +400,45 @@ func (t *serviceSuite) TestEvaluateRequestInspection(c *C) {
 	}
 }
 
+type responseInspectionTest struct {
+	sessionExists bool   // Whether the session was created
+	hasArtifact   bool   // Whether the artifact has already been downloaded
+	policy        string // The inspection policy (strict or permissive)
+	errMsg        string // The expected error message, if any
+}
+
+var responseInspectionTests = []responseInspectionTest{{
+	sessionExists: true,
+	hasArtifact:   false,
+	policy:        "permissive",
+	errMsg:        "",
+}, {
+	sessionExists: true,
+	hasArtifact:   true,
+	policy:        "permissive",
+	errMsg:        "",
+}, {
+	sessionExists: false,
+	hasArtifact:   false,
+	policy:        "permissive",
+	errMsg:        "cannot inspect response: session foo is not active",
+}, {
+	sessionExists: true,
+	hasArtifact:   false,
+	policy:        "strict",
+	errMsg:        "artifact rejected by inspectors",
+}, {
+	sessionExists: true,
+	hasArtifact:   true,
+	policy:        "strict",
+	errMsg:        "", // artifact has already been downloaded
+}, {
+	sessionExists: false,
+	hasArtifact:   false,
+	policy:        "strict",
+	errMsg:        "cannot inspect response: session foo is not active",
+}}
+
 func (t *serviceSuite) TestResponseInspection(c *C) {
 	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
 		t.ch = ch
@@ -408,19 +447,7 @@ func (t *serviceSuite) TestResponseInspection(c *C) {
 	})
 	defer restorer()
 
-	for _, tc := range []struct {
-		sessionExists bool
-		hasArtifact   bool
-		policy        string
-		errMsg        string
-	}{
-		{true, false, "permissive", ""},
-		{true, true, "permissive", ""},
-		{false, false, "permissive", "cannot inspect response: session foo is not active"},
-		{true, false, "strict", "artifact rejected by inspectors"},
-		{true, true, "strict", ""}, // artifact has already been downloaded
-		{false, false, "strict", "cannot inspect response: session foo is not active"},
-	} {
+	for _, tc := range responseInspectionTests {
 		dir := c.MkDir()
 		certPath, keyPath, err := createCertFiles(dir)
 		c.Assert(err, IsNil)
@@ -459,6 +486,7 @@ func (t *serviceSuite) TestResponseInspection(c *C) {
 		} else {
 			a.SessionId = "foo"
 		}
+
 		msg := messages.NewResponseInspection(a)
 		t.ch <- msg
 		res := <-msg.Rch
@@ -469,7 +497,7 @@ func (t *serviceSuite) TestResponseInspection(c *C) {
 		c.Assert(err, ErrorMatches, "stat.*no such file or directory", Commentf("test case: %+v", tc))
 
 		if tc.errMsg == "" {
-			c.Assert(res, Equals, nil)
+			c.Assert(res, IsNil)
 		} else {
 			c.Assert(res, ErrorMatches, tc.errMsg, Commentf("test case: %+v", tc))
 		}
@@ -477,6 +505,90 @@ func (t *serviceSuite) TestResponseInspection(c *C) {
 		err = svc.Stop()
 		c.Assert(err, IsNil)
 	}
+}
+
+func fakeArtifact(sha digests.Sha256Digest, s *session.Session, c *C) *metadata.Artifact {
+	a := metadata.NewArtifact()
+	a.Metadata.Sha256 = sha
+	a.AssetDir = filepath.Join(s.SessionDir, "assets")
+	a.CurrentDownload = metadata.Download{URL: "http://d1", Sha256: sha}
+
+	tmpfile, err := os.CreateTemp("", "tempfile-*")
+	c.Assert(err, IsNil)
+	defer tmpfile.Close()
+
+	_, err = tmpfile.Write([]byte("content"))
+	c.Assert(err, IsNil)
+
+	a.Tempfile = tmpfile.Name()
+	a.SessionId = s.Id
+	return a
+}
+
+func (t *serviceSuite) TestResponseInspectionConcurrent(c *C) {
+	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+		t.ch = ch
+		t.proxyPort = port
+		return &proxy.HttpProxy{}, nil
+	})
+	defer restorer()
+
+	dir := c.MkDir()
+	certPath, keyPath, err := createCertFiles(dir)
+	c.Assert(err, IsNil)
+
+	spoolDir := dir
+	opt := service.Options{
+		ProxyPort: 1337,
+		Spool:     spoolDir,
+		CertPath:  certPath,
+		KeyPath:   keyPath,
+	}
+
+	svc, err := service.New(&opt)
+	c.Assert(err, IsNil)
+
+	err = svc.Start()
+	c.Assert(err, IsNil)
+	s := session.New(opt.Spool, 0, true)
+	defer s.Discard()
+
+	sha, _ := digests.NewSha256Digest("5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03")
+
+	// First artifact download
+	a1 := fakeArtifact(sha, s, c)
+
+	// Second artifact download
+	a2 := fakeArtifact(sha, s, c)
+
+	msg1 := messages.NewResponseInspection(a1)
+	t.ch <- msg1
+
+	msg2 := messages.NewResponseInspection(a2)
+	t.ch <- msg2
+
+	res1 := <-msg1.Rch
+	c.Assert(res1, IsNil)
+
+	res2 := <-msg2.Rch
+	c.Assert(res2, IsNil)
+
+	// check if temporary files properly deleted
+	time.Sleep(500 * time.Millisecond) // GitHub CI needs this
+
+	_, err = os.Stat(a1.Tempfile)
+	c.Assert(err, ErrorMatches, "stat.*no such file or directory")
+
+	_, err = os.Stat(a2.Tempfile)
+	c.Assert(err, ErrorMatches, "stat.*no such file or directory")
+
+	// Check session data
+	c.Assert(s.A, HasLen, 1) // Artifact is added once
+	a := s.A[sha]
+	c.Assert(a.Downloads, HasLen, 2)
+
+	err = svc.Stop()
+	c.Assert(err, IsNil)
 }
 
 func (t *serviceSuite) TestEvaluateResponseInspection(c *C) {
@@ -1009,6 +1121,93 @@ func (t *serviceSuite) TestFetchctlCreateSession(c *C) {
 		err = svc.Stop()
 		c.Assert(err, IsNil)
 	}
+}
+
+type loadConfigsOrDefaultTest struct {
+	isSnap       bool   // Whether we're running from snap
+	hasConfig    bool   // Whether the user has created a configuration file
+	finalConfDir string // The directory configuration will be loaded from
+}
+
+var loadConfigsOrDefaultTests = []loadConfigsOrDefaultTest{{
+	isSnap:       false,
+	hasConfig:    false,
+	finalConfDir: "/user/config",
+}, {
+	isSnap:       false,
+	hasConfig:    true,
+	finalConfDir: "/user/config",
+}, {
+	isSnap:       true,
+	hasConfig:    false,
+	finalConfDir: "/snap/fetch-service/x1/conf",
+}, {
+	isSnap:       true,
+	hasConfig:    true,
+	finalConfDir: "/user/config",
+}}
+
+func (t *serviceSuite) TestLoadHttpProxyRulesOrDefault(c *C) {
+	var aclConfigDir string
+
+	for _, tc := range loadConfigsOrDefaultTests {
+		restorer := service.MockConfigLoadProxyHttpRules(func(cfgdir string) error {
+			aclConfigDir = cfgdir
+			if tc.hasConfig && cfgdir == "/user/config" {
+				return nil
+			}
+			if tc.isSnap && cfgdir == "/snap/fetch-service/x1/conf" {
+				return nil
+			}
+			return os.ErrNotExist
+		})
+		defer restorer()
+
+		if tc.isSnap {
+			os.Setenv("SNAP", "/snap/fetch-service/x1")
+			defer os.Unsetenv("SNAP")
+
+			os.Setenv("SNAP_NAME", "fetch-service")
+			defer os.Unsetenv("SNAP_NAME")
+		}
+
+		aclConfigDir = ""
+		err := service.LoadHttpProxyRulesOrDefault("/user/config")
+		c.Assert(err, IsNil)
+		c.Assert(aclConfigDir, Equals, tc.finalConfDir, Commentf("test case: %+v", tc))
+	}
+}
+
+func (t *serviceSuite) TestInspectorsConfigOrDefault(c *C) {
+	var inspConfigDir string
+
+	for _, tc := range loadConfigsOrDefaultTests {
+		restorer := service.MockConfigLoadInspectorsConfig(func(cfgdir string) error {
+			inspConfigDir = cfgdir
+			if tc.hasConfig && cfgdir == "/user/config" {
+				return nil
+			}
+			if tc.isSnap && cfgdir == "/snap/fetch-service/x1/conf" {
+				return nil
+			}
+			return os.ErrNotExist
+		})
+		defer restorer()
+
+		if tc.isSnap {
+			os.Setenv("SNAP", "/snap/fetch-service/x1")
+			os.Setenv("SNAP_NAME", "fetch-service")
+		}
+
+		inspConfigDir = ""
+		err := service.LoadInspectorsConfigOrDefault("/user/config")
+		c.Assert(err, IsNil)
+		c.Assert(inspConfigDir, Equals, tc.finalConfDir, Commentf("test case: %+v", tc))
+
+		os.Unsetenv("SNAP")
+		os.Unsetenv("SNAP_NAME")
+	}
+
 }
 
 func createCertFiles(dir string) (string, string, error) {

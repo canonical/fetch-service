@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -42,7 +42,7 @@ The fetch service is a tool to mediate network access when executing
 craft tools.`
 )
 
-var opts struct {
+type CmdlineOptions struct {
 	// Enable profiling API
 	Profile bool `long:"profile" description:"Enable profiling"`
 
@@ -56,10 +56,10 @@ var opts struct {
 	ProxyPort int `short:"p" long:"proxy-port" description:"Proxy port number" default:"9988"`
 
 	// Path to the configuration files.
-	Config string `long:"config" description:"Path to the directory containing configuration files" default:"/etc/fetch"`
+	Config string `long:"config" description:"Path to the directory containing configuration files"`
 
 	// Path to the local spool containing downloaded files and extracted metadata.
-	Spool string `long:"spool" description:"Path to downloaded dependencies" default:"/var/lib/fetch"`
+	Spool string `long:"spool" description:"Path to downloaded dependencies"`
 
 	// Set the verbosity level
 	Verbosity string `long:"verbosity" description:"Verbosity level" choice:"debug"`
@@ -82,6 +82,8 @@ var opts struct {
 	// Specify the path to the log file
 	LogFile string `long:"log-file" description:"Log to this file instead of standard out"`
 }
+
+var opts CmdlineOptions
 
 func Run() int {
 	p := parser()
@@ -117,19 +119,9 @@ func Run() int {
 		pp.Start()
 	}
 
-	// Start the fetch service
-	opt := service.Options{
-		ControlPort:    opts.ControlPort,
-		ProxyPort:      opts.ProxyPort,
-		Config:         opts.Config,
-		Spool:          opts.Spool,
-		PermissiveMode: opts.PermissiveMode,
-		CertPath:       opts.CertPath,
-		KeyPath:        opts.KeyPath,
-		IdleShutdown:   opts.IdleShutdown,
-	}
+	svcOpts := getServiceOptions(opts)
 
-	svc, err := service.New(&opt)
+	svc, err := service.New(svcOpts)
 	if err != nil {
 		logger.Fatalf("Cannot create service: %s", err)
 	}
@@ -142,22 +134,33 @@ func Run() int {
 	cs := make(chan os.Signal, 1)
 	signal.Notify(cs, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
+	status := 0
 loop:
 	for {
 		select {
 		case sig := <-cs:
 			logger.Infof("Exiting on %s signal.\n", sig)
+			if sysSig, ok := sig.(syscall.Signal); ok {
+				status = 128 + int(sysSig)
+			} else {
+				status = 128
+			}
 			break loop
+
 		case <-svc.Dying():
-			// something called Stop()
-			logger.Info("Server exiting!")
+			if err := svc.Err(); err != nil {
+				logger.Errorf("Server error: %s", err)
+				status = 2
+			} else {
+				// something called Stop()
+				logger.Info("Server exiting!")
+			}
 			break loop
 
 		case <-pp.Dying():
 			// profiling server died
 			logger.Errorf("Profiling error: %s", pp.Err())
-
-			// TODO: add watchdog
+			status = 3
 		}
 	}
 
@@ -165,7 +168,7 @@ loop:
 		logger.Fatalf("error: %s", err)
 	}
 
-	return 0
+	return status
 }
 
 var printf = printfImpl
@@ -179,6 +182,38 @@ func parser() *flags.Parser {
 	p.ShortDescription = shortHelp
 	p.LongDescription = longHelp
 	return p
+}
+
+// Get the value of an option that can be provided by the command line
+// depending on the running environment and whether a command line option
+// was provided by the user.
+func getOptionOrDefault(cmdlineValue, snapDefault, nonsnapDefault string) string {
+	if cmdlineValue != "" {
+		// Value provided on the command line; use it
+		return cmdlineValue
+	}
+	if service.RunningFromSnap() {
+		return os.ExpandEnv(snapDefault)
+	}
+	return nonsnapDefault
+}
+
+func getServiceOptions(opts CmdlineOptions) *service.Options {
+	configDir := getOptionOrDefault(opts.Config, service.SnapConfigDir, service.NonSnapConfigDir)
+	spoolDir := getOptionOrDefault(opts.Spool, service.SnapSpoolDir, service.NonSnapSpoolDir)
+
+	// Start the fetch service
+	return &service.Options{
+		ControlPort:    opts.ControlPort,
+		ProxyPort:      opts.ProxyPort,
+		Config:         configDir,
+		Spool:          spoolDir,
+		PermissiveMode: opts.PermissiveMode,
+		CertPath:       opts.CertPath,
+		KeyPath:        opts.KeyPath,
+		IdleShutdown:   opts.IdleShutdown,
+	}
+
 }
 
 func main() {

@@ -1,3 +1,20 @@
+// -*- Mode: Go; indent-tabs-mode: t -*-
+
+/*
+ * Copyright 2024-2025 Canonical Ltd.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package git
 
 import (
@@ -21,17 +38,17 @@ const (
 
 // UnpackObjects creates a work tree in dir from a file containing
 // packed objects.
-func UnpackObjects(f io.ReadSeeker, dir string) error {
-	logger.Info("unpacking git objects")
+func UnpackObjects(f io.ReadSeeker, dir string, slog logger.Logger) error {
+	slog.Info("unpacking git objects")
 
-	cmd := execCommand("git", "init-db", "-q")
+	cmd := execCommand(slog, "git", "init-db", "-q")
 	cmd.Dir = dir
 	if err := cmd.Run(); err != nil {
 		return err
 	}
 
 	// FIXME: parse protocol for want-refs
-	_, err := decodeGitProtocol(f)
+	_, err := decodeGitProtocol(f, slog)
 	if err != nil {
 		return err
 	}
@@ -44,7 +61,7 @@ func UnpackObjects(f io.ReadSeeker, dir string) error {
 		}
 	}
 
-	cmd = execCommand(path, "-q")
+	cmd = execCommand(slog, path, "-q")
 	cmd.Dir = dir
 	pipe, err := cmd.StdinPipe()
 	if err != nil {
@@ -55,13 +72,13 @@ func UnpackObjects(f io.ReadSeeker, dir string) error {
 		return fmt.Errorf("git-unpack-objects execution error: %s", err)
 	}
 
-	err = readPack(f, pipe)
+	err = readPack(f, pipe, slog)
 	if err != nil {
 		if err := pipe.Close(); err != nil {
 			return err
 		}
 		if err := cmd.Wait(); err != nil {
-			logger.Errorf("error waiting for git-unpack-objects: %s", err)
+			slog.Errorf("error waiting for git-unpack-objects: %s", err)
 		}
 		return fmt.Errorf("error reading git pack: %s", err)
 	}
@@ -75,16 +92,16 @@ func UnpackObjects(f io.ReadSeeker, dir string) error {
 	return cmd.Wait()
 }
 
-func Checkout(dir, ref string) error {
-	logger.Debugf("checkout git ref %s", ref)
+func Checkout(dir, ref string, slog logger.Logger) error {
+	slog.Debugf("checkout git ref %s", ref)
 
-	cmd := execCommand("git", "checkout", "-q", ref)
+	cmd := execCommand(slog, "git", "checkout", "-q", ref)
 	cmd.Dir = dir
 	return cmd.Run()
 }
 
-func readPack(f io.Reader, w io.Writer) error {
-	logger.Debug("read git pack")
+func readPack(f io.Reader, w io.Writer, slog logger.Logger) error {
+	slog.Debug("read git pack")
 	buf := make([]byte, 4)
 	var err error
 
@@ -99,7 +116,6 @@ func readPack(f io.Reader, w io.Writer) error {
 		if err != nil {
 			return err
 		}
-		//logger.Debugf("git pack size %#x", size)
 
 		if size <= 5 {
 			break
@@ -117,7 +133,7 @@ func readPack(f io.Reader, w io.Writer) error {
 		}
 
 		if GitPackfileSideband(git_sideband_byte[0]) != PackfileData {
-			logger.Debugf("Non-package data, skipping...")
+			slog.Debugf("Non-package data, skipping...")
 			continue
 		}
 
@@ -129,8 +145,8 @@ func readPack(f io.Reader, w io.Writer) error {
 	return nil
 }
 
-func execCommand(name string, args ...string) *exec.Cmd {
-	logger.Debugf("command to execute: %s %v", name, args)
+func execCommand(slog logger.Logger, name string, args ...string) *exec.Cmd {
+	slog.Debugf("command to execute: %s %v", name, args)
 	cmd := exec.Command(name, args...)
 	return cmd
 }

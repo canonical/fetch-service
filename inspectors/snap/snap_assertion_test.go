@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -36,38 +36,97 @@ func (s *snapSuite) TestSnapAssertionInspectorID(c *C) {
 	c.Assert(ins.ID(), Equals, "snap.assertion")
 }
 
+type snapAssertionDetectorTest struct {
+	content  string // The assertion payload
+	detected bool   // Whether the content should be detected as an assertion
+}
+
+var snapAssertionDetectorTests = []snapAssertionDetectorTest{{
+	content:  "",
+	detected: false,
+}, {
+	content:  "type: my-assertion-type\nauthority-id: the-authority-id and some more filler data but staying at just two lines which is not enough for this to work\n",
+	detected: false,
+}, {
+	content:  "type: my-assertion-type\nformat: 1\nsome more filler data to get to the miminum size we consider valid for an assertion file, and then more data.\n",
+	detected: false,
+}, {
+	content:  "type: my-assertion-type\nformat: 1\nmention authority-id and some more filler data to get to the miminum size we consider valid for an assertion file\n",
+	detected: false,
+}, {
+	content:  "type: my-assertion-type\nauthority-id: the-authority-id\nsome more filler data to get to the miminum size we consider valid for an assertion file\n",
+	detected: true,
+}, {
+	content:  "type: my-assertion-type\nformat: 1\nauthority-id: the-authority-id\nsome more filler data to get to the miminum size we consider valid for an assertion file\n",
+	detected: true,
+}}
+
 func (s *snapSuite) TestSnapAssertionDetector(c *C) {
-	for _, tc := range []struct {
-		content string
-		result  bool
-	}{
-		{"", false},
-		{"type: my-assertion-type\nauthority-id: the-authority-id and some more filler data but staying at just two lines which is not enough for this to work\n", false},
-		{"type: my-assertion-type\nauthority-id: the-authority-id\nsome more filler data to get to the miminum size we consider valid for an assertion file\n", true},
-	} {
+	for _, tc := range snapAssertionDetectorTests {
 		res := snap.AssertionDetector([]byte(tc.content), 1024)
-		c.Assert(res, Equals, tc.result)
+		c.Assert(res, Equals, tc.detected, Commentf("test case: %+v", tc))
 	}
 }
 
-func (s *snapSuite) TestInspectAssertionRequest(c *C) {
-	for _, tc := range []struct {
-		url       string
-		hasAccept bool
-		approved  bool
-	}{
-		{"https://api.snapcraft.io:443/v2/assertions/snap-revision/", true, true},
-		{"https://api.snapcraft.io:443/v2/assertions/snap-declaration/", true, true},
-		{"https://api.snapcraft.io:443/v2/assertions/account/", true, true},
-		{"https://api.snapcraft.io:443/v2/assertions/account-key/", true, true},
-		{"https://api.snapcraft.io:443/v2/assertions/snap-revision/", false, false},
-		{"https://api.snapcraft.io:443/v1/assertions/snap-revision/", true, false},
-		{"https://api.snapcraft.io:443/v3/assertions/snap-revision/", true, false},
-		{"https://api.snapcraft.io:443/v2/assertions/snap-revision", true, false},
-		{"https://api.snapcraft.io:443/v2/assertions/something-else/", true, false},
-		{"https://api.snapcraft.io:443/v2/assertions/", true, false},
-		{"http://api.snapcraft.io/v2/assertions/snap-revision/", true, false},
-	} {
+type snapAssertionInspectRequestTest struct {
+	url       string // The request URL
+	hasAccept bool   // Whether the request has an Accept header
+	pending   bool   // The expected inspection result
+	reason    string // The reason for the inspection result
+}
+
+var snapAssertionInspectRequestTests = []snapAssertionInspectRequestTest{{
+	url:       "https://api.snapcraft.io:443/v2/assertions/snap-revision/",
+	hasAccept: true,
+	pending:   true,
+	reason:    "valid URL for snap-revision assertion download",
+}, {
+	url:       "https://api.snapcraft.io:443/v2/assertions/snap-declaration/",
+	hasAccept: true,
+	pending:   true,
+	reason:    "valid URL for snap-declaration assertion download",
+}, {
+	url:       "https://api.snapcraft.io:443/v2/assertions/account/",
+	hasAccept: true,
+	pending:   true,
+	reason:    "valid URL for account-key assertion download",
+}, {
+	url:       "https://api.snapcraft.io:443/v2/assertions/account-key/",
+	hasAccept: true,
+	pending:   true,
+	reason:    "valid URL for account-key assertion download",
+}, {
+	url:       "https://api.snapcraft.io:443/v2/assertions/snap-revision/",
+	hasAccept: false,
+	pending:   false,
+}, {
+	url:       "https://api.snapcraft.io:443/v1/assertions/snap-revision/",
+	hasAccept: true,
+	pending:   false,
+}, {
+	url:       "https://api.snapcraft.io:443/v3/assertions/snap-revision/",
+	hasAccept: true,
+	pending:   false,
+}, {
+	url:       "https://api.snapcraft.io:443/v2/assertions/snap-revision",
+	hasAccept: true,
+	pending:   false,
+}, {
+	url:       "https://api.snapcraft.io:443/v2/assertions/something-else/",
+	hasAccept: true,
+	pending:   false,
+}, {
+	url:       "https://api.snapcraft.io:443/v2/assertions/",
+	hasAccept: true,
+	pending:   false,
+}, {
+	url:       "http://api.snapcraft.io/v2/assertions/snap-revision/",
+	hasAccept: true,
+	pending:   false,
+}}
+
+func (s *snapSuite) TestSnapAssertionInspectRequest(c *C) {
+	for _, tc := range snapAssertionInspectRequestTests {
 		ins := snap.NewSnapAssertionInspector()
 		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
@@ -79,33 +138,67 @@ func (s *snapSuite) TestInspectAssertionRequest(c *C) {
 		c.Assert(err, IsNil)
 
 		insp, ok := a.RequestInspection[ins.ID()]
-		c.Assert(ok, Equals, tc.approved, Commentf("test case: %+v", tc))
-		if tc.approved {
+		c.Assert(ok, Equals, tc.pending, Commentf("test case: %+v", tc))
+		if ok {
 			c.Assert(insp.Opinion, Equals, opinions.Pending)
+			c.Assert(insp.Reason, Equals, tc.reason)
 		}
 	}
 }
 
+type snapAssertionArtifactInspectorTest struct {
+	filename string // The path to the artifact to be tested
+	approved bool   // Whether this artifact is expected to be approved
+	reason   string // The reason for approval or rejection
+	filetype string // The expected file type
+}
+
+var snapAssertionArtifactInspectorTests = []snapAssertionArtifactInspectorTest{{
+	filename: "testdata/snap-revision.assert",
+	approved: true,
+	reason:   "valid snap assertion",
+	filetype: "application/x.ubuntu.assertion.snap-revision",
+}, {
+	filename: "testdata/snap-declaration.assert",
+	approved: true,
+	reason:   "valid snap assertion",
+	filetype: "application/x.ubuntu.assertion.snap-declaration",
+}, {
+	filename: "testdata/snap-declaration-2.assert",
+	approved: true,
+	reason:   "valid snap assertion",
+	filetype: "application/x.ubuntu.assertion.snap-declaration",
+}, {
+	filename: "testdata/account.assert",
+	approved: true,
+	reason:   "valid snap assertion",
+	filetype: "application/x.ubuntu.assertion.account",
+}, {
+	filename: "testdata/account-key.assert",
+	approved: true,
+	reason:   "valid snap assertion",
+	filetype: "application/x.ubuntu.assertion.account-key",
+}, {
+	filename: "testdata/bad-assertion.assert",
+	approved: false,
+	reason:   "error parsing assertion",
+	filetype: "application/x.ubuntu.assertion",
+}, {
+	filename: "testdata/bad-signature.assert",
+	approved: false,
+	reason:   "assertion signature verification failed",
+	filetype: "application/x.ubuntu.assertion",
+}}
+
 func (s *snapSuite) TestSnapAssertionArtifactInspector(c *C) {
-	for _, tc := range []struct {
-		testfile  string
-		rejection string
-		filetype  string
-	}{
-		{"testdata/snap-revision.assert", "", "application/x.ubuntu.assertion.snap-revision"},
-		{"testdata/snap-declaration.assert", "", "application/x.ubuntu.assertion.snap-declaration"},
-		{"testdata/account.assert", "", "application/x.ubuntu.assertion.account"},
-		{"testdata/account-key.assert", "", "application/x.ubuntu.assertion.account-key"},
-		{"testdata/bad-assertion.assert", "error parsing assertion", ""},
-		{"testdata/bad-signature.assert", "assertion signature verification failed", ""},
-	} {
+	for _, tc := range snapAssertionArtifactInspectorTests {
 		a := metadata.NewArtifact()
 		a.Metadata.Type = "application/x.ubuntu.assertion"
 		a.Metadata.Size = 3330
 		a.MimeType = mimetype.Lookup("application/x.ubuntu.assertion")
 		a.CurrentDownload.ContentType = "application/x.ubuntu.assertion"
 
-		f, err := files.OpenArtifactFile(tc.testfile)
+		f, err := files.OpenArtifactFile(tc.filename)
 		c.Assert(err, IsNil)
 		defer f.Close()
 
@@ -113,16 +206,15 @@ func (s *snapSuite) TestSnapAssertionArtifactInspector(c *C) {
 		a.SetRequestPending(ins, "test")
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
-		c.Assert(a.Approved(), Equals, tc.rejection == "", Commentf("test case: %+v", tc))
+		c.Assert(a.Approved(), Equals, tc.approved, Commentf("test case: %+v", tc))
+		c.Check(a.ResponseInspection["snap.assertion"].Reason, Equals, tc.reason)
+		c.Check(a.Metadata.Type, Equals, tc.filetype)
 
-		if tc.rejection == "" {
-			c.Check(a.Metadata.Type, Equals, tc.filetype)
+		if tc.approved {
 			c.Check(a.Metadata.Name, Equals, "assertion")
 			c.Check(a.Metadata.Size, Equals, int64(3330))
 			c.Check(a.Metadata.Vendor, Equals, "canonical")
 			c.Check(a.Metadata.Author, Equals, "canonical")
-		} else {
-			c.Check(a.ResponseInspection["snap.assertion"].Reason, Equals, tc.rejection)
 		}
 	}
 }

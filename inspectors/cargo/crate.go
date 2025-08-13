@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,11 +27,10 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/BurntSushi/toml"
+
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
-	"github.com/canonical/fetch-service/logger"
-
-	"github.com/BurntSushi/toml"
 )
 
 var (
@@ -63,7 +62,8 @@ func (ins *CargoCrateInspector) InspectRequest(a RequestArtifact) error {
 	if len(m) == 3 {
 		package_name := m[1]
 		package_version := m[2]
-		a.SetRequestPending(ins, "request matches valid URL").Annotate(
+		// Request marked as Unknown because it comes from the default crates.io origin
+		a.SetRequestUnknown(ins, "unsupported origin").Annotate(
 			Annotation{
 				"package-name":    package_name,
 				"package-version": package_version,
@@ -92,6 +92,8 @@ func (ins *CargoCrateInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		return nil
 	}
 
+	slog := a.Logger()
+
 	cargotoml := fmt.Sprintf(`%s-%s/Cargo.toml`, package_name, package_version)
 
 	zf, err := gzip.NewReader(f)
@@ -107,7 +109,7 @@ func (ins *CargoCrateInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 			if err == io.EOF {
 				break
 			}
-			logger.Debugf("crate tar parsing error: %s", err)
+			slog.Debugf("crate tar parsing error: %s", err)
 			return nil // we don't recognize this artifact
 		}
 		if h.Name == cargotoml {

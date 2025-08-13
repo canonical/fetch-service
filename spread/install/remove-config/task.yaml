@@ -1,0 +1,29 @@
+summary: Snap update and revert
+
+prepare: |
+  snap remove --purge fetch-service
+
+restore: |
+  snap remove --purge fetch-service
+
+execute: |
+  CONFDIR="/var/snap/fetch-service/current/conf"
+
+  # install old revision with config file
+  snap install fetch-service --revision=263
+
+  # confirm that default configuration file exists
+  test -f "$CONFDIR/inspectors.yaml"
+  test -f "$CONFDIR/acl.yaml"
+
+  # install package from develoment environment
+  snap install "$CRAFT_ARTIFACT" --dangerous
+
+  # confirm that the default configuration file was removed
+  test ! -f "$CONFDIR/inspectors.yaml"
+  test ! -f "$CONFDIR/acl.yaml"
+
+  # the file is restored if revision reverted
+  snap revert fetch-service
+  test -f "$CONFDIR/inspectors.yaml"
+  test -f "$CONFDIR/acl.yaml"

@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -72,7 +72,6 @@ func NewHttpProxy(port int, spool string, cert, key []byte, ch chan interface{})
 	}
 
 	basicAuth := func(req *http.Request, user, passwd string) bool {
-		//logger.Debugf("set session ID header in request to %s", user)
 		req.Header.Set(sessionIdHeader, user)
 		rch := make(chan bool)
 		ch <- messages.ProxyAuth{Rch: rch, Id: user, Pw: passwd}
@@ -149,7 +148,8 @@ func (p *HttpProxy) processRoundTrip(req *http.Request, ctx *goproxy.ProxyCtx) (
 	if err != nil {
 		host = req.URL.Host
 	}
-	logger.Infof("request to %s", host)
+
+	logger.Infof("proxy: process roundtrip: %s", req.URL.String())
 	tr := transport.Transport{
 		Proxy:           transport.ProxyFromEnvironment,
 		TLSClientConfig: &tls.Config{ServerName: host},
@@ -157,16 +157,16 @@ func (p *HttpProxy) processRoundTrip(req *http.Request, ctx *goproxy.ProxyCtx) (
 	ctx.RoundTripper = goproxy.RoundTripperFunc(func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Response, error) {
 		details, resp, err := tr.DetailedRoundTrip(r)
 		if err != nil {
-			logger.Debugf("round trip error: %s", err)
+			logger.Debugf("proxy: roundtrip error: %s", err)
 			return resp, err
 		}
 		ip := details.TCPAddr.IP
-		logger.Infof("request to %s: IP address %s", r.URL.Host, ip.String())
-		logger.Debugf("check request acls for %s", r.URL.String())
+		logger.Infof("proxy: request %s: IP address %s", r.URL.Host, ip.String())
+		logger.Debugf("proxy: check request acls for %s", r.URL.String())
 		if acl.Allowed(ip) {
-			logger.Infof("access to %s allowed", ip.String())
+			logger.Infof("proxy: access to %s allowed", ip.String())
 		} else {
-			logger.Infof("access to %s blocked", ip.String())
+			logger.Infof("proxy: access to %s blocked", ip.String())
 			resp = httpResponse(r, http.StatusForbidden, []byte("Access denied"))
 		}
 		return resp, nil
@@ -176,8 +176,8 @@ func (p *HttpProxy) processRoundTrip(req *http.Request, ctx *goproxy.ProxyCtx) (
 
 // processRequest handles HTTP requests to the server.
 func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
-	logger.Debugf("process request for %s", req.URL.String())
-	requestHeader := copyHeader(req.Header)
+	logger.Debugf("proxy: process request: %s", req.URL.String())
+	requestHeader := copyHttpHeader(req.Header)
 
 	if ctx.UserData != nil {
 		sessionId, ok := ctx.UserData.(string)
@@ -188,9 +188,11 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 		}
 	}
 
+	sid := req.Header.Get(sessionIdHeader)
+
 	a := metadata.NewArtifact()
 	a.Request = req
-	a.SessionId = req.Header.Get(sessionIdHeader)
+	a.SessionId = sid
 
 	a.CurrentDownload.StartTime = time.Now().UTC()
 	a.CurrentDownload.URL = utils.NormalizedURL(req.URL)
@@ -199,12 +201,13 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 	a.CurrentDownload.UserAgent = req.Header.Get("User-Agent")
 	a.CurrentDownload.RequestHeader = requestHeader
 
+	a.SetLogger(logger.NewSessionLogger(sid))
+
 	reqInsp := messages.NewRequestInspection(a)
 	p.ch <- reqInsp
 	err := <-reqInsp.Rch
 	if err != nil {
-		//a.CurrentDownload.EndTime = time.Now().UTC()
-		logger.Info(err.Error())
+		a.Logger().Info(err.Error())
 		return req, goproxy.NewResponse(
 			req, goproxy.ContentTypeText,
 			http.StatusForbidden,
@@ -214,7 +217,6 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 
 	req.Body, err = NewRequestHandler(req, a, p.ch)
 	if err != nil {
-		//a.CurrentDownload.EndTime = time.Now().UTC()
 		return req, internalErrorResponse(req, "Cannot handle requests")
 	}
 
@@ -228,26 +230,29 @@ func (p *HttpProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) 
 	if resp == nil || resp.StatusCode != http.StatusOK {
 		return resp
 	}
-	logger.Debugf("process response for %s", resp.Request.URL.String())
+	logger.Debugf("proxy: process response: %s", resp.Request.URL.String())
 
 	a := ctx.UserData.(proxyData).a
+	slog := a.Logger()
 
 	var err error
-	resp.Body, err = NewFileDownloadHandler(resp, a, p.spool, p.ch)
+	body, err := NewFileDownloadHandler(resp, a, p.spool, p.ch)
 	if err != nil {
 		if a.Tempfile != "" {
 			os.Remove(a.Tempfile)
 		}
-		//a.CurrentDownload.EndTime = time.Now().UTC()
 		if err == common.ErrRejectedArtifact {
-			logger.Infof("[proxy] file download not authorized: %s", err)
+			slog.Infof("proxy: file download not authorized: %s", err)
 			return forbiddenResponse(resp.Request, "Download not authorized")
 		}
-		logger.Infof("[proxy] file download error: %s: %s", a.Tempfile, err)
+		slog.Infof("proxy: file download error: %s: %s", a.Tempfile, err)
 		return internalErrorResponse(resp.Request, "Cannot handle file downloads")
 	}
 
-	return resp
+	newResp := copyHttpResponse(resp)
+	newResp.Body = body
+
+	return newResp
 }
 
 func httpResponse(req *http.Request, code int, msg []byte) *http.Response {
@@ -298,12 +303,27 @@ func forbiddenResponse(r *http.Request, msg string) *http.Response {
 	return goproxy.NewResponse(r, goproxy.ContentTypeText, http.StatusForbidden, msg)
 }
 
-// copyHeader deepcopies HTTP header maps.
-func copyHeader(data map[string][]string) map[string][]string {
-	c := make(map[string][]string, len(data))
-	for k, v := range data {
-		vv := append([]string{}, v...)
-		c[k] = vv
+// copyHttpHeader deepcopies HTTP header maps.
+func copyHttpHeader(h http.Header) http.Header {
+	c := make(http.Header, len(h))
+	for k, v := range h {
+		val := make([]string, len(v))
+		copy(val, v)
+		c[k] = val
 	}
 	return c
+}
+
+// copyHttpResponse deepcopies HTTP responses.
+func copyHttpResponse(r *http.Response) *http.Response {
+	if r == nil {
+		return nil
+	}
+
+	newResp := *r
+	newResp.Body = nil
+	newResp.Header = copyHttpHeader(r.Header)
+	newResp.Trailer = copyHttpHeader(r.Trailer)
+
+	return &newResp
 }

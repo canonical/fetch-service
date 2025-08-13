@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -32,7 +32,6 @@ import (
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
-	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/utils"
 )
 
@@ -55,7 +54,8 @@ func (ins *SdistInspector) InspectRequest(a RequestArtifact) error {
 	}
 
 	if checkSdistUrl(u) == nil {
-		a.SetRequestPending(ins, "request matches valid URL")
+		// Request marked as Unknown because it comes from the default pypi origin
+		a.SetRequestUnknown(ins, "unsupported origin")
 	}
 
 	return nil // we don't recognize this request
@@ -66,6 +66,8 @@ func (ins *SdistInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact)
 	if !a.MimetypeIs("application/gzip") {
 		return nil
 	}
+
+	slog := a.Logger()
 
 	zf, err := gzip.NewReader(f)
 	if err != nil {
@@ -82,7 +84,7 @@ func (ins *SdistInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact)
 			if err == io.EOF {
 				break
 			}
-			logger.Debugf("sdist tar parsing error: %s", err)
+			slog.Debugf("sdist tar parsing error: %s", err)
 			return nil // we don't recognize this artifact
 		}
 		if rePkgInfo.MatchString(h.Name) {
@@ -157,7 +159,7 @@ func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a ResponseArtifact) error 
 		return nil
 	}
 
-	license, err = utils.GetLicense(temp.Name())
+	license, err = utils.GetLicense(temp.Name(), a.Logger())
 	if err != nil {
 		return err
 	}

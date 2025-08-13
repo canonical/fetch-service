@@ -9,7 +9,7 @@ on:
 
 jobs:
   CI:
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, reactive, amd64, tiobe, noble]
     steps:
       - name: Checkout
         uses: actions/checkout@v4

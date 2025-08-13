@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,6 +27,7 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 
 	"github.com/canonical/fetch-service/inspectors/apt"
+	"github.com/canonical/fetch-service/inspectors/bldbin"
 	"github.com/canonical/fetch-service/inspectors/cargo"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/craft"
@@ -34,11 +35,12 @@ import (
 	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/git"
 	"github.com/canonical/fetch-service/inspectors/gomod"
+	"github.com/canonical/fetch-service/inspectors/lxd"
 	"github.com/canonical/fetch-service/inspectors/maven"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/inspectors/pip"
 	"github.com/canonical/fetch-service/inspectors/snap"
-	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/inspectors/store"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
 	"github.com/canonical/fetch-service/service/config"
@@ -47,7 +49,9 @@ import (
 func init() {
 	mimetype.SetLimit(1 << 16) // set buffer size to 64Kb
 	mimetype.Lookup("application/x-xz").Extend(apt.AptPackagesDetector, mimetypes.AptPackages, "")
+	mimetype.Lookup("application/x-gzip").Extend(apt.AptPackagesDetector, mimetypes.AptPackages, "")
 	mimetype.Lookup("application/x-xz").Extend(apt.AptTranslationDetector, mimetypes.AptTranslation, "")
+	mimetype.Lookup("application/x-xz").Extend(apt.AptCommandsDetector, mimetypes.AptCommands, "")
 	mimetype.Lookup("application/octet-stream").Extend(snap.SquashFsDetector, mimetypes.SquashFs, "")
 	mimetype.Lookup("text/plain").Extend(snap.AssertionDetector, mimetypes.Assertion, ".assert")
 }
@@ -67,17 +71,25 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		snap.NewSnapInfoInspector(),
 		snap.NewSnapRefreshInspector(),
 
+		// store API
+		store.NewStoreApiInspector(cfg.Store),
+
+		// bld bin
+		// must run after store API
+		bldbin.NewBldBinInspector(cfg.BldBin),
+
 		// python
 		pip.NewSimpleIndexInspector(),
 		pip.NewWheelInspector(),
 		pip.NewSdistInspector(),
 		pip.NewMetadataInspector(),
 
-		// deb packages
-		deb.NewDebInspector(cfg.Apt),
+		// Apt and deb packages
 		apt.NewAptReleaseInspector(cfg.Apt),
 		apt.NewAptPackagesInspector(cfg.Apt),
 		apt.NewAptTranslationInspector(cfg.Apt),
+		apt.NewAptCommandsInspector(cfg.Apt),
+		deb.NewDebInspector(cfg.Apt),
 
 		// git
 		git.NewSmartQueryInspector(cfg.Git),
@@ -88,6 +100,7 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		craft.NewSourcecraftInspector(cfg.Crafts),
 		craft.NewRockcraftInspector(cfg.Crafts),
 		craft.NewSnapcraftInspector(cfg.Crafts),
+		craft.NewCharmcraftInspector(cfg.Crafts),
 
 		// go
 		// must run after git
@@ -100,6 +113,10 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		// maven
 		maven.NewJarInspector(),
 		maven.NewPomInspector(),
+
+		// lxd
+		lxd.NewSimpleStreamsIndexInspector(),
+		lxd.NewRootfsInspector(),
 
 		// default inspector
 		// must be the last inspector to run
@@ -118,7 +135,6 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		id := ins.ID()
 		insps.ids[n] = id
 		insps.insmap[id] = ins
-		//logger.Debugf("register inspector: %s", id)
 	}
 
 	return insps
@@ -126,10 +142,11 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 
 // RunRequestInspectors determine whether the HTTP request is valid.
 func (insps Inspectors) RunRequestInspectors(a *metadata.Artifact) error {
-	logger.Debugf("Inspect request: %s", a.CurrentDownload.URL)
+	slog := a.Logger()
+	slog.Debugf("inspect request: %s", a.CurrentDownload.URL)
 	for _, id := range insps.ids {
 		ins := insps.insmap[id]
-		logger.Debugf("run request inspector: %s", ins.ID())
+		slog.Debugf("run request inspector: %s", ins.ID())
 		if err := ins.InspectRequest(a); err != nil {
 			a.SetRequestRejected(ins, "error inspecting request").Annotate(
 				Annotation{"error-message": err.Error()})
@@ -142,9 +159,11 @@ func (insps Inspectors) RunRequestInspectors(a *metadata.Artifact) error {
 
 // RunArtifactInspectors examines the artifact in the given assets directory.
 func (insps Inspectors) RunArtifactInspectors(dir string, a *metadata.Artifact) error {
+	slog := a.Logger()
+
 	// detect file type
 	filename := filepath.Join(dir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
-	logger.Debugf("run artifact inspectors on %s", filename)
+	slog.Debugf("run artifact inspectors on %s", filename)
 
 	f, err := files.OpenArtifactFile(filename)
 	if err != nil {
@@ -154,7 +173,7 @@ func (insps Inspectors) RunArtifactInspectors(dir string, a *metadata.Artifact) 
 
 	mtype, err := mimetype.DetectReader(f)
 	if err != nil {
-		logger.Debug("cannot detect mime type")
+		slog.Debug("cannot detect mime type")
 		return err
 	}
 
@@ -163,7 +182,7 @@ func (insps Inspectors) RunArtifactInspectors(dir string, a *metadata.Artifact) 
 	ctype := a.CurrentDownload.ContentType
 
 	if len(ctype) > 0 && !mtype.Is(ctype) {
-		logger.Debugf("file type '%s' doesn't match content type '%s'", mtype.String(), ctype)
+		slog.Debugf("file type '%s' doesn't match content type '%s'", mtype.String(), ctype)
 	}
 
 	// run artifact inspectors
@@ -178,7 +197,7 @@ func (insps Inspectors) RunArtifactInspectors(dir string, a *metadata.Artifact) 
 		}
 
 		ins := insps.insmap[id]
-		logger.Debugf("run artifact inspector: %s", id)
+		slog.Debugf("run artifact inspector: %s", id)
 		if _, err := f.Seek(0, io.SeekStart); err != nil {
 			return err
 		}

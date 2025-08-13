@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -38,9 +38,11 @@ import (
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
-type goModuleGitSuite struct{}
+type goModuleGitSuite struct {
+	slog logger.Logger
+}
 
-var _ = Suite(&goModuleGitSuite{})
+var _ = Suite(&goModuleGitSuite{logger.NewSessionLogger("test")})
 
 func Test(t *testing.T) { TestingT(t) }
 
@@ -100,7 +102,8 @@ func (s *goModuleGitSuite) TestInspectGoModuleGitRequest(c *C) {
 		insp, ok := a.RequestInspection[ins.ID()]
 		c.Assert(ok, Equals, tc.approved, Commentf("Aproval status is wrong for '%s' (%t != %t)", tc.url, ok, tc.approved))
 		if tc.approved {
-			c.Assert(insp.Opinion, Equals, opinions.Pending)
+			c.Assert(insp.Opinion, Equals, opinions.Unknown)
+			c.Assert(insp.Reason, Equals, "unsupported origin")
 		}
 	}
 }
@@ -163,9 +166,9 @@ func (s *goModuleGitSuite) TestGoModuleGitInspectArtifact(c *C) {
 	} {
 		f := bytes.NewReader(tc.data)
 		checkoutPath := c.MkDir()
-		err := git.UnpackObjects(f, checkoutPath)
+		err := git.UnpackObjects(f, checkoutPath, s.slog)
 		c.Assert(err, IsNil)
-		err = git.Checkout(checkoutPath, "467ef24fabbcce4a3bda7af3918fb970ee970c8b")
+		err = git.Checkout(checkoutPath, "467ef24fabbcce4a3bda7af3918fb970ee970c8b", s.slog)
 		c.Assert(err, IsNil)
 
 		a := metadata.NewArtifact()

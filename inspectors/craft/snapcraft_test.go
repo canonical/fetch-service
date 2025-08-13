@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -42,9 +42,11 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 )
 
-type snapcraftSuite struct{}
+type snapcraftSuite struct {
+	slog logger.Logger
+}
 
-var _ = Suite(&snapcraftSuite{})
+var _ = Suite(&snapcraftSuite{logger.NewSessionLogger("test")})
 
 func (t *snapcraftSuite) SetUpTest(c *C) {
 	testlogger.Init(logger.InfoLevel)
@@ -181,9 +183,9 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtifact(c *C) {
 		defer f.Close()
 
 		checkoutPath := c.MkDir()
-		err = git.UnpackObjects(f, checkoutPath)
+		err = git.UnpackObjects(f, checkoutPath, s.slog)
 		c.Assert(err, IsNil)
-		err = git.Checkout(checkoutPath, "9ae13d6ca5afec49279f8515feb289a7069e5a29")
+		err = git.Checkout(checkoutPath, "9ae13d6ca5afec49279f8515feb289a7069e5a29", s.slog)
 		c.Assert(err, IsNil)
 
 		a := createTestSnapcraftArtifact(checkoutPath)

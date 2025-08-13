@@ -70,8 +70,32 @@ SHA256:
 Acquire-By-Hash: yes
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1
- 
+
 -----END PGP SIGNATURE-----`
+
+var inReleaseArtifactMetaData = metadata.Metadata{
+	Type:        "application/x.apt.release",
+	Name:        "InRelease",
+	Vendor:      "Ubuntu",
+	Description: "Ubuntu Jammy Backports",
+	Author:      "Ubuntu",
+	Version:     "jammy",
+}
+
+var inReleaseArtifactAnnotation = Annotation{
+	"Architectures":        "amd64 arm64 armhf i386 ppc64el riscv64 s390x",
+	"ButAutomaticUpgrades": "yes",
+	"Codename":             "jammy",
+	"Components":           "main restricted universe multiverse",
+	"Date":                 "Fri, 07 Jul 2023 18:13:42 UTC",
+	"Description":          "Ubuntu Jammy Backports",
+	"Hash":                 "SHA512",
+	"Label":                "Ubuntu",
+	"NotAutomatic":         "yes",
+	"Origin":               "Ubuntu",
+	"Suite":                "jammy-backports",
+	"Version":              "22.04",
+}
 
 func getTestAptConfig() apt_cfg.AptInspectorConfig {
 	return apt_cfg.AptInspectorConfig{
@@ -86,16 +110,59 @@ func getTestAptConfig() apt_cfg.AptInspectorConfig {
 	}
 }
 
+type releaseArtifactInspectorTest struct {
+	data       string
+	metadata   metadata.Metadata
+	annotation Annotation
+	validSig   bool
+	result     bool
+}
+
+var releaseArtifactInspectorTests = []releaseArtifactInspectorTest{{
+	data:       inReleaseArtifactData,
+	metadata:   inReleaseArtifactMetaData,
+	annotation: inReleaseArtifactAnnotation,
+	validSig:   true,
+	result:     true,
+}, {
+	data:       inReleaseArtifactData,
+	metadata:   inReleaseArtifactMetaData,
+	annotation: inReleaseArtifactAnnotation,
+	validSig:   false,
+	result:     false,
+}, {
+	data:       "some arbitrary data",
+	metadata:   metadata.Metadata{},
+	annotation: Annotation{},
+	validSig:   true,
+	result:     false,
+}}
+
 func (s *aptSuite) TestAptReleaseArtifactInspector(c *C) {
-	for _, tc := range []struct {
-		data     string
-		validSig bool
-		result   bool
-	}{
-		{inReleaseArtifactData, true, true},
-		{inReleaseArtifactData, false, false},
-		{"some arbitrary data", true, false},
-	} {
+	// Create data without the optional "Description" field.
+	artifactDataNoDesc := strings.ReplaceAll(
+		inReleaseArtifactData,
+		"Description: Ubuntu Jammy Backports\n", "",
+	)
+	artifactMetaDataNoDesc := inReleaseArtifactMetaData
+	artifactMetaDataNoDesc.Description = "Ubuntu jammy-backports"
+	artifactAnnotationNoDesc := Annotation{}
+	for k, v := range inReleaseArtifactAnnotation {
+		if k != "Description" {
+			artifactAnnotationNoDesc[k] = v
+		}
+	}
+
+	tests := releaseArtifactInspectorTests
+	tests = append(tests, releaseArtifactInspectorTest{
+		data:       artifactDataNoDesc,
+		metadata:   artifactMetaDataNoDesc,
+		annotation: artifactAnnotationNoDesc,
+		validSig:   true,
+		result:     true,
+	})
+
+	for _, tc := range tests {
 		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes Annotation, pubkey string) (io.ReadSeeker, error) {
 			if !tc.validSig {
 				return f, errors.New("invalid signature")
@@ -126,25 +193,8 @@ func (s *aptSuite) TestAptReleaseArtifactInspector(c *C) {
 		c.Assert(a.Approved(), Equals, tc.result)
 
 		if tc.result {
-			c.Check(a.Metadata.Type, Equals, "application/x.apt.release")
-			c.Check(a.Metadata.Name, Equals, "InRelease")
-			c.Check(a.Metadata.Vendor, Equals, "Ubuntu")
-			c.Check(a.Metadata.Description, Equals, "Ubuntu Jammy Backports")
-			c.Check(a.Metadata.Author, Equals, "Ubuntu")
-			c.Check(a.ResponseInspection["apt.release"].Annotations, DeepEquals, Annotation{
-				"Architectures":        "amd64 arm64 armhf i386 ppc64el riscv64 s390x",
-				"ButAutomaticUpgrades": "yes",
-				"Codename":             "jammy",
-				"Components":           "main restricted universe multiverse",
-				"Date":                 "Fri, 07 Jul 2023 18:13:42 UTC",
-				"Description":          "Ubuntu Jammy Backports",
-				"Hash":                 "SHA512",
-				"Label":                "Ubuntu",
-				"NotAutomatic":         "yes",
-				"Origin":               "Ubuntu",
-				"Suite":                "jammy-backports",
-				"Version":              "22.04",
-			})
+			c.Check(a.Metadata, DeepEquals, tc.metadata)
+			c.Check(a.ResponseInspection["apt.release"].Annotations, DeepEquals, tc.annotation)
 
 			sha256_1, _ := digests.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
 			sha256_2, _ := digests.NewSha256Digest("3b2b1ad6f76bec3c692d5932ceffed8c3c261c8b5fde78cd084432352c83d14d")
@@ -162,86 +212,6 @@ func (s *aptSuite) TestAptReleaseArtifactInspector(c *C) {
 					sha256_4: apt.ReleaseEntry{Name: "main/i18n/Translation-zh_TW.xz", Size: 792},
 				},
 			})
-		}
-	}
-}
-
-func (s *aptSuite) TestAptTranslationArtifactInspector(c *C) {
-	for _, tc := range []struct {
-		dataRelease              string
-		translationLocalFileName string
-		translationDigest        string
-		translationSize          int64
-		result                   bool
-	}{
-		{inReleaseArtifactData, "testdata/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 792, true},
-		{inReleaseArtifactData, "testdata/Translation-zh_TW.xz", "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", 600, false},
-		{inReleaseArtifactData, "testdata/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 792, false},
-		{inReleaseArtifactData, "testdata/Translation-zh_TW-bad.xz", "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5", 600, false},
-	} {
-		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes Annotation, pubkey string) (io.ReadSeeker, error) {
-			return f, nil
-		})
-		defer restorer()
-
-		translationArtifactFile, _ := os.Open(tc.translationLocalFileName)
-		translationArtifactData := make([]byte, tc.translationSize)
-		_, err := translationArtifactFile.Read(translationArtifactData)
-		c.Assert(err, IsNil)
-
-		// Load the release file first
-		a_release := metadata.NewArtifact()
-		a_release.RequestInspection = metadata.InspectionMap{
-			"apt.release": &Inspection{
-				Opinion: opinions.Pending,
-				Reason:  "",
-				Annotations: Annotation{
-					"cfg-name": "default",
-				},
-			},
-		}
-		a_release.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/InRelease"
-		a_release.MimeType = mimetype.Lookup("text/plain")
-
-		f_release := strings.NewReader(inReleaseArtifactData)
-
-		// Inspect the InRelease file with the release inspector
-		ins := apt.NewAptReleaseInspector(getTestAptConfig())
-		err = ins.InspectArtifact(f_release, a_release)
-		c.Assert(err, IsNil)
-
-		// Now load the translation file
-		a := metadata.NewArtifact()
-		a.SetRequestPending(ins, "test")
-		a.RequestInspection = metadata.InspectionMap{
-			"apt.release": &Inspection{
-				Opinion: opinions.Pending,
-				Reason:  "",
-				Annotations: Annotation{
-					"cfg-name": "default",
-				},
-			},
-		}
-		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/i18n/by-hash/SHA256/" + tc.translationDigest
-		a.Metadata.Type = "application/x.apt.translation"
-		a.Metadata.Size = tc.translationSize
-		a.Metadata.Sha256, err = digests.NewSha256Digest(tc.translationDigest)
-		c.Assert(err, IsNil)
-
-		translationFile, _ := os.Open(tc.translationLocalFileName)
-		data := make([]byte, 1024*128)
-		_, err = translationFile.Read(data)
-		c.Assert(err, IsNil)
-
-		f := bytes.NewReader(data)
-
-		err = ins.InspectArtifact(f, a)
-		c.Assert(err, IsNil)
-
-		c.Assert(a.Approved(), Equals, tc.result)
-
-		if tc.result {
-			c.Check(a.Metadata.Type, Equals, "application/x.apt.translation")
 		}
 	}
 }
@@ -273,9 +243,9 @@ func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
 	ins.SetRelease(map[string]apt.ReleaseFile{"http://archive.ubuntu.com/ubuntu/dists/jammy": rf})
 	err := ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
-	c.Assert(a.Approved(), Equals, true)
+	c.Assert(a.Approved(), Equals, false)
 	c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
-		Opinion: opinions.Approved,
+		Opinion: opinions.Unknown,
 		Reason:  "Packages file listed in Release",
 		Annotations: Annotation{
 			"file-path":    "main/binary-amd64/Packages.xz",
@@ -313,9 +283,9 @@ func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
 	ins.SetRelease(map[string]apt.ReleaseFile{"http://archive.ubuntu.com/ubuntu/dists/jammy": rf})
 	err := ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
-	c.Assert(a.Approved(), Equals, true)
+	c.Assert(a.Approved(), Equals, false)
 	c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
-		Opinion: opinions.Approved,
+		Opinion: opinions.Unknown,
 		Reason:  "Translation file listed in Release",
 		Annotations: Annotation{
 			"file-path":    "main/i18n/Translation-en.xz",
@@ -323,6 +293,67 @@ func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
 			"vendor":       "Canonical",
 		},
 	})
+}
+
+type aptReleaseCommandsValidationTest struct {
+	isListed     bool   // Whether the Commands file is listed in the Release file.
+	rejectReason string // The reason to reject this artifact, if any.
+}
+
+var aptReleaseCommandsValidationTests = []aptReleaseCommandsValidationTest{{
+	isListed:     true,
+	rejectReason: "",
+}, {
+	isListed:     false,
+	rejectReason: "Commands file not listed in Release file",
+}}
+
+func (s *aptSuite) TestAptReleaseCommandsValidation(c *C) {
+	for _, tc := range aptReleaseCommandsValidationTests {
+		sha256_rel, _ := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
+		sha256_cmd, _ := digests.NewSha256Digest("6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf")
+
+		a := metadata.NewArtifact()
+		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf"
+		a.Metadata.Type = mimetypes.AptCommands
+		a.Metadata.Sha256 = sha256_cmd
+		a.Metadata.Size = 1337
+
+		f := strings.NewReader("fake content")
+		rf := apt.ReleaseFile{
+			Sha256: sha256_rel,
+			Vendor: "Canonical",
+			Files:  map[digests.Sha256Digest]apt.ReleaseEntry{},
+		}
+
+		if tc.isListed {
+			rf.Files[sha256_cmd] = apt.ReleaseEntry{
+				Size: 1337,
+				Name: "main/cnf/Commands-amd64.xz",
+			}
+		}
+
+		ins := apt.NewAptReleaseInspector(getTestAptConfig())
+		a.SetRequestPending(ins, "test")
+		ins.SetRelease(map[string]apt.ReleaseFile{"http://archive.ubuntu.com/ubuntu/dists/jammy": rf})
+		err := ins.InspectArtifact(f, a)
+		c.Assert(err, IsNil)
+
+		c.Assert(a.Approved(), Equals, false)
+		if tc.rejectReason == "" {
+			c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
+				Opinion: opinions.Unknown,
+				Reason:  "Commands file listed in Release",
+				Annotations: Annotation{
+					"file-path":    "main/cnf/Commands-amd64.xz",
+					"release-file": "9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6",
+					"vendor":       "Canonical",
+				},
+			})
+		} else {
+			c.Assert(a.ResponseInspection["apt.release"].Reason, Equals, tc.rejectReason)
+		}
+	}
 }
 
 func (s *aptSuite) TestAptReleaseSignature(c *C) {

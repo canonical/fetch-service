@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -35,12 +35,12 @@ var (
 	reSourcecraft = regexp.MustCompile(`^/(.+/)*([^/]+)/git-upload-pack$`)
 )
 
-func checkRequestUrl(cfg *CraftsInspectorConfig, u *url.URL) error {
+func checkRequestUrl(cfg *CraftsInspectorConfig, u *url.URL, slog logger.Logger) error {
 	requestUrl := utils.NormalizedOrigin(u) + u.Path
 
 	for _, h := range cfg.Urls {
 		if h.Match(requestUrl) {
-			logger.Debugf("url matches %v\n", h)
+			slog.Debugf("url matches %v\n", h)
 			return nil
 		}
 	}
@@ -55,8 +55,8 @@ type CraftUrlInfo struct {
 	Project string
 }
 
-func NewCraftUrlInfo(u *url.URL, cfg *CraftsInspectorConfig) (*CraftUrlInfo, error) {
-	if err := checkRequestUrl(cfg, u); err != nil {
+func NewCraftUrlInfo(u *url.URL, cfg *CraftsInspectorConfig, slog logger.Logger) (*CraftUrlInfo, error) {
+	if err := checkRequestUrl(cfg, u, slog); err != nil {
 		return nil, err
 	}
 

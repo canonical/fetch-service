@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,11 +27,14 @@ import (
 
 	"github.com/canonical/fetch-service/glob"
 	"github.com/canonical/fetch-service/inspectors/craft/config"
+	"github.com/canonical/fetch-service/logger"
 )
 
-type configSuite struct{}
+type configSuite struct {
+	slog logger.Logger
+}
 
-var _ = Suite(&configSuite{})
+var _ = Suite(&configSuite{logger.NewSessionLogger("test")})
 
 func Test(t *testing.T) { TestingT(t) }
 
@@ -59,7 +62,7 @@ func (t *configSuite) TestCraftUrlInfo(c *C) {
 		c.Assert(err, IsNil)
 
 		cfg := getTestCraftsConfig()
-		info, err := config.NewCraftUrlInfo(u, &cfg)
+		info, err := config.NewCraftUrlInfo(u, &cfg, t.slog)
 
 		if tc.msg == "" {
 			c.Assert(err, IsNil)

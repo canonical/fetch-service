@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -32,7 +32,6 @@ import (
 	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
-	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata/digests"
 )
 
@@ -98,8 +97,10 @@ func NewAptReleaseInspector(cfg apt_cfg.AptInspectorConfig) *AptReleaseInspector
 	}
 }
 
+const aptReleaseInspectorID = "apt.release"
+
 func (ins *AptReleaseInspector) ID() string {
-	return "apt.release"
+	return aptReleaseInspectorID
 }
 
 // AptReleaseInspector verifies if the request is valid for the types of
@@ -110,7 +111,9 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	if info, err := apt_cfg.NewInReleaseUrlInfo(u, &ins.config); err == nil {
+	slog := a.Logger()
+
+	if info, err := apt_cfg.NewInReleaseUrlInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for Release file").Annotate(
 			Annotation{
 				"cfg-name":   info.CfgName,
@@ -119,7 +122,7 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 				"dist":       info.Dist,
 			},
 		)
-	} else if info, err := apt_cfg.NewPackagesUrlInfo(u, &ins.config); err == nil {
+	} else if info, err := apt_cfg.NewPackagesUrlInfo(u, &ins.config, slog); err == nil {
 		// check if we already have downloaded InReleases from this repo
 		notes := Annotation{
 			"origin":       info.Origin,
@@ -135,7 +138,7 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 		} else {
 			a.SetRequestRejected(ins, "attempt to download packages file before Release").Annotate(notes)
 		}
-	} else if info, err := apt_cfg.NewTranslationUrlInfo(u, &ins.config); err == nil {
+	} else if info, err := apt_cfg.NewTranslationUrlInfo(u, &ins.config, slog); err == nil {
 		// check if we already have downloaded InReleases from this repo
 		notes := Annotation{
 			"origin":     info.Origin,
@@ -149,6 +152,21 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 			a.SetRequestPending(ins, "valid URL for translation file").Annotate(notes)
 		} else {
 			a.SetRequestRejected(ins, "attempt to download translation file before Release").Annotate(notes)
+		}
+	} else if info, err := apt_cfg.NewCommandsUrlInfo(u, &ins.config, slog); err == nil {
+		// check if we already have downloaded InReleases from this repo
+		notes := Annotation{
+			"origin":     info.Origin,
+			"repository": info.Repository,
+			"dist":       info.Dist,
+			"component":  info.Component,
+		}
+		repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
+
+		if _, ok := ins.release[repo]; ok {
+			a.SetRequestPending(ins, "valid URL for commands file").Annotate(notes)
+		} else {
+			a.SetRequestRejected(ins, "attempt to download commands file before Release").Annotate(notes)
 		}
 	}
 
@@ -166,9 +184,15 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		return ins.validateTranslationFile(f, a)
 	}
 
+	if a.MimetypeIs(mimetypes.AptCommands) {
+		return ins.validateCommandsFile(f, a)
+	}
+
 	if !a.MimetypeIs("text/plain") {
 		return nil // not a Release file
 	}
+
+	slog := a.Logger()
 
 	// Check if this is a valid InRelease file
 
@@ -180,7 +204,7 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 	if !ok {
 		return nil
 	}
-	logger.Debugf("check repository config entry '%s'", name)
+	slog.Debugf("check repository config entry '%s'", name)
 
 	// Quick check for clearsigned file
 	buf := make([]byte, 34)
@@ -198,10 +222,10 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 	// InRelease files must be signed
 	signotes := Annotation{}
 	pubkey := ins.config.Repositories[name].PublicKey
-	logger.Debugf("apt repository public key: %s", pubkey)
+	slog.Debugf("apt repository public key: %s", pubkey)
 	body, err := checkSignature(f, signotes, pubkey)
 	if err != nil {
-		logger.Warningf("signature checking error: %s", err)
+		slog.Warningf("signature checking error: %s", err)
 		integrity_errors = append(integrity_errors, fmt.Sprintf("signature verification failed: %s", err))
 
 		// Update the reader if the file is not clearsigned
@@ -248,7 +272,7 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 	}
 
 	if !sha256_section {
-		logger.Debug("no SHA256 section found")
+		slog.Debug("no SHA256 section found")
 		return nil // we don't recognize this file
 	}
 
@@ -262,19 +286,18 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		"Date",
 		"Architectures",
 		"Components",
-		"Description",
 	}
 
 	for _, k := range expected_fields {
 		_, ok := fields[k]
 		if !ok {
-			logger.Debugf("expected field %q not found", k)
+			slog.Debugf("expected field %q not found", k)
 			return nil // we don't recognize this file
 		}
 	}
 
 	// We now assume this is an InRelease file
-	logger.Debug("validate release file")
+	slog.Debug("validate release file")
 
 	release := NewReleaseFile()
 	release.Sha256 = a.Sha256()
@@ -312,11 +335,15 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 
 	repo := strings.TrimSuffix(a.DownloadURL(), "/InRelease")
 
+	desc := fields["Description"]
+	if desc == "" {
+		desc = fmt.Sprintf("%s %s", fields["Origin"], fields["Suite"])
+	}
 	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:        mimetypes.AptRelease,
 		Name:        "InRelease",
 		Version:     fields["Codename"],
-		Description: fields["Description"],
+		Description: desc,
 		Vendor:      fields["Origin"],
 		Author:      fields["Origin"],
 	})
@@ -353,26 +380,38 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 }
 
 func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a ResponseArtifact) error {
-	logger.Debug("validate package file")
+	slog := a.Logger()
+	slog.Debug("validate package file")
 
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	logger.Debugf("packages file path: %s", u.Path)
-	info, err := apt_cfg.NewPackagesUrlInfo(u, &ins.config)
+	slog.Debugf("packages file path: %s", u.Path)
+	info, err := apt_cfg.NewPackagesUrlInfo(u, &ins.config, slog)
 	if err != nil {
 		a.SetResponseRejected(ins, "invalid path for packages file")
 		return nil
 	}
 
-	sha256, err := digests.NewSha256Digest(info.Digest)
-	if err != nil {
-		a.SetResponseRejected(ins, "invalid SHA256 digest: %s", err)
-		return nil
+	if info.Digest != "" {
+		sha256, err := digests.NewSha256Digest(info.Digest)
+		if err != nil {
+			a.SetResponseRejected(ins, "invalid SHA256 digest: %s", err)
+			return nil
+		}
+		slog.Debugf("by-hash SHA256 digest: %s", info.Digest)
+
+		if sha256 != a.Sha256() {
+			a.SetResponseRejected(ins, "SHA256 digest mismatch").Annotate(
+				Annotation{
+					"expected-sha256": sha256.String(),
+				},
+			)
+			return nil
+		}
 	}
-	logger.Debugf("by-hash SHA256 digest: %s", info.Digest)
 
 	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
 	rel, ok := ins.release[repo]
@@ -381,23 +420,14 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a Respons
 		return nil
 	}
 
-	entry, ok := rel.Files[sha256]
+	entry, ok := rel.Files[a.Sha256()]
 	if !ok {
 		a.SetResponseRejected(ins, "Packages file not listed in Release file")
 		return nil
 	}
-	logger.Debugf("release entry: %+v", entry)
+	slog.Debugf("release entry: %+v", entry)
 
-	if sha256 != a.Sha256() {
-		a.SetResponseRejected(ins, "SHA256 digest mismatch").Annotate(
-			Annotation{
-				"expected-sha256": sha256.String(),
-			},
-		)
-		return nil
-	}
-
-	a.SetResponseApproved(ins, "Packages file listed in Release").Annotate(
+	a.SetResponseUnknown(ins, "Packages file listed in Release").Annotate(
 		Annotation{
 			"file-path":    entry.Name,
 			"release-file": ins.release[repo].Sha256.String(),
@@ -412,15 +442,16 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a Respons
 // files against InRelease entries.
 // https://wiki.debian.org/DebianRepository/Format#A.22Translation.22_indices
 func (ins *AptReleaseInspector) validateTranslationFile(f ArtifactReader, a ResponseArtifact) error {
-	logger.Debug("validate translation file")
+	slog := a.Logger()
+	slog.Debug("validate translation file")
 
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	logger.Debugf("translation file path: %s", u.Path)
-	info, err := apt_cfg.NewTranslationUrlInfo(u, &ins.config)
+	slog.Debugf("translation file path: %s", u.Path)
+	info, err := apt_cfg.NewTranslationUrlInfo(u, &ins.config, slog)
 	if err != nil {
 		a.SetResponseRejected(ins, "invalid path for translation file")
 		return nil
@@ -438,7 +469,7 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ArtifactReader, a Resp
 		a.SetResponseRejected(ins, "Translation file not listed in Release file")
 		return nil
 	}
-	logger.Debugf("release entry: %+v", entry)
+	slog.Debugf("release entry: %+v", entry)
 
 	if int64(entry.Size) != a.Size() {
 		a.SetResponseRejected(ins, "Translation file size mismatch").Annotate(
@@ -449,7 +480,59 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ArtifactReader, a Resp
 		return nil
 	}
 
-	a.SetResponseApproved(ins, "Translation file listed in Release").Annotate(
+	a.SetResponseUnknown(ins, "Translation file listed in Release").Annotate(
+		Annotation{
+			"file-path":    entry.Name,
+			"release-file": ins.release[repo].Sha256.String(),
+			"vendor":       rel.Vendor,
+		},
+	)
+
+	return nil
+}
+
+// validateCommandsFile examines InRelease files and validates Commands-<arch>
+// files against InRelease entries.
+func (ins *AptReleaseInspector) validateCommandsFile(f ArtifactReader, a ResponseArtifact) error {
+	slog := a.Logger()
+	slog.Debug("validate commands file")
+
+	u, err := url.Parse(a.DownloadURL())
+	if err != nil {
+		return fmt.Errorf("cannot parse URL: %s", err)
+	}
+
+	slog.Debugf("commands file path: %s", u.Path)
+	info, err := apt_cfg.NewCommandsUrlInfo(u, &ins.config, slog)
+	if err != nil {
+		a.SetResponseRejected(ins, "invalid path for commands file")
+		return nil
+	}
+
+	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
+	rel, ok := ins.release[repo]
+	if !ok {
+		a.SetResponseRejected(ins, "Repository Release data not found")
+		return nil
+	}
+
+	entry, ok := rel.Files[a.Sha256()]
+	if !ok {
+		a.SetResponseRejected(ins, "Commands file not listed in Release file")
+		return nil
+	}
+	slog.Debugf("release entry: %+v", entry)
+
+	if int64(entry.Size) != a.Size() {
+		a.SetResponseRejected(ins, "Commands file size mismatch").Annotate(
+			Annotation{
+				"expected-size": entry.Size,
+			},
+		)
+		return nil
+	}
+
+	a.SetResponseUnknown(ins, "Commands file listed in Release").Annotate(
 		Annotation{
 			"file-path":    entry.Name,
 			"release-file": ins.release[repo].Sha256.String(),
