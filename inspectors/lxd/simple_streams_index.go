@@ -61,7 +61,7 @@ func (ins *SimpleStreamsIndexInspector) InspectRequest(a RequestArtifact) error 
 			"stream": info.Stream,
 		},
 	)
-	return nil // we don't recognize this request
+	return nil
 }
 
 type simpleStreamsIndex struct {
@@ -103,7 +103,7 @@ func (ins *SimpleStreamsIndexInspector) InspectArtifact(f ArtifactReader, a Resp
 		return nil
 	}
 	a.SetArtifactMetadata(ArtifactMetadata{
-		Type:        mimetypes.SimpleStreams,
+		Type:        mimetypes.SimpleStreamsIndex,
 		Name:        "Simple Streams Index",
 		Description: fmt.Sprintf("Simple Streams Index for %s", stream),
 	})

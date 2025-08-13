@@ -95,7 +95,7 @@ func (s *rootfsSuite) TestInspectRequest(c *C) {
 		c.Assert(ok, Equals, tc.pending)
 		if tc.pending {
 			c.Assert(insp.Opinion, Equals, opinions.Pending)
-			c.Assert(insp.Reason, Equals, "valid URL for lxd rootfs")
+			c.Assert(insp.Reason, Equals, "valid URL for LXD product item")
 			c.Assert(insp.Annotations, DeepEquals, Annotation{
 				"image-series": "noble",
 				"image-date":   "20250629",
@@ -111,6 +111,9 @@ func (s *rootfsSuite) TestInspectArtifact(c *C) {
 	a.MimeType = mimetype.Lookup("application/gzip")
 	a.SetRequestPending(ins, "test")
 
+	dins := lxd.NewSimpleStreamsDownloadInspector()
+	a.SetResponseUnknown(dins, "test").Annotate(Annotation{"product-item-path": "filename"})
+
 	f, err := files.OpenArtifactFile("testdata/base.tar.gz")
 	c.Assert(err, IsNil)
 
@@ -125,6 +128,30 @@ func (s *rootfsSuite) TestInspectArtifact(c *C) {
 	c.Check(a.ResponseInspection["lxd.rootfs"], DeepEquals, &Inspection{
 		Opinion: opinions.Approved,
 		Reason:  "valid LXD rootfs tarball",
+		Annotations: Annotation{
+			"architecture":  "x86_64",
+			"os":            "Ubuntu",
+			"series":        "noble",
+			"creation-date": int64(1751220536),
+		},
+	})
+}
+
+func (s *rootfsSuite) TestInspectArtifactNoDownloadInspection(c *C) {
+	ins := lxd.NewRootfsInspector()
+	a := metadata.NewArtifact()
+	a.MimeType = mimetype.Lookup("application/gzip")
+	a.SetRequestPending(ins, "test")
+
+	f, err := files.OpenArtifactFile("testdata/base.tar.gz")
+	c.Assert(err, IsNil)
+
+	err = ins.InspectArtifact(f, a)
+	c.Assert(err, IsNil)
+	c.Assert(a.Approved(), Equals, false)
+	c.Check(a.ResponseInspection["lxd.rootfs"], DeepEquals, &Inspection{
+		Opinion: opinions.Rejected,
+		Reason:  "artifact not verified against product items",
 		Annotations: Annotation{
 			"architecture":  "x86_64",
 			"os":            "Ubuntu",
