@@ -27,6 +27,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/glob"
+	bconfig "github.com/canonical/fetch-service/inspectors/bldbin/config"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/store"
@@ -54,8 +55,16 @@ func getTestStoreInspectorConfig() config.StoreInspectorConfig {
 	}
 }
 
+func getTestBldbinInspectorConfig() bconfig.BldBinInspectorConfig {
+	return bconfig.BldBinInspectorConfig{
+		Urls: []glob.Glob{
+			glob.MustCompile("https://api.snapcraft.io:443/api/v1/bins/download/**"),
+		},
+	}
+}
+
 func (s *storeSuite) TestStoreApiInspectorID(c *C) {
-	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig())
+	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 	c.Assert(ins.ID(), Equals, "store.api")
 }
 
@@ -82,11 +91,14 @@ var storeApiInspectRequestTests = []storeApiInspectRequestTest{{
 }, {
 	url:     "http://api.snapcraft.io/v2/snaps/info", // Wrong protocol
 	pending: false,
+}, {
+	url:     "https://api.snapcraft.io:443/api/v1/bins/download/w0VWGQnkqH0EDK7aOda6x9ZP5rHsAT4b_1.bin",
+	pending: true,
 }}
 
 func (s *storeSuite) TestStoreApiInspectRequest(c *C) {
 	for _, tc := range storeApiInspectRequestTests {
-		ins := store.NewStoreApiInspector(getTestStoreInspectorConfig())
+		ins := store.NewStoreApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 
@@ -110,7 +122,7 @@ func (s *storeSuite) TestStoreApiArtifactInspector(c *C) {
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig())
+	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 	a.SetRequestPending(ins, "test").Annotate(Annotation{"type": "bins"})
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
@@ -150,7 +162,7 @@ func (s *storeSuite) TestStoreApiArtifactBadType(c *C) {
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig())
+	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Check(a.Approved(), Equals, false)
@@ -163,7 +175,7 @@ func (s *storeSuite) TestStoreApiArtifactBadContent(c *C) {
 
 	f := strings.NewReader(`{"content": "bad"}`)
 
-	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig())
+	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 	err := ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Check(a.Approved(), Equals, false)
@@ -191,7 +203,7 @@ func (s *storeSuite) TestValidateBin(c *C) {
 		},
 	}
 
-	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig())
+	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 	store.StoreApiInspectorSetStoreApiInfo(ins, "pkgid", ainfo)
 
 	err = ins.InspectArtifact(f, a)
@@ -222,7 +234,7 @@ func (s *storeSuite) TestValidateBinInvalid(c *C) {
 		c.Assert(err, IsNil)
 		defer f.Close()
 
-		ins := store.NewStoreApiInspector(getTestStoreInspectorConfig())
+		ins := store.NewStoreApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
@@ -238,7 +250,7 @@ func (s *storeSuite) TestValidateBinNoRequest(c *C) {
 	f, err := files.OpenArtifactFile("testdata/starcraft-test-2.0.0.tar.xz")
 	c.Assert(err, IsNil)
 
-	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig())
+	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Check(a.Rejected(), Equals, true)

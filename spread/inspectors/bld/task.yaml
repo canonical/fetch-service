@@ -1,0 +1,41 @@
+summary: Test the bld bin inspector
+
+prepare: |
+  rm -f ./*.json
+  snap install bld --edge
+  mkdir -p /var/snap/bld/common/certs
+  cp /usr/local/share/ca-certificates/local-ca.crt /var/snap/bld/common/certs/
+  rm -Rf ~/bld-test
+
+restore: |
+  rm -f ./*.json
+  rm -Rf /var/snap/bld/common/certs
+  rm -Rf ~/bld-test
+
+execute: |
+  # shellcheck disable=SC1091
+  . ../utils.sh
+
+  # create strict session
+  read -r session_id token < <(create_session strict)
+
+  # set up proxy
+  export http_proxy="http://${session_id}:${token}@localhost:9988"
+  export https_proxy="http://${session_id}:${token}@localhost:9988"
+
+  (mkdir ~/bld-test; cd ~/bld-test;
+  bld download starcraft-test --channel=latest/edge)
+
+  unset http_proxy
+  unset https_proxy
+
+  revoke_token "$session_id" "$token"
+  get_session_report "$session_id" > session_report.json
+  python3 -mjson.tool session_report.json
+
+  jq -r '(.artifacts[].metadata | select(.type=="application/x.canonical.bld-bin-package")).name' session_report.json | MATCH "starcraft-test"
+  jq -r '.artifacts[].result' session_report.json | NOMATCH "Rejected"
+  jq -r '(.artifacts[].metadata | select(.type=="application/x.canonical.bld-bin-package")).store-revision' session_report.json | NOMATCH "^0$"
+
+  delete_session "$session_id"
+  delete_resources "$session_id"

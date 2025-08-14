@@ -72,7 +72,7 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		snap.NewSnapRefreshInspector(),
 
 		// store API
-		store.NewStoreApiInspector(cfg.Store),
+		store.NewStoreApiInspector(cfg.Store, cfg.BldBin),
 
 		// bld bin
 		// must run after store API

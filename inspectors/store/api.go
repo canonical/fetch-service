@@ -33,6 +33,7 @@ import (
 	"golang.org/x/crypto/sha3"
 
 	"github.com/canonical/fetch-service/inspectors/bldbin"
+	bconfig "github.com/canonical/fetch-service/inspectors/bldbin/config"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/inspectors/store/config"
@@ -54,14 +55,16 @@ type storeApiInfo struct {
 
 type StoreApiInspector struct {
 	config  config.StoreInspectorConfig
+	bconfig bconfig.BldBinInspectorConfig
 	ids     map[string]*storeApiInfo // Map from IDs to file information
 	idsLock sync.Mutex
 }
 
-func NewStoreApiInspector(cfg config.StoreInspectorConfig) *StoreApiInspector {
+func NewStoreApiInspector(cfg config.StoreInspectorConfig, bcfg bconfig.BldBinInspectorConfig) *StoreApiInspector {
 	return &StoreApiInspector{
-		config: cfg,
-		ids:    map[string]*storeApiInfo{},
+		config:  cfg,
+		bconfig: bcfg,
+		ids:     map[string]*storeApiInfo{},
 	}
 }
 
@@ -97,19 +100,18 @@ func (ins *StoreApiInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	info, err := config.NewStoreApiUrlInfo(u, &ins.config, slog)
-	if err != nil {
-		return nil // We don't recognize the request
+	if info, err := config.NewStoreApiUrlInfo(u, &ins.config, slog); err == nil {
+		a.SetRequestPending(ins, "valid URL for store API endpoint").Annotate(
+			Annotation{
+				"type":    info.PackageType,
+				"package": info.PackageName,
+			},
+		)
+	} else if _, err := bconfig.NewBldBinUrlInfo(u, &ins.bconfig, slog); err == nil {
+		a.SetRequestPending(ins, "valid URL for bld bin download")
 	}
 
-	a.SetRequestPending(ins, "valid URL for store API endpoint").Annotate(
-		Annotation{
-			"type":    info.PackageType,
-			"package": info.PackageName,
-		},
-	)
-
-	return nil
+	return nil // We don't recognize the request
 }
 
 type RevisionDownload struct {
