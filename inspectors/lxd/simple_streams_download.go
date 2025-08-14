@@ -183,7 +183,7 @@ func (ins *SimpleStreamsDownloadInspector) InspectArtifact(f ArtifactReader, a R
 		// The request inspector must have set a "stream" annotation.
 		return fmt.Errorf("missing stream in request annotations")
 	}
-	slog.Debugf("parsing Simple Streams Download for stream %s", stream)
+	slog.Debugf("parsed Simple Streams Download for stream %s", stream)
 
 	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:        mimetypes.SimpleStreamsProducts,
