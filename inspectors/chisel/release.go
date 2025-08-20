@@ -216,17 +216,20 @@ func parseChiselYaml(r io.Reader) (data *chiselYaml, err error) {
 // matches any defined in the apt repository config.
 func validPubKeys(aptCfg *apt_cfg.AptInspectorConfig, data *chiselYaml) error {
 	for keyName, keyData := range data.PublicKeys {
-		pubKey, err := utils.DecodePubKey([]byte(keyData.Armor))
+		pubKeys, err := utils.DecodePubKey([]byte(keyData.Armor), false)
 		if err != nil {
 			return fmt.Errorf("cannot parse chisel.yaml public key %s: %w", keyName, err)
 		}
+		pubKey := pubKeys[0]
 		for repoName, repo := range aptCfg.Repositories {
-			repoKey, err := utils.DecodePubKey([]byte(repo.PublicKey))
+			repoKeys, err := utils.DecodePubKey([]byte(repo.PublicKey), true)
 			if err != nil {
 				return fmt.Errorf("cannot parse APT repository %s public key: %w", repoName, err)
 			}
-			if repoKey.KeyId == pubKey.KeyId {
-				return nil
+			for _, repoKey := range repoKeys {
+				if repoKey.KeyId == pubKey.KeyId {
+					return nil
+				}
 			}
 		}
 	}

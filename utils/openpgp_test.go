@@ -60,14 +60,24 @@ func (s *pgputilSuite) TestDecodeArchivePubKey(c *C) {
 	for _, test := range archiveKeyTests {
 		c.Logf("Summary: %s", test.summary)
 
-		pubKey, err := utils.DecodePubKey([]byte(test.armor))
+		pubKeys, err := utils.DecodePubKey([]byte(test.armor), false)
 		if test.relerror != "" {
 			c.Assert(err, ErrorMatches, test.relerror)
 			continue
 		}
 		c.Assert(err, IsNil)
-		c.Assert(pubKey, DeepEquals, test.pubKey)
+		c.Assert(pubKeys[0], DeepEquals, test.pubKey)
 	}
+}
+
+func (s *pgputilSuite) TestDecodeArchivePubKeyMultiple(c *C) {
+	c.Logf("Summary: Decode an armored entry with multiple keys")
+
+	pubKeys, err := utils.DecodePubKey([]byte(twoPubKeysArmor), true)
+	c.Assert(err, IsNil)
+	c.Assert(len(pubKeys), Equals, 2)
+	c.Assert(pubKeys[0].KeyId == 0x854BAF1AA9D76600, Equals, true)
+	c.Assert(pubKeys[1].KeyId == 0x871920d1991bc93c, Equals, true)
 }
 
 type verifyClearSignTest struct {
