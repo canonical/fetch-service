@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -90,7 +90,7 @@ func UpdateCert(dryRun bool, payload []byte, certPath, keyPath string) error {
 		if err := UpdateCertFiles(certPath, keyPath, cert, key); err != nil {
 			return err
 		}
-		logger.Info("[config] write certificate and key files")
+		logger.Info("cert: write certificate and key files")
 	}
 
 	return nil

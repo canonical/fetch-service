@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -30,7 +30,6 @@ import (
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
-	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/utils"
 )
 
@@ -105,7 +104,7 @@ func (ins *GoModuleGitInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	}
 	notes := Annotation{}
 
-	logger.Debugf("inspect git upload-pack artifact: checkout at %q", checkoutPath)
+	a.Logger().Debugf("inspect git upload-pack artifact: checkout at %q", checkoutPath)
 
 	goModPath := filepath.Join(checkoutPath, "go.mod")
 	if _, err := os.Stat(goModPath); err != nil {
@@ -160,6 +159,7 @@ func (ins *GoModuleGitInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 			filepath.Join(checkoutPath, "License"),
 			filepath.Join(checkoutPath, "Copying"),
 		},
+		a.Logger(),
 	)
 	md.License = license
 

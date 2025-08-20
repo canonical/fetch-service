@@ -166,7 +166,7 @@ func (t *proxySuite) TestCopyHeader(c *C) {
 		{"key", []string{"a", "b", "c"}},
 	} {
 		data := map[string][]string{tc.key: tc.val}
-		newData := proxy.CopyHeader(data)
+		newData := proxy.CopyHttpHeader(data)
 		delete(data, tc.key)
 		c.Assert(data[tc.key], IsNil)
 		c.Assert(newData, Not(Equals), data)

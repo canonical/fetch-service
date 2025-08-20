@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -29,7 +29,6 @@ import (
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/craft/config"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
-	"github.com/canonical/fetch-service/logger"
 )
 
 // The SnapcraftInspector handles upload-pack requests.
@@ -73,7 +72,9 @@ func (ins *SnapcraftInspector) InspectRequest(a RequestArtifact) error {
 		return nil // we don't recognize this request
 	}
 
-	_, err = config.NewCraftUrlInfo(u, &ins.config)
+	slog := a.Logger()
+
+	_, err = config.NewCraftUrlInfo(u, &ins.config, slog)
 	if err != nil {
 		return nil // we don't recognize this request
 	}
@@ -91,7 +92,9 @@ func (ins *SnapcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 	if a.ContentType() != "application/x-git-upload-pack-result" {
 		return nil
 	}
-	logger.Debugf("Inspecting snapcraft artifact")
+
+	slog := a.Logger()
+	slog.Debugf("Inspecting snapcraft artifact")
 
 	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
@@ -100,7 +103,7 @@ func (ins *SnapcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 		return nil
 	}
 
-	logger.Debugf("inspect git upload-pack artifact: checkout at %q", checkoutPath)
+	slog.Debugf("inspect git upload-pack artifact: checkout at %q", checkoutPath)
 
 	snapcraftYamlPath, found := getSnapcraftYamlPath(checkoutPath)
 	if !found {

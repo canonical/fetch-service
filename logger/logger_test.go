@@ -194,3 +194,51 @@ func (s *logSuite) TestLogToFileError(c *C) {
 	err := logger.Init(logger.DebugLevel, "/invalid/path/log.txt")
 	c.Assert(err, ErrorMatches, "set log file:.* /invalid/path/log.txt: no such file or directory.*")
 }
+
+func (s *logSuite) TestSessionLoggerInfo(c *C) {
+	slog := logger.NewSessionLogger("test")
+	slog.Info("hello world")
+	c.Check(testlogger.Contains("INFO : [test] hello world\n"), Equals, true)
+}
+
+func (s *logSuite) TestSessionLoggerInfof(c *C) {
+	slog := logger.NewSessionLogger("test")
+	slog.Infof("hello %s", "world")
+	c.Check(testlogger.Contains("INFO : [test] hello world\n"), Equals, true)
+}
+
+func (s *logSuite) TestSessionLoggerWarning(c *C) {
+	slog := logger.NewSessionLogger("test")
+	slog.Warning("hello world")
+	c.Check(testlogger.Contains("WARN : [test] hello world\n"), Equals, true)
+}
+
+func (s *logSuite) TestSessionLoggerWarningf(c *C) {
+	slog := logger.NewSessionLogger("test")
+	slog.Warningf("hello %s", "world")
+	c.Check(testlogger.Contains("WARN : [test] hello world\n"), Equals, true)
+}
+
+func (s *logSuite) TestSessionLoggerError(c *C) {
+	slog := logger.NewSessionLogger("test")
+	slog.Error("hello world")
+	c.Check(testlogger.Contains("ERROR: [test] hello world\n"), Equals, true)
+}
+
+func (s *logSuite) TestSessionLoggerErrorf(c *C) {
+	slog := logger.NewSessionLogger("test")
+	slog.Errorf("hello %s", "world")
+	c.Check(testlogger.Contains("ERROR: [test] hello world\n"), Equals, true)
+}
+
+func (s *logSuite) TestSessionLoggerDebug(c *C) {
+	slog := logger.NewSessionLogger("test")
+	slog.Debug("hello world")
+	c.Check(testlogger.Contains("DEBUG: [test] hello world\n"), Equals, true)
+}
+
+func (s *logSuite) TestSessionLoggerDebugf(c *C) {
+	slog := logger.NewSessionLogger("test")
+	slog.Debugf("hello %s", "world")
+	c.Check(testlogger.Contains("DEBUG: [test] hello world\n"), Equals, true)
+}

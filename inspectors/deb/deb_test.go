@@ -38,13 +38,15 @@ import (
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
-type debSuite struct{}
+type debSuite struct {
+	slog logger.Logger
+}
 
 func (t *debSuite) SetUpTest(c *C) {
 	testlogger.Init(logger.InfoLevel)
 }
 
-var _ = Suite(&debSuite{})
+var _ = Suite(&debSuite{logger.NewSessionLogger("test")})
 
 func Test(t *testing.T) { TestingT(t) }
 
@@ -110,16 +112,43 @@ func (s *debSuite) TestDebInspectRequest(c *C) {
 }
 
 type debArtifactInspectorTest struct {
-	filename string // The deb file to be inspected
-	approved bool   // Whether it should be approved
+	filename      string // The deb file to be inspected
+	debInPackages bool   // Deb file listed in Packages file
+	validPackages bool   // Packages file is validated against Releases
+	approved      bool   // Whether it should be approved
+	reason        string // The reasoning for the inspection opinion
 }
 
 var debArtifactInspectorTests = []debArtifactInspectorTest{{
-	filename: "testdata/hello_2.10-2ubuntu4_amd64.deb",
-	approved: true,
+	filename:      "testdata/hello_2.10-2ubuntu4_amd64.deb",
+	debInPackages: true,
+	validPackages: true,
+	approved:      true,
+	reason:        "deb package successfully parsed and listed in valid Packages file",
 }, {
-	filename: "testdata/2048.package",
-	approved: false,
+	filename:      "testdata/hello_2.10-2ubuntu4_amd64.deb",
+	debInPackages: true,
+	validPackages: false,
+	approved:      false,
+	reason:        "deb file listed in invalid Packages file",
+}, {
+	filename:      "testdata/hello_2.10-2ubuntu4_amd64.deb",
+	debInPackages: false,
+	validPackages: true,
+	approved:      false,
+	reason:        "deb file not verified against Packages file",
+}, {
+	filename:      "testdata/2048.package",
+	debInPackages: true,
+	validPackages: true,
+	approved:      false,
+	reason:        "ar parse error: unexpected EOF",
+}, {
+	filename:      "testdata/2048.package",
+	debInPackages: false,
+	validPackages: true,
+	approved:      false,
+	reason:        "ar parse error: unexpected EOF",
 }}
 
 func (s *debSuite) TestDebArtifactInspector(c *C) {
@@ -127,6 +156,17 @@ func (s *debSuite) TestDebArtifactInspector(c *C) {
 		a := metadata.NewArtifact()
 		a.Metadata.Type = "application/vnd.debian.binary-package"
 		a.MimeType = mimetype.Lookup("application/vnd.debian.binary-package")
+
+		if tc.debInPackages {
+			a.ResponseInspection["apt.packages"] = &Inspection{
+				Opinion: opinions.Unknown,
+				Reason:  "some reason",
+				Annotations: Annotation{
+					"packages-file":     "d29cb24c93fec5f43255706bce7eb46d4779952039d8c68ac1bb14a6f3655ce2",
+					"packages-is-valid": tc.validPackages,
+				},
+			}
+		}
 
 		f, err := files.OpenArtifactFile(tc.filename)
 		c.Assert(err, IsNil)
@@ -136,7 +176,8 @@ func (s *debSuite) TestDebArtifactInspector(c *C) {
 		a.SetRequestPending(ins, "test")
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
-		c.Assert(a.Approved(), Equals, tc.approved)
+		c.Assert(a.Approved(), Equals, tc.approved, Commentf("test case: %+v", tc))
+		c.Check(a.ResponseInspection["deb"].Reason, Equals, tc.reason)
 
 		if tc.approved {
 			c.Check(a.Metadata.Name, Equals, "hello")
@@ -241,7 +282,7 @@ func (s *debSuite) TestReadDebMetadata(c *C) {
 
 		am := ArtifactMetadata{}
 		ins := deb.NewDebInspector(getTestAptConfig())
-		err = deb.DebInspectorReadDebMetadata(ins, r, &am)
+		err = deb.DebInspectorReadDebMetadata(ins, r, &am, s.slog)
 		if tc.errMsg == "" {
 			c.Assert(err, IsNil)
 			c.Check(am.Name, Equals, tc.name)

@@ -33,10 +33,12 @@ import (
 
 	"github.com/canonical/fetch-service/glob"
 	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
+	bldbin_cfg "github.com/canonical/fetch-service/inspectors/bldbin/config"
 	chisel_cfg "github.com/canonical/fetch-service/inspectors/chisel/config"
 	crafts_cfg "github.com/canonical/fetch-service/inspectors/craft/config"
 	git_cfg "github.com/canonical/fetch-service/inspectors/git/config"
 	snap_cfg "github.com/canonical/fetch-service/inspectors/snap/config"
+	store_cfg "github.com/canonical/fetch-service/inspectors/store/config"
 	"github.com/canonical/fetch-service/logger"
 )
 
@@ -220,7 +222,7 @@ func UpdateConfig(optype string, dryRun bool, payload []byte, cfgdir string) err
 			if err := updateConfigFile(cfgdir, aclConfigFile, payload); err != nil {
 				return err
 			}
-			logger.Infof("[config] write ACL configuration file: %s", filepath.Join(cfgdir, aclConfigFile))
+			logger.Infof("config: write ACL configuration file: %s", filepath.Join(cfgdir, aclConfigFile))
 		}
 	case "inspectors":
 		cfg, err := decodeInspectorsConfig(r)
@@ -235,7 +237,7 @@ func UpdateConfig(optype string, dryRun bool, payload []byte, cfgdir string) err
 			if err := updateConfigFile(cfgdir, inspectorsConfigFile, payload); err != nil {
 				return err
 			}
-			logger.Infof("[config] write inspectors configuration file: %s", filepath.Join(cfgdir, inspectorsConfigFile))
+			logger.Infof("config: write inspectors configuration file: %s", filepath.Join(cfgdir, inspectorsConfigFile))
 		}
 	}
 	return nil
@@ -273,6 +275,8 @@ type InspectorsConfig struct {
 	Crafts crafts_cfg.CraftsInspectorConfig `yaml:"crafts"`
 	Chisel chisel_cfg.ChiselInspectorConfig `yaml:"chisel"`
 	Snap   snap_cfg.SnapInspectorConfig     `yaml:"snap"`
+	Store  store_cfg.StoreInspectorConfig   `yaml:"store"`
+	BldBin bldbin_cfg.BldBinInspectorConfig `yaml:"bldbin"`
 }
 
 func LoadInspectorsConfig(cfgdir string) error {
@@ -338,6 +342,12 @@ func GetInspectorsConfig() InspectorsConfig {
 
 	cfg.Crafts.Urls = make([]glob.Glob, len(globalInspectorsConfig.Crafts.Urls))
 	copy(cfg.Crafts.Urls, globalInspectorsConfig.Crafts.Urls)
+
+	cfg.Store.Urls = make([]glob.Glob, len(globalInspectorsConfig.Store.Urls))
+	copy(cfg.Store.Urls, globalInspectorsConfig.Store.Urls)
+
+	cfg.BldBin.Urls = make([]glob.Glob, len(globalInspectorsConfig.BldBin.Urls))
+	copy(cfg.BldBin.Urls, globalInspectorsConfig.BldBin.Urls)
 
 	cfg.Chisel.Urls = make([]glob.Glob, len(globalInspectorsConfig.Chisel.Urls))
 	copy(cfg.Chisel.Urls, globalInspectorsConfig.Chisel.Urls)

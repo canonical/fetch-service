@@ -1,7 +1,7 @@
 summary: Fetchctl update config operations
 
 prepare: |
-  snap install "$PROJECT_PATH"/spread/fetch-service_*.snap --dangerous
+  snap install "$CRAFT_ARTIFACT" --dangerous
 
 restore: |
   snap remove fetch-service --purge

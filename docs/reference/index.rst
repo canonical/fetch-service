@@ -5,6 +5,7 @@ Reference
 .. toctree::
    :maxdepth: 1
 
+   apt_commands
    apt_packages
    apt_release
    apt_translation

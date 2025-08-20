@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -38,13 +38,15 @@ import (
 	"github.com/canonical/fetch-service/testutils"
 )
 
-type wheelSuite struct{}
+type wheelSuite struct {
+	slog logger.Logger
+}
 
 func (t *wheelSuite) SetUpTest(c *C) {
 	testlogger.Init(logger.InfoLevel)
 }
 
-var _ = Suite(&wheelSuite{})
+var _ = Suite(&wheelSuite{logger.NewSessionLogger("test")})
 
 func Test(t *testing.T) { TestingT(t) }
 
@@ -165,7 +167,7 @@ func (s *wheelSuite) TestWheelReadMetadata(c *C) {
 		"Author: Poppy Bolger\n"+
 		"Author-email: contact@foobar.com\n"+
 		"Random-tag: doesn't matter\n"+
-		"License: 3-Clause BSD\n"+
+		"Classifier: License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)\n"+
 		"\n"+
 		"Lorem ipsum dolor sit amet,\n"+
 		"consectetur adipiscing elit.\n")
@@ -184,7 +186,7 @@ func (s *wheelSuite) TestWheelReadMetadata(c *C) {
 	a.SetRequestPending(ins, "test")
 
 	notes := pip.NewWheelNotes()
-	err = pip.ReadWheelMetadata(ins, f, int64(f.Len()), a, notes)
+	err = pip.ReadWheelMetadata(ins, f, int64(f.Len()), a, notes, s.slog)
 	c.Assert(err, IsNil)
 	c.Assert(a.Metadata.Name, Equals, "trololo")
 	c.Assert(a.Metadata.Version, Equals, "3.14159")
@@ -192,7 +194,7 @@ func (s *wheelSuite) TestWheelReadMetadata(c *C) {
 	c.Assert(a.Metadata.Vendor, Equals, "Poppy Bolger")
 	c.Assert(a.Metadata.Author, Equals, "Poppy Bolger")
 	c.Assert(a.Metadata.AuthorEmail, Equals, "contact@foobar.com")
-	c.Assert(a.Metadata.License, Equals, "BSD-3-Clause")
+	c.Assert(a.Metadata.License, Equals, "GPL-3.0-or-later")
 }
 
 func (s *wheelSuite) TestReadWheelRecord(c *C) {

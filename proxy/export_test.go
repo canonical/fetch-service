@@ -20,7 +20,7 @@
 package proxy
 
 var (
-	CopyHeader         = copyHeader
+	CopyHttpHeader     = copyHttpHeader
 	SplitCertKey       = splitCertKey
 	GetSessionIdHeader = getSessionIdHeader
 )

@@ -1,0 +1,55 @@
+summary: Test the lxd inspector
+
+prepare: |
+  rm -f ./*.json
+  snap install lxd
+  snap restart lxd
+
+restore: |
+  rm -f ./*.json
+  snap remove --purge --terminate lxd
+
+execute: |
+  # shellcheck disable=SC1091
+  . ../utils.sh
+
+  # create permissive session
+  read -r session_id token < <(create_session strict)
+
+  # set up proxy
+  export http_proxy="http://${session_id}:${token}@localhost:9988"
+  export https_proxy="http://${session_id}:${token}@localhost:9988"
+
+  lxd init --auto
+  lxc config set core.proxy_http "$http_proxy"
+  lxc config set core.proxy_https "$https_proxy"
+
+  lxc list --all-projects
+  lxc list --format=csv -cn | xargs lxc rm -f
+  lxc image list
+  lxc image list --format=csv -cf | xargs lxc image rm
+  lxc project switch snapcraft
+  lxc list --format=csv -cn | xargs lxc rm -f
+  lxc image list
+  lxc image list --format=csv -cf | xargs lxc image rm
+  lxc project switch default
+
+  ls -l /var/snap/lxd/common/lxd/images/
+
+  rm -Rf /var/snap/lxd/common/lxd/cache/*
+  lxc remote add craft-com.ubuntu.cloud-buildd-daily https://cloud-images.ubuntu.com/buildd/daily --protocol=simplestreams
+  lxc init craft-com.ubuntu.cloud-buildd-daily:core24
+
+  unset http_proxy
+  unset https_proxy
+
+  revoke_token "$session_id" "$token"
+  get_session_report "$session_id" > session_report.json
+  python3 -mjson.tool session_report.json
+
+  jq -r '(.artifacts[].metadata | select(.name=="Simple Streams Index")).type' session_report.json | MATCH "application/x.canonical.simplestreams-index"
+  jq -r '(.artifacts[].metadata | select(.name=="Simple Streams Download")).type' session_report.json | MATCH "application/x.canonical.simplestreams-products"
+  jq -r '(.artifacts[].metadata | select(.name=="LXD rootfs image")).type' session_report.json | MATCH "application/x.canonical.lxd-rootfs"
+
+  delete_session "$session_id"
+  delete_resources "$session_id"

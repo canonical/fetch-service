@@ -2,6 +2,37 @@
 Changelog
 *********
 
+0.9.0 (2025-08-14)
+------------------
+
+- feat(i/lxd): simple streams index inspector for LXD (#423)
+- feat(i/lxd): simple streams download inspector for lxd (#427)
+- feat(i/lxd): add lxd rootfs inspector (#429)
+- fix(i/apt): prevent false positives in deb inspection (#422)
+- fix(i/apt): keep existing packages metadata in inspector state (#428)
+- fix(i/bldbin): inspect bin requests in store inspector (#439)
+- fix(deps): update module golang.org/x/crypto to v0.40.0 (#405)
+- fix(deps): update module github.com/gabriel-vasile/mimetype to v1.4.9 (#380)
+- fix(deps): update module golang.org/x/net to v0.42.0 (#406)
+
+0.8.1 (2025-07-11)
+------------------
+
+- fix: address download timeout issues (#412)
+- fix snap declaration assertion parsing (#414)
+
+0.8.0 (2025-07-02)
+------------------
+
+- feat: add charmcraft inspector (#397)
+- feat: add store api and bld bin package inspectors (#398, #400)
+- feat: add apt commands file inspector (#395, #402)
+- feat: add session-aware logging support (#371)
+- fix: prevent races in cached inspection results (#409)
+- fix(apt): use separate esm repository configuration (#410)
+- fix(deps): update module github.com/protonmail/go-crypto to v1.3.0 (#390)
+- fix(deps): update golang.org/x/net to 0.38.0 (#387)
+
 0.7.0 (2025-04-08)
 ------------------
 

@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -81,6 +81,18 @@ type ResponseInspection struct {
 
 func NewResponseInspection(a *metadata.Artifact) ResponseInspection {
 	return ResponseInspection{
+		Rch: make(chan error, 1),
+		A:   a,
+	}
+}
+
+type CompleteInspection struct {
+	Rch chan error         // Handler response channel
+	A   *metadata.Artifact // Artifact and download metadata
+}
+
+func NewCompleteInspection(a *metadata.Artifact) CompleteInspection {
+	return CompleteInspection{
 		Rch: make(chan error, 1),
 		A:   a,
 	}

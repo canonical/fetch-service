@@ -1,0 +1,1398 @@
+{
+  "content_id": "com.ubuntu.cloud:daily:download",
+  "creator": "climdb-download-streams-export",
+  "datatype": "image-downloads",
+  "format": "products:1.0",
+  "license": "https://ubuntu.com/legal/intellectual-property-policy",
+  "products": {
+    "com.ubuntu.cloud.daily:buildd:20.04:amd64": {
+      "aliases": "20.04,f,focal,core20",
+      "arch": "amd64",
+      "os": "ubuntu",
+      "release": "focal",
+      "release_codename": "Focal Fossa",
+      "release_title": "20.04 LTS",
+      "support_eol": "2025-05-29",
+      "supported": false,
+      "version": "20.04",
+      "versions": {
+        "20250528": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "focal/20250528/focal-server-cloudimg-amd64-disk1.img",
+              "sha256": "36b33cc00ad4a946a562c2ac0714878340fd17c596f783f939f455e3516340c9",
+              "size": 326893568
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "b92f6aa515e2dbdd83817f74f90cd04e7334b664ed7c6252524896bd57aa8087",
+              "ftype": "lxd.tar.xz",
+              "path": "focal/20250528/focal-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "27205e8820bdf98c446a1f4cb49fdfac5fbe1f538ae7e1f3002d7bf88a04a811",
+              "size": 832
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "focal/20250528/focal-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "484609275efdaec2d70abb3d26410453495db1cd2e8551c49800b6299adceb58",
+              "size": 132326594
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "focal/20250528/focal-server-cloudimg-amd64-root.tar.gz",
+              "sha256": "24144298690bd81b6e626eb9b6f5422604cafbf2cb3169dd7237f740fcb251dc",
+              "size": 133264748
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-focal-daily-amd64-buildd-20250528"
+        },
+        "20250605": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "focal/20250605/focal-server-cloudimg-amd64-disk1.img",
+              "sha256": "eec6da9a9442e6245bf5514c8e566e9cd7d207bebff608cb573c3e77fe8ccce0",
+              "size": 326893568
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "996e40a080a3623260fa7506c23ec520ea00fb9b83ca10c454e6971e735a9609",
+              "ftype": "lxd.tar.xz",
+              "path": "focal/20250605/focal-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "a4c8e0f8c618044ff8ec515ecff79479c9152a88939423cb72fa40eb7302ea47",
+              "size": 832
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "focal/20250605/focal-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "bd5d22a31ac9d0a692356a6ff91d9ee37b260382a632539eb1818427b1c875c5",
+              "size": 132333773
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "focal/20250605/focal-server-cloudimg-amd64-root.tar.gz",
+              "sha256": "5d3fd28a6fd73d72da79170d6af7d0180826f25a845250288293938e1ba6b6a1",
+              "size": 133263106
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-focal-daily-amd64-buildd-20250605"
+        },
+        "20250606": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "focal/20250606/focal-server-cloudimg-amd64-disk1.img",
+              "sha256": "55680daa3e15ad04279769379dba781a62f0bb335374e008fa1711f70a973d86",
+              "size": 326893568
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "87d6318c0f87bb61c58a2fe747075ac09b90d31a7179a82e3717539bacad0a4a",
+              "ftype": "lxd.tar.xz",
+              "path": "focal/20250606/focal-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "6fc30f30051d39dc8a4efd3e0ba34bd66eca169e3e1c4280d53571b4b6d80224",
+              "size": 832
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "focal/20250606/focal-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "150f401f8699de6f8c73b9cde927881cf6febe5e4a692de8ebe703bcb51f7666",
+              "size": 132331114
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "focal/20250606/focal-server-cloudimg-amd64-root.tar.gz",
+              "sha256": "e061cb729191ae249414a0e8ab815a9dff644859ce4687c909bc0a7dbddbbe45",
+              "size": 133264739
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-focal-daily-amd64-buildd-20250606"
+        }
+      }
+    },
+    "com.ubuntu.cloud.daily:buildd:20.04:arm64": {
+      "aliases": "20.04,f,focal,core20",
+      "arch": "arm64",
+      "os": "ubuntu",
+      "release": "focal",
+      "release_codename": "Focal Fossa",
+      "release_title": "20.04 LTS",
+      "support_eol": "2025-05-29",
+      "supported": false,
+      "version": "20.04",
+      "versions": {
+        "20250528": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "focal/20250528/focal-server-cloudimg-arm64-disk1.img",
+              "sha256": "9dc0b1e8b4c2e2d133516b363f47337650496ddc6c953b561d24b44c7d89dd32",
+              "size": 305528832
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "2d5b7bce4a786ba0a60cffc0d56116c46f2bcba141116e8fd2a136d0cac6266f",
+              "ftype": "lxd.tar.xz",
+              "path": "focal/20250528/focal-server-cloudimg-arm64-lxd.tar.xz",
+              "sha256": "9ee21f9c41c759178b53e9379d2c2611c479417018f3d625ac615ae0353f3072",
+              "size": 828
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "focal/20250528/focal-server-cloudimg-arm64-lxd_combined.tar.gz",
+              "sha256": "a35172469e875cfee5c9e3a73a08aa5fa08bee505089b2a6073304b51da6097d",
+              "size": 122708815
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "focal/20250528/focal-server-cloudimg-arm64-root.tar.gz",
+              "sha256": "6f4aa8eaac73f9fb1c93307d336ada22d1e9883ab5756544acf9108ff079436f",
+              "size": 123490074
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-focal-daily-arm64-buildd-20250528"
+        },
+        "20250605": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "focal/20250605/focal-server-cloudimg-arm64-disk1.img",
+              "sha256": "fcfa53d6fad10b15210206af5f5c80209851c7bc13fb008c71e7522956631d16",
+              "size": 305594368
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "279d073478dbc4fa65b6f2bffa1860cf4bc26fcc74f5bc87ee1069d665b8d975",
+              "ftype": "lxd.tar.xz",
+              "path": "focal/20250605/focal-server-cloudimg-arm64-lxd.tar.xz",
+              "sha256": "ca2062db635e49aabf52b390ba459e68b58762c91d7d766588e23b6b13f8d100",
+              "size": 824
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "focal/20250605/focal-server-cloudimg-arm64-lxd_combined.tar.gz",
+              "sha256": "1a3f0607d867268c152c32dd19018b9189f695ed05a2f53b3e0f67ffd51e2da9",
+              "size": 122708165
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "focal/20250605/focal-server-cloudimg-arm64-root.tar.gz",
+              "sha256": "f4479c015f7a2b135ddb6a7fe88d3c27aa12667d1fd8a07e48c81f86db2bfa04",
+              "size": 123490989
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-focal-daily-arm64-buildd-20250605"
+        },
+        "20250606": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "focal/20250606/focal-server-cloudimg-arm64-disk1.img",
+              "sha256": "faf189df351d8c29c427aceba65046d09e2cee72941137f0bdcad2bfd0d5426c",
+              "size": 305659904
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "10c82aa4d7414702d34fc83f8076f4a40aa69f27b549b8dd59d8d0beb31feba9",
+              "ftype": "lxd.tar.xz",
+              "path": "focal/20250606/focal-server-cloudimg-arm64-lxd.tar.xz",
+              "sha256": "56c73e593392aad58b07880881da4a76a1d7ff41735fa2aa849c556e3573d3ca",
+              "size": 828
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "focal/20250606/focal-server-cloudimg-arm64-lxd_combined.tar.gz",
+              "sha256": "e7fe2056d1213dda350eca74175b883ffd2a5744b6b9984db29d52c86aa65718",
+              "size": 122708451
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "focal/20250606/focal-server-cloudimg-arm64-root.tar.gz",
+              "sha256": "d985ccea73584ec2072a3092ee654097fc5a2d00ec3b4f9dc3549ae0f7615bca",
+              "size": 123491095
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-focal-daily-arm64-buildd-20250606"
+        }
+      }
+    },
+    "com.ubuntu.cloud.daily:buildd:20.04:riscv64": {
+      "aliases": "20.04,f,focal,core20",
+      "arch": "riscv64",
+      "os": "ubuntu",
+      "release": "focal",
+      "release_codename": "Focal Fossa",
+      "release_title": "20.04 LTS",
+      "support_eol": "2025-05-29",
+      "supported": false,
+      "version": "20.04",
+      "versions": {
+        "20250528": {
+          "items": {
+            "lxd.tar.xz": {
+              "ftype": "lxd.tar.xz",
+              "path": "focal/20250528/focal-server-cloudimg-riscv64-lxd.tar.xz",
+              "sha256": "06659501b9fbefdf51b3e9f6a7177a4eb71fe33bbe0c67bc319a3b4aa46e307b",
+              "size": 828
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "focal/20250528/focal-server-cloudimg-riscv64-lxd_combined.tar.gz",
+              "sha256": "3719ebf80558bd861b47a3c12ce202670cc3f399509e4e43972d387534f96e4a",
+              "size": 118320005
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "focal/20250528/focal-server-cloudimg-riscv64-root.tar.gz",
+              "sha256": "810f97682bd74201f3378ebc53d80f39cab117e6be6e36db4ba9b779be4b49fe",
+              "size": 119162033
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-focal-daily-riscv64-buildd-20250528"
+        },
+        "20250605": {
+          "items": {
+            "lxd.tar.xz": {
+              "ftype": "lxd.tar.xz",
+              "path": "focal/20250605/focal-server-cloudimg-riscv64-lxd.tar.xz",
+              "sha256": "711990f3e35b4dba7d725074b9afabbf996c90357bfb4f66750abe523311afb5",
+              "size": 832
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "focal/20250605/focal-server-cloudimg-riscv64-lxd_combined.tar.gz",
+              "sha256": "8377a2f7dde5b534a00f6722355dcfa1b2e80764f5dbfa988dec2fe5798e5c86",
+              "size": 118321347
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "focal/20250605/focal-server-cloudimg-riscv64-root.tar.gz",
+              "sha256": "446ede39ad8cb2fcee40e6aa11db9a67c9d761f5a3921b468a63c715b32925ea",
+              "size": 119168283
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-focal-daily-riscv64-buildd-20250605"
+        },
+        "20250606": {
+          "items": {
+            "lxd.tar.xz": {
+              "ftype": "lxd.tar.xz",
+              "path": "focal/20250606/focal-server-cloudimg-riscv64-lxd.tar.xz",
+              "sha256": "81871b1983c63a1505b2c4dc76a50ab844ce66a4f2909f26b905f1ab4a1edd1c",
+              "size": 828
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "focal/20250606/focal-server-cloudimg-riscv64-lxd_combined.tar.gz",
+              "sha256": "475596a24b5d5058839db9bc2caa7f6f5f952254614be37a2a10ccd9cd4efed7",
+              "size": 118322327
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "focal/20250606/focal-server-cloudimg-riscv64-root.tar.gz",
+              "sha256": "dcf0821e659a72485c3e9b9f898a93c07ae24115876177fcd197ad072da6fc54",
+              "size": 119167615
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-focal-daily-riscv64-buildd-20250606"
+        }
+      }
+    },
+    "com.ubuntu.cloud.daily:buildd:22.04:amd64": {
+      "aliases": "22.04,j,jammy,core22",
+      "arch": "amd64",
+      "os": "ubuntu",
+      "release": "jammy",
+      "release_codename": "Jammy Jellyfish",
+      "release_title": "22.04 LTS",
+      "support_eol": "2027-06-01",
+      "supported": true,
+      "version": "22.04",
+      "versions": {
+        "20250621": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "jammy/20250621/jammy-server-cloudimg-amd64-disk1.img",
+              "sha256": "2d06e9092ec19fbe3c04402a0c1a53ae7c0b1079b041e5b5988c8febaabe25d3",
+              "size": 383118848
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "02efd08d51188c810e13053eefa914fb4cd9072d3662973d48021ed00ac18a3c",
+              "ftype": "lxd.tar.xz",
+              "path": "jammy/20250621/jammy-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "8465df162c7c83d5c1948f223b52c2cb6801f55abf61f2c3d2ec69aef24dee64",
+              "size": 408
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "jammy/20250621/jammy-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "b30a183187a391e87c7752a4e52724f6cc66ddcc875f8e842d1937680f243d8c",
+              "size": 167360038
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "jammy/20250621/jammy-server-cloudimg-amd64-root.tar.gz",
+              "sha256": "3130fcdda8a0516d415211ffd58e4c21a7989441238b0ab99bb6684c5ed297e3",
+              "size": 168406332
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-jammy-daily-amd64-buildd-20250621"
+        },
+        "20250623": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "jammy/20250623/jammy-server-cloudimg-amd64-disk1.img",
+              "sha256": "fbb867ef273d98e5d4cf7c7daef8ed31ad2bd5d2fd88a3bd42aaf91b9b6f4eeb",
+              "size": 383016448
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "e405a0216731864b490901579ba6e787fbabc96cb66ef8369f96173d5894dd6c",
+              "ftype": "lxd.tar.xz",
+              "path": "jammy/20250623/jammy-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "11b34ba435930a831a2a7a14e29ffa7d49ade6579106f5de708f6f2f0ac0565b",
+              "size": 412
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "jammy/20250623/jammy-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "caee008589e9155ca86fde7c928755e9820b7490aeffb2e1e95bfb1fde288633",
+              "size": 167358496
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "jammy/20250623/jammy-server-cloudimg-amd64-root.tar.gz",
+              "sha256": "8e3e23928a856d621de6a58515399ba457551c648f1a5edb63b80d541b801058",
+              "size": 168403360
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-jammy-daily-amd64-buildd-20250623"
+        },
+        "20250624": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "jammy/20250624/jammy-server-cloudimg-amd64-disk1.img",
+              "sha256": "e8a63b135b069ddad7ace4ca6bad7a291dd20eafc3d64ff84a62dae0a259729d",
+              "size": 383053312
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "036d7f5f7235fb625b497c82bbd4bfd165239ce40ae2733e4618ed9c642097e4",
+              "ftype": "lxd.tar.xz",
+              "path": "jammy/20250624/jammy-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "8fc09828ab053d94e0e7474c4ac8c70d36da22efa4414e9b22ded3a9a4e73ea9",
+              "size": 412
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "jammy/20250624/jammy-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "76a28e823196b3cbe4780c839b589c465ac22edd98a5ea76176550ab7cb3102d",
+              "size": 167353768
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "jammy/20250624/jammy-server-cloudimg-amd64-root.tar.gz",
+              "sha256": "773cf503521e46c5fa591126a0ec78a4e1b2dc6f7833c38e1b61da2c0dd04b78",
+              "size": 168404254
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-jammy-daily-amd64-buildd-20250624"
+        },
+        "20250701": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "jammy/20250701/jammy-server-cloudimg-amd64-disk1.img",
+              "sha256": "7325f42add84630df1d47fcf6399acfc7e0897b368be66a0fb9f14ec925cd321",
+              "size": 382987776
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "97b7d9fcd11f09ec29b73ba8508317338a059eb1569f000781543a4b433dd502",
+              "ftype": "lxd.tar.xz",
+              "path": "jammy/20250701/jammy-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "4aa0847ab43c00d60d76df014d06085c6aa32ea49397865c141a2880dbe4b8eb",
+              "size": 412
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "jammy/20250701/jammy-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "5fa21a361ebfd69212277f49ede0a901ef539c42838b0d550bb65140f7221780",
+              "size": 167359389
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "jammy/20250701/jammy-server-cloudimg-amd64-root.tar.gz",
+              "sha256": "a7e07ae3cabe75a1d34877675479e88a01ebf0a1adf68d3891c0c3f6abf19ad5",
+              "size": 168407228
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-jammy-daily-amd64-buildd-20250701"
+        }
+      }
+    },
+    "com.ubuntu.cloud.daily:buildd:22.04:arm64": {
+      "aliases": "22.04,j,jammy,core22",
+      "arch": "arm64",
+      "os": "ubuntu",
+      "release": "jammy",
+      "release_codename": "Jammy Jellyfish",
+      "release_title": "22.04 LTS",
+      "support_eol": "2027-06-01",
+      "supported": true,
+      "version": "22.04",
+      "versions": {
+        "20250623": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "jammy/20250623/jammy-server-cloudimg-arm64-disk1.img",
+              "sha256": "1e7760678a6800075a65419ded28d1fb070723f9b032f85f0b1833bc92b8809c",
+              "size": 366088704
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "291dca431b9041c0446d189d6ad64332b2cda6bfa659adea5eaf65e1ddf6b087",
+              "ftype": "lxd.tar.xz",
+              "path": "jammy/20250623/jammy-server-cloudimg-arm64-lxd.tar.xz",
+              "sha256": "4a8434a9f1e7fcf25681be8a0d15c5fcf44c76b773de9c367fb62b051a73d594",
+              "size": 408
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "jammy/20250623/jammy-server-cloudimg-arm64-lxd_combined.tar.gz",
+              "sha256": "5e64741ffd349114ee9e36bdd72e1274a11cd77224f88131b95d3c4b6b9c2303",
+              "size": 159905650
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "jammy/20250623/jammy-server-cloudimg-arm64-root.tar.gz",
+              "sha256": "2e4ba32ffa5541b17d6c9607b1b767054f0363cc9c0be7174a7a0b2b6b9ff102",
+              "size": 160846986
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-jammy-daily-arm64-buildd-20250623"
+        },
+        "20250624": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "jammy/20250624/jammy-server-cloudimg-arm64-disk1.img",
+              "sha256": "88b496a9df3d1caeb6086bcb3c5d0946debaecf51226de0afa675bd12f2d624f",
+              "size": 366154240
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "d5dfb52b2e4e99bf45707d7137cb327c4f54321b027cacda8d461526df391d9d",
+              "ftype": "lxd.tar.xz",
+              "path": "jammy/20250624/jammy-server-cloudimg-arm64-lxd.tar.xz",
+              "sha256": "543358d6bf29180a851395a8efcce2c8220e976d344ee53cac77f27481450e26",
+              "size": 412
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "jammy/20250624/jammy-server-cloudimg-arm64-lxd_combined.tar.gz",
+              "sha256": "8bf19eca9f5afd228f56b4a37fda1c6f712170f390b15275fab94f2499ee90f9",
+              "size": 159906957
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "jammy/20250624/jammy-server-cloudimg-arm64-root.tar.gz",
+              "sha256": "7708b54bbf333883ba44eb6e7968f309ef47fbb0ccbd78c8dc56668bc147df69",
+              "size": 160848827
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-jammy-daily-arm64-buildd-20250624"
+        },
+        "20250701": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "jammy/20250701/jammy-server-cloudimg-arm64-disk1.img",
+              "sha256": "f9a191088afe97bc50ac00fba8d2abb73ac78c2cd2a47946d1eacd4927595b98",
+              "size": 366346240
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "4a0f2fe76db67add98426d474050fed5e8fae23d5726d603506ac45e1369e7d0",
+              "ftype": "lxd.tar.xz",
+              "path": "jammy/20250701/jammy-server-cloudimg-arm64-lxd.tar.xz",
+              "sha256": "3c5ca747d80abeacd49680333dd13b471e42a14742c41f3fa3f4a12cc9850f7e",
+              "size": 412
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "jammy/20250701/jammy-server-cloudimg-arm64-lxd_combined.tar.gz",
+              "sha256": "b3b43ca83744d82704be440fd662025437a04df384c7bd7c7476f8ac53ccd0c5",
+              "size": 159912342
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "jammy/20250701/jammy-server-cloudimg-arm64-root.tar.gz",
+              "sha256": "9689e1cbe321684a722ee94cb4fcef924cdf8675270daa7c51462c41e6857b0a",
+              "size": 160844851
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-jammy-daily-arm64-buildd-20250701"
+        }
+      }
+    },
+    "com.ubuntu.cloud.daily:buildd:22.04:riscv64": {
+      "aliases": "22.04,j,jammy,core22",
+      "arch": "riscv64",
+      "os": "ubuntu",
+      "release": "jammy",
+      "release_codename": "Jammy Jellyfish",
+      "release_title": "22.04 LTS",
+      "support_eol": "2027-06-01",
+      "supported": true,
+      "version": "22.04",
+      "versions": {
+        "20250623": {
+          "items": {
+            "lxd.tar.xz": {
+              "ftype": "lxd.tar.xz",
+              "path": "jammy/20250623/jammy-server-cloudimg-riscv64-lxd.tar.xz",
+              "sha256": "92595bf10b02ef1b11b6edf6fc4032696b58795ac4dc76a7178d313a6b50ae8c",
+              "size": 412
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "jammy/20250623/jammy-server-cloudimg-riscv64-lxd_combined.tar.gz",
+              "sha256": "33da64cfe7aa886980cae32a50a013679a087926c54e424d249801c1d15ce605",
+              "size": 147078557
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "jammy/20250623/jammy-server-cloudimg-riscv64-root.tar.gz",
+              "sha256": "d5151fb18dd60bd03976fc2017bcd48dc1a988a2d3fe8466510238695530f8da",
+              "size": 148030763
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-jammy-daily-riscv64-buildd-20250623"
+        },
+        "20250624": {
+          "items": {
+            "lxd.tar.xz": {
+              "ftype": "lxd.tar.xz",
+              "path": "jammy/20250624/jammy-server-cloudimg-riscv64-lxd.tar.xz",
+              "sha256": "9df9299a7dc8eba38597a4c552aac891701a4db6d3cd33426754a567e6d0404d",
+              "size": 412
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "jammy/20250624/jammy-server-cloudimg-riscv64-lxd_combined.tar.gz",
+              "sha256": "7e11579e8dba695cc1588668df275f327b7ad9753ab89030c03ed331cbd0b4bc",
+              "size": 147077185
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "jammy/20250624/jammy-server-cloudimg-riscv64-root.tar.gz",
+              "sha256": "d4c064eac430b6694a300041ed0ed4299c4dd09dbb1c6306679bc43f969bdb5d",
+              "size": 148032882
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-jammy-daily-riscv64-buildd-20250624"
+        },
+        "20250701": {
+          "items": {
+            "lxd.tar.xz": {
+              "ftype": "lxd.tar.xz",
+              "path": "jammy/20250701/jammy-server-cloudimg-riscv64-lxd.tar.xz",
+              "sha256": "355d05a6eb1d32856a65eb2f087b18480d6a2b50b49c34b9c6488b9f990bfe52",
+              "size": 412
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "jammy/20250701/jammy-server-cloudimg-riscv64-lxd_combined.tar.gz",
+              "sha256": "c9593a53f50879bdd56048e11ad1f86d5dc0e63d384923c5635515a8d97e7be0",
+              "size": 147083703
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "jammy/20250701/jammy-server-cloudimg-riscv64-root.tar.gz",
+              "sha256": "0906d0e775723949306a596d74cface9b25d92e05cccc9546071a19f6c1d589f",
+              "size": 148029367
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-jammy-daily-riscv64-buildd-20250701"
+        }
+      }
+    },
+    "com.ubuntu.cloud.daily:buildd:22.10:amd64": {
+      "aliases": "22.10,k,kinetic",
+      "arch": "amd64",
+      "os": "ubuntu",
+      "release": "kinetic",
+      "release_codename": "Kinetic Kudu",
+      "release_title": "22.10",
+      "support_eol": "2023-07-20",
+      "supported": false,
+      "version": "22.10",
+      "versions": {
+        "20230721": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "kinetic/20230721/kinetic-server-cloudimg-amd64-disk1.img",
+              "sha256": "c79270437b357d75ecd9d5e8f3f74b558dc1a16b2672485f768dc26222d2fed3",
+              "size": 404619264
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "60fcad2b488927a766b1d12d8881b7050ae47e21def9817b19126dffd763e8e2",
+              "ftype": "lxd.tar.xz",
+              "path": "kinetic/20230721/kinetic-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "ca11e45750a789bc2f84d6e79244876fc0dad71c7ebaf94142c53a107ddf06f4",
+              "size": 404
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "kinetic/20230721/kinetic-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "8958943b77bb040de86c754dcfd64bb2486971efcbca87007aa62911dcbeb234",
+              "size": 175710916
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "kinetic/20230721/kinetic-server-cloudimg-amd64-root.tar.gz",
+              "sha256": "e223f13e35fb62c990a83bd0297f326783f7c7c7e44f060ee75b602b0aed1184",
+              "size": 176849872
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-kinetic-daily-amd64-buildd-20230721"
+        }
+      }
+    },
+    "com.ubuntu.cloud.daily:buildd:22.10:arm64": {
+      "aliases": "22.10,k,kinetic",
+      "arch": "arm64",
+      "os": "ubuntu",
+      "release": "kinetic",
+      "release_codename": "Kinetic Kudu",
+      "release_title": "22.10",
+      "support_eol": "2023-07-20",
+      "supported": false,
+      "version": "22.10",
+      "versions": {
+        "20230721": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "kinetic/20230721/kinetic-server-cloudimg-arm64-disk1.img",
+              "sha256": "488c9afb6f9682c81ea8401d7ce83ea233922ed4a40a62d09d4865d568ecfcdd",
+              "size": 388235264
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "c95e8c8cf7e40961469c32f2f57dcbe6fbe6b50bb63f30748e43d7a9b9f1576e",
+              "ftype": "lxd.tar.xz",
+              "path": "kinetic/20230721/kinetic-server-cloudimg-arm64-lxd.tar.xz",
+              "sha256": "65f03924a82f8c146af0ecd4c84bd235d1e539b547c1735b423d6f5593e79d90",
+              "size": 408
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "kinetic/20230721/kinetic-server-cloudimg-arm64-lxd_combined.tar.gz",
+              "sha256": "baf3d428e947c6e0486062a419a7326fffe28040c6ceaa79ea1d9e824709bfe4",
+              "size": 165420956
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "kinetic/20230721/kinetic-server-cloudimg-arm64-root.tar.gz",
+              "sha256": "83715566ff9f0d4ac30d371e9f59824a5566ccb852dfb5275af71a9a470e124c",
+              "size": 166404907
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-kinetic-daily-arm64-buildd-20230721"
+        }
+      }
+    },
+    "com.ubuntu.cloud.daily:buildd:22.10:riscv64": {
+      "aliases": "22.10,k,kinetic",
+      "arch": "riscv64",
+      "os": "ubuntu",
+      "release": "kinetic",
+      "release_codename": "Kinetic Kudu",
+      "release_title": "22.10",
+      "support_eol": "2023-07-20",
+      "supported": false,
+      "version": "22.10",
+      "versions": {
+        "20230721": {
+          "items": {
+            "lxd.tar.xz": {
+              "ftype": "lxd.tar.xz",
+              "path": "kinetic/20230721/kinetic-server-cloudimg-riscv64-lxd.tar.xz",
+              "sha256": "47f70b58612b85325b67cb32f2642189a3a23086cbe470dbc55f8847df7b75e0",
+              "size": 408
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "kinetic/20230721/kinetic-server-cloudimg-riscv64-lxd_combined.tar.gz",
+              "sha256": "dfea7db30bf9055b0b5376c551b46a926e1399d4d6d30aa96b3b664c929d955b",
+              "size": 151270997
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "kinetic/20230721/kinetic-server-cloudimg-riscv64-root.tar.gz",
+              "sha256": "a19e8b7892eb4aec491a3a3a61ef5b5ea3275e3d3071de71e766383563799604",
+              "size": 152269150
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-kinetic-daily-riscv64-buildd-20230721"
+        }
+      }
+    },
+    "com.ubuntu.cloud.daily:buildd:23.04:amd64": {
+      "aliases": "23.04,l,lunar",
+      "arch": "amd64",
+      "os": "ubuntu",
+      "release": "lunar",
+      "release_codename": "Lunar Lobster",
+      "release_title": "23.04",
+      "support_eol": "2024-01-25",
+      "supported": false,
+      "version": "23.04",
+      "versions": {
+        "20240123": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "lunar/20240123/lunar-server-cloudimg-amd64-disk1.img",
+              "sha256": "ad1e1305ea822e9a299af08c7786c61c6b314389b40d866e01065d0a37ee80ca",
+              "size": 400228352
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "004b29cd6711716c1ed8a65abbeaa844311dcf00779d26adaeecb7ef7136c51f",
+              "ftype": "lxd.tar.xz",
+              "path": "lunar/20240123/lunar-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "0146214282d5807d1c8b74b36764161aa34257bf3b08771d8a142facfadfd75b",
+              "size": 404
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "lunar/20240123/lunar-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "c389889ea653c6baf71808aa16506f01a285322ed982df03ceeff6969584c7c0",
+              "size": 178161242
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "lunar/20240123/lunar-server-cloudimg-amd64-root.tar.gz",
+              "sha256": "5001f65371fa2d63f3de1a4ffa6f10ce1d74cae932cc2cefbc492cd1d109c269",
+              "size": 179353854
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-lunar-daily-amd64-buildd-20240123"
+        }
+      }
+    },
+    "com.ubuntu.cloud.daily:buildd:24.04:amd64": {
+      "aliases": "24.04,n,noble,lts,default,core24",
+      "arch": "amd64",
+      "os": "ubuntu",
+      "release": "noble",
+      "release_codename": "Noble Numbat",
+      "release_title": "24.04 LTS",
+      "support_eol": "2029-05-31",
+      "supported": true,
+      "version": "24.04",
+      "versions": {
+        "20250623": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "noble/20250623/noble-server-cloudimg-amd64-disk1.img",
+              "sha256": "eff282e9120483676fdd4e73739a3f41bdc2ef9251bf9289153f5f59a1697f57",
+              "size": 396428800
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "53be3d1b3f279f68647ad8208909a565bbeeeeff4e46901102135500153d5cff",
+              "ftype": "lxd.tar.xz",
+              "path": "noble/20250623/noble-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "15e78b5d3d5ce617ee6a98bdaa6959c9bde4b5a81b58b4a668e85d4ef4144898",
+              "size": 408
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "noble/20250623/noble-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "238a2c1a7667b810c013357b0f65cdc6fb8f1dac27c1f0ffa34c06f1e79f8c6e",
+              "size": 187589819
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "noble/20250623/noble-server-cloudimg-amd64-root.tar.gz",
+              "sha256": "48698269256d5ece45b3725c8e03780fb9c6b64975ba5c9f2fc6c93f05265582",
+              "size": 188837471
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-noble-daily-amd64-buildd-20250623"
+        },
+        "20250624": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "noble/20250624/noble-server-cloudimg-amd64-disk1.img",
+              "sha256": "a806e4867a2378bedfa510313a7a5ba2185230154fa9762e2fec965a54cfde3f",
+              "size": 396625408
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "b48f64f5e7aa90133607458e54d6bd117477fa9648d0e5f93c5a4fe840ce7c47",
+              "ftype": "lxd.tar.xz",
+              "path": "noble/20250624/noble-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "6bd6dbbd83512e91a4935a420d3449ca9297e2e994da376acc02595e31036ac8",
+              "size": 412
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "noble/20250624/noble-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "7c0f5062717ef4121819d6d30ad4174cd90fb7cb3b956de6c9a5ebad6b8642a4",
+              "size": 187583149
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "noble/20250624/noble-server-cloudimg-amd64-root.tar.gz",
+              "sha256": "571694acd3ea939e171f12c0b52b4b476fe8de24e68e15a773a951dce2003c2b",
+              "size": 188840954
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-noble-daily-amd64-buildd-20250624"
+        },
+        "20250629": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "noble/20250629/noble-server-cloudimg-amd64-disk1.img",
+              "sha256": "99bc58f85cd18e846ce666a29adda2612d6c7a902f6013108bb627fdf2e2adbf",
+              "size": 396625408
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "bfc3fa3ba9556770400f5dff951e45f38f19138d0f6f9066f2c1d44ba96e0408",
+              "ftype": "lxd.tar.xz",
+              "path": "noble/20250629/noble-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "460e339d0a9f5f5b62924324dc2565895665bf0f9bd12cb18698b39b95db296f",
+              "size": 408
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "noble/20250629/noble-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "91a855f42836e3438b3ef4eecd0178cbc5efa96f2979f69e73e19625f817a38e",
+              "size": 187584914
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "noble/20250629/noble-server-cloudimg-amd64-root.tar.gz",
+              "sha256": "edc352da11c6ba81914abbbdb4bcafeb3158d7aeead8c5ca74950f131273468c",
+              "size": 188844273
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-noble-daily-amd64-buildd-20250629"
+        }
+      }
+    },
+    "com.ubuntu.cloud.daily:buildd:24.04:arm64": {
+      "aliases": "24.04,n,noble,lts,default,core24",
+      "arch": "arm64",
+      "os": "ubuntu",
+      "release": "noble",
+      "release_codename": "Noble Numbat",
+      "release_title": "24.04 LTS",
+      "support_eol": "2029-05-31",
+      "supported": true,
+      "version": "24.04",
+      "versions": {
+        "20250623": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "noble/20250623/noble-server-cloudimg-arm64-disk1.img",
+              "sha256": "e7e64a21bd8e8b0e8b65af385a1476569aea74feb485a0f09568aa02c8ff45a9",
+              "size": 382408192
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "94c55df1aec49f760f0169bcbe26c4f24ce477a3b4575ce0b9894c642465ee6a",
+              "ftype": "lxd.tar.xz",
+              "path": "noble/20250623/noble-server-cloudimg-arm64-lxd.tar.xz",
+              "sha256": "ec72063998f5e300de73dcb35ef4704ebdfd7b06341d67221b35dc378c6a79bb",
+              "size": 408
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "noble/20250623/noble-server-cloudimg-arm64-lxd_combined.tar.gz",
+              "sha256": "3c2ce63f60cb8afa41a7d70a66dd8d4d6d61c1dbf1b6e1d8c0a1ce0e8aeb7edc",
+              "size": 181348316
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "noble/20250623/noble-server-cloudimg-arm64-root.tar.gz",
+              "sha256": "086980dd45bb8525c395e429f3ab448aa9cd8963569dc53d71595fab58502497",
+              "size": 182424269
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-noble-daily-arm64-buildd-20250623"
+        },
+        "20250624": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "noble/20250624/noble-server-cloudimg-arm64-disk1.img",
+              "sha256": "8af08bf7f082bfbcca717776f8659dd851e8ac6d0fd94ef0fc603aa3a880f5c6",
+              "size": 382664704
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "0ca95f51bf251d909e2a75fc0125391add35f49fb46990c79bdcc86fd7a462a3",
+              "ftype": "lxd.tar.xz",
+              "path": "noble/20250624/noble-server-cloudimg-arm64-lxd.tar.xz",
+              "sha256": "bfaa0f26c2ea4e003b9e3cdffcfd0f7fe98ca627ffdf1756a87283a307c1c8c2",
+              "size": 408
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "noble/20250624/noble-server-cloudimg-arm64-lxd_combined.tar.gz",
+              "sha256": "9a12b1ffd16f96917252dc58d7e8ac91f0ccf49e76fff3278960d0f3711e82ab",
+              "size": 181347531
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "noble/20250624/noble-server-cloudimg-arm64-root.tar.gz",
+              "sha256": "4e4e43095629d7d656e691a5f0fb435096505f108ac9e891fdce30ca426d38d0",
+              "size": 182422976
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-noble-daily-arm64-buildd-20250624"
+        },
+        "20250629": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "noble/20250629/noble-server-cloudimg-arm64-disk1.img",
+              "sha256": "f9862a1ea268bb9add5520711c3b83a9040b0a8ca0953c544e7b498bc9dfbb56",
+              "size": 382664704
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "854b5168a2fcb877800e0397fdeb16ed5a9b0ddcfe9f361d34ab97928e330f3d",
+              "ftype": "lxd.tar.xz",
+              "path": "noble/20250629/noble-server-cloudimg-arm64-lxd.tar.xz",
+              "sha256": "601851e6cb3f7ed31ad7c0f2918e7c527e87bef53ffce711d239131365236a7b",
+              "size": 412
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "noble/20250629/noble-server-cloudimg-arm64-lxd_combined.tar.gz",
+              "sha256": "f209ea228d8d89ebabaf76b1b22b6b0c9ffb312b01f072a13c08133d3aa371ad",
+              "size": 181338605
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "noble/20250629/noble-server-cloudimg-arm64-root.tar.gz",
+              "sha256": "0555cf73ca4d65c2bf773300e0ee0bc5ae0f871302ef8306717fc7cedc8a0a93",
+              "size": 182425044
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-noble-daily-arm64-buildd-20250629"
+        }
+      }
+    },
+    "com.ubuntu.cloud.daily:buildd:24.04:riscv64": {
+      "aliases": "24.04,n,noble,lts,default,core24",
+      "arch": "riscv64",
+      "os": "ubuntu",
+      "release": "noble",
+      "release_codename": "Noble Numbat",
+      "release_title": "24.04 LTS",
+      "support_eol": "2029-05-31",
+      "supported": true,
+      "version": "24.04",
+      "versions": {
+        "20250623": {
+          "items": {
+            "lxd.tar.xz": {
+              "ftype": "lxd.tar.xz",
+              "path": "noble/20250623/noble-server-cloudimg-riscv64-lxd.tar.xz",
+              "sha256": "c17919be3dfa9b8b61259fffc8ee234370ef5039bb796d4ca80b745446daa54e",
+              "size": 412
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "noble/20250623/noble-server-cloudimg-riscv64-lxd_combined.tar.gz",
+              "sha256": "0c0edbe93cde20a41aff1a1304110a5222d0a631cad79e6979058be3cf5a0e8c",
+              "size": 178109091
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "noble/20250623/noble-server-cloudimg-riscv64-root.tar.gz",
+              "sha256": "74c9c033d838c2c4ae2d9bd40a5eb0711f81ab39efb8d9029a1b4552ffc7322f",
+              "size": 179315658
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-noble-daily-riscv64-buildd-20250623"
+        },
+        "20250624": {
+          "items": {
+            "lxd.tar.xz": {
+              "ftype": "lxd.tar.xz",
+              "path": "noble/20250624/noble-server-cloudimg-riscv64-lxd.tar.xz",
+              "sha256": "a9e65005b6be804fb453b430931e5adae6e106d0c9892d1bf8d0f87e59c9d347",
+              "size": 412
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "noble/20250624/noble-server-cloudimg-riscv64-lxd_combined.tar.gz",
+              "sha256": "ddc1e3eea7cd22cfbd91479f85014953c23d67b0a2519973add7e800c3721002",
+              "size": 178109281
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "noble/20250624/noble-server-cloudimg-riscv64-root.tar.gz",
+              "sha256": "089e82ff26add23ce0d69a067a98ae9a4583f029d9670da3e2e50f71fedb1829",
+              "size": 179310040
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-noble-daily-riscv64-buildd-20250624"
+        },
+        "20250629": {
+          "items": {
+            "lxd.tar.xz": {
+              "ftype": "lxd.tar.xz",
+              "path": "noble/20250629/noble-server-cloudimg-riscv64-lxd.tar.xz",
+              "sha256": "0a1339b5425e01fc115e4e0314ea561436d42af44d979e55c8a4c4ced4e01cbe",
+              "size": 412
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "noble/20250629/noble-server-cloudimg-riscv64-lxd_combined.tar.gz",
+              "sha256": "e9cbb91883605034a116675531393b16eecd99a4089454af85ba17075a4ce3a3",
+              "size": 178104552
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "noble/20250629/noble-server-cloudimg-riscv64-root.tar.gz",
+              "sha256": "5c782a831f5735168ce00076c4cfb215cf864df1a13735ffa95f8534509a19ef",
+              "size": 179312497
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-noble-daily-riscv64-buildd-20250629"
+        }
+      }
+    },
+    "com.ubuntu.cloud.daily:buildd:25.04:amd64": {
+      "aliases": "25.04,p,plucky",
+      "arch": "amd64",
+      "os": "ubuntu",
+      "release": "plucky",
+      "release_codename": "Plucky Puffin",
+      "release_title": "25.04",
+      "support_eol": "2026-01-15",
+      "supported": true,
+      "version": "25.04",
+      "versions": {
+        "20250623": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "plucky/20250623/plucky-server-cloudimg-amd64-disk1.img",
+              "sha256": "2930dbdeb72a40bf31793554c92f8f3377a0359a3a371110d0ef0719a234bdbe",
+              "size": 420353536
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "f9e087cb53ed4d5707cbe378a6a23a174d8e953cf597e8f92763c09fe27bb089",
+              "ftype": "lxd.tar.xz",
+              "path": "plucky/20250623/plucky-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "b117cfc97c7cfafaaa1769226810e2af4374102a84314e4fe59d42d983e33ac7",
+              "size": 408
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "plucky/20250623/plucky-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "685a4c9cab5b47ba7ce256f48a1f028ae7953586f02cfdd50813ab0938c7c484",
+              "size": 195891021
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "plucky/20250623/plucky-server-cloudimg-amd64-root.tar.gz",
+              "sha256": "b00f8fc26cd492058f1a51b9a8e8082e479540e8820e4946427396b3d8ec0873",
+              "size": 197306901
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-plucky-daily-amd64-buildd-20250623"
+        },
+        "20250624": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "plucky/20250624/plucky-server-cloudimg-amd64-disk1.img",
+              "sha256": "da4c0a759e6bed72e392aabaaf6c60d4f4607b6da621f95689a38ee01cd23cce",
+              "size": 420362752
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "6579101e2bcf85078e993b1a82bc3050f04c23b0db769a5c9d49f635bbd92373",
+              "ftype": "lxd.tar.xz",
+              "path": "plucky/20250624/plucky-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "c52d05cdf3ad95ba57ff3080e4ef16ac59a58c75324eb4c7f4995e5f34beb3ac",
+              "size": 404
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "plucky/20250624/plucky-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "ceb4c4463297e12da5df12f085a68974119e8346c0d580d808aea59ee9f7a5a1",
+              "size": 195977093
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "plucky/20250624/plucky-server-cloudimg-amd64-root.tar.gz",
+              "sha256": "daae74898a02dd7665286da57490aafc1d65633d86f78f019541745bd6e49acb",
+              "size": 197395634
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-plucky-daily-amd64-buildd-20250624"
+        },
+        "20250630": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "plucky/20250630/plucky-server-cloudimg-amd64-disk1.img",
+              "sha256": "3ffbce4b515148582ed5bf91e52337c8cf42ed3d7c4b1d6323e51cd7844622b3",
+              "size": 420318208
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "c9e6c76f65af02cff8519b4330d66c5ab791e33c0a7a0e78ba0d6853c0c2e1fc",
+              "ftype": "lxd.tar.xz",
+              "path": "plucky/20250630/plucky-server-cloudimg-amd64-lxd.tar.xz",
+              "sha256": "d7028d263229aee6a26938101e3645d9772d1d684031a70da5887a990784cc19",
+              "size": 404
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "plucky/20250630/plucky-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "5e56d63159389004853b1b3bd81148a5875d61f5651cab7bcde54b475b1b6830",
+              "size": 196024312
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "plucky/20250630/plucky-server-cloudimg-amd64-root.tar.gz",
+              "sha256": "3c946ce25598434d0c3f9e8873fcb275ca33784512291db678a730cb86f98f6f",
+              "size": 197435099
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-plucky-daily-amd64-buildd-20250630"
+        }
+      }
+    },
+    "com.ubuntu.cloud.daily:buildd:25.04:arm64": {
+      "aliases": "25.04,p,plucky",
+      "arch": "arm64",
+      "os": "ubuntu",
+      "release": "plucky",
+      "release_codename": "Plucky Puffin",
+      "release_title": "25.04",
+      "support_eol": "2026-01-15",
+      "supported": true,
+      "version": "25.04",
+      "versions": {
+        "20250623": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "plucky/20250623/plucky-server-cloudimg-arm64-disk1.img",
+              "sha256": "72b0adcd5b7ff3f63733cf07f1b5c91990d3da30b38921a7a40990d9fbdada4a",
+              "size": 404905984
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "25a1af3235597edfacb8b2b7e4cc954add18f244f92243c06fe12fb6a27ba0a4",
+              "ftype": "lxd.tar.xz",
+              "path": "plucky/20250623/plucky-server-cloudimg-arm64-lxd.tar.xz",
+              "sha256": "b2e1bd6e87b112b04fe112283dae7010cb7c19d2621937bd63355ac9237c21e3",
+              "size": 408
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "plucky/20250623/plucky-server-cloudimg-arm64-lxd_combined.tar.gz",
+              "sha256": "1e36e52459c293de8ed791eb464191fb1a58c81825066679fad02ced8d388de0",
+              "size": 185955667
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "plucky/20250623/plucky-server-cloudimg-arm64-root.tar.gz",
+              "sha256": "027c1a253b3459f8a20fbe26196674f4fbd1c7e6ee177bb57748020660e149aa",
+              "size": 187199353
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-plucky-daily-arm64-buildd-20250623"
+        },
+        "20250624": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "plucky/20250624/plucky-server-cloudimg-arm64-disk1.img",
+              "sha256": "863e4ae64ae6c5fb5af74013385721e048215b7542cdf28ea229914f3cf4f7ae",
+              "size": 405033984
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "87b0b9c3f67252b808b3b47a96d0871abbd5d742219c26710238ab07ad7295fd",
+              "ftype": "lxd.tar.xz",
+              "path": "plucky/20250624/plucky-server-cloudimg-arm64-lxd.tar.xz",
+              "sha256": "2e3c19c863414e031135fdba18415d11dddcd12f4a6eb0423420c69a1afa6d22",
+              "size": 408
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "plucky/20250624/plucky-server-cloudimg-arm64-lxd_combined.tar.gz",
+              "sha256": "1a1fe8fbf102bf9ca8d30417573702fa02c0f7331ac0cce04bb84c17ea193379",
+              "size": 186049098
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "plucky/20250624/plucky-server-cloudimg-arm64-root.tar.gz",
+              "sha256": "c54263c7848713b3bad8fc079be3ed1a231a7b4f8e7521f77a590e85a3a6c3a3",
+              "size": 187290950
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-plucky-daily-arm64-buildd-20250624"
+        },
+        "20250630": {
+          "items": {
+            "disk1.img": {
+              "ftype": "disk1.img",
+              "path": "plucky/20250630/plucky-server-cloudimg-arm64-disk1.img",
+              "sha256": "ff71b332e5867ba5799a4e12db0f3e67423fe432b86c8597a2d141026feada0f",
+              "size": 405004288
+            },
+            "lxd.tar.xz": {
+              "combined_disk1-img_sha256": "c455e3e2306e20695d134eeff5b9cbcaed3e2aa72d0a5a81db60afd1b45cafd1",
+              "ftype": "lxd.tar.xz",
+              "path": "plucky/20250630/plucky-server-cloudimg-arm64-lxd.tar.xz",
+              "sha256": "05e3281e38a9e43c8b6ec48dcf7be2dd8b9929daff443578bd9cef8fe3405ab3",
+              "size": 408
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "plucky/20250630/plucky-server-cloudimg-arm64-lxd_combined.tar.gz",
+              "sha256": "0e4fec2d227136eba5212884fab14ba1b8585b88f43e93ceeb21ff861da1c19c",
+              "size": 186073934
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "plucky/20250630/plucky-server-cloudimg-arm64-root.tar.gz",
+              "sha256": "929ca715e5667afa7fdbf85ed93af8e81f25d3cb6ee5080da45b73f6e7dea561",
+              "size": 187330008
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-plucky-daily-arm64-buildd-20250630"
+        }
+      }
+    },
+    "com.ubuntu.cloud.daily:buildd:25.04:riscv64": {
+      "aliases": "25.04,p,plucky",
+      "arch": "riscv64",
+      "os": "ubuntu",
+      "release": "plucky",
+      "release_codename": "Plucky Puffin",
+      "release_title": "25.04",
+      "support_eol": "2026-01-15",
+      "supported": true,
+      "version": "25.04",
+      "versions": {
+        "20250623": {
+          "items": {
+            "lxd.tar.xz": {
+              "ftype": "lxd.tar.xz",
+              "path": "plucky/20250623/plucky-server-cloudimg-riscv64-lxd.tar.xz",
+              "sha256": "750db1aee8ba88f3cf57f6008b0778f464cc687d0349ea1f3497698b21216497",
+              "size": 408
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "plucky/20250623/plucky-server-cloudimg-riscv64-lxd_combined.tar.gz",
+              "sha256": "ef8998edb89d8c1b78263565eaf01c5b1d249ff982988ba260e51114f6fb4217",
+              "size": 222209008
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "plucky/20250623/plucky-server-cloudimg-riscv64-root.tar.gz",
+              "sha256": "115a61773c427e347de895307974f691b908abac791ea839fbfad8b521e8aa3a",
+              "size": 224112473
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-plucky-daily-riscv64-buildd-20250623"
+        },
+        "20250624": {
+          "items": {
+            "lxd.tar.xz": {
+              "ftype": "lxd.tar.xz",
+              "path": "plucky/20250624/plucky-server-cloudimg-riscv64-lxd.tar.xz",
+              "sha256": "a1340976146b27c3009c698d65348ce461eb2e7f9fb5f80f72a5224094422cb8",
+              "size": 408
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "plucky/20250624/plucky-server-cloudimg-riscv64-lxd_combined.tar.gz",
+              "sha256": "bf2923a42ef5a374add151c3f1abb3567cda3d423aaf2f4573972276b1c114f8",
+              "size": 222293909
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "plucky/20250624/plucky-server-cloudimg-riscv64-root.tar.gz",
+              "sha256": "6b6904f6e5325af94681cf80e198945873637eb5dbd5e5af3d6e6fc7480e238e",
+              "size": 224197621
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-plucky-daily-riscv64-buildd-20250624"
+        },
+        "20250630": {
+          "items": {
+            "lxd.tar.xz": {
+              "ftype": "lxd.tar.xz",
+              "path": "plucky/20250630/plucky-server-cloudimg-riscv64-lxd.tar.xz",
+              "sha256": "e16795de86c3669b805efed644048705953d4cb1d55ff785de01d30a0eaa53bd",
+              "size": 412
+            },
+            "lxd_combined.tar.gz": {
+              "ftype": "lxd_combined.tar.gz",
+              "path": "plucky/20250630/plucky-server-cloudimg-riscv64-lxd_combined.tar.gz",
+              "sha256": "ca4fae51a32eabf6fe3023ea060350c06ffc1851ad613cb5255023b5fb368ef2",
+              "size": 222314417
+            },
+            "root.tar.gz": {
+              "ftype": "root.tar.gz",
+              "path": "plucky/20250630/plucky-server-cloudimg-riscv64-root.tar.gz",
+              "sha256": "3acdee826686a1c9d76381db07db459e84c2427365d049b2733531e95d7b8360",
+              "size": 224223943
+            }
+          },
+          "label": "buildd daily",
+          "pubname": "ubuntu-plucky-daily-riscv64-buildd-20250630"
+        }
+      }
+    }
+  },
+  "updated": "Thu, 31 Jul 2025 00:01:49 +0000"
+}

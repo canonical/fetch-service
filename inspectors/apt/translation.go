@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -87,7 +87,7 @@ func AptTranslationDetector(raw []byte, limit uint32) bool {
 	for _, k := range expected_fields {
 		_, ok := fields[k]
 		if !ok {
-			logger.Debugf("expected field %q not found", k)
+			logger.Debugf("apt translation detector: expected field %q not found", k)
 			return false // we don't recognize this file
 		}
 	}
@@ -115,7 +115,9 @@ func (ins *AptTranslationInspector) InspectRequest(a RequestArtifact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	if info, err := apt_cfg.NewTranslationUrlInfo(u, &ins.config); err == nil {
+	slog := a.Logger()
+
+	if info, err := apt_cfg.NewTranslationUrlInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for Translation file").Annotate(
 			Annotation{
 				"repository": info.Repository,
@@ -226,20 +228,26 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 		Name: "Translation",
 	}
 
-	// the file should be also annotated by the release inspector
-	vendor, ok := a.ResponseStringAnnotation("apt.release", "vendor")
+	// The file should be also annotated by the release inspector.
+	vendor, ok := a.ResponseStringAnnotation(aptReleaseInspectorID, "vendor")
 	if ok {
 		md.Vendor = vendor
 		md.Author = vendor
 	}
 
 	a.SetArtifactMetadata(md)
-	a.SetResponseApproved(ins, "translation file successfully parsed").Annotate(
-		Annotation{
-			"translation-language": lang,
-			"translation-count":    item_count,
-		},
-	)
+
+	notes := Annotation{
+		"translation-language": lang,
+		"translation-count":    item_count,
+	}
+
+	_, ok = a.ResponseStringAnnotation(aptReleaseInspectorID, "release-file")
+	if ok {
+		a.SetResponseApproved(ins, "translation file successfully parsed").Annotate(notes)
+	} else {
+		a.SetResponseRejected(ins, "translation file not verified against release file").Annotate(notes)
+	}
 
 	return nil
 }

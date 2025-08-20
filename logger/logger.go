@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -24,6 +24,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"sync"
 )
 
 const (
@@ -45,12 +46,13 @@ type Level int
 var (
 	logLevel Level
 	logFile  *os.File
+	logLock  sync.RWMutex
 )
 
 // Init sets up the logging system.
 // If "logFilepath" is empty, logging is done to standard out.
 func Init(lv Level, logFilepath string) error {
-	logLevel = lv
+	SetLevel(lv)
 	log.SetFlags(log.Ldate | log.Lmicroseconds)
 	if logFilepath != "" {
 		return SetLogFile(logFilepath)
@@ -72,6 +74,9 @@ func Close() {
 
 // SetLevel updates the current logging level.
 func SetLevel(lv Level) {
+	logLock.Lock()
+	defer logLock.Unlock()
+
 	logLevel = lv
 }
 
@@ -85,30 +90,89 @@ func SetLogFile(logPath string) error {
 	return nil
 }
 
+type Logger interface {
+	Info(v ...interface{})
+	Infof(format string, v ...interface{})
+	Warning(v ...interface{})
+	Warningf(format string, v ...interface{})
+	Error(v ...interface{})
+	Errorf(format string, v ...interface{})
+	Debug(v ...interface{})
+	Debugf(format string, v ...interface{})
+}
+
+type SessionLogger struct {
+	prefix string
+}
+
+func NewSessionLogger(sid string) SessionLogger {
+	return SessionLogger{prefix: sessionFormat(sid)}
+}
+
+func sessionFormat(sid string) string {
+	return fmt.Sprintf("[%s] ", sid)
+}
+
+func (slog SessionLogger) Info(v ...interface{}) {
+	args := []interface{}{slog.prefix}
+	Info(append(args, v...)...)
+}
+
+func (slog SessionLogger) Infof(format string, v ...interface{}) {
+	Infof(slog.prefix+format, v...)
+}
+
+func (slog SessionLogger) Warning(v ...interface{}) {
+	args := []interface{}{slog.prefix}
+	Warning(append(args, v...)...)
+}
+
+func (slog SessionLogger) Warningf(format string, v ...interface{}) {
+	Warningf(slog.prefix+format, v...)
+}
+
+func (slog SessionLogger) Error(v ...interface{}) {
+	args := []interface{}{slog.prefix}
+	Error(append(args, v...)...)
+}
+
+func (slog SessionLogger) Errorf(format string, v ...interface{}) {
+	Errorf(slog.prefix+format, v...)
+}
+
+func (slog SessionLogger) Debug(v ...interface{}) {
+	args := []interface{}{slog.prefix}
+	Debug(append(args, v...)...)
+}
+
+func (slog SessionLogger) Debugf(format string, v ...interface{}) {
+	Debugf(slog.prefix+format, v...)
+}
+
 // Info logs informational messages.
 func Info(v ...interface{}) {
-	if logLevel >= InfoLevel {
+	if atLeastLogLevel(InfoLevel) {
 		log.Print(InfoPrefix, fmt.Sprint(v...))
 	}
 }
 
 // Infof logs formatted informational messages.
 func Infof(format string, v ...interface{}) {
-	if logLevel >= InfoLevel {
+	if atLeastLogLevel(InfoLevel) {
 		log.Printf(InfoPrefix+"%s", fmt.Sprintf(format, v...))
 	}
 }
 
 // Warning logs messages requiring user attention.
 func Warning(v ...interface{}) {
-	if logLevel >= WarningLevel {
+	if atLeastLogLevel(WarningLevel) {
 		log.Print(WarningPrefix, fmt.Sprint(v...))
 	}
 }
 
 // Warningf logs formatted messages requiring user attention.
 func Warningf(format string, v ...interface{}) {
-	if logLevel >= WarningLevel {
+	if atLeastLogLevel(WarningLevel) {
 		log.Printf(WarningPrefix+"%s", fmt.Sprintf(format, v...))
 	}
 }
@@ -135,14 +199,20 @@ func Fatalf(format string, v ...interface{}) {
 
 // Debug logs messages to help developers follow code execution.
 func Debug(v ...interface{}) {
-	if logLevel >= DebugLevel {
+	if atLeastLogLevel(DebugLevel) {
 		log.Print(DebugPrefix, fmt.Sprint(v...))
 	}
 }
 
 // Debugf logs formatted messages to help developers follow code execution.
 func Debugf(format string, v ...interface{}) {
-	if logLevel >= DebugLevel {
+	if atLeastLogLevel(DebugLevel) {
 		log.Printf(DebugPrefix+"%s", fmt.Sprintf(format, v...))
 	}
+}
+
+func atLeastLogLevel(lv Level) bool {
+	logLock.RLock()
+	defer logLock.RUnlock()
+	return logLevel >= lv
 }
