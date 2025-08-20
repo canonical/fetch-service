@@ -24,6 +24,12 @@ bldbin:
     - https://api.staging.snapcraft.io:443/api/v1/bins/download/**
     - https://canonical-*.cdn.staging.snapcraftcontent.com:443/download-origin/canonical-*/**
 
+
+chisel:
+  urls:
+    - https://codeload.github.com:443/canonical/chisel-releases/**
+
+
 apt:
   repositories:
     default:
