@@ -3,9 +3,9 @@ name: TICS
 on:
   push:
     branches:
-    - main
-    # to easy test changes to the workflow
-    - tiobe
+      - main
+      # to easy test changes to the workflow
+      - work/tiobe**
 
 jobs:
   CI:
@@ -60,7 +60,7 @@ jobs:
         with:
           mode: qserver
           project: fetch-service
-          viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
+          viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=GoProjects
           branchdir: ${{ github.workspace }}
           ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
           installTics: true
