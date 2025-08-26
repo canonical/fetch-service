@@ -103,16 +103,15 @@ func (ins *ChiselReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseA
 	tr := tar.NewReader(zf)
 	release, data, err := inspectTarball(tr)
 	if err != nil {
-		if err == errUnrecognized {
-			return nil // We do not recognize this artifact.
+		if err != errUnrecognized {
+			a.SetResponseRejected(ins, fmt.Sprintf("invalid tarball: %s", err))
 		}
-		a.SetResponseRejected(ins, fmt.Sprintf("invalid tarball: %s", err))
-		return err
+		return nil
 	}
 
 	if err := validPubKeys(ins.aptCfg, data); err != nil {
 		a.SetResponseRejected(ins, fmt.Sprintf("invalid public-keys: %s", err))
-		return err
+		return nil
 	}
 
 	a.SetArtifactMetadata(ArtifactMetadata{
@@ -134,6 +133,7 @@ var errUnrecognized = errors.New("unrecognized artifact")
 // files are not present or the parsed chisel.yaml is not valid.
 func inspectTarball(r *tar.Reader) (string, *chiselYaml, error) {
 	chiselYamlPath := regexp.MustCompile("^chisel-releases-(.*)/chisel.yaml$")
+	chiselDir := regexp.MustCompile("^chisel-releases-.*/")
 	for {
 		h, err := r.Next()
 		if err != nil {
@@ -148,7 +148,13 @@ func inspectTarball(r *tar.Reader) (string, *chiselYaml, error) {
 			if err != nil {
 				return "", nil, err
 			}
-			return match[1], data, err
+			return match[1], data, nil
+		} else if h.Typeflag == tar.TypeDir {
+			dirMatch := chiselDir.FindStringSubmatch(h.Name)
+			if len(dirMatch) == 0 {
+				// root element is not a chisel-releases- directory
+				return "", nil, errUnrecognized
+			}
 		}
 	}
 	return "", nil, errUnrecognized

@@ -118,6 +118,8 @@ type chiselReleaseArtifactTest struct {
 	approved bool
 	metadata metadata.Metadata
 	err      string
+	rootDirs []string
+	tar      bool
 }
 
 var chiselReleaseArtifactTests = []chiselReleaseArtifactTest{{
@@ -127,59 +129,89 @@ var chiselReleaseArtifactTests = []chiselReleaseArtifactTest{{
 	},
 	mimetype: "application/gzip",
 	metadata: metadata.Metadata{
-		Type:        "application/x.canonical.chisel.release",
+		Type:        "application/x.canonical.chisel-release",
 		Name:        "chisel-release",
 		Version:     "v1",
 		Description: "Chisel release file for ubuntu-20.04",
 		Vendor:      "Canonical",
 	},
+	tar:      true,
 	approved: true,
 }, {
 	summary:  "Missing files: chisel.yaml",
 	files:    map[string]string{},
 	mimetype: "application/gzip",
+	tar:      true,
 }, {
 	summary: "Invalid chisel.yaml: missing fields",
 	files: map[string]string{
 		"chisel.yaml": "testdata/chisel.yaml.invalid.missing",
 	},
 	mimetype: "application/gzip",
-	err:      "invalid chisel.yaml: missing fields",
+	tar:      true,
+	err:      "invalid tarball: invalid chisel.yaml: missing fields",
 }, {
 	summary: "Invalid chisel.yaml: missing fields in archive",
 	files: map[string]string{
 		"chisel.yaml": "testdata/chisel.yaml.invalid.archive.missing",
 	},
 	mimetype: "application/gzip",
-	err:      `invalid chisel.yaml: archive "ubuntu" has missing fields`,
+	tar:      true,
+	err:      `invalid tarball: invalid chisel.yaml: archive "ubuntu" has missing fields`,
 }, {
 	summary: "Invalid chisel.yaml: undefined pubkey in archive",
 	files: map[string]string{
 		"chisel.yaml": "testdata/chisel.yaml.invalid.archive.pubkey-undefined",
 	},
 	mimetype: "application/gzip",
-	err:      `invalid chisel.yaml: archive "ubuntu" pubkey "foo" undefined`,
+	tar:      true,
+	err:      `invalid tarball: invalid chisel.yaml: archive "ubuntu" pubkey "foo" undefined`,
 }, {
 	summary: "Invalid chisel.yaml: missing fields in pubkey",
 	files: map[string]string{
 		"chisel.yaml": "testdata/chisel.yaml.invalid.pubkey.missing",
 	},
 	mimetype: "application/gzip",
-	err:      `invalid chisel.yaml: pubkey "ubuntu-archive-key-2018" has missing fields`,
+	tar:      true,
+	err:      `invalid tarball: invalid chisel.yaml: pubkey "ubuntu-archive-key-2018" has missing fields`,
 }, {
 	summary: "Invalid chisel.yaml: pubkey not present in APT config",
 	files: map[string]string{
 		"chisel.yaml": "testdata/chisel.yaml.invalid.pubkey-absent-in-apt-config",
 	},
 	mimetype: "application/gzip",
-	err:      `invalid chisel.yaml: no public key is present in APT configuration`,
+	tar:      true,
+	err:      `invalid public-keys: invalid chisel.yaml: no public key is present in APT configuration`,
+}, {
+	summary: "Invalid chisel.yaml: key data contains multiple keys",
+	files: map[string]string{
+		"chisel.yaml": "testdata/chisel.yaml.invalid.multi-keys",
+	},
+	mimetype: "application/gzip",
+	tar:      true,
+	err:      `invalid public-keys: cannot parse chisel.yaml public key ubuntu-archive-key-2018: armored data contains more than one public key`,
 }, {
 	summary: "Invalid mimetype",
 	files: map[string]string{
 		"chisel.yaml": "testdata/chisel.yaml.invalid.missing",
 	},
 	mimetype: "text/plain",
+	tar:      true,
 	err:      "", // We do not recognize this artifact.
+}, {
+	summary: "Unknown top-level dir",
+	files: map[string]string{
+		"chisel.yaml": "testdata/chisel.yaml.sample",
+	},
+	mimetype: "application/gzip",
+	rootDirs: []string{"another-dir"},
+	tar:      true,
+	err:      "", // We do not recognize this artifact.
+}, {
+	summary:  "Gzip is not of a tar archive",
+	mimetype: "application/gzip",
+	err:      "", // We do not recognize this artifact.
+	tar:      false,
 }}
 
 func (s *chiselSuite) TestChiselReleaseInspectArtifact(c *C) {
@@ -191,6 +223,10 @@ func (s *chiselSuite) TestChiselReleaseInspectArtifact(c *C) {
 
 	for _, test := range chiselReleaseArtifactTests {
 		c.Logf("Summary: %s", test.summary)
+
+		rootDirs := []string{}
+		rootDirs = append(rootDirs, test.rootDirs...)
+		rootDirs = append(rootDirs, rootDir)
 
 		ins := chisel.NewChiselReleaseInspector(cfg, aptCfg)
 
@@ -204,7 +240,13 @@ func (s *chiselSuite) TestChiselReleaseInspectArtifact(c *C) {
 		a.RequestInspection[ins.ID()] = inspection
 
 		// Create the artifact file.
-		filename, err := createTarGz(test.files, rootDir)
+		var filename string
+		var err error
+		if test.tar {
+			filename, err = createTarGz(test.files, rootDirs)
+		} else {
+			filename, err = createPhonyGz()
+		}
 		c.Assert(err, IsNil)
 		defer os.Remove(filename)
 
@@ -213,11 +255,15 @@ func (s *chiselSuite) TestChiselReleaseInspectArtifact(c *C) {
 		defer f.Close()
 
 		err = ins.InspectArtifact(f, a)
+
+		c.Assert(err, IsNil)
+
 		if test.err != "" {
-			c.Assert(err, ErrorMatches, test.err)
+			insp := a.ResponseInspection[ins.ID()]
+			c.Assert(insp.Opinion, Equals, opinions.Rejected)
+			c.Assert(insp.Reason, Equals, test.err)
 			continue
 		}
-		c.Assert(err, IsNil)
 
 		c.Assert(a.Approved(), Equals, test.approved)
 		if test.approved {
@@ -226,9 +272,26 @@ func (s *chiselSuite) TestChiselReleaseInspectArtifact(c *C) {
 	}
 }
 
-// Creates a tar.gz archive with the [files]. The archive should have the [root]
-// directory containing the files. It returns the path of the created file.
-func createTarGz(files map[string]string, root string) (string, error) {
+func createPhonyGz() (string, error) {
+	f, err := os.CreateTemp("", "not-tar*.gz")
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	gw := gzip.NewWriter(f)
+	defer gw.Close()
+
+	if _, err = gw.Write([]byte{1, 2, 3}); err != nil {
+		return "", err
+	}
+
+	return f.Name(), nil
+}
+
+// Creates a tar.gz archive with the [files]. The archive should have the last directory
+// in [roots] contain the [files]. It returns the path of the created file.
+func createTarGz(files map[string]string, roots []string) (string, error) {
 	writeDir := func(w *tar.Writer, dir string) error {
 		if !strings.HasSuffix(dir, "/") {
 			dir += "/"
@@ -275,8 +338,10 @@ func createTarGz(files map[string]string, root string) (string, error) {
 	tw := tar.NewWriter(gw)
 	defer tw.Close()
 
-	if err := writeDir(tw, root); err != nil {
-		return "", err
+	for _, root := range roots {
+		if err := writeDir(tw, root); err != nil {
+			return "", err
+		}
 	}
 
 	keys := make([]string, 0, len(files))
@@ -286,7 +351,7 @@ func createTarGz(files map[string]string, root string) (string, error) {
 	sort.Strings(keys)
 	for _, dest := range keys {
 		src := files[dest]
-		dest = root + "/" + dest
+		dest = roots[len(roots)-1] + "/" + dest
 
 		if strings.HasSuffix(dest, "/") {
 			if err := writeDir(tw, dest); err != nil {

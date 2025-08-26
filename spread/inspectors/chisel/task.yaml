@@ -35,7 +35,7 @@ execute: |
   python3 -mjson.tool session_report.json
 
   # The artifact for the "chisel-releases" access on Github
-  jq -r '(.artifacts[].metadata | select(.type=="application/x.canonical.chisel.release")).name' session_report.json | MATCH "chisel-release"
+  jq -r '(.artifacts[].metadata | select(.type=="application/x.canonical.chisel-release")).name' session_report.json | MATCH "chisel-release"
   # The artifact for curl itself
   jq -r '(.artifacts[].metadata | select(.name=="curl")).type' session_report.json | MATCH "application/vnd.debian.binary-package"
   # No rejected artifacts
@@ -43,3 +43,15 @@ execute: |
 
   delete_session "$session_id"
   delete_resources "$session_id"
+
+debug: |
+  # Dump the fetch-service log, if it exists
+  # shellcheck disable=SC2016
+  snap_data=$(snap run --shell fetch-service -c 'echo $SNAP_DATA')
+  logfile=${snap_data}/fetch.log
+  if [ -f "${logfile}" ]; then
+    echo "fetch-service log output:"
+    cat "${logfile}"
+  else
+    echo "fetch-service logfile does not exist."
+  fi
