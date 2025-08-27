@@ -34,6 +34,7 @@ import (
 	"github.com/canonical/fetch-service/glob"
 	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
 	bldbin_cfg "github.com/canonical/fetch-service/inspectors/bldbin/config"
+	chisel_cfg "github.com/canonical/fetch-service/inspectors/chisel/config"
 	crafts_cfg "github.com/canonical/fetch-service/inspectors/craft/config"
 	git_cfg "github.com/canonical/fetch-service/inspectors/git/config"
 	snap_cfg "github.com/canonical/fetch-service/inspectors/snap/config"
@@ -272,6 +273,7 @@ type InspectorsConfig struct {
 	Apt    apt_cfg.AptInspectorConfig       `yaml:"apt"`
 	Git    git_cfg.GitInspectorConfig       `yaml:"git"`
 	Crafts crafts_cfg.CraftsInspectorConfig `yaml:"crafts"`
+	Chisel chisel_cfg.ChiselInspectorConfig `yaml:"chisel"`
 	Snap   snap_cfg.SnapInspectorConfig     `yaml:"snap"`
 	Store  store_cfg.StoreInspectorConfig   `yaml:"store"`
 	BldBin bldbin_cfg.BldBinInspectorConfig `yaml:"bldbin"`
@@ -346,6 +348,9 @@ func GetInspectorsConfig() InspectorsConfig {
 
 	cfg.BldBin.Urls = make([]glob.Glob, len(globalInspectorsConfig.BldBin.Urls))
 	copy(cfg.BldBin.Urls, globalInspectorsConfig.BldBin.Urls)
+
+	cfg.Chisel.Urls = make([]glob.Glob, len(globalInspectorsConfig.Chisel.Urls))
+	copy(cfg.Chisel.Urls, globalInspectorsConfig.Chisel.Urls)
 
 	cfg.Snap.SnapDeclarationFilter = make([]snap_cfg.AssertionFilter, len(globalInspectorsConfig.Snap.SnapDeclarationFilter))
 	for i, v := range globalInspectorsConfig.Snap.SnapDeclarationFilter {

@@ -23,6 +23,7 @@ suites:
       snap install "$CRAFT_ARTIFACT" --dangerous
       snap set fetch-service permissive=true
       snap set fetch-service control.auth=craft:craft
+      snap set fetch-service log.file=fetch.log
       mkdir -p /usr/local/share/ca-certicates
       cp /var/snap/fetch-service/current/local-ca.crt /usr/local/share/ca-certificates
       update-ca-certificates
@@ -34,6 +35,17 @@ suites:
       fetch-service.fetchctl version
     restore-each: |
       snap stop fetch-service
+    debug-each: |
+      # Dump the fetch-service log, if it exists
+      # shellcheck disable=SC2016
+      snap_data=$(snap run --shell fetch-service -c 'echo $SNAP_DATA')
+      logfile=${snap_data}/fetch.log
+      if [ -f "${logfile}" ]; then
+        echo "fetch-service log output:"
+        cat "${logfile}"
+      else
+        echo "fetch-service logfile does not exist."
+      fi
 
   spread/install/:
     summary: Snap install and upgrade tests

@@ -51,4 +51,5 @@ const (
 	StoreAPI                   = "application/x.canonical.store-api"
 	BldBinPackage              = "application/x.canonical.bld-bin-package"
 	LxdRootfs                  = "application/x.canonical.lxd-rootfs"
+	ChiselRelease              = "application/x.canonical.chisel-release"
 )

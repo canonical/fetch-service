@@ -1,0 +1,57 @@
+summary: Test the chisel inspector
+
+prepare: |
+  rm -f ./*.json
+
+  # Instead of installing the chisel snap, download it and use the binary
+  # directly because this is what the craft tools do.
+  # (e.g. https://github.com/canonical/rockcraft/blob/1.13.0/snap/snapcraft.yaml#L193)
+  snap download --channel=latest/candidate chisel
+
+  unsquashfs chisel_*.snap
+  cp squashfs-root/bin/chisel chisel
+  ./chisel -help
+
+execute: |
+  # shellcheck disable=SC1091
+  . ../utils.sh
+
+  # create strict session
+  read -r session_id token < <(create_session strict)
+
+  # set up proxy
+  export http_proxy="http://${session_id}:${token}@localhost:9988"
+  export https_proxy="http://${session_id}:${token}@localhost:9988"
+
+  # Cut the "curl_bins" slice, which needs curl and all its dependencies
+  mkdir root
+  ./chisel cut --release ubuntu-24.04 --root root curl_bins
+
+  unset http_proxy
+  unset https_proxy
+
+  revoke_token "$session_id" "$token"
+  get_session_report "$session_id" > session_report.json
+  python3 -mjson.tool session_report.json
+
+  # The artifact for the "chisel-releases" access on Github
+  jq -r '(.artifacts[].metadata | select(.type=="application/x.canonical.chisel-release")).name' session_report.json | MATCH "chisel-release"
+  # The artifact for curl itself
+  jq -r '(.artifacts[].metadata | select(.name=="curl")).type' session_report.json | MATCH "application/vnd.debian.binary-package"
+  # No rejected artifacts
+  jq -r '.artifacts[].result' session_report.json | NOMATCH "Rejected"
+
+  delete_session "$session_id"
+  delete_resources "$session_id"
+
+debug: |
+  # Dump the fetch-service log, if it exists
+  # shellcheck disable=SC2016
+  snap_data=$(snap run --shell fetch-service -c 'echo $SNAP_DATA')
+  logfile=${snap_data}/fetch.log
+  if [ -f "${logfile}" ]; then
+    echo "fetch-service log output:"
+    cat "${logfile}"
+  else
+    echo "fetch-service logfile does not exist."
+  fi
