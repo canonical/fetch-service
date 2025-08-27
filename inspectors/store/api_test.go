@@ -51,6 +51,7 @@ func getTestStoreInspectorConfig() config.StoreInspectorConfig {
 	return config.StoreInspectorConfig{
 		Urls: []glob.Glob{
 			glob.MustCompile("https://api.snapcraft.io:443/v2/bins/info/**"),
+			glob.MustCompile("https://api.snapcraft.io:443/v2/revisions/resolve"),
 		},
 	}
 }
@@ -63,17 +64,17 @@ func getTestBldbinInspectorConfig() bconfig.BldBinInspectorConfig {
 	}
 }
 
-func (s *storeSuite) TestStoreApiInspectorID(c *C) {
-	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
-	c.Assert(ins.ID(), Equals, "store.api")
+func (s *storeSuite) TestStoreInfoApiInspectorID(c *C) {
+	ins := store.NewStoreInfoApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
+	c.Assert(ins.ID(), Equals, "store.info-api")
 }
 
-type storeApiInspectRequestTest struct {
+type storeInfoApiInspectRequestTest struct {
 	url     string // The info request URL
 	pending bool   // Whether the inspection result should be pending
 }
 
-var storeApiInspectRequestTests = []storeApiInspectRequestTest{{
+var storeInfoApiInspectRequestTests = []storeInfoApiInspectRequestTest{{
 	url:     "https://api.snapcraft.io:443/v2/bins/info/package-name",
 	pending: true,
 }, {
@@ -96,9 +97,9 @@ var storeApiInspectRequestTests = []storeApiInspectRequestTest{{
 	pending: true,
 }}
 
-func (s *storeSuite) TestStoreApiInspectRequest(c *C) {
-	for _, tc := range storeApiInspectRequestTests {
-		ins := store.NewStoreApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
+func (s *storeSuite) TestStoreInfoApiInspectRequest(c *C) {
+	for _, tc := range storeInfoApiInspectRequestTests {
+		ins := store.NewStoreInfoApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 
@@ -113,7 +114,7 @@ func (s *storeSuite) TestStoreApiInspectRequest(c *C) {
 	}
 }
 
-func (s *storeSuite) TestStoreApiArtifactInspector(c *C) {
+func (s *storeSuite) TestStoreInfoApiArtifactInspector(c *C) {
 	a := metadata.NewArtifact()
 	a.Metadata.Type = "application/json"
 	a.Metadata.Size = 1743
@@ -122,16 +123,16 @@ func (s *storeSuite) TestStoreApiArtifactInspector(c *C) {
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
+	ins := store.NewStoreInfoApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 	a.SetRequestPending(ins, "test").Annotate(Annotation{"type": "bins"})
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Check(a.Approved(), Equals, true)
-	c.Check(a.Metadata.Type, Equals, "application/x.canonical.store-api")
+	c.Check(a.Metadata.Type, Equals, "application/x.canonical.store.info-api")
 	c.Check(a.Metadata.Name, Equals, "Store protocol response")
 	c.Check(a.Metadata.Size, Equals, int64(1743))
 	c.Check(a.Metadata.Description, Equals, "Store response for info request")
-	c.Check(a.ResponseInspection["store.api"].Annotations, DeepEquals, Annotation{
+	c.Check(a.ResponseInspection["store.info-api"].Annotations, DeepEquals, Annotation{
 		"name":       "starcraft-patchelf",
 		"type":       "bins",
 		"publisher":  "Imani Pelton",
@@ -140,7 +141,7 @@ func (s *storeSuite) TestStoreApiArtifactInspector(c *C) {
 
 	// Check inspector state
 	const sha = "b162cad83a53c5190a249ed0fd3b80c5ff89454654541efe918bbe23883d47541b1bb0a572b994caa828c8982dcf0bdd"
-	ainfo, revision, channel := store.StoreApiInspectorFindStoreApiInfo(ins, sha)
+	ainfo, revision, channel := store.StoreInfoApiInspectorFindInfo(ins, sha)
 	c.Check(ainfo.Type, Equals, "bins")
 	c.Check(ainfo.Publisher, Equals, "Imani Pelton")
 	c.Check(ainfo.ID, Equals, "w0VWGQnkqH0EDK7aOda6x9ZP5rHsAT4b")
@@ -153,7 +154,7 @@ func (s *storeSuite) TestStoreApiArtifactInspector(c *C) {
 	c.Check(channel, Equals, "latest/edge")
 }
 
-func (s *storeSuite) TestStoreApiArtifactBadType(c *C) {
+func (s *storeSuite) TestStoreInfoApiArtifactBadType(c *C) {
 	a := metadata.NewArtifact()
 	a.Metadata.Type = "text/plain"
 	a.Metadata.Size = 1743
@@ -162,20 +163,20 @@ func (s *storeSuite) TestStoreApiArtifactBadType(c *C) {
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
+	ins := store.NewStoreInfoApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Check(a.Approved(), Equals, false)
 }
 
-func (s *storeSuite) TestStoreApiArtifactBadContent(c *C) {
+func (s *storeSuite) TestStoreInfoApiArtifactBadContent(c *C) {
 	a := metadata.NewArtifact()
-	a.Metadata.Type = "text/plain"
+	a.Metadata.Type = "application/json"
 	a.Metadata.Size = 1743
 
 	f := strings.NewReader(`{"content": "bad"}`)
 
-	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
+	ins := store.NewStoreInfoApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 	err := ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Check(a.Approved(), Equals, false)
@@ -189,11 +190,11 @@ func (s *storeSuite) TestValidateBin(c *C) {
 	f, err := files.OpenArtifactFile("testdata/starcraft-test-2.0.0.tar.xz")
 	c.Assert(err, IsNil)
 
-	ainfo := &store.StoreApiInfo{
+	ainfo := &store.StoreInfoApiInfo{
 		Type:      "bins",
 		ID:        "pkgid",
 		Publisher: "publisher",
-		RevInfo: map[string]store.StoreApiRevisionInfo{
+		RevInfo: map[string]store.StoreInfoApiRevisionInfo{
 			testDigest: {
 				Sha3_384: testDigest,
 				Size:     2156,
@@ -203,14 +204,14 @@ func (s *storeSuite) TestValidateBin(c *C) {
 		},
 	}
 
-	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
-	store.StoreApiInspectorSetStoreApiInfo(ins, "pkgid", ainfo)
+	ins := store.NewStoreInfoApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
+	store.StoreInfoApiInspectorSetInfo(ins, "pkgid", ainfo)
 
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Check(a.Rejected(), Equals, true) // The store bin inspetor doesn't approve
-	c.Check(a.ResponseInspection["store.api"].Opinion, Equals, opinions.Unknown)
-	c.Check(a.ResponseInspection["store.api"].Reason, Equals, "file digest matches store API bin request")
+	c.Check(a.ResponseInspection["store.info-api"].Opinion, Equals, opinions.Unknown)
+	c.Check(a.ResponseInspection["store.info-api"].Reason, Equals, "file digest matches store info API bin request")
 
 }
 
@@ -234,7 +235,7 @@ func (s *storeSuite) TestValidateBinInvalid(c *C) {
 		c.Assert(err, IsNil)
 		defer f.Close()
 
-		ins := store.NewStoreApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
+		ins := store.NewStoreInfoApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
@@ -250,11 +251,11 @@ func (s *storeSuite) TestValidateBinNoRequest(c *C) {
 	f, err := files.OpenArtifactFile("testdata/starcraft-test-2.0.0.tar.xz")
 	c.Assert(err, IsNil)
 
-	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
+	ins := store.NewStoreInfoApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Check(a.Rejected(), Equals, true)
-	c.Check(a.ResponseInspection["store.api"].Reason, Equals, "file digest does not match any store API request")
+	c.Check(a.ResponseInspection["store.info-api"].Reason, Equals, "file digest does not match any store info API request")
 
 }
 
