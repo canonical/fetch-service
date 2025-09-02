@@ -2,8 +2,8 @@
   "craft-results": [
     {
       "id": "ysIk8jpfwVGSHUtWkNK1ykhch2mAkOOi",
+      "instance-key": "craft-sd",
       "name": "starcraft-test",
-      "namespace": "bin",
       "result": {
         "channel": {
           "branch": null,

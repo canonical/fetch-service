@@ -64,6 +64,7 @@ type storeResolveApiResult struct {
 	InstanceKey string `json:"instance-key"`
 	Name        string `json:"name"`
 	Namespace   string `json:"namespace"`
+	Status      string `json:"status"`
 }
 
 type storeResolveApiData struct {
@@ -93,7 +94,11 @@ func (ins *StoreResolveApiInspector) InspectArtifact(f ArtifactReader, a Respons
 		result = data.PackageResults[0]
 	}
 
-	if result.InstanceKey == "" || result.Namespace == "" {
+	if result.Namespace == "" {
+		return nil // we don't recognize this artifact
+	}
+
+	if result.Status != "ok" && result.Status != "error" {
 		return nil // we don't recognize this artifact
 	}
 
@@ -116,6 +121,7 @@ func (ins *StoreResolveApiInspector) InspectArtifact(f ArtifactReader, a Respons
 	notes := Annotation{
 		"resolved-craft-list":   listedCrafts,
 		"resolved-package-list": listedPackages,
+		"instance-key":          result.InstanceKey,
 	}
 
 	validNamespaces := []string{"bin", "charm", "rock", "snap"}

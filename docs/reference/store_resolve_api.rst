@@ -28,8 +28,8 @@ To be considered valid, the response for resolve API requests:
 
 * Must contain valid JSON-encoded data.
 * Must contain non-empty ``craft-results`` and ``package-results`` keys
-  with at least one element containing non-empty ``namespace`` and
-  ``instance-key`` strings.
+  with at least one element containing non-empty ``namespace`` string and
+  ``status`` set to ``ok`` or ``error``.
 
 Rejection reasons
 -----------------
