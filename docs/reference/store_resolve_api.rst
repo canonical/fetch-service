@@ -1,7 +1,7 @@
-The resolve API index inspector
-===============================
+The resolve_revisions API index inspector
+=========================================
 
-The resolve API inspector examines requests to the Craft store's
+The resolve_revisions API inspector examines requests to the Craft store's
 resolve_revisions endpoint.
 
 Inspector ID
