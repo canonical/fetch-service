@@ -18,17 +18,16 @@ snap:
 store:
   urls:
     - https://api.staging.snapcraft.io:443/v2/bins/info/**
+    - https://api.staging.snapcraft.io:443/v2/revisions/resolve
 
 bldbin:
   urls:
     - https://api.staging.snapcraft.io:443/api/v1/bins/download/**
     - https://canonical-*.cdn.staging.snapcraftcontent.com:443/download-origin/canonical-*/**
 
-
 chisel:
   urls:
     - https://codeload.github.com:443/canonical/chisel-releases/**
-
 
 apt:
   repositories:

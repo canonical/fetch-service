@@ -22,4 +22,5 @@ Reference
    sdist
    snapcraft
    sourcecraft
+   store_resolve_api
    wheels
