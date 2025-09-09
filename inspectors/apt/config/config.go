@@ -32,10 +32,11 @@ import (
 )
 
 type AptInspectorConfigRepository struct {
-	Urls       []glob.Glob `yaml:"urls"`       // List of allowed URL glob patterns
-	Dists      []glob.Glob `yaml:"dists"`      // List of allowed dist glob patterns
-	Components []glob.Glob `yaml:"components"` // List of allowed component glob patterns
-	PublicKey  string      `yaml:"public-key"` // Repository public key
+	Urls         []glob.Glob `yaml:"urls"`           // List of allowed URL glob patterns
+	Dists        []glob.Glob `yaml:"dists"`          // List of allowed dist glob patterns
+	Components   []glob.Glob `yaml:"components"`     // List of allowed component glob patterns
+	PublicKey    string      `yaml:"public-key"`     // Repository public key
+	BaseUrlAlias string      `yaml:"base-url-alias"` // Alias for URL scheme and hostname
 }
 
 type AptInspectorConfig struct {

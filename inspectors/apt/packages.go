@@ -231,6 +231,7 @@ func (ins *AptPackagesInspector) InspectRequest(a RequestArtifact) error {
 	if info, err := apt_cfg.NewPackagesUrlInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for Packages file").Annotate(
 			Annotation{
+				"cfg-name":     info.CfgName,
 				"repository":   info.Repository,
 				"dist":         info.Dist,
 				"component":    info.Component,
@@ -240,6 +241,7 @@ func (ins *AptPackagesInspector) InspectRequest(a RequestArtifact) error {
 	} else if info, err := apt_cfg.NewDebPackageUrlInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for deb package").Annotate(
 			Annotation{
+				"cfg-name":     info.CfgName,
 				"repository":   info.Repository,
 				"component":    info.Component,
 				"name":         info.Name,
@@ -261,6 +263,8 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		return nil
 	}
 
+	slog := a.Logger()
+
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -279,7 +283,13 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		return fmt.Errorf("inconsistent request annotation: missing architecture")
 	}
 
-	origin := utils.NormalizedOrigin(u)
+	cfgName, ok := a.RequestStringAnnotation(ins.ID(), "cfg-name")
+	if !ok {
+		return nil
+	}
+
+	origin := ins.getOriginAlias(utils.NormalizedOrigin(u), cfgName, slog)
+
 	pkg := newAptPackages(a.Sha256(), origin, dist, component, architecture)
 	ins.addPackages(origin, u.Path, pkg, a.Logger())
 
@@ -320,8 +330,8 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	}
 
 	notes := Annotation{"package-count": num}
-	releaseDigest, ok := a.ResponseStringAnnotation(aptReleaseInspectorID, "release-file")
 
+	releaseDigest, ok := a.ResponseStringAnnotation(aptReleaseInspectorID, "release-file")
 	if ok {
 		notes["release-file"] = releaseDigest
 		ins.validatePackages(a.Sha256())
@@ -389,6 +399,7 @@ func parsePackages(r io.Reader, entries map[digests.Sha256Digest]aptPackagesEntr
 			e.Version = v
 		case "Architecture":
 			e.Architecture = v
+
 		case "Size":
 			var err error
 			e.Size, err = strconv.ParseInt(v, 10, 64)
@@ -419,6 +430,24 @@ func (ins *AptPackagesInspector) addPackages(origin, packagesPath string, data *
 	ins.packages[origin][packagesPath] = data
 }
 
+func (ins *AptPackagesInspector) getOriginAlias(origin, cfgName string, slog logger.Logger) string {
+	ins.packagesLock.Lock()
+	defer ins.packagesLock.Unlock()
+
+	repos, ok := ins.config.Repositories[cfgName]
+	if !ok {
+		return origin
+	}
+
+	alias := repos.BaseUrlAlias
+	if alias == "" {
+		return origin
+	}
+
+	slog.Debugf("packages origin alias: %s to %s", origin, alias)
+	return alias
+}
+
 // validateDebianPackage verifies if the deb package is listed in the
 // Packages.xz file. The package downloaded from the package pool.
 func (ins *AptPackagesInspector) validateDebianPackage(f ArtifactReader, a ResponseArtifact) error {
@@ -426,8 +455,14 @@ func (ins *AptPackagesInspector) validateDebianPackage(f ArtifactReader, a Respo
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
-	origin := utils.NormalizedOrigin(u)
+
 	slog := a.Logger()
+
+	cfgName, ok := a.RequestStringAnnotation(ins.ID(), "cfg-name")
+	if !ok {
+		return nil
+	}
+	origin := ins.getOriginAlias(utils.NormalizedOrigin(u), cfgName, slog)
 
 	info, err := apt_cfg.NewDebPackageUrlInfo(u, &ins.config, slog)
 	if err != nil {

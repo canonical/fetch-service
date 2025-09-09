@@ -141,3 +141,5 @@ apt:
         gW1RgFwq9IQ21MOzB9P6bUCyfF3cBYjgVT4=
         =tskY
         -----END PGP PUBLIC KEY BLOCK-----
+  repository-aliases:
+    http://security.ubuntu.com/ubuntu: http://archive.ubuntu.com/ubuntu

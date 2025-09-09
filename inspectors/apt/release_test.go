@@ -106,6 +106,13 @@ func getTestAptConfig() apt_cfg.AptInspectorConfig {
 				Components: []glob.Glob{glob.MustCompile("main")},
 				PublicKey:  publicKey,
 			},
+			"aliased": {
+				Urls:         []glob.Glob{glob.MustCompile("http://notalias.ubuntu.com/**")},
+				Dists:        []glob.Glob{glob.MustCompile("noble")},
+				Components:   []glob.Glob{glob.MustCompile("main")},
+				PublicKey:    publicKey,
+				BaseUrlAlias: "http://alias.ubuntu.com",
+			},
 		},
 	}
 }
@@ -216,96 +223,147 @@ func (s *aptSuite) TestAptReleaseArtifactInspector(c *C) {
 	}
 }
 
-func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
-	sha256_rel, _ := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
-	sha256_pkg, _ := digests.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
-
-	a := metadata.NewArtifact()
-	a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6"
-	a.Metadata.Type = mimetypes.AptPackages
-	a.Metadata.Sha256 = sha256_pkg
-
-	f := strings.NewReader("fake content")
-
-	rf := apt.ReleaseFile{
-		Sha256: sha256_rel,
-		Vendor: "Canonical",
-		Files: map[digests.Sha256Digest]apt.ReleaseEntry{
-			sha256_pkg: {
-				Size: 1337,
-				Name: "main/binary-amd64/Packages.xz",
-			},
-		},
-	}
-
-	ins := apt.NewAptReleaseInspector(getTestAptConfig())
-	a.SetRequestPending(ins, "test")
-	ins.SetRelease(map[string]apt.ReleaseFile{"http://archive.ubuntu.com/ubuntu/dists/jammy": rf})
-	err := ins.InspectArtifact(f, a)
-	c.Assert(err, IsNil)
-	c.Assert(a.Approved(), Equals, false)
-	c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
-		Opinion: opinions.Unknown,
-		Reason:  "Packages file listed in Release",
-		Annotations: Annotation{
-			"file-path":    "main/binary-amd64/Packages.xz",
-			"release-file": "9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6",
-			"vendor":       "Canonical",
-		},
-	})
+type aptReleasePackagesValidationTest struct {
+	url         string // Current download URL
+	cfgName     string // The repository entry in configuration
+	releaseRepo string // The repository name in the release state
 }
 
-func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
-	sha256_rel, _ := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
-	sha256_trn, _ := digests.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
+var aptReleasePackagesValidationTests = []aptReleasePackagesValidationTest{{
+	url:         "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6",
+	cfgName:     "default",
+	releaseRepo: "http://archive.ubuntu.com/ubuntu/dists/jammy",
+}, {
+	url:         "http://notalias.ubuntu.com/ubuntu/dists/noble/main/binary-amd64/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6",
+	cfgName:     "aliased",
+	releaseRepo: "http://alias.ubuntu.com/ubuntu/dists/noble",
+}}
 
-	a := metadata.NewArtifact()
-	a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/i18n/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6"
-	a.Metadata.Type = mimetypes.AptTranslation
-	a.Metadata.Sha256 = sha256_trn
-	a.Metadata.Size = 1337
+func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
+	for _, tc := range aptReleasePackagesValidationTests {
+		sha256_rel, _ := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
+		sha256_pkg, _ := digests.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
 
-	f := strings.NewReader("fake content")
+		a := metadata.NewArtifact()
+		a.CurrentDownload.URL = tc.url
+		a.Metadata.Type = mimetypes.AptPackages
+		a.Metadata.Sha256 = sha256_pkg
 
-	rf := apt.ReleaseFile{
-		Sha256: sha256_rel,
-		Vendor: "Canonical",
-		Files: map[digests.Sha256Digest]apt.ReleaseEntry{
-			sha256_trn: apt.ReleaseEntry{
-				Size: 1337,
-				Name: "main/i18n/Translation-en.xz",
+		f := strings.NewReader("fake content")
+
+		rf := apt.ReleaseFile{
+			Sha256: sha256_rel,
+			Vendor: "Canonical",
+			Files: map[digests.Sha256Digest]apt.ReleaseEntry{
+				sha256_pkg: {
+					Size: 1337,
+					Name: "main/binary-amd64/Packages.xz",
+				},
 			},
-		},
-	}
+		}
 
-	ins := apt.NewAptReleaseInspector(getTestAptConfig())
-	a.SetRequestPending(ins, "test")
-	ins.SetRelease(map[string]apt.ReleaseFile{"http://archive.ubuntu.com/ubuntu/dists/jammy": rf})
-	err := ins.InspectArtifact(f, a)
-	c.Assert(err, IsNil)
-	c.Assert(a.Approved(), Equals, false)
-	c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
-		Opinion: opinions.Unknown,
-		Reason:  "Translation file listed in Release",
-		Annotations: Annotation{
-			"file-path":    "main/i18n/Translation-en.xz",
-			"release-file": "9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6",
-			"vendor":       "Canonical",
-		},
-	})
+		ins := apt.NewAptReleaseInspector(getTestAptConfig())
+		a.SetRequestPending(ins, "test").Annotate(Annotation{"cfg-name": tc.cfgName})
+		ins.SetRelease(map[string]apt.ReleaseFile{tc.releaseRepo: rf})
+		err := ins.InspectArtifact(f, a)
+		c.Assert(err, IsNil)
+		c.Assert(a.Approved(), Equals, false)
+		c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
+			Opinion: opinions.Unknown,
+			Reason:  "Packages file listed in Release",
+			Annotations: Annotation{
+				"file-path":    "main/binary-amd64/Packages.xz",
+				"release-file": "9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6",
+				"vendor":       "Canonical",
+			},
+		})
+	}
+}
+
+type aptReleaseTranslationValidationTest struct {
+	url         string // Current download URL
+	cfgName     string // The repository entry in configuration
+	releaseRepo string // The repository name in the release state
+}
+
+var aptReleaseTranslationValidationTests = []aptReleaseTranslationValidationTest{{
+	url:         "http://archive.ubuntu.com/ubuntu/dists/jammy/main/i18n/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6",
+	cfgName:     "default",
+	releaseRepo: "http://archive.ubuntu.com/ubuntu/dists/jammy",
+}, {
+	url:         "http://notalias.ubuntu.com/ubuntu/dists/noble/main/i18n/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6",
+	cfgName:     "aliased",
+	releaseRepo: "http://alias.ubuntu.com/ubuntu/dists/noble",
+}}
+
+func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
+	for _, tc := range aptReleaseTranslationValidationTests {
+		sha256_rel, _ := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
+		sha256_trn, _ := digests.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
+
+		a := metadata.NewArtifact()
+		a.CurrentDownload.URL = tc.url
+		a.Metadata.Type = mimetypes.AptTranslation
+		a.Metadata.Sha256 = sha256_trn
+		a.Metadata.Size = 1337
+
+		f := strings.NewReader("fake content")
+
+		rf := apt.ReleaseFile{
+			Sha256: sha256_rel,
+			Vendor: "Canonical",
+			Files: map[digests.Sha256Digest]apt.ReleaseEntry{
+				sha256_trn: apt.ReleaseEntry{
+					Size: 1337,
+					Name: "main/i18n/Translation-en.xz",
+				},
+			},
+		}
+
+		ins := apt.NewAptReleaseInspector(getTestAptConfig())
+		a.SetRequestPending(ins, "test").Annotate(Annotation{"cfg-name": tc.cfgName})
+		ins.SetRelease(map[string]apt.ReleaseFile{tc.releaseRepo: rf})
+		err := ins.InspectArtifact(f, a)
+		c.Assert(err, IsNil)
+		c.Assert(a.Approved(), Equals, false)
+		c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
+			Opinion: opinions.Unknown,
+			Reason:  "Translation file listed in Release",
+			Annotations: Annotation{
+				"file-path":    "main/i18n/Translation-en.xz",
+				"release-file": "9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6",
+				"vendor":       "Canonical",
+			},
+		})
+	}
 }
 
 type aptReleaseCommandsValidationTest struct {
+	url          string // Current download URL
+	cfgName      string // The repository entry in configuration
+	releaseRepo  string // The repository name in the release state
 	isListed     bool   // Whether the Commands file is listed in the Release file.
 	rejectReason string // The reason to reject this artifact, if any.
 }
 
 var aptReleaseCommandsValidationTests = []aptReleaseCommandsValidationTest{{
+	url:          "http://archive.ubuntu.com/ubuntu/dists/jammy/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
+	cfgName:      "default",
+	releaseRepo:  "http://archive.ubuntu.com/ubuntu/dists/jammy",
 	isListed:     true,
 	rejectReason: "",
 }, {
+	url:          "http://archive.ubuntu.com/ubuntu/dists/jammy/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
+	cfgName:      "default",
+	releaseRepo:  "http://archive.ubuntu.com/ubuntu/dists/jammy",
 	isListed:     false,
 	rejectReason: "Commands file not listed in Release file",
+}, {
+	url:          "http://notalias.ubuntu.com/ubuntu/dists/noble/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
+	cfgName:      "aliased",
+	releaseRepo:  "http://alias.ubuntu.com/ubuntu/dists/noble",
+	isListed:     true,
+	rejectReason: "",
 }}
 
 func (s *aptSuite) TestAptReleaseCommandsValidation(c *C) {
@@ -314,7 +372,7 @@ func (s *aptSuite) TestAptReleaseCommandsValidation(c *C) {
 		sha256_cmd, _ := digests.NewSha256Digest("6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf")
 
 		a := metadata.NewArtifact()
-		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf"
+		a.CurrentDownload.URL = tc.url
 		a.Metadata.Type = mimetypes.AptCommands
 		a.Metadata.Sha256 = sha256_cmd
 		a.Metadata.Size = 1337
@@ -334,8 +392,8 @@ func (s *aptSuite) TestAptReleaseCommandsValidation(c *C) {
 		}
 
 		ins := apt.NewAptReleaseInspector(getTestAptConfig())
-		a.SetRequestPending(ins, "test")
-		ins.SetRelease(map[string]apt.ReleaseFile{"http://archive.ubuntu.com/ubuntu/dists/jammy": rf})
+		a.SetRequestPending(ins, "test").Annotate(Annotation{"cfg-name": tc.cfgName})
+		ins.SetRelease(map[string]apt.ReleaseFile{tc.releaseRepo: rf})
 		err := ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
