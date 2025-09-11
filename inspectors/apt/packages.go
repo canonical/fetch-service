@@ -436,11 +436,13 @@ func (ins *AptPackagesInspector) getOriginAlias(origin, cfgName string, slog log
 
 	repos, ok := ins.config.Repositories[cfgName]
 	if !ok {
+		slog.Debugf("%s: repository configuration not found", cfgName)
 		return origin
 	}
 
 	alias := repos.BaseUrlAlias
 	if alias == "" {
+		slog.Debug("origin not aliased")
 		return origin
 	}
 

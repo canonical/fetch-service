@@ -389,11 +389,13 @@ func (ins *AptReleaseInspector) getRepositoryAlias(repo, cfgName string, slog lo
 
 	repos, ok := ins.config.Repositories[cfgName]
 	if !ok {
+		slog.Debugf("%s: repository configuration not found", cfgName)
 		return repo
 	}
 
 	baseUrl := repos.BaseUrlAlias
 	if baseUrl == "" {
+		slog.Debugf("repository not aliased")
 		return repo
 	}
 
