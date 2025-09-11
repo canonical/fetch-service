@@ -395,7 +395,7 @@ func (ins *AptReleaseInspector) getRepositoryAlias(repo, cfgName string, slog lo
 
 	baseUrl := repos.BaseUrlAlias
 	if baseUrl == "" {
-		slog.Debugf("repository not aliased")
+		slog.Debugf("repository not aliased: %s", repo)
 		return repo
 	}
 
