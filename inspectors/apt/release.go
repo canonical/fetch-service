@@ -136,7 +136,7 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 		repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
 		repo = ins.getRepositoryAlias(repo, info.CfgName, slog)
 
-		if _, ok := ins.release[repo]; ok {
+		if _, ok := ins.getReleaseState(repo); ok {
 			a.SetRequestPending(ins, "valid URL for packages file").Annotate(notes)
 		} else {
 			a.SetRequestRejected(ins, "attempt to download packages file before Release").Annotate(notes)
@@ -153,7 +153,7 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 		repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
 		repo = ins.getRepositoryAlias(repo, info.CfgName, slog)
 
-		if _, ok := ins.release[repo]; ok {
+		if _, ok := ins.getReleaseState(repo); ok {
 			a.SetRequestPending(ins, "valid URL for translation file").Annotate(notes)
 		} else {
 			a.SetRequestRejected(ins, "attempt to download translation file before Release").Annotate(notes)
@@ -170,7 +170,7 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 		repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
 		repo = ins.getRepositoryAlias(repo, info.CfgName, slog)
 
-		if _, ok := ins.release[repo]; ok {
+		if _, ok := ins.getReleaseState(repo); ok {
 			a.SetRequestPending(ins, "valid URL for commands file").Annotate(notes)
 		} else {
 			a.SetRequestRejected(ins, "attempt to download commands file before Release").Annotate(notes)
@@ -419,6 +419,14 @@ func (ins *AptReleaseInspector) setReleaseState(repo string, release releaseFile
 	ins.release[repo] = release
 }
 
+func (ins *AptReleaseInspector) getReleaseState(repo string) (releaseFile, bool) {
+	ins.releaseLock.Lock()
+	defer ins.releaseLock.Unlock()
+
+	rel, ok := ins.release[repo]
+	return rel, ok
+}
+
 func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a ResponseArtifact) error {
 	slog := a.Logger()
 	slog.Debug("validate package file")
@@ -458,7 +466,7 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a Respons
 	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
 	repo = ins.getRepositoryAlias(repo, cfgName, slog)
 
-	rel, ok := ins.release[repo]
+	rel, ok := ins.getReleaseState(repo)
 	if !ok {
 		a.SetResponseRejected(ins, "Repository Release data not found")
 		return nil
@@ -474,7 +482,7 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a Respons
 	a.SetResponseUnknown(ins, "Packages file listed in Release").Annotate(
 		Annotation{
 			"file-path":    entry.Name,
-			"release-file": ins.release[repo].Sha256.String(),
+			"release-file": rel.Sha256.String(),
 			"vendor":       rel.Vendor,
 		},
 	)
@@ -508,7 +516,7 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ArtifactReader, a Resp
 	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
 	repo = ins.getRepositoryAlias(repo, cfgName, slog)
 
-	rel, ok := ins.release[repo]
+	rel, ok := ins.getReleaseState(repo)
 	if !ok {
 		a.SetResponseRejected(ins, "Repository Release data not found")
 		return nil
@@ -533,7 +541,7 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ArtifactReader, a Resp
 	a.SetResponseUnknown(ins, "Translation file listed in Release").Annotate(
 		Annotation{
 			"file-path":    entry.Name,
-			"release-file": ins.release[repo].Sha256.String(),
+			"release-file": rel.Sha256.String(),
 			"vendor":       rel.Vendor,
 		},
 	)
@@ -566,7 +574,7 @@ func (ins *AptReleaseInspector) validateCommandsFile(f ArtifactReader, a Respons
 	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
 	repo = ins.getRepositoryAlias(repo, cfgName, slog)
 
-	rel, ok := ins.release[repo]
+	rel, ok := ins.getReleaseState(repo)
 	if !ok {
 		a.SetResponseRejected(ins, "Repository Release data not found")
 		return nil
@@ -591,7 +599,7 @@ func (ins *AptReleaseInspector) validateCommandsFile(f ArtifactReader, a Respons
 	a.SetResponseUnknown(ins, "Commands file listed in Release").Annotate(
 		Annotation{
 			"file-path":    entry.Name,
-			"release-file": ins.release[repo].Sha256.String(),
+			"release-file": rel.Sha256.String(),
 			"vendor":       rel.Vendor,
 		},
 	)
