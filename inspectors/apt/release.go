@@ -384,9 +384,6 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 }
 
 func (ins *AptReleaseInspector) getRepositoryAlias(repo, cfgName string, slog logger.Logger) string {
-	ins.releaseLock.Lock()
-	defer ins.releaseLock.Unlock()
-
 	repos, ok := ins.config.Repositories[cfgName]
 	if !ok {
 		slog.Debugf("%s: repository configuration not found", cfgName)

@@ -431,9 +431,6 @@ func (ins *AptPackagesInspector) addPackages(origin, packagesPath string, data *
 }
 
 func (ins *AptPackagesInspector) getOriginAlias(origin, cfgName string, slog logger.Logger) string {
-	ins.packagesLock.Lock()
-	defer ins.packagesLock.Unlock()
-
 	repos, ok := ins.config.Repositories[cfgName]
 	if !ok {
 		slog.Debugf("%s: repository configuration not found", cfgName)
@@ -462,7 +459,7 @@ func (ins *AptPackagesInspector) validateDebianPackage(f ArtifactReader, a Respo
 
 	cfgName, ok := a.RequestStringAnnotation(ins.ID(), "cfg-name")
 	if !ok {
-		return nil
+		return fmt.Errorf("inconsistent request annotation: missing config name")
 	}
 	origin := ins.getOriginAlias(utils.NormalizedOrigin(u), cfgName, slog)
 
