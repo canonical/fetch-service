@@ -224,19 +224,37 @@ func (s *aptSuite) TestAptReleaseArtifactInspector(c *C) {
 }
 
 type aptReleasePackagesValidationTest struct {
-	url         string // Current download URL
-	cfgName     string // The repository entry in configuration
-	releaseRepo string // The repository name in the release state
+	url         string               // Current download URL
+	cfgName     string               // The repository entry in configuration
+	opinion     opinions.OpinionKind // This inspector's opinion
+	reason      string               // The reason for the inspector's opinion
+	releaseRepo string               // The repository name in the release state
 }
 
 var aptReleasePackagesValidationTests = []aptReleasePackagesValidationTest{{
 	url:         "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6",
 	cfgName:     "default",
+	opinion:     opinions.Unknown,
+	reason:      "Packages file listed in Release",
 	releaseRepo: "http://archive.ubuntu.com/ubuntu/dists/jammy",
 }, {
 	url:         "http://notalias.ubuntu.com/ubuntu/dists/noble/main/binary-amd64/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6",
 	cfgName:     "aliased",
+	opinion:     opinions.Unknown,
+	reason:      "Packages file listed in Release",
 	releaseRepo: "http://alias.ubuntu.com/ubuntu/dists/noble",
+}, {
+	cfgName:     "", // missing cfg-name
+	url:         "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6",
+	opinion:     opinions.Rejected,
+	reason:      "Packages file downloaded from unknown repository",
+	releaseRepo: "http://archive.ubuntu.com/ubuntu/dists/jammy",
+}, {
+	cfgName:     "invalid", // invalid cfg-name
+	url:         "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6",
+	opinion:     opinions.Rejected,
+	reason:      "Unknown repository configuration name",
+	releaseRepo: "http://archive.ubuntu.com/ubuntu/dists/jammy",
 }}
 
 func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
@@ -263,37 +281,64 @@ func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
 		}
 
 		ins := apt.NewAptReleaseInspector(getTestAptConfig())
-		a.SetRequestPending(ins, "test").Annotate(Annotation{"cfg-name": tc.cfgName})
+		notes := Annotation{}
+		if tc.cfgName != "" {
+			notes["cfg-name"] = tc.cfgName
+		}
+		a.SetRequestPending(ins, "test").Annotate(notes)
 		ins.SetRelease(map[string]apt.ReleaseFile{tc.releaseRepo: rf})
 		err := ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 		c.Assert(a.Approved(), Equals, false)
-		c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
-			Opinion: opinions.Unknown,
-			Reason:  "Packages file listed in Release",
-			Annotations: Annotation{
-				"file-path":    "main/binary-amd64/Packages.xz",
-				"release-file": "9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6",
-				"vendor":       "Canonical",
-			},
-		})
+		if tc.opinion == opinions.Unknown {
+			c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
+				Opinion: tc.opinion,
+				Reason:  tc.reason,
+				Annotations: Annotation{
+					"file-path":    "main/binary-amd64/Packages.xz",
+					"release-file": "9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6",
+					"vendor":       "Canonical",
+				},
+			})
+		} else {
+			c.Assert(a.ResponseInspection["apt.release"].Opinion, Equals, tc.opinion)
+			c.Assert(a.ResponseInspection["apt.release"].Reason, Equals, tc.reason)
+		}
 	}
 }
 
 type aptReleaseTranslationValidationTest struct {
-	url         string // Current download URL
-	cfgName     string // The repository entry in configuration
-	releaseRepo string // The repository name in the release state
+	url         string               // Current download URL
+	cfgName     string               // The repository entry in configuration
+	opinion     opinions.OpinionKind // This inspector's opinion
+	reason      string               // The reason for the inspector's opinion
+	releaseRepo string               // The repository name in the release state
 }
 
 var aptReleaseTranslationValidationTests = []aptReleaseTranslationValidationTest{{
 	url:         "http://archive.ubuntu.com/ubuntu/dists/jammy/main/i18n/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6",
 	cfgName:     "default",
+	opinion:     opinions.Unknown,
+	reason:      "Translation file listed in Release",
 	releaseRepo: "http://archive.ubuntu.com/ubuntu/dists/jammy",
 }, {
 	url:         "http://notalias.ubuntu.com/ubuntu/dists/noble/main/i18n/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6",
 	cfgName:     "aliased",
+	opinion:     opinions.Unknown,
+	reason:      "Translation file listed in Release",
 	releaseRepo: "http://alias.ubuntu.com/ubuntu/dists/noble",
+}, {
+	url:         "http://archive.ubuntu.com/ubuntu/dists/jammy/main/i18n/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6",
+	cfgName:     "", // missing cfg-name
+	opinion:     opinions.Rejected,
+	reason:      "Translation file downloaded from unknown repository",
+	releaseRepo: "http://archive.ubuntu.com/ubuntu/dists/jammy",
+}, {
+	url:         "http://archive.ubuntu.com/ubuntu/dists/jammy/main/i18n/by-hash/SHA256/65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6",
+	cfgName:     "invalid", // invalid cfg-name
+	opinion:     opinions.Rejected,
+	reason:      "Unknown repository configuration name",
+	releaseRepo: "http://archive.ubuntu.com/ubuntu/dists/jammy",
 }}
 
 func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
@@ -321,49 +366,76 @@ func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
 		}
 
 		ins := apt.NewAptReleaseInspector(getTestAptConfig())
-		a.SetRequestPending(ins, "test").Annotate(Annotation{"cfg-name": tc.cfgName})
+		notes := Annotation{}
+		if tc.cfgName != "" {
+			notes["cfg-name"] = tc.cfgName
+		}
+		a.SetRequestPending(ins, "test").Annotate(notes)
 		ins.SetRelease(map[string]apt.ReleaseFile{tc.releaseRepo: rf})
 		err := ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 		c.Assert(a.Approved(), Equals, false)
-		c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
-			Opinion: opinions.Unknown,
-			Reason:  "Translation file listed in Release",
-			Annotations: Annotation{
-				"file-path":    "main/i18n/Translation-en.xz",
-				"release-file": "9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6",
-				"vendor":       "Canonical",
-			},
-		})
+		if tc.opinion == opinions.Unknown {
+			c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
+				Opinion: tc.opinion,
+				Reason:  tc.reason,
+				Annotations: Annotation{
+					"file-path":    "main/i18n/Translation-en.xz",
+					"release-file": "9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6",
+					"vendor":       "Canonical",
+				},
+			})
+		} else {
+			c.Assert(a.ResponseInspection["apt.release"].Opinion, Equals, tc.opinion)
+			c.Assert(a.ResponseInspection["apt.release"].Reason, Equals, tc.reason)
+		}
 	}
 }
 
 type aptReleaseCommandsValidationTest struct {
-	url          string // Current download URL
-	cfgName      string // The repository entry in configuration
-	releaseRepo  string // The repository name in the release state
-	isListed     bool   // Whether the Commands file is listed in the Release file.
-	rejectReason string // The reason to reject this artifact, if any.
+	url         string               // Current download URL
+	cfgName     string               // The repository entry in configuration
+	opinion     opinions.OpinionKind // This inspector's opinion
+	reason      string               // The reason for the inspector's opinion
+	releaseRepo string               // The repository name in the release state
+	isListed    bool                 // Whether the Commands file is listed in the Release file.
 }
 
 var aptReleaseCommandsValidationTests = []aptReleaseCommandsValidationTest{{
-	url:          "http://archive.ubuntu.com/ubuntu/dists/jammy/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
-	cfgName:      "default",
-	releaseRepo:  "http://archive.ubuntu.com/ubuntu/dists/jammy",
-	isListed:     true,
-	rejectReason: "",
+	url:         "http://archive.ubuntu.com/ubuntu/dists/jammy/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
+	cfgName:     "default",
+	opinion:     opinions.Unknown,
+	reason:      "Commands file listed in Release",
+	releaseRepo: "http://archive.ubuntu.com/ubuntu/dists/jammy",
+	isListed:    true,
 }, {
-	url:          "http://archive.ubuntu.com/ubuntu/dists/jammy/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
-	cfgName:      "default",
-	releaseRepo:  "http://archive.ubuntu.com/ubuntu/dists/jammy",
-	isListed:     false,
-	rejectReason: "Commands file not listed in Release file",
+	url:         "http://archive.ubuntu.com/ubuntu/dists/jammy/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
+	cfgName:     "default",
+	opinion:     opinions.Rejected,
+	reason:      "Commands file not listed in Release file",
+	releaseRepo: "http://archive.ubuntu.com/ubuntu/dists/jammy",
+	isListed:    false,
 }, {
-	url:          "http://notalias.ubuntu.com/ubuntu/dists/noble/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
-	cfgName:      "aliased",
-	releaseRepo:  "http://alias.ubuntu.com/ubuntu/dists/noble",
-	isListed:     true,
-	rejectReason: "",
+	url:         "http://notalias.ubuntu.com/ubuntu/dists/noble/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
+	cfgName:     "aliased",
+	opinion:     opinions.Unknown,
+	reason:      "Commands file listed in Release",
+	releaseRepo: "http://alias.ubuntu.com/ubuntu/dists/noble",
+	isListed:    true,
+}, {
+	url:         "http://archive.ubuntu.com/ubuntu/dists/jammy/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
+	cfgName:     "", // missing cfg-name
+	opinion:     opinions.Rejected,
+	reason:      "Commands file downloaded from unknown repository",
+	releaseRepo: "http://alias.ubuntu.com/ubuntu/dists/jammy",
+	isListed:    true,
+}, {
+	url:         "http://archive.ubuntu.com/ubuntu/dists/jammy/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
+	cfgName:     "invalid", // invalid cfg-name
+	opinion:     opinions.Rejected,
+	reason:      "Unknown repository configuration name",
+	releaseRepo: "http://alias.ubuntu.com/ubuntu/dists/jammy",
+	isListed:    true,
 }}
 
 func (s *aptSuite) TestAptReleaseCommandsValidation(c *C) {
@@ -392,16 +464,20 @@ func (s *aptSuite) TestAptReleaseCommandsValidation(c *C) {
 		}
 
 		ins := apt.NewAptReleaseInspector(getTestAptConfig())
-		a.SetRequestPending(ins, "test").Annotate(Annotation{"cfg-name": tc.cfgName})
+		notes := Annotation{}
+		if tc.cfgName != "" {
+			notes["cfg-name"] = tc.cfgName
+		}
+		a.SetRequestPending(ins, "test").Annotate(notes)
 		ins.SetRelease(map[string]apt.ReleaseFile{tc.releaseRepo: rf})
 		err := ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
 		c.Assert(a.Approved(), Equals, false)
-		if tc.rejectReason == "" {
+		if tc.opinion == opinions.Unknown {
 			c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
-				Opinion: opinions.Unknown,
-				Reason:  "Commands file listed in Release",
+				Opinion: tc.opinion,
+				Reason:  tc.reason,
 				Annotations: Annotation{
 					"file-path":    "main/cnf/Commands-amd64.xz",
 					"release-file": "9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6",
@@ -409,7 +485,8 @@ func (s *aptSuite) TestAptReleaseCommandsValidation(c *C) {
 				},
 			})
 		} else {
-			c.Assert(a.ResponseInspection["apt.release"].Reason, Equals, tc.rejectReason)
+			c.Assert(a.ResponseInspection["apt.release"].Opinion, Equals, tc.opinion)
+			c.Assert(a.ResponseInspection["apt.release"].Reason, Equals, tc.reason)
 		}
 	}
 }

@@ -282,6 +282,22 @@ var aptPackagesDebValidationTests = []aptPackagesDebValidationTest{{
 	debInPackages:     false,
 	packagesInRelease: true,
 	rejectReason:      "deb file digest not listed in packages file",
+}, {
+	pkgUrl:            "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/5bf8bcda46d2d2bd81840ea5808f2b2122598bd68cc4889e3e32055ecc43b513",
+	debUrl:            "http://archive.ubuntu.com/ubuntu/pool/universe/2/2048/2048_0.20210105.1243-1_amd64.deb",
+	cfgName:           "", // missing cfg-name
+	filename:          "testdata/2048_0.20210105.1243-1_amd64.deb",
+	debInPackages:     true,
+	packagesInRelease: true,
+	rejectReason:      "deb file downloaded from unknown repository",
+}, {
+	pkgUrl:            "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/5bf8bcda46d2d2bd81840ea5808f2b2122598bd68cc4889e3e32055ecc43b513",
+	debUrl:            "http://archive.ubuntu.com/ubuntu/pool/universe/2/2048/2048_0.20210105.1243-1_amd64.deb",
+	cfgName:           "invalid", // invalid cfg-name
+	filename:          "testdata/2048_0.20210105.1243-1_amd64.deb",
+	debInPackages:     true,
+	packagesInRelease: true,
+	rejectReason:      "Unknown repository configuration name",
 }}
 
 func (s *aptSuite) TestAptPackagesDebValidation(c *C) {
@@ -325,9 +341,11 @@ func (s *aptSuite) TestAptPackagesDebValidation(c *C) {
 		a.CurrentDownload = metadata.Download{URL: tc.debUrl}
 		a.Metadata.Sha256, _ = digests.NewSha256Digest("defa3a9b60849dc9f1bd3549381683d9fd245a0bebb900dc84f306c133a05a17")
 		a.Metadata.Size = 14744
-		a.SetRequestPending(ins, "some reason").Annotate(
-			Annotation{"cfg-name": tc.cfgName},
-		)
+		notes := Annotation{}
+		if tc.cfgName != "" {
+			notes["cfg-name"] = tc.cfgName
+		}
+		a.SetRequestPending(ins, "some reason").Annotate(notes)
 
 		pkgreader, err := os.Open(tc.filename)
 		c.Assert(err, IsNil)

@@ -285,10 +285,17 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 
 	cfgName, ok := a.RequestStringAnnotation(ins.ID(), "cfg-name")
 	if !ok {
+		a.SetResponseRejected(ins, "Packages file downloaded from unknown repository")
 		return nil
 	}
 
-	origin := ins.getOriginAlias(utils.NormalizedOrigin(u), cfgName, slog)
+	origin, ok := ins.getOriginAlias(utils.NormalizedOrigin(u), cfgName, slog)
+	if !ok {
+		a.SetResponseRejected(ins, "Unknown repository configuration name").Annotate(
+			Annotation{"cfg-name": cfgName},
+		)
+		return nil
+	}
 
 	pkg := newAptPackages(a.Sha256(), origin, dist, component, architecture)
 	ins.addPackages(origin, u.Path, pkg, a.Logger())
@@ -430,21 +437,21 @@ func (ins *AptPackagesInspector) addPackages(origin, packagesPath string, data *
 	ins.packages[origin][packagesPath] = data
 }
 
-func (ins *AptPackagesInspector) getOriginAlias(origin, cfgName string, slog logger.Logger) string {
+func (ins *AptPackagesInspector) getOriginAlias(origin, cfgName string, slog logger.Logger) (string, bool) {
 	repos, ok := ins.config.Repositories[cfgName]
 	if !ok {
 		slog.Debugf("%s: repository configuration not found", cfgName)
-		return origin
+		return "", false
 	}
 
 	alias := repos.BaseUrlAlias
 	if alias == "" {
 		slog.Debugf("origin not aliased: %s", origin)
-		return origin
+		return origin, true
 	}
 
 	slog.Debugf("packages origin alias: %s to %s", origin, alias)
-	return alias
+	return alias, true
 }
 
 // validateDebianPackage verifies if the deb package is listed in the
@@ -459,9 +466,16 @@ func (ins *AptPackagesInspector) validateDebianPackage(f ArtifactReader, a Respo
 
 	cfgName, ok := a.RequestStringAnnotation(ins.ID(), "cfg-name")
 	if !ok {
-		return fmt.Errorf("inconsistent request annotation: missing config name")
+		a.SetResponseRejected(ins, "deb file downloaded from unknown repository")
+		return nil
 	}
-	origin := ins.getOriginAlias(utils.NormalizedOrigin(u), cfgName, slog)
+	origin, ok := ins.getOriginAlias(utils.NormalizedOrigin(u), cfgName, slog)
+	if !ok {
+		a.SetResponseRejected(ins, "Unknown repository configuration name").Annotate(
+			Annotation{"cfg-name": cfgName},
+		)
+		return nil
+	}
 
 	info, err := apt_cfg.NewDebPackageUrlInfo(u, &ins.config, slog)
 	if err != nil {
