@@ -442,7 +442,7 @@ func (ins *AptPackagesInspector) getOriginAlias(origin, cfgName string, slog log
 
 	alias := repos.BaseUrlAlias
 	if alias == "" {
-		slog.Debug("origin not aliased: %s", origin)
+		slog.Debugf("origin not aliased: %s", origin)
 		return origin
 	}
 
