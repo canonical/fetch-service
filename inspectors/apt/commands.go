@@ -50,29 +50,8 @@ func AptCommandsDetector(raw []byte, limit uint32) bool {
 
 	buf = buf[:n]
 
-	sc := bufio.NewScanner(bytes.NewReader(buf))
-	sc.Split(bufio.ScanLines)
-
-	fields := map[string]struct{}{}
-
-	for sc.Scan() {
-		line := sc.Text()
-		if len(line) > 0 && line[0] == ' ' {
-			continue
-		}
-		if len(line) == 0 {
-			break
-		}
-
-		k, _, ok := strings.Cut(line, ":")
-		if !ok {
-			return false
-		}
-
-		fields[k] = struct{}{}
-	}
-
-	if len(fields) != 3 {
+	fields, ok := getTextFields(buf, 3)
+	if !ok {
 		return false
 	}
 

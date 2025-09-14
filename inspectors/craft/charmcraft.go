@@ -20,8 +20,6 @@
 package craft
 
 import (
-	"fmt"
-	"net/url"
 	"path/filepath"
 
 	"gopkg.in/yaml.v3"
@@ -50,39 +48,8 @@ type charmcraftYaml struct {
 	Summary string `json:"summary"`
 }
 
-// InspectRequest verifies whether this is a valid upload-pack request. For
-// it to succeed the following conditions must be satisfied:
-//
-//   - The "Git-Protocol" request header must be set to "version=2".
-//   - The Content-Type header must be set to "application/x-git-upload-pack-request".
-//   - The Accept header must be set to "application/x-git-upload-pack-result"
-//   - The request URL must match a valid upload-pack pattern.
-//   - The upload-pack command must be "fetch".
-//   - It must be a shallow fetch.
 func (ins *CharmcraftInspector) InspectRequest(a RequestArtifact) error {
-	u, err := url.Parse(a.DownloadURL())
-	if err != nil {
-		return fmt.Errorf("cannot parse URL: %s", err)
-	}
-
-	if !checkGitRequestHeaders(a) {
-		return nil // we don't recognize this request
-	}
-
-	slog := a.Logger()
-
-	_, err = config.NewCraftUrlInfo(u, &ins.config, slog)
-	if err != nil {
-		return nil // we don't recognize this request
-	}
-
-	command, ok := a.RequestStringAnnotation(GitUploadPackID, "command")
-	if !ok || command != "fetch" {
-		return nil // we don't recognize this request
-	}
-
-	a.SetRequestPending(ins, "valid URL for charmcraft download")
-	return nil
+	return inspectCraftRequest(ins, a, &ins.config)
 }
 
 func (ins *CharmcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {

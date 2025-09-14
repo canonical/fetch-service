@@ -53,29 +53,8 @@ func AptTranslationDetector(raw []byte, limit uint32) bool {
 
 	buf = buf[:n]
 
-	sc := bufio.NewScanner(bytes.NewReader(buf))
-	sc.Split(bufio.ScanLines)
-
-	fields := map[string]struct{}{}
-
-	for sc.Scan() {
-		line := sc.Text()
-		if len(line) > 0 && line[0] == ' ' {
-			continue
-		}
-		if len(line) == 0 {
-			break
-		}
-
-		k, _, ok := strings.Cut(line, ":")
-		if !ok {
-			return false
-		}
-
-		fields[k] = struct{}{}
-	}
-
-	if len(fields) != 3 {
+	fields, ok := getTextFields(buf, 3)
+	if !ok {
 		return false
 	}
 
@@ -93,6 +72,37 @@ func AptTranslationDetector(raw []byte, limit uint32) bool {
 	}
 
 	return true
+}
+
+// getTextFields looks for n key: value lines in buf.
+func getTextFields(buf []byte, n int) (map[string]struct{}, bool) {
+	sc := bufio.NewScanner(bytes.NewReader(buf))
+	sc.Split(bufio.ScanLines)
+
+	fields := map[string]struct{}{}
+
+	for sc.Scan() {
+		line := sc.Text()
+		if len(line) > 0 && line[0] == ' ' {
+			continue
+		}
+		if len(line) == 0 {
+			break
+		}
+
+		k, _, ok := strings.Cut(line, ":")
+		if !ok {
+			return fields, false
+		}
+
+		fields[k] = struct{}{}
+	}
+
+	if len(fields) != n {
+		return fields, false
+	}
+
+	return fields, true
 }
 
 // AptTranslationInspector contains inspector-specific contextual data for stateful
