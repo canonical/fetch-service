@@ -1,0 +1,42 @@
+summary: Test the apt inspector
+
+execute: |
+  # shellcheck disable=SC1091
+  . ../utils.sh
+
+  # create strict session
+  read -r session_id token < <(create_session strict)
+
+  # set up proxy
+  export http_proxy="http://${session_id}:${token}@localhost:9988"
+  export https_proxy="http://${session_id}:${token}@localhost:9988"
+
+  curl -sSf "http://security.ubuntu.com/ubuntu/dists/noble-security/InRelease" --output file1
+  curl -sSf "http://security.ubuntu.com/ubuntu/dists/noble-security/main/binary-amd64/Packages.gz" --output file2
+
+  curl -sSf "http://archive.ubuntu.com/ubuntu/dists/noble-security/InRelease" --output file3
+  curl -sSf "http://archive.ubuntu.com/ubuntu/dists/noble-security/main/binary-amd64/Packages.gz" --output file4
+
+  unset http_proxy
+  unset https_proxy
+
+  revoke_token "$session_id" "$token"
+  get_session_report "$session_id" > session_report.json
+  python3 -mjson.tool session_report.json
+
+  jq -r '(.artifacts[].metadata | select(.type=="application/x.apt.release")).name' session_report.json | MATCH "InRelease"
+  jq -r '(.artifacts[].metadata | select(.type=="application/x.apt.packages")).name' session_report.json | MATCH "Packages"
+
+  delete_session "$session_id"
+  delete_resources "$session_id"
+
+debug: |
+  # shellcheck disable=SC2016
+  snap_data=$(snap run --shell fetch-service -c 'echo $SNAP_DATA')
+  logfile=${snap_data}/fetch.log
+  if [ -f "${logfile}" ]; then
+    echo "fetch-service log output:"
+    cat "${logfile}"
+  else
+    echo "fetch-service logfile does not exist."
+  fi

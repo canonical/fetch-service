@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2025 Canonical Ltd.
+ * Copyright 2024 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -17,14 +17,23 @@
  *
  */
 
-package store
+package chisel_test
 
-var (
-	Sha3_384Digest = sha3_384Digest
+import (
+	"testing"
 
-	StoreInfoApiInspectorSetInfo  = (*StoreInfoApiInspector).setInfo
-	StoreInfoApiInspectorFindInfo = (*StoreInfoApiInspector).findInfo
+	. "gopkg.in/check.v1"
+
+	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/logger/testlogger"
 )
 
-type StoreInfoApiInfo = storeInfoApiInfo
-type StoreInfoApiRevisionInfo = storeInfoApiRevisionInfo
+type chiselSuite struct{}
+
+func (t *chiselSuite) SetUpTest(c *C) {
+	testlogger.Init(logger.InfoLevel)
+}
+
+var _ = Suite(&chiselSuite{})
+
+func Test(t *testing.T) { TestingT(t) }

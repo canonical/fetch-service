@@ -31,7 +31,8 @@ import (
 )
 
 var (
-	reStoreApi = regexp.MustCompile(`^/v2/([a-z]+)/info/([a-zA-Z0-9-]+)$`)
+	reStoreInfoApi    = regexp.MustCompile(`^/v2/([a-z]+)/info/([a-zA-Z0-9-]+)$`)
+	reStoreResolveApi = regexp.MustCompile(`^/v2/revisions/resolve$`)
 )
 
 func checkRequestUrl(cfg *StoreInspectorConfig, u *url.URL, slog logger.Logger) error {
@@ -50,24 +51,40 @@ type StoreInspectorConfig struct {
 	Urls []glob.Glob `yaml:"urls"` // List of allowed URL glob patterns
 }
 
-type StoreApiUrlInfo struct {
+type StoreInfoApiUrlInfo struct {
 	PackageType string
 	PackageName string
 }
 
-func NewStoreApiUrlInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreApiUrlInfo, error) {
+func NewStoreInfoApiUrlInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreInfoApiUrlInfo, error) {
 	if err := checkRequestUrl(cfg, u, slog); err != nil {
 		return nil, err
 	}
 
-	m := reStoreApi.FindStringSubmatch(u.Path)
+	m := reStoreInfoApi.FindStringSubmatch(u.Path)
 	if len(m) != 3 {
-		return nil, errors.New("not a valid store API path")
+		return nil, errors.New("not a valid store info API path")
 	}
-	info := &StoreApiUrlInfo{
+	info := &StoreInfoApiUrlInfo{
 		PackageType: m[1],
 		PackageName: m[2],
 	}
 
 	return info, nil
+}
+
+type StoreResolveApiUrlInfo struct {
+}
+
+func NewStoreResolveApiUrlInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreResolveApiUrlInfo, error) {
+	if err := checkRequestUrl(cfg, u, slog); err != nil {
+		return nil, err
+	}
+
+	if !reStoreResolveApi.MatchString(u.Path) {
+		return nil, errors.New("not a valid store resolve_revisions API path")
+
+	}
+
+	return &StoreResolveApiUrlInfo{}, nil
 }

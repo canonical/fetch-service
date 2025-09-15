@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2025 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -17,14 +17,12 @@
  *
  */
 
-package store
+package config
 
-var (
-	Sha3_384Digest = sha3_384Digest
-
-	StoreInfoApiInspectorSetInfo  = (*StoreInfoApiInspector).setInfo
-	StoreInfoApiInspectorFindInfo = (*StoreInfoApiInspector).findInfo
+import (
+	"github.com/canonical/fetch-service/glob"
 )
 
-type StoreInfoApiInfo = storeInfoApiInfo
-type StoreInfoApiRevisionInfo = storeInfoApiRevisionInfo
+type ChiselInspectorConfig struct {
+	Urls []glob.Glob `yaml:"urls"`
+}

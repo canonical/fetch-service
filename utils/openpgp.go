@@ -36,9 +36,10 @@ func DecodeKeys(armoredData []byte) (pubKeys []*packet.PublicKey, privKeys []*pa
 	return pubKeys, privKeys, nil
 }
 
-// DecodePubKey decodes a single public key packet from armored data. The
-// data should contain exactly one public key packet and no private key packets.
-func DecodePubKey(armoredData []byte) (*packet.PublicKey, error) {
+// DecodePubKey decodes public keys packet from armored data. The
+// data should contain no private key packets. If `allowMultiple` is false, the
+// function will fail if `armoredData` contains more than 1 public key.
+func DecodePubKey(armoredData []byte, allowMultiple bool) ([]*packet.PublicKey, error) {
 	pubKeys, privKeys, err := DecodeKeys(armoredData)
 	if err != nil {
 		return nil, err
@@ -46,13 +47,13 @@ func DecodePubKey(armoredData []byte) (*packet.PublicKey, error) {
 	if len(privKeys) > 0 {
 		return nil, fmt.Errorf("armored data contains private key")
 	}
-	if len(pubKeys) > 1 {
+	if len(pubKeys) > 1 && !allowMultiple {
 		return nil, fmt.Errorf("armored data contains more than one public key")
 	}
 	if len(pubKeys) == 0 {
 		return nil, fmt.Errorf("armored data contains no public key")
 	}
-	return pubKeys[0], nil
+	return pubKeys, nil
 }
 
 // DecodeClearSigned decodes the first clearsigned message in the data and

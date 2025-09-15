@@ -191,6 +191,43 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectArtifactNo
 	c.Check(a.Metadata.Type, Equals, "")
 }
 
+type simpleDownloadInspectorMissingFieldTest struct {
+	filename string // The test file name
+}
+
+var simpleStreamDownloadInspectorMissingFieldTests = []simpleDownloadInspectorMissingFieldTest{{
+	filename: "testdata/download-bad-format.json",
+}, {
+	filename: "testdata/download-missing-datatype.json",
+}, {
+	filename: "testdata/download-missing-products.json",
+}, {
+	filename: "testdata/download-missing-updated.json",
+}}
+
+func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectArtifactMissingField(c *C) {
+	for _, tc := range simpleStreamDownloadInspectorMissingFieldTests {
+		ins := lxd.NewSimpleStreamsDownloadInspector()
+		a := metadata.NewArtifact()
+		a.MimeType = mimetype.Lookup("application/json")
+		a.CurrentDownload = metadata.Download{URL: "https://cloud-images.ubuntu.com:443/buildd/daily/streams/v1/com.ubuntu.cloud:daily:download.json"}
+
+		// Set up the request inspection first
+		err := ins.InspectRequest(a)
+		c.Assert(err, IsNil)
+		c.Assert(a.RequestPending(), Equals, true)
+
+		f, err := files.OpenArtifactFile(tc.filename)
+		c.Assert(err, IsNil)
+		defer f.Close()
+
+		err = ins.InspectArtifact(f, a)
+		c.Assert(err, IsNil)
+		c.Assert(a.Approved(), Equals, false)
+		c.Check(a.Metadata.Type, Equals, "")
+	}
+}
+
 func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectArtifactMissingStreamAnnotation(c *C) {
 	ins := lxd.NewSimpleStreamsDownloadInspector()
 	a := metadata.NewArtifact()
