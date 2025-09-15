@@ -1,0 +1,34 @@
+format: v1
+
+archives:
+  ubuntu:
+    version: 20.04
+    components: [main, universe]
+    suites: [focal, focal-security, focal-updates]
+    public-keys: [ubuntu-archive-key-2018]
+
+public-keys:
+  ubuntu-archive-key-2018:
+    id: "871920D1991BC93C"
+    armor: |
+      -----BEGIN PGP PUBLIC KEY BLOCK-----
+      
+      mQENBGVs8P4BCADPh/fNnw2AI1JCYf+3p4jkcFQPLVsUkoTZk8OXjCxy+UP9Jd2m
+      xnxat7a0JEJZa0aWCmtlSL1XR+kFKBrd7Ry5jOHYjuDKx4kTmDUbezPnjoZIGDNX
+      j5cdNuMLpOINZweNNWDKRdRvhj5QX89/DYwPrLkNFwwjXjlj5tjU6RUkROYJBGPe
+      G2ns2cZtVbYMh3FDU9YRfp/hUqGVf+UFRyUw+mo1TUlk5F7fnfwEQmsppDHvfTNJ
+      yjEMZD7nReTEeMy12GV2wysOwWMPEb2PSE/+Od7AKn5dFA7w3kyLCzAxYp6o7IE/
+      +RY8YzAJe6GmLwhTWtylMV1xteQhZkEe/QGXABEBAAGZAg0EW5/B2gEQAO/8bHK3
+      H8txJdi4zQzAqiNsHJ7zWzQbWcTH6XPpUBSkhRmduSp1cEcL53CsZL8J54u4CM9E
+      tTwCjET+OO9lWnzEUYRYdh2SWpcZn+Al8/l3d8hQG1kdkQmXwHyb2kwd/8BBB2wL
+      5jOLNIbm3kyGei3DTjgte10QSTHa3onPQ4auH7kijGpfulmKroK/X0GiFpSKgox2
+      nsRLpFh83uiXodIsWWsxe1V+H+KOk32PdmFUZV5ELyQodCwnk+Qhua/EGJSHtImZ
+      9lTHQhCE0xoMdd91kAY22eHPM1F5vUWo0tJWStL8+ewBDMyEbUEObZU5IXriN5sp
+      d98WozktdFBN6pMuyNRtuupHqz8YI7xQXuN9SPoju1ovKCawc78kPiOkpELSBulQ
+      F9qInIu+56nHeRaiovew3QuGUwjzT58DsZO+g7Hi2mpWXOUTpNqNi76N9bdCk4VL
+      l7AQx0vbqHPGxmD+B5m9NsCtw/46wkpGaG/iQ2joDJ3IdD/dlX9/df2ZPf9I8tsl
+      q6aSCndjN3q3k94G75lCT+Y3lY025qKE0RXuWVvVmG9jQXG70FV38E2XSvO7Gnes
+      iKcHZNfZIKDvATnFeTBe5D/Z5MMTS/QeUae2S5mMajANmTEdlBLFlU7N1kJFVpf9
+      YQUukprYBCnDlEmtDihn85+J9fInM/bujTfBABEBAAE=
+      =Znwy
+      -----END PGP PUBLIC KEY BLOCK-----
