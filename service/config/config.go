@@ -330,10 +330,11 @@ func GetInspectorsConfig() InspectorsConfig {
 
 	for k, v := range globalInspectorsConfig.Apt.Repositories {
 		cfg.Apt.Repositories[k] = apt_cfg.AptInspectorConfigRepository{
-			Urls:       v.Urls,
-			Dists:      v.Dists,
-			Components: v.Components,
-			PublicKey:  v.PublicKey,
+			Urls:         v.Urls,
+			Dists:        v.Dists,
+			Components:   v.Components,
+			PublicKey:    v.PublicKey,
+			BaseUrlAlias: v.BaseUrlAlias,
 		}
 	}
 
