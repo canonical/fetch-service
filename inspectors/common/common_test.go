@@ -52,10 +52,15 @@ func (t *commonSuite) TestAnnotationAdd(c *C) {
 
 func (t *commonSuite) TestAnnotationAppend(c *C) {
 	notes := common.Annotation{"foo": "bar"}
-	moreNotes := common.Annotation{"num": 42}
-	notes.Append(moreNotes)
+	notes.Append(common.Annotation{"num": 42})
 	c.Assert(notes, DeepEquals, common.Annotation{
 		"foo": "bar",
+		"num": 42,
+	})
+
+	notes.Append(common.Annotation{"foo": "baz"})
+	c.Assert(notes, DeepEquals, common.Annotation{
+		"foo": "baz",
 		"num": 42,
 	})
 }
