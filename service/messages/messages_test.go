@@ -36,75 +36,65 @@ var _ = Suite(&messagesSuite{})
 func Test(t *testing.T) { TestingT(t) }
 
 func (t *messagesSuite) TestGetServiceStatus(c *C) {
-	var m messages.GetServiceStatus
-	m = messages.NewGetServiceStatus()
+	var m messages.GetServiceStatus = messages.NewGetServiceStatus()
 	c.Check(cap(m.Rch), Equals, 1)
 }
 
 func (t *messagesSuite) TestRequestInspection(c *C) {
 	a := metadata.NewArtifact()
-	var m messages.RequestInspection
-	m = messages.NewRequestInspection(a)
+	var m messages.RequestInspection = messages.NewRequestInspection(a)
 	c.Check(cap(m.Rch), Equals, 1)
 	c.Check(m.A, Equals, a)
 }
 
 func (t *messagesSuite) TestResponseInspection(c *C) {
 	a := metadata.NewArtifact()
-	var m messages.ResponseInspection
-	m = messages.NewResponseInspection(a)
+	var m messages.ResponseInspection = messages.NewResponseInspection(a)
 	c.Check(cap(m.Rch), Equals, 1)
 	c.Check(m.A, Equals, a)
 }
 
 func (t *messagesSuite) TestCompleteInspection(c *C) {
 	a := metadata.NewArtifact()
-	var m messages.CompleteInspection
-	m = messages.NewCompleteInspection(a)
+	var m messages.CompleteInspection = messages.NewCompleteInspection(a)
 	c.Check(cap(m.Rch), Equals, 1)
 	c.Check(m.A, Equals, a)
 }
 
 func (t *messagesSuite) TestCreateSession(c *C) {
-	var m messages.CreateSession
-	m = messages.NewCreateSession("policy", 42)
+	var m messages.CreateSession = messages.NewCreateSession("policy", 42)
 	c.Check(cap(m.Rch), Equals, 1)
 	c.Check(m.Policy, Equals, "policy")
 	c.Check(m.Timeout, Equals, uint64(42))
 }
 
 func (t *messagesSuite) TestRevokeToken(c *C) {
-	var m messages.RevokeToken
-	m = messages.NewRevokeToken("session-id", "token")
+	var m messages.RevokeToken = messages.NewRevokeToken("session-id", "token")
 	c.Check(cap(m.Rch), Equals, 1)
 	c.Check(m.Id, Equals, "session-id")
 	c.Check(m.Token, Equals, "token")
 }
 
 func (t *messagesSuite) TestSessionReport(c *C) {
-	var m messages.SessionReport
-	m = messages.NewSessionReport("session-id")
+	var m messages.SessionReport = messages.NewSessionReport("session-id")
 	c.Check(cap(m.Rch), Equals, 1)
 	c.Check(m.Id, Equals, "session-id")
 }
 
 func (t *messagesSuite) TestEndSession(c *C) {
-	var m messages.EndSession
-	m = messages.NewEndSession("session-id")
+	var m messages.EndSession = messages.NewEndSession("session-id")
 	c.Check(cap(m.Rch), Equals, 1)
 	c.Check(m.Id, Equals, "session-id")
 }
 
 func (t *messagesSuite) TestDeleteResources(c *C) {
-	var m messages.DeleteResources
-	m = messages.NewDeleteResources("session-id")
+	var m messages.DeleteResources = messages.NewDeleteResources("session-id")
 	c.Check(cap(m.Rch), Equals, 1)
 	c.Check(m.Id, Equals, "session-id")
 }
 
 func (t *messagesSuite) TestFetchCtl(c *C) {
-	var m messages.FetchCtl
-	m = messages.NewFetchCtl("operation", "type", true, []byte("payload"))
+	var m messages.FetchCtl = messages.NewFetchCtl("operation", "type", true, []byte("payload"))
 	c.Check(cap(m.Rch), Equals, 1)
 	c.Check(m.Operation, Equals, "operation")
 	c.Check(m.Type, Equals, "type")
