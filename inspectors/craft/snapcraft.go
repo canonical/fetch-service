@@ -102,8 +102,7 @@ func (ins *SnapcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 
 	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
-		// this must have been set by the git upload-pack inspector
-		a.SetResponseUnknown(ins, "no git checkout found")
+		// Only the "fetch" command sets git-checkout-path.
 		return nil
 	}
 
@@ -111,8 +110,6 @@ func (ins *SnapcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 
 	snapcraftYamlPath, found := getSnapcraftYamlPath(checkoutPath)
 	if !found {
-		a.SetResponseUnknown(ins,
-			"git repository does not contain a snapcraft.yaml file")
 		return nil
 	}
 	yamldata_filereader, err := osOpen(snapcraftYamlPath)

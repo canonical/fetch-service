@@ -65,8 +65,7 @@ func (ins *SourcecraftInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 
 	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
-		// this must have been set by the git upload-pack inspector
-		a.SetResponseUnknown(ins, "no git checkout found")
+		// Only the "fetch" command sets git-checkout-path.
 		return nil
 	}
 
@@ -74,8 +73,6 @@ func (ins *SourcecraftInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 
 	sourcecraftYamlPath := filepath.Join(checkoutPath, "sourcecraft.yaml")
 	if _, err := osStat(sourcecraftYamlPath); err != nil {
-		a.SetResponseUnknown(ins,
-			"git repository does not contain a sourcecraft.yaml file")
 		return nil
 	}
 	yamldata_filereader, err := osOpen(sourcecraftYamlPath)

@@ -62,8 +62,7 @@ func (ins *CharmcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 
 	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
-		// this must have been set by the git upload-pack inspector
-		a.SetResponseUnknown(ins, "no git checkout found")
+		// Only the "fetch" command sets git-checkout-path.
 		return nil
 	}
 
@@ -71,8 +70,6 @@ func (ins *CharmcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 
 	charmcraftYamlPath := filepath.Join(checkoutPath, "charmcraft.yaml")
 	if _, err := osStat(charmcraftYamlPath); err != nil {
-		a.SetResponseUnknown(ins,
-			"git repository does not contain a charmcraft.yaml file")
 		return nil
 	}
 	yamlFile, err := osOpen(charmcraftYamlPath)

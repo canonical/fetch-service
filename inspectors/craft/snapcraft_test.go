@@ -214,14 +214,6 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtifact(c *C) {
 }
 
 func (s *snapcraftSuite) TestSnapcraftGitInspectArtifactMissingSnapcraftYaml(c *C) {
-	tc := struct {
-		opinion opinions.OpinionKind
-		reason  string
-	}{
-		opinions.Unknown,
-		"git repository does not contain a snapcraft.yaml file",
-	}
-
 	a := createTestSnapcraftArtifact(c.MkDir())
 	f, err := loadTestSnapcraftArtifactData()
 	c.Assert(err, IsNil)
@@ -232,9 +224,8 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtifactMissingSnapcraftYaml(c *
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 
-	inspection := a.ResponseInspection["craft.snapcraft"]
-	c.Assert(inspection.Opinion, Equals, tc.opinion)
-	c.Assert(inspection.Reason, Equals, tc.reason)
+	_, ok := a.ResponseInspection["craft.snapcraft"]
+	c.Assert(ok, Equals, false)
 }
 
 func (s *snapcraftSuite) TestSnapcraftGitInspectArtifactUnreadableSnapcraftYaml(c *C) {

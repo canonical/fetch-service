@@ -65,8 +65,7 @@ func (ins *RockcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 
 	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
-		// this must have been set by the git upload-pack inspector
-		a.SetResponseUnknown(ins, "no git checkout found")
+		// Only the "fetch" command sets git-checkout-path.
 		return nil
 	}
 
@@ -74,8 +73,6 @@ func (ins *RockcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 
 	rockcraftYamlPath := filepath.Join(checkoutPath, "rockcraft.yaml")
 	if _, err := osStat(rockcraftYamlPath); err != nil {
-		a.SetResponseUnknown(ins,
-			"git repository does not contain a rockcraft.yaml file")
 		return nil
 	}
 	yamldata_filereader, err := osOpen(rockcraftYamlPath)

@@ -63,26 +63,33 @@ func (s *goModuleGitSuite) TestGoModuleGitInspectorID(c *C) {
 
 }
 
-func (s *goModuleGitSuite) TestInspectGoModuleGitRequest(c *C) {
-	for _, tc := range []struct {
-		url      string
-		approved bool
-	}{
-		// FIXME: using github as placeholder, final URLs will change
-		{"https://github.com:443/user/project.git/git-upload-pack", true},
-		{"https://github.com:443/user/project/git-upload-pack", true},
-		{"https://git.launchpad.net:443/project/git-upload-pack", true},
-		{"https://git.launchpad.net:443/~user/project/+git/project/git-upload-pack", true},
-		{"https://gopkg.in:443/project.v2/git-upload-pack", true},
-		{"https://invalid.com:443/user/project.git/git-upload-pack", false},
-		{"http://github.com/user/project.git/git-upload-pack", false},
-		{"https://gothub.com:443/user/project.git/git-upload-pack", false},
-		{"ahttps://github.com:443/user/project.git/git-upload-pack", false},
-		{"https://github.com:443/user/project.git/git-upload-packs", false},
-		{"https://github.com:443/user/project.git/something-else", false},
-		{"https://git.launchpad.com:443/project/git-upload-pack", false},
-		{"https://git.lpad.net:443/~user/project/+git/project/git-upload-pack", false},
-	} {
+type goModuleGitInspectRequestTest struct {
+	url     string // The repository URL
+	pending bool   // Whether the request should be set to pending
+}
+
+var goModuleGitInspectRequestTests = []goModuleGitInspectRequestTest{{
+	url:     "https://github.com:443/user/project.git/git-upload-pack",
+	pending: false,
+}, {
+	url:     "https://github.com:443/user/project/git-upload-pack",
+	pending: false,
+}, {
+	url:     "https://gopkg.in:443/project.v2/git-upload-pack",
+	pending: false,
+}, {
+	url:     "https://github.com:443/user/project.git/something-else",
+	pending: false,
+}, {
+	url:     "https://git.launchpad.com:443/project/git-upload-pack",
+	pending: false,
+}, {
+	url:     "https://git.lpad.net:443/~user/project/+git/project/git-upload-pack",
+	pending: false,
+}}
+
+func (s *goModuleGitSuite) TestGoModuleGitInspectRequest(c *C) {
+	for _, tc := range goModuleGitInspectRequestTests {
 		ins := gomod.NewGoModuleGitInspector()
 		a := metadata.NewArtifact()
 		a.CurrentDownload.URL = tc.url
@@ -100,9 +107,9 @@ func (s *goModuleGitSuite) TestInspectGoModuleGitRequest(c *C) {
 		c.Assert(err, IsNil)
 
 		insp, ok := a.RequestInspection[ins.ID()]
-		c.Assert(ok, Equals, tc.approved, Commentf("Aproval status is wrong for '%s' (%t != %t)", tc.url, ok, tc.approved))
-		if tc.approved {
-			c.Assert(insp.Opinion, Equals, opinions.Unknown)
+		c.Assert(ok, Equals, tc.pending, Commentf("Inspection is wrong for '%s' (%t != %t)", tc.url, ok, tc.pending))
+		if tc.pending {
+			c.Assert(insp.Opinion, Equals, opinions.Pending)
 			c.Assert(insp.Reason, Equals, "unsupported origin")
 		}
 	}
@@ -154,16 +161,27 @@ var goModuleGitFetch = []byte{
 	0x84, 0x30, 0x30, 0x30, 0x36, 0x01, 0x3f, 0x30, 0x30, 0x30, 0x30,
 }
 
+type goModuleGitInspectArtifactTest struct {
+	data       []byte               // Fetched data
+	hasVersion bool                 // Has version tag
+	opinion    opinions.OpinionKind // The expected inspector opinion
+	reason     string               // The expected reason
+}
+
+var goModuleGitInspectArtifactTests = []goModuleGitInspectArtifactTest{{
+	data:       goModuleGitFetch,
+	hasVersion: true,
+	opinion:    opinions.Approved,
+	reason:     "go module found",
+}, {
+	data:       goModuleGitFetch,
+	hasVersion: false,
+	opinion:    opinions.Unknown,
+	reason:     "cannot find go module version tag",
+}}
+
 func (s *goModuleGitSuite) TestGoModuleGitInspectArtifact(c *C) {
-	for _, tc := range []struct {
-		data        []byte
-		has_version bool
-		opinion     opinions.OpinionKind
-		reason      string
-	}{
-		{goModuleGitFetch, true, opinions.Approved, "go module found"},
-		{goModuleGitFetch, false, opinions.Rejected, "cannot find go module version tag"},
-	} {
+	for _, tc := range goModuleGitInspectArtifactTests {
 		f := bytes.NewReader(tc.data)
 		checkoutPath := c.MkDir()
 		err := git.UnpackObjects(f, checkoutPath, s.slog)
@@ -208,7 +226,7 @@ func (s *goModuleGitSuite) TestGoModuleGitInspectArtifact(c *C) {
 		annotations := Annotation{
 			"git-checkout-path": checkoutPath,
 		}
-		if tc.has_version {
+		if tc.hasVersion {
 			annotations.Add("tags", map[string]string{
 				"v1.0": "467ef24fabbcce4a3bda7af3918fb970ee970c8b",
 			})

@@ -263,13 +263,6 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifact(c *C) {
 }
 
 func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifactMissingSourcecraftYaml(c *C) {
-	tc := struct {
-		opinion opinions.OpinionKind
-		reason  string
-	}{
-		opinions.Unknown,
-		"git repository does not contain a sourcecraft.yaml file",
-	}
 	restorer := craft.MockOsStat(func(string) (os.FileInfo, error) {
 		return nil, os.ErrNotExist
 	})
@@ -285,9 +278,8 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifactMissingSourcecraftYa
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 
-	inspection := a.ResponseInspection["craft.sourcecraft"]
-	c.Assert(inspection.Opinion, Equals, tc.opinion)
-	c.Assert(inspection.Reason, Equals, tc.reason)
+	_, ok := a.ResponseInspection["craft.sourcecraft"]
+	c.Assert(ok, Equals, false)
 }
 
 func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifactUnreadableSourcecraftYaml(c *C) {

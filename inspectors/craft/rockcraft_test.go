@@ -165,15 +165,6 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtifact(c *C) {
 }
 
 func (s *rockcraftSuite) TestRockcraftGitInspectArtifactMissingRockcraftYaml(c *C) {
-	tc := struct {
-		is_shallow bool
-		opinion    opinions.OpinionKind
-		reason     string
-	}{
-		true,
-		opinions.Unknown,
-		"git repository does not contain a rockcraft.yaml file",
-	}
 	a := createTestCraftArtifact(c.MkDir())
 	f, err := loadTestRockcraftArtifactData()
 	c.Assert(err, IsNil)
@@ -184,9 +175,8 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtifactMissingRockcraftYaml(c *
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 
-	inspection := a.ResponseInspection["craft.rockcraft"]
-	c.Assert(inspection.Opinion, Equals, tc.opinion)
-	c.Assert(inspection.Reason, Equals, tc.reason)
+	_, ok := a.ResponseInspection["craft.rockcraft"]
+	c.Assert(ok, Equals, false)
 }
 
 func (s *rockcraftSuite) TestRockcraftGitInspectArtifactUnreadableRockcraftYaml(c *C) {

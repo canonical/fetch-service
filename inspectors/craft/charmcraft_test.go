@@ -217,9 +217,8 @@ func (s *charmcraftSuite) TestCharmcraftGitInspectArtifactMissingCharmcraftYaml(
 	err := ins.InspectArtifact(DummyReader{}, a)
 	c.Assert(err, IsNil)
 
-	inspection := a.ResponseInspection["craft.charmcraft"]
-	c.Assert(inspection.Opinion, Equals, opinions.Unknown)
-	c.Assert(inspection.Reason, Equals, "git repository does not contain a charmcraft.yaml file")
+	_, ok := a.ResponseInspection["craft.charmcraft"]
+	c.Assert(ok, Equals, false)
 }
 
 func (s *charmcraftSuite) TestCharmcraftGitInspectArtifactUnreadableCharmcraftYaml(c *C) {
@@ -273,7 +272,6 @@ func (s *charmcraftSuite) TestCharmcraftGitInspectArtifactNoGitCheckout(c *C) {
 	err := ins.InspectArtifact(DummyReader{}, a)
 	c.Assert(err, IsNil)
 
-	inspection := a.ResponseInspection["craft.charmcraft"]
-	c.Assert(inspection.Opinion, Equals, opinions.Unknown)
-	c.Assert(inspection.Reason, Equals, "no git checkout found")
+	_, ok := a.ResponseInspection["craft.charmcraft"]
+	c.Assert(ok, Equals, false)
 }
