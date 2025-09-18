@@ -2,6 +2,19 @@
 Changelog
 *********
 
+0.9.0 (2025-08-14)
+------------------
+
+- feat(i/lxd): simple streams index inspector for LXD (#423)
+- feat(i/lxd): simple streams download inspector for lxd (#427)
+- feat(i/lxd): add lxd rootfs inspector (#429)
+- fix(i/apt): prevent false positives in deb inspection (#422)
+- fix(i/apt): keep existing packages metadata in inspector state (#428)
+- fix(i/bldbin): inspect bin requests in store inspector (#439)
+- fix(deps): update module golang.org/x/crypto to v0.40.0 (#405)
+- fix(deps): update module github.com/gabriel-vasile/mimetype to v1.4.9 (#380)
+- fix(deps): update module golang.org/x/net to v0.42.0 (#406)
+
 0.8.1 (2025-07-11)
 ------------------
 

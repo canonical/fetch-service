@@ -1,0 +1,31 @@
+{
+  "craft-results": [
+    {
+      "id": "ysIk8jpfwVGSHUtWkNK1ykhch2mAkOOi",
+      "instance-key": "craft-sd",
+      "name": "starcraft-test",
+      "namespace": "invalid",
+      "result": {
+        "channel": {
+          "branch": null,
+          "effective-channel": "latest/beta",
+          "name": "beta",
+          "released-at": "2025-02-07T20:07:30.002068",
+          "risk": "beta",
+          "track": null
+        },
+        "commit": {
+          "commit-hash": "916f88aadffbfaaf369a44b53f307da9d52584ec",
+          "created-at": "2025-02-05T18:02:59.227411",
+          "git-branch": "latest_beta",
+          "remote": {
+            "url": "https://git.staging.snapcraftcontent.com/ubuntu/public/sourcecraft/starcraft-test/latest_beta"
+          },
+          "version": "1.0.0"
+        }
+      },
+      "status": "ok"
+    }
+  ],
+  "package-results": []
+}

@@ -12,6 +12,7 @@ Reference
    cargo_crate
    cargo_index
    control-api
+   chisel_release
    git_smart_query
    git_upload_pack
    maven_jar
@@ -21,4 +22,5 @@ Reference
    sdist
    snapcraft
    sourcecraft
+   store_resolve_api
    wheels

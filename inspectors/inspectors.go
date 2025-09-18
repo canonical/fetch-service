@@ -29,6 +29,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/apt"
 	"github.com/canonical/fetch-service/inspectors/bldbin"
 	"github.com/canonical/fetch-service/inspectors/cargo"
+	"github.com/canonical/fetch-service/inspectors/chisel"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/craft"
 	"github.com/canonical/fetch-service/inspectors/deb"
@@ -72,7 +73,8 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		snap.NewSnapRefreshInspector(),
 
 		// store API
-		store.NewStoreApiInspector(cfg.Store),
+		store.NewStoreInfoApiInspector(cfg.Store, cfg.BldBin),
+		store.NewStoreResolveApiInspector(cfg.Store),
 
 		// bld bin
 		// must run after store API
@@ -90,6 +92,9 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		apt.NewAptTranslationInspector(cfg.Apt),
 		apt.NewAptCommandsInspector(cfg.Apt),
 		deb.NewDebInspector(cfg.Apt),
+
+		// chisel release
+		chisel.NewChiselReleaseInspector(cfg.Chisel, cfg.Apt),
 
 		// git
 		git.NewSmartQueryInspector(cfg.Git),
@@ -116,6 +121,7 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 
 		// lxd
 		lxd.NewSimpleStreamsIndexInspector(),
+		lxd.NewSimpleStreamsDownloadInspector(),
 		lxd.NewRootfsInspector(),
 
 		// default inspector

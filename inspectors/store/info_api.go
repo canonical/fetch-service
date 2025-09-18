@@ -33,46 +33,49 @@ import (
 	"golang.org/x/crypto/sha3"
 
 	"github.com/canonical/fetch-service/inspectors/bldbin"
+	bconfig "github.com/canonical/fetch-service/inspectors/bldbin/config"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/inspectors/store/config"
 )
 
-type storeApiRevisionInfo struct {
+type storeInfoApiRevisionInfo struct {
 	Sha3_384 string // SHA3-384
 	Size     uint64 // File size
 	Revision string // Revision number
 	Channel  string // Channel name
 }
 
-type storeApiInfo struct {
+type storeInfoApiInfo struct {
 	Type      string // Package type
 	ID        string // Package ID
 	Publisher string // Package publisher
-	RevInfo   map[string]storeApiRevisionInfo
+	RevInfo   map[string]storeInfoApiRevisionInfo
 }
 
-type StoreApiInspector struct {
+type StoreInfoApiInspector struct {
 	config  config.StoreInspectorConfig
-	ids     map[string]*storeApiInfo // Map from IDs to file information
+	bconfig bconfig.BldBinInspectorConfig
+	ids     map[string]*storeInfoApiInfo // Map from IDs to file information
 	idsLock sync.Mutex
 }
 
-func NewStoreApiInspector(cfg config.StoreInspectorConfig) *StoreApiInspector {
-	return &StoreApiInspector{
-		config: cfg,
-		ids:    map[string]*storeApiInfo{},
+func NewStoreInfoApiInspector(cfg config.StoreInspectorConfig, bcfg bconfig.BldBinInspectorConfig) *StoreInfoApiInspector {
+	return &StoreInfoApiInspector{
+		config:  cfg,
+		bconfig: bcfg,
+		ids:     map[string]*storeInfoApiInfo{},
 	}
 }
 
-func (ins *StoreApiInspector) setStoreApiInfo(pkgid string, ainfo *storeApiInfo) {
+func (ins *StoreInfoApiInspector) setInfo(pkgid string, ainfo *storeInfoApiInfo) {
 	ins.idsLock.Lock()
 	defer ins.idsLock.Unlock()
 
 	ins.ids[pkgid] = ainfo
 }
 
-func (ins *StoreApiInspector) findStoreApiInfo(sha3_384 string) (*storeApiInfo, string, string) {
+func (ins *StoreInfoApiInspector) findInfo(sha3_384 string) (*storeInfoApiInfo, string, string) {
 	ins.idsLock.Lock()
 	defer ins.idsLock.Unlock()
 
@@ -85,11 +88,11 @@ func (ins *StoreApiInspector) findStoreApiInfo(sha3_384 string) (*storeApiInfo, 
 	return nil, "0", ""
 }
 
-func (*StoreApiInspector) ID() string {
-	return "store.api"
+func (*StoreInfoApiInspector) ID() string {
+	return "store.info-api"
 }
 
-func (ins *StoreApiInspector) InspectRequest(a RequestArtifact) error {
+func (ins *StoreInfoApiInspector) InspectRequest(a RequestArtifact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -97,19 +100,18 @@ func (ins *StoreApiInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	info, err := config.NewStoreApiUrlInfo(u, &ins.config, slog)
-	if err != nil {
-		return nil // We don't recognize the request
+	if info, err := config.NewStoreInfoApiUrlInfo(u, &ins.config, slog); err == nil {
+		a.SetRequestPending(ins, "valid URL for store info API endpoint").Annotate(
+			Annotation{
+				"type":    info.PackageType,
+				"package": info.PackageName,
+			},
+		)
+	} else if _, err := bconfig.NewBldBinUrlInfo(u, &ins.bconfig, slog); err == nil {
+		a.SetRequestPending(ins, "valid URL for bld bin download")
 	}
 
-	a.SetRequestPending(ins, "valid URL for store API endpoint").Annotate(
-		Annotation{
-			"type":    info.PackageType,
-			"package": info.PackageName,
-		},
-	)
-
-	return nil
+	return nil // We don't recognize the request
 }
 
 type RevisionDownload struct {
@@ -154,7 +156,7 @@ type apiInfo struct {
 	PackageID    string              `json:"package-id"`
 }
 
-func (ins *StoreApiInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
+func (ins *StoreInfoApiInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if a.MimetypeIs("application/x-xz") { // May be a bld bin
 		return ins.validateBldBin(f, a)
 	}
@@ -187,7 +189,7 @@ func (ins *StoreApiInspector) InspectArtifact(f ArtifactReader, a ResponseArtifa
 	}
 
 	a.SetArtifactMetadata(ArtifactMetadata{
-		Type:        mimetypes.StoreAPI,
+		Type:        mimetypes.StoreInfoAPI,
 		Name:        "Store protocol response",
 		Description: "Store response for info request",
 	})
@@ -203,7 +205,7 @@ func (ins *StoreApiInspector) InspectArtifact(f ArtifactReader, a ResponseArtifa
 		return nil
 	}
 
-	a.SetResponseApproved(ins, "valid bin store API info endpoint response").Annotate(
+	a.SetResponseApproved(ins, "valid store info API response").Annotate(
 		Annotation{
 			"name":       info.Name,
 			"type":       pkgType,
@@ -211,16 +213,16 @@ func (ins *StoreApiInspector) InspectArtifact(f ArtifactReader, a ResponseArtifa
 			"publisher":  info.Metadata.Publisher.DisplayName,
 		})
 
-	ainfo := &storeApiInfo{
+	ainfo := &storeInfoApiInfo{
 		Type:      pkgType,
 		ID:        info.PackageID,
 		Publisher: info.Metadata.Publisher.DisplayName,
-		RevInfo:   map[string]storeApiRevisionInfo{},
+		RevInfo:   map[string]storeInfoApiRevisionInfo{},
 	}
 
 	for _, cinfo := range info.ChannelMap {
 		sha3_384 := cinfo.Revision.Download.Sha3_384
-		ainfo.RevInfo[sha3_384] = storeApiRevisionInfo{
+		ainfo.RevInfo[sha3_384] = storeInfoApiRevisionInfo{
 			Sha3_384: sha3_384,
 			Size:     uint64(cinfo.Revision.Download.Size),
 			Revision: strconv.Itoa(cinfo.Revision.Revision),
@@ -229,12 +231,12 @@ func (ins *StoreApiInspector) InspectArtifact(f ArtifactReader, a ResponseArtifa
 
 	}
 
-	ins.setStoreApiInfo(info.PackageID, ainfo)
+	ins.setInfo(info.PackageID, ainfo)
 
 	return nil
 }
 
-func (ins *StoreApiInspector) validateBldBin(f ArtifactReader, a ResponseArtifact) error {
+func (ins *StoreInfoApiInspector) validateBldBin(f ArtifactReader, a ResponseArtifact) error {
 	xr, err := xz.NewReader(f, 0)
 	if err != nil {
 		return nil
@@ -272,12 +274,12 @@ func (ins *StoreApiInspector) validateBldBin(f ArtifactReader, a ResponseArtifac
 				return err
 			}
 
-			ainfo, rev, channel := ins.findStoreApiInfo(sha3_384)
+			ainfo, rev, channel := ins.findInfo(sha3_384)
 			if ainfo != nil {
 				if ainfo.Type == "bins" {
 					// Setting as Unknown to avoid approval in case the bld bin inspector
 					// doesn't recognize the format.
-					a.SetResponseUnknown(ins, "file digest matches store API bin request").Annotate(
+					a.SetResponseUnknown(ins, "file digest matches store info API bin request").Annotate(
 						Annotation{
 							"package-id": ainfo.ID,
 							"revision":   rev,
@@ -297,7 +299,7 @@ func (ins *StoreApiInspector) validateBldBin(f ArtifactReader, a ResponseArtifac
 					)
 				}
 			} else {
-				a.SetResponseRejected(ins, "file digest does not match any store API request")
+				a.SetResponseRejected(ins, "file digest does not match any store info API request")
 			}
 
 			metadataFound = true

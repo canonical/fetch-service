@@ -1,0 +1,9 @@
+{
+  "content_id": "com.ubuntu.cloud:daily:download",
+  "creator": "climdb-download-streams-export",
+  "datatype": "image-downloads",
+  "format": "products:0.5",
+  "license": "https://ubuntu.com/legal/intellectual-property-policy",
+  "products": {},
+  "updated": "Thu, 31 Jul 2025 00:01:49 +0000"
+}

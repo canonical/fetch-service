@@ -54,16 +54,27 @@ func (s *rootfsSuite) TestRootfsInspectorID(c *C) {
 }
 
 type inspectRequestTest struct {
-	url     string // The request URL
-	pending bool   // The expected result of the request inspection
+	url       string // The request URL
+	imageType string // The image type (daily or releases)
+	imageDate string // The image date
+	pending   bool   // The expected result of the request inspection
 }
 
 var inspectRequestTests = []inspectRequestTest{{
-	url:     "http://cloud-images.ubuntu.com/buildd/daily/noble/20250629/noble-server-cloudimg-amd64-lxd_combined.tar.gz",
-	pending: true,
+	url:       "http://cloud-images.ubuntu.com/buildd/daily/noble/20250629/noble-server-cloudimg-amd64-lxd_combined.tar.gz",
+	imageType: "daily",
+	imageDate: "20250629",
+	pending:   true,
 }, {
-	url:     "https://cloud-images.ubuntu.com:443/buildd/daily/noble/20250629/noble-server-cloudimg-amd64-lxd_combined.tar.gz",
-	pending: true,
+	url:       "https://cloud-images.ubuntu.com:443/buildd/daily/noble/20250629/noble-server-cloudimg-amd64-lxd_combined.tar.gz",
+	imageType: "daily",
+	imageDate: "20250629",
+	pending:   true,
+}, {
+	url:       "http://cloud-images.ubuntu.com/buildd/releases/noble/release-20250810/noble-server-cloudimg-amd64-lxd_combined.tar.gz",
+	imageType: "releases",
+	imageDate: "release-20250810",
+	pending:   true,
 }, {
 	// Not a daily image
 	url:     "http://cloud-images.ubuntu.com/buildd/not-daily/noble/20250629/noble-server-cloudimg-amd64-lxd_combined.tar.gz",
@@ -92,14 +103,15 @@ func (s *rootfsSuite) TestInspectRequest(c *C) {
 		c.Assert(err, IsNil)
 
 		insp, ok := a.RequestInspection[ins.ID()]
-		c.Assert(ok, Equals, tc.pending)
+		c.Assert(ok, Equals, tc.pending, Commentf("test case: %+v", tc))
 		if tc.pending {
 			c.Assert(insp.Opinion, Equals, opinions.Pending)
-			c.Assert(insp.Reason, Equals, "valid URL for lxd rootfs")
+			c.Assert(insp.Reason, Equals, "valid URL for LXD product item")
 			c.Assert(insp.Annotations, DeepEquals, Annotation{
-				"image-series": "noble",
-				"image-date":   "20250629",
-				"image-name":   "noble-server-cloudimg-amd64-lxd_combined.tar.gz",
+				"image-type":      tc.imageType,
+				"image-series":    "noble",
+				"image-datestamp": tc.imageDate,
+				"image-name":      "noble-server-cloudimg-amd64-lxd_combined.tar.gz",
 			})
 		}
 	}
@@ -110,6 +122,9 @@ func (s *rootfsSuite) TestInspectArtifact(c *C) {
 	a := metadata.NewArtifact()
 	a.MimeType = mimetype.Lookup("application/gzip")
 	a.SetRequestPending(ins, "test")
+
+	dins := lxd.NewSimpleStreamsDownloadInspector()
+	a.SetResponseUnknown(dins, "test").Annotate(Annotation{"product-item-path": "filename"})
 
 	f, err := files.OpenArtifactFile("testdata/base.tar.gz")
 	c.Assert(err, IsNil)
@@ -125,6 +140,30 @@ func (s *rootfsSuite) TestInspectArtifact(c *C) {
 	c.Check(a.ResponseInspection["lxd.rootfs"], DeepEquals, &Inspection{
 		Opinion: opinions.Approved,
 		Reason:  "valid LXD rootfs tarball",
+		Annotations: Annotation{
+			"architecture":  "x86_64",
+			"os":            "Ubuntu",
+			"series":        "noble",
+			"creation-date": int64(1751220536),
+		},
+	})
+}
+
+func (s *rootfsSuite) TestInspectArtifactNoDownloadInspection(c *C) {
+	ins := lxd.NewRootfsInspector()
+	a := metadata.NewArtifact()
+	a.MimeType = mimetype.Lookup("application/gzip")
+	a.SetRequestPending(ins, "test")
+
+	f, err := files.OpenArtifactFile("testdata/base.tar.gz")
+	c.Assert(err, IsNil)
+
+	err = ins.InspectArtifact(f, a)
+	c.Assert(err, IsNil)
+	c.Assert(a.Approved(), Equals, false)
+	c.Check(a.ResponseInspection["lxd.rootfs"], DeepEquals, &Inspection{
+		Opinion: opinions.Rejected,
+		Reason:  "artifact not verified against product items",
 		Annotations: Annotation{
 			"architecture":  "x86_64",
 			"os":            "Ubuntu",

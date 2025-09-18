@@ -1,0 +1,33 @@
+format: v1
+
+archives:
+  ubuntu:
+    version: 20.04
+    components: [main, universe]
+    suites: [focal, focal-security, focal-updates]
+    public-keys: [test-key]
+
+public-keys:
+  # Test-purpose RSA 2048 bits signing key-pairs without a passphrase.
+  # ID: 854BAF1AA9D76600. User: "foo-bar <foo@bar>".
+  test-key:
+    id: "854BAF1AA9D76600"
+    armor: |
+      -----BEGIN PGP PUBLIC KEY BLOCK-----
+
+      mQENBGVs8P4BCADPh/fNnw2AI1JCYf+3p4jkcFQPLVsUkoTZk8OXjCxy+UP9Jd2m
+      xnxat7a0JEJZa0aWCmtlSL1XR+kFKBrd7Ry5jOHYjuDKx4kTmDUbezPnjoZIGDNX
+      j5cdNuMLpOINZweNNWDKRdRvhj5QX89/DYwPrLkNFwwjXjlj5tjU6RUkROYJBGPe
+      G2ns2cZtVbYMh3FDU9YRfp/hUqGVf+UFRyUw+mo1TUlk5F7fnfwEQmsppDHvfTNJ
+      yjEMZD7nReTEeMy12GV2wysOwWMPEb2PSE/+Od7AKn5dFA7w3kyLCzAxYp6o7IE/
+      +RY8YzAJe6GmLwhTWtylMV1xteQhZkEe/QGXABEBAAG0EWZvby1iYXIgPGZvb0Bi
+      YXI+iQFOBBMBCgA4FiEEDp0LAdsRnT9gfhU5hUuvGqnXZgAFAmVs8P4CGwMFCwkI
+      BwIGFQoJCAsCBBYCAwECHgECF4AACgkQhUuvGqnXZgCHZAf/b/rkMz2UY42LhuvJ
+      xDW7KbdBI+UgFp2k2tg2SkLM27GdcztpcNn/RE9U1vc8uCI05MbMhKQ+oq4RmO6i
+      QbCPPGy1Mgf61Fku0JTZGEKg+4DKNmnVkSpiOc03z3G2Gyi2m9G2u+HdJhXHumej
+      7NXkQvVFxXzDnzntbnmkM0fMfO+wdP5/EFjJbHC47yAAds/yspfk5qIHu6PHrTVB
+      +wJGwOJdwJ1+2zis5ONE8NexfSrDzjGJoKAFtlMwNNDZ39JlkguMB0M5SxoGRXxQ
+      ZE4DhPntUIW0qsE6ChmmjssjSDeg75rwgc+hjNDunKQhKNpjVVFGF4uceV5EQ084
+      F4nA5w==
+      =ZXap
+      -----END PGP PUBLIC KEY BLOCK-----

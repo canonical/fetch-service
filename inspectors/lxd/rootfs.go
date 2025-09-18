@@ -51,16 +51,17 @@ func (ins *RootfsInspector) InspectRequest(a RequestArtifact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	info, err := NewRootfsUrlInfo(u)
+	info, err := NewProductItemUrlInfo(u)
 	if err != nil {
 		return nil
 	}
 
-	a.SetRequestPending(ins, "valid URL for lxd rootfs").Annotate(
+	a.SetRequestPending(ins, "valid URL for LXD product item").Annotate(
 		Annotation{
-			"image-series": info.Series,
-			"image-date":   info.Date,
-			"image-name":   info.Name,
+			"image-type":      info.ImageType,
+			"image-series":    info.Series,
+			"image-datestamp": info.Date,
+			"image-name":      info.Name,
 		},
 	)
 	return nil // we don't recognize this request
@@ -135,14 +136,26 @@ func (ins *RootfsInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 		Architecture: rmd.Properties.Architecture,
 	})
 
-	a.SetResponseApproved(ins, "valid LXD rootfs tarball").Annotate(
-		Annotation{
-			"architecture":  rmd.Architecture,
-			"creation-date": rmd.CreationDate,
-			"os":            rmd.Properties.Os,
-			"series":        rmd.Properties.Series,
-		},
-	)
+	_, ok := a.ResponseStringAnnotation(simpleStreamsDownloadInspectorID, productItemPath)
+	if ok {
+		a.SetResponseApproved(ins, "valid LXD rootfs tarball").Annotate(
+			Annotation{
+				"architecture":  rmd.Architecture,
+				"creation-date": rmd.CreationDate,
+				"os":            rmd.Properties.Os,
+				"series":        rmd.Properties.Series,
+			},
+		)
+	} else {
+		a.SetResponseRejected(ins, "artifact not verified against product items").Annotate(
+			Annotation{
+				"architecture":  rmd.Architecture,
+				"creation-date": rmd.CreationDate,
+				"os":            rmd.Properties.Os,
+				"series":        rmd.Properties.Series,
+			},
+		)
+	}
 
 	return nil
 }
