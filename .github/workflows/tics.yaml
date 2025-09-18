@@ -27,14 +27,11 @@ jobs:
           sudo apt-get update
           echo "::endgroup::"
           echo "::group::apt-get install..."
-          sudo apt-get install -y  cpanminus gcc make
-          echo "::endgroup::"
-          echo "::group::cpanm"
-          sudo cpanm --notest https://cpan.metacpan.org/authors/id/J/JO/JONASS/Regexp-Pattern-License-v3.9.3.tar.gz  # 3.11.1 doesn't work!
-          sudo cpanm --notest https://cpan.metacpan.org/authors/id/P/PE/PEVANS/Syntax-Keyword-Try-0.27.tar.gz
-          sudo cpanm --notest https://cpan.metacpan.org/authors/id/J/JO/JONASS/App-Licensecheck-v3.3.9.tar.gz
+          sudo apt-get install -y licensecheck
           echo "::endgroup::"
           echo "::group::staticcheck"
+          go clean -cache
+          go clean -modcache
           go install honnef.co/go/tools/cmd/staticcheck@latest
           echo "::endgroup::"
           echo "::group::gocov"
