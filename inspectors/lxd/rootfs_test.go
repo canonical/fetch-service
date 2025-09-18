@@ -73,7 +73,7 @@ var inspectRequestTests = []inspectRequestTest{{
 }, {
 	url:       "http://cloud-images.ubuntu.com/buildd/releases/noble/release-20250810/noble-server-cloudimg-amd64-lxd_combined.tar.gz",
 	imageType: "releases",
-	imageDate: "release-20250810",
+	imageDate: "20250810",
 	pending:   true,
 }, {
 	// Not a daily image

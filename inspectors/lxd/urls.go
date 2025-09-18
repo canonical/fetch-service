@@ -40,7 +40,7 @@ var (
 
 	reSimpleStreamsIndex    = regexp.MustCompile(`^/([\w-\/]+)/streams/v1/index.json$`)
 	reSimpleStreamsDownload = regexp.MustCompile(`^/([\w-\/]+)/streams/v1/([\w-\.\/:]+):download.json$`)
-	reProductItem           = regexp.MustCompile(`^/buildd/(daily|releases)/([\w-]+)/([\w-]+)/([\w+\.-]+\.tar.gz)$`)
+	reProductItem           = regexp.MustCompile(`^/buildd/(daily|releases)/([\w-]+)/(release-)?(\d+)/([\w+\.-]+\.tar.gz)$`)
 )
 
 // Simple streams index
@@ -104,15 +104,15 @@ func NewProductItemUrlInfo(u *url.URL) (*ProductItemUrlInfo, error) {
 	}
 
 	m := reProductItem.FindStringSubmatch(u.Path)
-	if len(m) != 5 {
+	if len(m) != 6 {
 		return nil, fmt.Errorf("invalid URL path: %s", u.Path)
 	}
 
 	info := &ProductItemUrlInfo{
 		ImageType: m[1],
 		Series:    m[2],
-		Date:      m[3],
-		Name:      m[4],
+		Date:      m[4],
+		Name:      m[5],
 	}
 	return info, nil
 }
