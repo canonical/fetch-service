@@ -40,7 +40,7 @@ var (
 
 	reSimpleStreamsIndex    = regexp.MustCompile(`^/([\w-\/]+)/streams/v1/index.json$`)
 	reSimpleStreamsDownload = regexp.MustCompile(`^/([\w-\/]+)/streams/v1/([\w-\.\/:]+):download.json$`)
-	reProductItem           = regexp.MustCompile(`^/buildd/daily/([\w-]+)/(\d+)/([\w+\.-]+\.tar.gz)$`)
+	reProductItem           = regexp.MustCompile(`^/buildd/(daily|releases)/([\w-]+)/([\w-]+)/([\w+\.-]+\.tar.gz)$`)
 )
 
 // Simple streams index
@@ -92,9 +92,10 @@ func NewSimpleStreamsDownloadUrlInfo(u *url.URL) (*SimpleStreamsDownloadUrlInfo,
 // LXD product tarball
 
 type ProductItemUrlInfo struct {
-	Series string // The image series
-	Date   string // The date of the daily image
-	Name   string // The rootfs filename
+	ImageType string // Daily or releases
+	Series    string // The image series
+	Date      string // The date of the daily image
+	Name      string // The rootfs filename
 }
 
 func NewProductItemUrlInfo(u *url.URL) (*ProductItemUrlInfo, error) {
@@ -103,14 +104,15 @@ func NewProductItemUrlInfo(u *url.URL) (*ProductItemUrlInfo, error) {
 	}
 
 	m := reProductItem.FindStringSubmatch(u.Path)
-	if len(m) != 4 {
+	if len(m) != 5 {
 		return nil, fmt.Errorf("invalid URL path: %s", u.Path)
 	}
 
 	info := &ProductItemUrlInfo{
-		Series: m[1],
-		Date:   m[2],
-		Name:   m[3],
+		ImageType: m[1],
+		Series:    m[2],
+		Date:      m[3],
+		Name:      m[4],
 	}
 	return info, nil
 }
