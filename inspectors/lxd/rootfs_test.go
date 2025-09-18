@@ -108,10 +108,10 @@ func (s *rootfsSuite) TestInspectRequest(c *C) {
 			c.Assert(insp.Opinion, Equals, opinions.Pending)
 			c.Assert(insp.Reason, Equals, "valid URL for LXD product item")
 			c.Assert(insp.Annotations, DeepEquals, Annotation{
-				"image-type":   tc.imageType,
-				"image-series": "noble",
-				"image-date":   tc.imageDate,
-				"image-name":   "noble-server-cloudimg-amd64-lxd_combined.tar.gz",
+				"image-type":      tc.imageType,
+				"image-series":    "noble",
+				"image-datestamp": tc.imageDate,
+				"image-name":      "noble-server-cloudimg-amd64-lxd_combined.tar.gz",
 			})
 		}
 	}

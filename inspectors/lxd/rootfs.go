@@ -58,10 +58,10 @@ func (ins *RootfsInspector) InspectRequest(a RequestArtifact) error {
 
 	a.SetRequestPending(ins, "valid URL for LXD product item").Annotate(
 		Annotation{
-			"image-type":   info.ImageType,
-			"image-series": info.Series,
-			"image-date":   info.Date,
-			"image-name":   info.Name,
+			"image-type":      info.ImageType,
+			"image-series":    info.Series,
+			"image-datestamp": info.Date,
+			"image-name":      info.Name,
 		},
 	)
 	return nil // we don't recognize this request
