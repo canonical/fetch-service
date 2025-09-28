@@ -102,7 +102,8 @@ func (ins *SnapcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 
 	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
-		// Only the "fetch" command sets git-checkout-path.
+		// this must have been set by the git upload-pack inspector
+		a.SetResponseUnknown(ins, "no git checkout found")
 		return nil
 	}
 

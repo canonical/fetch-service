@@ -62,7 +62,8 @@ func (ins *CharmcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 
 	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
-		// Only the "fetch" command sets git-checkout-path.
+		// this must have been set by the git upload-pack inspector
+		a.SetResponseUnknown(ins, "no git checkout found")
 		return nil
 	}
 
