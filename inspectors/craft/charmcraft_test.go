@@ -272,6 +272,7 @@ func (s *charmcraftSuite) TestCharmcraftGitInspectArtifactNoGitCheckout(c *C) {
 	err := ins.InspectArtifact(DummyReader{}, a)
 	c.Assert(err, IsNil)
 
-	_, ok := a.ResponseInspection["craft.charmcraft"]
-	c.Assert(ok, Equals, false)
+	inspection := a.ResponseInspection["craft.charmcraft"]
+	c.Assert(inspection.Opinion, Equals, opinions.Unknown)
+	c.Assert(inspection.Reason, Equals, "no git checkout found")
 }
