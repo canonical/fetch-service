@@ -25,23 +25,8 @@ import (
 	"regexp"
 )
 
-// Recognized URL formats:
-// -----------------------
-// https://github.com:443/user/project/git-upload-pack
-// https://gopkg.in:443/project/git-upload-pack
-// https://go.googlesource.com:443/project/git-upload-pack
-// https://git.launchpad.net:443/project/git-upload-pack
-// https://git.launchpad.net:443/~user/project/+git/project/
-
 var (
-	// FIXME: using github URL for now
-	validOrigins = []*regexp.Regexp{
-		regexp.MustCompile(`^https://github\.com:443$`),
-		regexp.MustCompile(`^https://gopkg\.in:443$`),
-		regexp.MustCompile(`^https://go\.googlesource\.com:443$`),
-		regexp.MustCompile(`^https://git\.launchpad\.net:443$`),
-	}
-
+	validOrigins  = []*regexp.Regexp{}
 	reGoModuleGit = regexp.MustCompile(`^/([^/]+/)*([^/]+)/git-upload-pack$`)
 )
 

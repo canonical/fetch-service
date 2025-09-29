@@ -74,8 +74,6 @@ func (ins *RockcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 
 	rockcraftYamlPath := filepath.Join(checkoutPath, "rockcraft.yaml")
 	if _, err := osStat(rockcraftYamlPath); err != nil {
-		a.SetResponseUnknown(ins,
-			"git repository does not contain a rockcraft.yaml file")
 		return nil
 	}
 	yamldata_filereader, err := osOpen(rockcraftYamlPath)

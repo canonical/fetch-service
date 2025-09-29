@@ -74,8 +74,6 @@ func (ins *SourcecraftInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 
 	sourcecraftYamlPath := filepath.Join(checkoutPath, "sourcecraft.yaml")
 	if _, err := osStat(sourcecraftYamlPath); err != nil {
-		a.SetResponseUnknown(ins,
-			"git repository does not contain a sourcecraft.yaml file")
 		return nil
 	}
 	yamldata_filereader, err := osOpen(sourcecraftYamlPath)

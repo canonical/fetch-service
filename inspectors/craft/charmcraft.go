@@ -71,8 +71,6 @@ func (ins *CharmcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 
 	charmcraftYamlPath := filepath.Join(checkoutPath, "charmcraft.yaml")
 	if _, err := osStat(charmcraftYamlPath); err != nil {
-		a.SetResponseUnknown(ins,
-			"git repository does not contain a charmcraft.yaml file")
 		return nil
 	}
 	yamlFile, err := osOpen(charmcraftYamlPath)

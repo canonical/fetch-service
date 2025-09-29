@@ -111,8 +111,6 @@ func (ins *SnapcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 
 	snapcraftYamlPath, found := getSnapcraftYamlPath(checkoutPath)
 	if !found {
-		a.SetResponseUnknown(ins,
-			"git repository does not contain a snapcraft.yaml file")
 		return nil
 	}
 	yamldata_filereader, err := osOpen(snapcraftYamlPath)

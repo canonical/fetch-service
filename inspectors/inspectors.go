@@ -100,16 +100,16 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		git.NewSmartQueryInspector(cfg.Git),
 		git.NewUploadPackInspector(cfg.Git),
 
-		// craft
-		// must run after git
-		craft.NewSourcecraftInspector(cfg.Crafts),
-		craft.NewRockcraftInspector(cfg.Crafts),
-		craft.NewSnapcraftInspector(cfg.Crafts),
-		craft.NewCharmcraftInspector(cfg.Crafts),
-
 		// go
 		// must run after git
 		gomod.NewGoModuleGitInspector(),
+
+		// craft
+		// must run after git
+		craft.NewRockcraftInspector(cfg.Crafts),
+		craft.NewCharmcraftInspector(cfg.Crafts),
+		craft.NewSnapcraftInspector(cfg.Crafts),
+		craft.NewSourcecraftInspector(cfg.Crafts),
 
 		// rust
 		cargo.NewIndexInspector(),
