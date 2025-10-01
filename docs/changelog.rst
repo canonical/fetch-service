@@ -2,6 +2,19 @@
 Changelog
 *********
 
+0.10.0 (2025-10-01)
+-------------------
+
+- feat(inspectors): add chisel-releases inspector (#445)
+- feat(inspectors): add inspector for the store resolve API (#450)
+- feat: introduce apt repository aliases (#455)
+- fix(inspectors/lxd): detect releases image request (#462)
+- fix(inspectors/gomod): set metadata if artifact approved (#465)
+- fix(deps): update module github.com/gabriel-vasile/mimetype to v1.4.10 (#449)
+- fix(deps): bump github.com/ulikunitz/xz from 0.5.12 to 0.5.15 (#457)
+- fix(deps): update module golang.org/x/net to v0.43.0 (#436)
+- refactor: consolidate duplicated code chunks (#459)
+
 0.9.0 (2025-08-14)
 ------------------
 
