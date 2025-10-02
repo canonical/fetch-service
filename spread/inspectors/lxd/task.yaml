@@ -28,12 +28,14 @@ execute: |
   remove_lxd_instances() {
       local instances
       instances=$(lxc list --format csv -cn)
+      # shellcheck disable=SC2015,SC2086
       [ -n "$instances" ] && lxc rm -f $instances || true
   }
 
   remove_lxd_images() {
       local images
       images=$(lxc image list --format csv -cf)
+      # shellcheck disable=SC2015,SC2086
       [ -n "$images" ] && lxc image rm $images || true
   }
 
