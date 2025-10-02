@@ -2,7 +2,7 @@
 Changelog
 *********
 
-0.10.0 (2025-10-01)
+0.10.0 (2025-10-02)
 -------------------
 
 - feat(inspectors): add chisel-releases inspector (#445)

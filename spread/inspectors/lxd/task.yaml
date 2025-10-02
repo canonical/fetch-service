@@ -3,6 +3,7 @@ summary: Test the lxd inspector
 prepare: |
   rm -f ./*.json
   snap install lxd
+  snap refresh lxd --channel=latest/stable
   snap restart lxd
 
 restore: |
@@ -24,15 +25,28 @@ execute: |
   lxc config set core.proxy_http "$http_proxy"
   lxc config set core.proxy_https "$https_proxy"
 
+  remove_lxd_instances() {
+      local instances
+      instances=$(lxc list --format csv -cn)
+      [ -n "$instances" ] && lxc rm -f $instances || true
+  }
+
+  remove_lxd_images() {
+      local images
+      images=$(lxc image list --format csv -cf)
+      [ -n "$images" ] && lxc image rm $images || true
+  }
+
   lxc list --all-projects
-  lxc list --format=csv -cn | xargs lxc rm -f
-  lxc image list
-  lxc image list --format=csv -cf | xargs lxc image rm
-  lxc project switch snapcraft
-  lxc list --format=csv -cn | xargs lxc rm -f
-  lxc image list
-  lxc image list --format=csv -cf | xargs lxc image rm
-  lxc project switch default
+  remove_lxd_instances
+  remove_lxd_images
+
+  if lxc project list --format csv | cut -d',' -f1 | grep -qx "snapcraft"; then
+      lxc project switch snapcraft
+      remove_lxd_instances
+      remove_lxd_images
+      lxc project switch default
+  fi
 
   ls -l /var/snap/lxd/common/lxd/images/
 
