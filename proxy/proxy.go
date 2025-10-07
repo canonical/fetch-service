@@ -27,6 +27,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/canonical/fetch-service/secrets"
@@ -336,10 +337,22 @@ func copyHTTPResponse(r *http.Response) *http.Response {
 		return nil
 	}
 
-	newResp := *r
-	newResp.Body = nil
-	newResp.Header = copyHTTPHeader(r.Header)
-	newResp.Trailer = copyHTTPHeader(r.Trailer)
+	newResp := http.Response{
+		Status:           r.Status,
+		StatusCode:       r.StatusCode,
+		Proto:            r.Proto,
+		ProtoMajor:       r.ProtoMajor,
+		ProtoMinor:       r.ProtoMinor,
+		Header:           copyHTTPHeader(r.Header),
+		Body:             nil,
+		ContentLength:    r.ContentLength,
+		TransferEncoding: slices.Clone(r.TransferEncoding),
+		Close:            r.Close,
+		Uncompressed:     r.Uncompressed,
+		Trailer:          copyHTTPHeader(r.Trailer),
+		Request:          r.Request,
+		TLS:              r.TLS,
+	}
 
 	return &newResp
 }
