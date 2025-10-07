@@ -50,6 +50,7 @@ const (
 	RustCrate                  = "application/x.rust.crate"
 	StoreInfoAPI               = "application/x.canonical.store.info-api"
 	StoreResolveAPI            = "application/x.canonical.store.resolve-api"
+	StoreTransformsAPI         = "application/x.canonical.store.transforms-api"
 	BldBinPackage              = "application/x.canonical.bld-bin-package"
 	LxdRootfs                  = "application/x.canonical.lxd-rootfs"
 	ChiselRelease              = "application/x.canonical.chisel-release"

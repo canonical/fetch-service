@@ -31,8 +31,9 @@ import (
 )
 
 var (
-	reStoreInfoApi    = regexp.MustCompile(`^/v2/([a-z]+)/info/([a-zA-Z0-9-]+)$`)
-	reStoreResolveApi = regexp.MustCompile(`^/v2/revisions/resolve$`)
+	reStoreInfoApi       = regexp.MustCompile(`^/v2/([a-z]+)/info/([a-zA-Z0-9-]+)$`)
+	reStoreResolveApi    = regexp.MustCompile(`^/v2/revisions/resolve$`)
+	reStoreTransformsApi = regexp.MustCompile(`^/v1/craft/workspaces/([a-zA-Z0-9-]+)/transforms$`)
 )
 
 func checkRequestUrl(cfg *StoreInspectorConfig, u *url.URL, slog logger.Logger) error {
@@ -87,4 +88,25 @@ func NewStoreResolveApiUrlInfo(u *url.URL, cfg *StoreInspectorConfig, slog logge
 	}
 
 	return &StoreResolveApiUrlInfo{}, nil
+}
+
+type StoreTransformsApiUrlInfo struct {
+	WorkspaceID string
+}
+
+func NewStoreTransformsApiUrlInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreTransformsApiUrlInfo, error) {
+	if err := checkRequestUrl(cfg, u, slog); err != nil {
+		return nil, err
+	}
+
+	m := reStoreTransformsApi.FindStringSubmatch(u.Path)
+	if len(m) != 2 {
+		return nil, errors.New("not a valid store transforms API path")
+
+	}
+	info := &StoreTransformsApiUrlInfo{
+		WorkspaceID: m[1],
+	}
+
+	return info, nil
 }

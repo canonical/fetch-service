@@ -52,6 +52,7 @@ func getTestStoreInspectorConfig() config.StoreInspectorConfig {
 		Urls: []glob.Glob{
 			glob.MustCompile("https://api.snapcraft.io:443/v2/bins/info/**"),
 			glob.MustCompile("https://api.snapcraft.io:443/v2/revisions/resolve"),
+			glob.MustCompile("https://api.snapcraft.io:443/v1/craft/**"),
 		},
 	}
 }
