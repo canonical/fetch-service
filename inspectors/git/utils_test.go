@@ -34,14 +34,24 @@ type utilsSuite struct {
 
 var _ = Suite(&utilsSuite{logger.NewSessionLogger("test")})
 
+type unpackObjectsTest struct {
+	testfile string // The file containing test data
+	errorMsg string // The expected error message, if any
+}
+
+var unpackObjectsTests = []unpackObjectsTest{{
+	testfile: "testdata/sourcepkg.raw",
+	errorMsg: "",
+}, {
+	testfile: "testdata/bad-data.raw",
+	errorMsg: ".* invalid syntax",
+}, {
+	testfile: "testdata/only-sideband.raw",
+	errorMsg: "",
+}}
+
 func (s *utilsSuite) TestUnpackObjects(c *C) {
-	for _, tc := range []struct {
-		testfile string
-		errorMsg string
-	}{
-		{"testdata/sourcepkg.raw", ""},
-		{"testdata/bad-data.raw", ".* invalid syntax"},
-	} {
+	for _, tc := range unpackObjectsTests {
 		dir := c.MkDir()
 		f, err := os.Open(tc.testfile)
 		c.Assert(err, IsNil)
@@ -59,14 +69,21 @@ func (s *utilsSuite) TestUnpackObjects(c *C) {
 	}
 }
 
+type checkoutTest struct {
+	wants    string // The wanted ref
+	errorMsg string // The expected error message, if any
+}
+
+var checkoutTests = []checkoutTest{{
+	wants:    "10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad",
+	errorMsg: "",
+}, {
+	wants:    "not-a-valid-ref",
+	errorMsg: "exit status 1",
+}}
+
 func (s *utilsSuite) TestCheckout(c *C) {
-	for _, tc := range []struct {
-		wants    string
-		errorMsg string
-	}{
-		{"10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad", ""},
-		{"not-a-valid-ref", "exit status 1"},
-	} {
+	for _, tc := range checkoutTests {
 		dir := c.MkDir()
 		f, err := os.Open("testdata/sourcepkg.raw")
 		c.Assert(err, IsNil)
