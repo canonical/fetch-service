@@ -3,7 +3,7 @@ module github.com/canonical/fetch-service
 go 1.24.6
 
 require (
-	github.com/BurntSushi/toml v1.4.0
+	github.com/BurntSushi/toml v1.5.0
 	github.com/CalebQ42/squashfs v1.0.4
 	github.com/ProtonMail/go-crypto v1.3.0
 	github.com/PuerkitoBio/purell v1.2.1
