@@ -123,7 +123,7 @@ func (ins *StoreTransformsApiInspector) InspectArtifact(f ArtifactReader, a Resp
 		return nil // we don't recognize this artifact
 	}
 
-	transforms := make([]string, 0, 128)
+	transforms := make([]string, 0, len(data.Transforms))
 	for _, t := range data.Transforms {
 		if t.Package.Type != "bin" {
 			a.SetResponseRejected(ins, "invalid package type").Annotate(
