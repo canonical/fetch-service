@@ -19,6 +19,7 @@ store:
   urls:
     - https://api.staging.snapcraft.io:443/v2/bins/info/**
     - https://api.staging.snapcraft.io:443/v2/revisions/resolve
+    - https://api.staging.snapcraft.io:443/v1/craft/**
 
 bldbin:
   urls:
