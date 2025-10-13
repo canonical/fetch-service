@@ -181,7 +181,7 @@ func (s *aptSuite) TestPackagesInspectArtifact(c *C) {
 			c.Assert(a.Approved(), Equals, true)
 			c.Check(a.Metadata.Type, Equals, "application/x.apt.packages")
 			c.Check(a.Metadata.Name, Equals, "Packages")
-			c.Check(a.Metadata.Version, Equals, "jammy")
+			c.Check(a.Metadata.AptSuite, Equals, "jammy")
 			c.Check(a.Metadata.Description, Equals, "jammy main Packages file")
 		} else {
 			c.Assert(a.Approved(), Equals, false)

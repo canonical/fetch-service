@@ -39,7 +39,7 @@ type InspectionMap map[string]*Inspection
 
 const (
 	MetadataVersionMajor = 0 // Updated when incompatible changes are made
-	MetadataVersionMinor = 2 // Existing fields not changed, may contain additional fields
+	MetadataVersionMinor = 3 // Existing fields not changed, may contain additional fields
 )
 
 // Artifact holds information about each downloaded file during
@@ -120,6 +120,7 @@ func (a *Artifact) SetArtifactMetadata(m ArtifactMetadata) {
 	a.Metadata.Copyright = m.Copyright
 	a.Metadata.SourcePackage = m.SourcePackage
 	a.Metadata.StoreRevision = m.StoreRevision
+	a.Metadata.AptSuite = m.AptSuite
 }
 
 func (a *Artifact) MimetypeIs(t string) bool {

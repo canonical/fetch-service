@@ -125,7 +125,7 @@ func (t *configSuite) TestInReleaseUrlInfo(c *C) {
 				CfgName:    tc.conf,
 				Origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 				Repository: tc.repo,
-				Dist:       tc.series,
+				Suite:      tc.series,
 			})
 		} else {
 			c.Assert(err, ErrorMatches, tc.errorMsg)
@@ -206,7 +206,7 @@ func (t *configSuite) TestPackagesUrlInfo(c *C) {
 					CfgName:      tc.conf,
 					Origin:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 					Repository:   tc.repo,
-					Dist:         tc.series,
+					Suite:        tc.series,
 					Component:    "main",
 					Architecture: "amd64",
 					Digest:       "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
@@ -216,7 +216,7 @@ func (t *configSuite) TestPackagesUrlInfo(c *C) {
 					CfgName:      tc.conf,
 					Origin:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 					Repository:   tc.repo,
-					Dist:         tc.series,
+					Suite:        tc.series,
 					Component:    "main",
 					Architecture: "amd64",
 					Digest:       "",
@@ -294,7 +294,7 @@ func (t *configSuite) TestTranslationUrlInfo(c *C) {
 				CfgName:    tc.conf,
 				Origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 				Repository: tc.repo,
-				Dist:       tc.series,
+				Suite:      tc.series,
 				Component:  "main",
 				Digest:     "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
 			})
@@ -370,7 +370,7 @@ func (t *configSuite) TestCommandsUrlInfo(c *C) {
 				CfgName:    tc.conf,
 				Origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 				Repository: tc.repo,
-				Dist:       tc.series,
+				Suite:      tc.series,
 				Component:  "main",
 				Digest:     "6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
 			})
@@ -392,7 +392,7 @@ func (t *configSuite) TestCommandsUrlInfoByName(c *C) {
 		CfgName:    "default",
 		Origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 		Repository: "http://archive.ubuntu.com/ubuntu",
-		Dist:       "focal",
+		Suite:      "focal",
 		Component:  "main",
 		Digest:     "",
 	})

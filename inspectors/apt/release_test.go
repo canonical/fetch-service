@@ -80,6 +80,7 @@ var inReleaseArtifactMetaData = metadata.Metadata{
 	Description: "Ubuntu Jammy Backports",
 	Author:      "Ubuntu",
 	Version:     "jammy",
+	AptSuite:    "jammy-backports",
 }
 
 var inReleaseArtifactAnnotation = Annotation{
