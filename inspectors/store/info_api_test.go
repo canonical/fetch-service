@@ -183,47 +183,67 @@ func (s *storeSuite) TestStoreInfoApiArtifactBadContent(c *C) {
 	c.Check(a.Approved(), Equals, false)
 }
 
+type validateBinTest struct {
+	infoType string               // The file type according to the info API
+	opinion  opinions.OpinionKind // The expected inspection opinion
+	reason   string               // The expected inspection reason
+}
+
+var validateBinTests = []validateBinTest{{
+	infoType: "bins",
+	opinion:  opinions.Unknown,
+	reason:   "file digest matches store info API bin request",
+}, {
+	infoType: "not-bins",
+	opinion:  opinions.Rejected,
+	reason:   "file digest matches a request for a different package type",
+}}
+
 func (s *storeSuite) TestValidateBin(c *C) {
-	a := metadata.NewArtifact()
-	a.Metadata.Type = "application/x-xz"
-	a.Metadata.Size = 2156
+	for _, tc := range validateBinTests {
+		a := metadata.NewArtifact()
+		a.Metadata.Type = "application/x-xz"
+		a.Metadata.Size = 2156
 
-	f, err := files.OpenArtifactFile("testdata/starcraft-test-2.0.0.tar.xz")
-	c.Assert(err, IsNil)
+		f, err := files.OpenArtifactFile("testdata/starcraft-test-2.0.0.tar.xz")
+		c.Assert(err, IsNil)
 
-	ainfo := &store.StoreInfoApiInfo{
-		Type:      "bins",
-		ID:        "pkgid",
-		Publisher: "publisher",
-		RevInfo: map[string]store.StoreInfoApiRevisionInfo{
-			testDigest: {
-				Sha3_384: testDigest,
-				Size:     2156,
-				Revision: "1",
-				Channel:  "latest/stable",
+		ainfo := &store.StoreInfoApiInfo{
+			Type:      tc.infoType,
+			ID:        "pkgid",
+			Publisher: "publisher",
+			RevInfo: map[string]store.StoreInfoApiRevisionInfo{
+				testDigest: {
+					Sha3_384: testDigest,
+					Size:     2156,
+					Revision: "1",
+					Channel:  "latest/stable",
+				},
 			},
-		},
+		}
+
+		ins := store.NewStoreInfoApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
+		store.StoreInfoApiInspectorSetInfo(ins, "pkgid", ainfo)
+
+		err = ins.InspectArtifact(f, a)
+		c.Assert(err, IsNil)
+		c.Check(a.Rejected(), Equals, true) // The store bin inspetor doesn't approve
+		c.Check(a.ResponseInspection["store.info-api"].Opinion, Equals, tc.opinion)
+		c.Check(a.ResponseInspection["store.info-api"].Reason, Equals, tc.reason)
 	}
-
-	ins := store.NewStoreInfoApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
-	store.StoreInfoApiInspectorSetInfo(ins, "pkgid", ainfo)
-
-	err = ins.InspectArtifact(f, a)
-	c.Assert(err, IsNil)
-	c.Check(a.Rejected(), Equals, true) // The store bin inspetor doesn't approve
-	c.Check(a.ResponseInspection["store.info-api"].Opinion, Equals, opinions.Unknown)
-	c.Check(a.ResponseInspection["store.info-api"].Reason, Equals, "file digest matches store info API bin request")
 
 }
 
 type validateBinInvalidFormatTest struct {
-	filename string
+	filename string // The artifact file to be testsd
 }
 
 var validateBinInvalidFormatTests = []validateBinInvalidFormatTest{{
 	filename: "testdata/info.json", // Invalid format
 }, {
 	filename: "testdata/invalid-bin.tar.xz", // Invalid metadata
+}, {
+	filename: "testdata/not-a-tarball.xz", // non-tarball xz archive
 }}
 
 func (s *storeSuite) TestValidateBinInvalid(c *C) {
@@ -240,7 +260,7 @@ func (s *storeSuite) TestValidateBinInvalid(c *C) {
 
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
-		c.Check(a.Rejected(), Equals, true)
+		c.Check(a.ResponseInspection, HasLen, 0)
 	}
 }
 
