@@ -188,22 +188,22 @@ func (ins *StoreInfoApiInspector) InspectArtifact(f ArtifactReader, a ResponseAr
 		return nil // we don't recognize this artifact
 	}
 
+	if info.Name == "" || info.PackageID == "" {
+		slog.Debug("no name or package ID")
+		return nil // we don't recognize this artifact
+	}
+
+	pkgType, ok := a.RequestStringAnnotation(ins.ID(), "type")
+	if !ok {
+		slog.Debug("no annotated package type")
+		return nil // we don't recognize this artifact
+	}
+
 	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:        mimetypes.StoreInfoAPI,
 		Name:        "Store protocol response",
 		Description: "Store response for info request",
 	})
-
-	if info.Name == "" || info.PackageID == "" {
-		a.SetResponseRejected(ins, "package name or ID are not set")
-		return nil
-	}
-
-	pkgType, ok := a.RequestStringAnnotation(ins.ID(), "type")
-	if !ok {
-		a.SetResponseRejected(ins, "package type request annotation not found")
-		return nil
-	}
 
 	a.SetResponseApproved(ins, "valid store info API response").Annotate(
 		Annotation{
@@ -253,7 +253,7 @@ func (ins *StoreInfoApiInspector) validateBldBin(f ArtifactReader, a ResponseArt
 			if err == io.EOF {
 				break
 			}
-			return err
+			return nil // We don't recognize this artifact (not a tarball)
 		}
 
 		switch h.Name {
