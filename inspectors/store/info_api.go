@@ -195,7 +195,7 @@ func (ins *StoreInfoApiInspector) InspectArtifact(f ArtifactReader, a ResponseAr
 
 	pkgType, ok := a.RequestStringAnnotation(ins.ID(), "type")
 	if !ok {
-		slog.Debug("no annotated package type")
+		slog.Debug("no package type annotation")
 		return nil // we don't recognize this artifact
 	}
 
