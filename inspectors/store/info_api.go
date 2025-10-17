@@ -246,6 +246,7 @@ func (ins *StoreInfoApiInspector) validateBldBin(f ArtifactReader, a ResponseArt
 
 	tf := tar.NewReader(xr)
 	metadataFound := false
+	isTarball := false
 
 	for !metadataFound {
 		h, err := tf.Next()
@@ -253,8 +254,13 @@ func (ins *StoreInfoApiInspector) validateBldBin(f ArtifactReader, a ResponseArt
 			if err == io.EOF {
 				break
 			}
+			if isTarball {
+				slog.Debug("error reading tarball: %s", err)
+				return err
+			}
 			return nil // We don't recognize this artifact (not a tarball)
 		}
+		isTarball = true
 
 		switch h.Name {
 		case "./metadata.yaml":
