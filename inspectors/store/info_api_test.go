@@ -235,7 +235,7 @@ func (s *storeSuite) TestValidateBin(c *C) {
 }
 
 type validateBinInvalidFormatTest struct {
-	filename string // The artifact file to be testsd
+	filename string // The artifact file to be tested
 }
 
 var validateBinInvalidFormatTests = []validateBinInvalidFormatTest{{
