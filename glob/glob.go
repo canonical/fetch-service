@@ -20,6 +20,8 @@
 package glob
 
 import (
+	"encoding/json"
+
 	"github.com/gobwas/glob"
 )
 
@@ -38,6 +40,20 @@ func (t *Glob) UnmarshalYAML(unmarshal func(v interface{}) error) error {
 		return err
 	}
 
+	g, err := glob.Compile(s)
+	if err != nil {
+		return err
+	}
+
+	*t = Glob{g}
+	return nil
+}
+
+func (t *Glob) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
 	g, err := glob.Compile(s)
 	if err != nil {
 		return err

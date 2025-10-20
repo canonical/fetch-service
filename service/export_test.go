@@ -24,6 +24,7 @@ import (
 
 	"github.com/canonical/fetch-service/control"
 	"github.com/canonical/fetch-service/proxy"
+	"github.com/canonical/fetch-service/secrets"
 	"github.com/canonical/fetch-service/service/fetchctl"
 	"github.com/canonical/fetch-service/session"
 )
@@ -78,7 +79,7 @@ func MockProxyUpdateCert(mock func(bool, []byte, string, string) error) (restore
 	}
 }
 
-func MockSessionNewWithId(mock func(string, string, string, time.Duration, bool) *session.Session) (restorer func()) {
+func MockSessionNewWithId(mock func(string, string, string, time.Duration, bool, []secrets.Secret) *session.Session) (restorer func()) {
 	old := sessionNewWithId
 	sessionNewWithId = mock
 	return func() {

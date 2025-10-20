@@ -28,6 +28,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
+	"github.com/canonical/fetch-service/secrets"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
 )
@@ -181,7 +182,14 @@ func handleCreateSession(v messages.CreateSession, spoolDir string, permissiveMo
 	}
 
 	timeout := time.Duration(v.Timeout * uint64(time.Second))
-	s := session.New(spoolDir, timeout, permissive)
+	sec := v.Secrets
+	if err := secrets.ValidateSecrets(sec); err != nil {
+		v.Rch <- messages.SessionCredentials{
+			Err: err,
+		}
+		return
+	}
+	s := session.New(spoolDir, timeout, permissive, sec)
 	svc.totalSessions++
 	v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Token}
 }

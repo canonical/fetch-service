@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/secrets"
 )
 
 // ProxyAuth contains credentials for basic authentication.
@@ -110,13 +111,15 @@ type CreateSession struct {
 	Rch     chan SessionCredentials // Handler response channel
 	Timeout uint64                  // Session timeout in seconds
 	Policy  string                  // Session policy (strict or permissive)
+	Secrets []secrets.Secret        // Secrets for the session
 }
 
-func NewCreateSession(policy string, timeout uint64) CreateSession {
+func NewCreateSession(policy string, timeout uint64, secrets []secrets.Secret) CreateSession {
 	return CreateSession{
 		Rch:     make(chan SessionCredentials, 1),
 		Policy:  policy,
 		Timeout: timeout,
+		Secrets: secrets,
 	}
 }
 

@@ -22,6 +22,8 @@ package messages_test
 import (
 	"testing"
 
+	"github.com/canonical/fetch-service/glob"
+	"github.com/canonical/fetch-service/secrets"
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/metadata"
@@ -62,10 +64,24 @@ func (t *messagesSuite) TestCompleteInspection(c *C) {
 }
 
 func (t *messagesSuite) TestCreateSession(c *C) {
-	var m messages.CreateSession = messages.NewCreateSession("policy", 42)
+	var m messages.CreateSession = messages.NewCreateSession("policy", 42, nil)
 	c.Check(cap(m.Rch), Equals, 1)
 	c.Check(m.Policy, Equals, "policy")
 	c.Check(m.Timeout, Equals, uint64(42))
+	c.Check(len(m.Secrets), Equals, 0)
+}
+
+func (t *messagesSuite) TestCreateSessionWithSecrets(c *C) {
+	s := []secrets.Secret{
+		{Type: "basic-auth", Url: glob.MustCompile("http://example.com")},
+		{Type: "basic-auth", Url: glob.MustCompile("http://another-example.com/*")},
+	}
+	var m messages.CreateSession = messages.NewCreateSession("policy", 42, s)
+	c.Check(cap(m.Rch), Equals, 1)
+	c.Check(m.Policy, Equals, "policy")
+	c.Check(m.Timeout, Equals, uint64(42))
+	c.Check(len(m.Secrets), Equals, 2)
+	c.Check(m.Secrets, DeepEquals, s)
 }
 
 func (t *messagesSuite) TestRevokeToken(c *C) {

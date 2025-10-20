@@ -27,6 +27,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/canonical/fetch-service/secrets"
 	"github.com/gorilla/mux"
 	"gopkg.in/tomb.v2"
 
@@ -37,8 +38,9 @@ import (
 
 // Parameters for session creation
 type createSessionParameters struct {
-	Timeout uint64 `json:"timeout"` // Session timeout in seconds
-	Policy  string `json:"policy"`  // Session policy ("strict" or "permissive")
+	Timeout uint64           `json:"timeout"` // Session timeout in seconds
+	Policy  string           `json:"policy"`  // Session policy ("strict" or "permissive")
+	Secrets []secrets.Secret `json:"secrets"` // Session secrets
 }
 
 // Parameters for token revocation
@@ -148,7 +150,7 @@ func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
 
 	logger.Debugf("create session parameters: %+v\n", params)
 
-	msg := messages.NewCreateSession(params.Policy, params.Timeout)
+	msg := messages.NewCreateSession(params.Policy, params.Timeout, params.Secrets)
 	c.ch <- msg
 	cred := <-msg.Rch
 	if cred.Err != nil {

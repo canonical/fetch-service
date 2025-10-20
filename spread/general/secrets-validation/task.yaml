@@ -1,0 +1,36 @@
+summary: Validate 'secrets' when creating session
+
+environment:
+  # Valid secret data for basic auth
+  SECRETS_FILE/basic: basic_secrets.txt
+  EXPECTED_FILE/basic: basic_expected.txt
+
+  # Missing 'type' key
+  SECRETS_FILE/missing_type: missing_type_secrets.txt
+  EXPECTED_FILE/missing_type: missing_type_expected.txt
+
+  # Missing 'url' key
+  SECRETS_FILE/missing_url: missing_url_secrets.txt
+  EXPECTED_FILE/missing_url: missing_url_expected.txt
+
+  # Invalid value in 'type'
+  SECRETS_FILE/invalid_type: invalid_type_secrets.txt
+  EXPECTED_FILE/invalid_type: invalid_type_expected.txt
+
+prepare: |
+  snap stop fetch-service
+  snap start fetch-service
+  sleep 5
+  fetch-service.fetchctl version  
+
+execute: |
+  read -r SECRETS < <(cat ${SECRETS_FILE})
+  read -r EXPECTED < <(cat ${EXPECTED_FILE})
+
+  URL="http://craft:craft@localhost:9999/session"
+  SESSION_DATA='{"policy": "permissive", "secrets": '"${SECRETS}"'}'
+
+  curl -s -X POST -d "${SESSION_DATA}" $URL | MATCH "${EXPECTED}"
+
+restore: |
+  snap stop fetch-service
