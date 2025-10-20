@@ -53,6 +53,7 @@ func getTestStoreInspectorConfig() config.StoreInspectorConfig {
 			glob.MustCompile("https://api.snapcraft.io:443/v2/bins/info/**"),
 			glob.MustCompile("https://api.snapcraft.io:443/v2/revisions/resolve"),
 			glob.MustCompile("https://api.snapcraft.io:443/v1/craft/**"),
+			glob.MustCompile("https://dashboard.snapcraft.io:443/site_media/appmedia/**/*.png"),
 		},
 	}
 }
