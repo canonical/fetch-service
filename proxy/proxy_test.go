@@ -35,6 +35,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/proxy"
+	"github.com/canonical/fetch-service/service/config"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
 	"github.com/canonical/fetch-service/testutils"
@@ -80,7 +81,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 	time.Sleep(1 * time.Second)
 
 	// create a new session
-	s := session.New(spool, 0, true, nil)
+	s := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 
 	// download a test file

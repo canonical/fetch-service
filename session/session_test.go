@@ -36,6 +36,7 @@ import (
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/metadata/opinions"
+	"github.com/canonical/fetch-service/service/config"
 	"github.com/canonical/fetch-service/session"
 	"github.com/canonical/fetch-service/version"
 )
@@ -63,7 +64,7 @@ func (t *sessionSuite) TestNewSession(c *C) {
 
 	before := time.Now()
 	tmp := c.MkDir()
-	s := session.New(tmp, 0, true, nil)
+	s := session.New(tmp, 0, true, nil, config.SessionInspectorsConfig{})
 	after := time.Now()
 
 	defer s.Discard()
@@ -84,14 +85,14 @@ func (t *sessionSuite) TestNewWithId(c *C) {
 	defer restorer()
 
 	tmp := c.MkDir()
-	s := session.NewWithId("known-session-id", "known-token", tmp, 0, true, nil)
+	s := session.NewWithId("known-session-id", "known-token", tmp, 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 	c.Assert(s.Id, Equals, "known-session-id")
 	c.Assert(s.Token, Equals, "known-token")
 	c.Assert(len(s.Secrets), Equals, 0)
 
 	// Re-create session with same ID
-	s = session.NewWithId("known-session-id", "known-token", tmp, 0, true, nil)
+	s = session.NewWithId("known-session-id", "known-token", tmp, 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 	c.Assert(s.Id, Equals, "6ba7b8109dad11d180b400c04fd430c8")
 	c.Assert(s.Token, Equals, "known-token")
@@ -103,7 +104,7 @@ func (t *sessionSuite) TestNewWithSecrets(c *C) {
 	sec := []secrets.Secret{
 		{Type: secrets.BasicAuthType, Url: glob.MustCompile("http://www.example.com/*")},
 	}
-	s := session.NewWithId("known-session-id", "known-token", tmp, 0, true, sec)
+	s := session.NewWithId("known-session-id", "known-token", tmp, 0, true, sec, config.SessionInspectorsConfig{})
 	defer s.Discard()
 	c.Assert(s.Id, Equals, "known-session-id")
 	c.Assert(s.Token, Equals, "known-token")
@@ -121,7 +122,7 @@ func (t *sessionSuite) TestRandomString(c *C) {
 }
 
 func (t *sessionSuite) TestDiscardSession(c *C) {
-	s := session.New("", 0, true, nil)
+	s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 
 	c.Assert(s, Equals, session.GetSession(s.Id))
@@ -133,12 +134,12 @@ func (t *sessionSuite) TestDiscardSession(c *C) {
 }
 
 func (t *sessionSuite) TestSessionTimeout(c *C) {
-	s1 := session.New("", 1*time.Second, true, nil)
+	s1 := session.New("", 1*time.Second, true, nil, config.SessionInspectorsConfig{})
 	defer s1.Discard()
 
 	time.Sleep(500 * time.Millisecond)
 
-	s2 := session.New("", 1*time.Second, true, nil)
+	s2 := session.New("", 1*time.Second, true, nil, config.SessionInspectorsConfig{})
 	defer s2.Discard()
 
 	time.Sleep(2 * time.Second)
@@ -149,7 +150,7 @@ func (t *sessionSuite) TestSessionTimeout(c *C) {
 }
 
 func (t *sessionSuite) TestSessionTimeoutCancel(c *C) {
-	s := session.New("", 2*time.Second, true, nil)
+	s := session.New("", 2*time.Second, true, nil, config.SessionInspectorsConfig{})
 	time.Sleep(1 * time.Second)
 	s.Discard()
 	s = session.GetSession(s.Id)
@@ -163,7 +164,7 @@ func (t *sessionSuite) TestHasArtifact(c *C) {
 		{true},
 		{false},
 	} {
-		s := session.New("", 0, true, nil)
+		s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
 		defer s.Discard()
 
 		digest, err := digests.NewSha256Digest(MySha256)
@@ -190,7 +191,7 @@ func (t *sessionSuite) TestArtifactResult(c *C) {
 		{true, opinions.Rejected},
 		{false, opinions.Rejected},
 	} {
-		s := session.New("", 0, true, nil)
+		s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
 		defer s.Discard()
 
 		digest, err := digests.NewSha256Digest(MySha256)
@@ -208,7 +209,7 @@ func (t *sessionSuite) TestArtifactResult(c *C) {
 }
 
 func (t *sessionSuite) TestCheckAuth(c *C) {
-	s := session.New("", 0, true, nil)
+	s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 
 	c.Assert(session.CheckAuth("foo", "bar"), Equals, false)
@@ -216,7 +217,7 @@ func (t *sessionSuite) TestCheckAuth(c *C) {
 }
 
 func (t *sessionSuite) TestAddMetadata(c *C) {
-	s := session.New("", 0, true, nil)
+	s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 
 	h, _ := digests.NewSha256Digest(MySha256)
@@ -234,7 +235,7 @@ func (t *sessionSuite) TestAddMetadata(c *C) {
 }
 
 func (t *sessionSuite) TestAddDownload(c *C) {
-	s := session.New("", 0, true, nil)
+	s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 
 	h, _ := digests.NewSha256Digest(MySha256)
@@ -255,7 +256,7 @@ func (t *sessionSuite) TestAddDownload(c *C) {
 }
 
 func (t *sessionSuite) TestAddInvalidDownload(c *C) {
-	s := session.New("", 0, true, nil)
+	s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 
 	h, _ := digests.NewSha256Digest(MySha256)
@@ -299,7 +300,7 @@ func (t *sessionSuite) TestSaveData(c *C) {
 			return os.MkdirAll(path, perm)
 		})
 
-		s := session.New("", 0, true, nil)
+		s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
 		defer s.Discard()
 
 		tmp := c.MkDir()
@@ -341,7 +342,7 @@ func (t *sessionSuite) TestSaveData(c *C) {
 }
 
 func (t *sessionSuite) TestSaveMetadata(c *C) {
-	s := session.New("", 0, true, nil)
+	s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 
 	tmp := c.MkDir()
@@ -370,7 +371,7 @@ func (t *sessionSuite) TestGetSession(c *C) {
 	m := session.GetSession("invalid-session-id")
 	c.Assert(m, IsNil)
 
-	s := session.New("", 0, true, nil)
+	s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 
 	m = session.GetSession(s.Id)
@@ -385,7 +386,7 @@ func (t *sessionSuite) TestSessionMetadata(c *C) {
 		{true, "permissive"},
 		{false, "strict"},
 	} {
-		s := session.New("", 0, tc.permissive, nil)
+		s := session.New("", 0, tc.permissive, nil, config.SessionInspectorsConfig{})
 		defer s.Discard()
 
 		m := s.Metadata()
@@ -401,7 +402,7 @@ func (t *sessionSuite) TestSessionMetadata(c *C) {
 
 func (t *sessionSuite) TestFinish(c *C) {
 	spool := c.MkDir()
-	s := session.New(spool, 0, true, nil)
+	s := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 
 	sessionDir := filepath.Join(spool, s.Id)
@@ -476,7 +477,7 @@ func (t *sessionSuite) TestRevokeToken(c *C) {
 		{"wrong-token", false},
 	} {
 		spool := c.MkDir()
-		s := session.New(spool, 0, true, nil)
+		s := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
 		defer s.Discard()
 
 		s.Token = "right-token"
@@ -495,7 +496,7 @@ func (t *sessionSuite) TestIsRevoked(c *C) {
 		{false, false},
 	} {
 		spool := c.MkDir()
-		s := session.New(spool, 0, true, nil)
+		s := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
 		defer s.Discard()
 
 		s.Token = "token"
@@ -510,7 +511,7 @@ func (t *sessionSuite) TestIsRevoked(c *C) {
 
 func (t *sessionSuite) TestArtifacts(c *C) {
 	spool := c.MkDir()
-	s := session.New(spool, 0, true, nil)
+	s := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 
 	d0, _ := digests.NewSha256Digest("1234567890123456789012345678901234567890123456789012345678901234")
@@ -529,10 +530,10 @@ func (t *sessionSuite) TestArtifacts(c *C) {
 
 func (t *sessionSuite) TestSize(c *C) {
 	spool := c.MkDir()
-	s1 := session.New(spool, 0, true, nil)
+	s1 := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
 	defer s1.Discard()
 
-	s2 := session.New(spool, 0, true, nil)
+	s2 := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
 	defer s2.Discard()
 
 	n := session.Sessions.Size()
@@ -541,10 +542,10 @@ func (t *sessionSuite) TestSize(c *C) {
 
 func (t *sessionSuite) TestFinishAll(c *C) {
 	spool := c.MkDir()
-	s1 := session.New(spool, 0, true, nil)
+	s1 := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
 	defer s1.Discard()
 
-	s2 := session.New(spool, 0, true, nil)
+	s2 := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
 	defer s2.Discard()
 
 	n := session.Sessions.Size()
@@ -558,10 +559,10 @@ func (t *sessionSuite) TestFinishAll(c *C) {
 
 func (t *sessionSuite) TestNumSessions(c *C) {
 	spool := c.MkDir()
-	s1 := session.New(spool, 0, true, nil)
+	s1 := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
 	defer s1.Discard()
 
-	s2 := session.New(spool, 0, false, nil)
+	s2 := session.New(spool, 0, false, nil, config.SessionInspectorsConfig{})
 	defer s2.Discard()
 
 	n := session.NumSessions()
@@ -570,10 +571,10 @@ func (t *sessionSuite) TestNumSessions(c *C) {
 
 func (t *sessionSuite) TestSessionInfos(c *C) {
 	spool := c.MkDir()
-	s1 := session.New(spool, 0, true, nil)
+	s1 := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
 	defer s1.Discard()
 
-	s2 := session.New(spool, 0, false, nil)
+	s2 := session.New(spool, 0, false, nil, config.SessionInspectorsConfig{})
 	defer s2.Discard()
 
 	all := session.SessionInfos()
