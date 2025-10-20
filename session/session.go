@@ -30,6 +30,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/canonical/fetch-service/secrets"
 	"github.com/google/uuid"
 
 	"github.com/canonical/fetch-service/inspectors"
@@ -383,6 +384,25 @@ var GetSession = GetSessionImpl
 
 func GetSessionImpl(id string) *Session {
 	return sessions.Get(id)
+}
+
+func GetSessionSecrets(id string) []secrets.Secrets {
+	session := sessions.Get(id)
+	if session == nil {
+		return nil
+	}
+	// TODO: must come from session data
+	user := "fetch-service"
+	pass := "AgEYYXBpLnN0YWdpbmcuc25hcGNyYWZ0LmlvAiYDChAZyxvpt2Hj4psdl_j9nGo0EgEwGg4KBWxvZ2luEgVsb2dpbgACJ3RpbWUtYmVmb3JlIDIwMjYtMDMtMzFUMTI6Mjk6NTMuODg5NzAyWgACJnRpbWUtc2luY2UgMjAyNS0xMC0wMlQxMjoyOTo1My44ODk3MDJaAAIvc2Vzc2lvbi1pZCAzMjZmMTdiNC05Y2IzLTQyOGQtOTVjMC1jYjIyYzRiYTRhMmQAAkRkZWNsYXJlZCB1c2VyaWQgc3RndXNzbzpodHRwczovL2xvZ2luLnN0YWdpbmcudWJ1bnR1LmNvbS8raWQvd3NOWThKZAACJ2V4dHJhIHsicGVybWlzc2lvbnMiOiBbInBhY2thZ2UtdmlldyJdfQAABiDsA1gvTUfsVMXkeHWisB1GLttnIifRr0xSaVLTTegiwg"
+	creds := fmt.Sprintf("%s:%s", user, pass)
+
+	s := make([]secrets.Secrets, 1)
+	s[0] = secrets.Secrets{
+		Type:  "basic-auth",
+		Url:   "https://git.staging.snapcraftcontent.com",
+		Creds: creds,
+	}
+	return s
 }
 
 // FinishAll gracefully finishes all active sessions.

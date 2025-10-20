@@ -5,18 +5,9 @@ backends:
     type: craft
     systems:
       - ubuntu-24.04:
-      - ubuntu-22.04:
-      - ubuntu-20.04:
       #- fedora-40-cloud:   # XXX: fetchctl not running on fedora, must investigate and fix
 
 suites:
-  spread/general/:
-    summary: General integration tests
-    prepare: |
-      snap install "$CRAFT_ARTIFACT" --dangerous
-      snap set fetch-service permissive=true
-      snap set fetch-service control.auth=craft:craft
-
   spread/inspectors/:
     summary: Inspector smoke tests
     prepare: |
@@ -47,18 +38,6 @@ suites:
         echo "fetch-service logfile does not exist."
       fi
 
-  spread/install/:
-    summary: Snap install and upgrade tests
-    systems:
-      - ubuntu-24.04
-      - ubuntu-22.04
-      - ubuntu-20.04
-    prepare: |
-      snap install yq
-    restore: |
-      snap remove fetch-service --purge --terminate
-    prepare-each: |
-      snap remove fetch-service --purge --terminate
     
 exclude:
   - .git

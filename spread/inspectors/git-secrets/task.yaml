@@ -1,0 +1,54 @@
+summary: Test the git inspector
+
+systems:
+  - -ubuntu-20.04  # Git version not supported
+
+execute: |
+  # shellcheck disable=SC1091
+  . ../utils.sh
+
+  # create permissive session
+  read -r session_id token < <(create_session permissive)
+  echo $session_id > session_id.txt
+  echo $token > token.txt
+  
+  # set up proxy
+  export http_proxy="http://${session_id}:${token}@localhost:9988"
+  export https_proxy="http://${session_id}:${token}@localhost:9988"
+  echo $http_proxy > http_proxy.txt
+
+  #git clone --single-branch --depth=1 https://github.com/canonical/starflow
+  #test -f starflow/LICENSE
+
+  git config --global --add safe.directory /root/proj/spread/inspectors/git-secrets
+  git init .
+  
+  #export MAC=AgEYYXBpLnN0YWdpbmcuc25hcGNyYWZ0LmlvAiYDChAZyxvpt2Hj4psdl_j9nGo0EgEwGg4KBWxvZ2luEgVsb2dpbgACJ3RpbWUtYmVmb3JlIDIwMjYtMDMtMzFUMTI6Mjk6NTMuODg5NzAyWgACJnRpbWUtc2luY2UgMjAyNS0xMC0wMlQxMjoyOTo1My44ODk3MDJaAAIvc2Vzc2lvbi1pZCAzMjZmMTdiNC05Y2IzLTQyOGQtOTVjMC1jYjIyYzRiYTRhMmQAAkRkZWNsYXJlZCB1c2VyaWQgc3RndXNzbzpodHRwczovL2xvZ2luLnN0YWdpbmcudWJ1bnR1LmNvbS8raWQvd3NOWThKZAACJ2V4dHJhIHsicGVybWlzc2lvbnMiOiBbInBhY2thZ2UtdmlldyJdfQAABiDsA1gvTUfsVMXkeHWisB1GLttnIifRr0xSaVLTTegiwg
+  #git remote add origin https://whatever:$MAC@git.staging.snapcraftcontent.com/ubuntu/demo-plane-0430/sourcecraft/demo-package-0430/latest_edge
+  
+  git remote add origin https://git.staging.snapcraftcontent.com/ubuntu/demo-plane-0430/sourcecraft/demo-package-0430/latest_edge
+
+  git fetch --depth 1 origin adc88a849c724ee3bd282a889fd0005273210e84
+  git reset --hard adc88a849c724ee3bd282a889fd0005273210e84  
+
+  unset http_proxy
+  unset https_proxy
+
+  revoke_token "$session_id" "$token"
+  get_session_report "$session_id" > session_report.json
+  python3 -mjson.tool session_report.json
+
+  #delete_session "$session_id"
+  #delete_resources "$session_id"
+
+debug: |
+  # Dump the fetch-service log, if it exists
+  # shellcheck disable=SC2016
+  snap_data=$(snap run --shell fetch-service -c 'echo $SNAP_DATA')
+  logfile=${snap_data}/fetch.log
+  if [ -f "${logfile}" ]; then
+    echo "fetch-service log output:"
+    cat "${logfile}"
+  else
+    echo "fetch-service logfile does not exist."
+  fi
