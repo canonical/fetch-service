@@ -45,13 +45,13 @@ func getTestAptConfig() config.AptInspectorConfig {
 		Repositories: map[string]config.AptInspectorConfigRepository{
 			"default": {
 				Urls:       []glob.Glob{glob.MustCompile("http://*.ubuntu.com/ubuntu")},
-				Dists:      []glob.Glob{glob.MustCompile("focal")},
+				Suites:     []glob.Glob{glob.MustCompile("focal")},
 				Components: []glob.Glob{glob.MustCompile("main")},
 				PublicKey:  "",
 			},
 			"esm": {
 				Urls:       []glob.Glob{glob.MustCompile("https://esm.ubuntu.com:443/fips*/ubuntu")},
-				Dists:      []glob.Glob{glob.MustCompile("noble")},
+				Suites:     []glob.Glob{glob.MustCompile("noble")},
 				Components: []glob.Glob{glob.MustCompile("main")},
 				PublicKey:  "",
 			},
