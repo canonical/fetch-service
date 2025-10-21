@@ -2,6 +2,13 @@
 Changelog
 *********
 
+0.10.1 (2025-17-02)
+-------------------
+
+- feat: add inspector for the store transforms api (#470)
+- fix(inspectors/git): allow packets containing only sideband (#467)
+- fix: false positive in store info inspection (#477)
+
 0.10.0 (2025-10-02)
 -------------------
 
