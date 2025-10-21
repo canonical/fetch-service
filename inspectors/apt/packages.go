@@ -165,7 +165,7 @@ type aptPackagesEntry struct {
 type aptPackages struct {
 	sha256       digests.Sha256Digest // packages file digest
 	origin       string               // URL origin of the archive
-	suite        string               // name of the suite (series + pocket)
+	suite        string               // name of the suite (<series>-<pocket>)
 	component    string               // name of the component
 	architecture string
 
