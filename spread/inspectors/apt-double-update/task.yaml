@@ -5,11 +5,14 @@ prepare: |
   dpkg --purge appstream command-not-found fortune-mod
   rm -Rf /var/lib/apt/lists
   rm -Rf /var/cache/apt/archives
+  # We don't want to use random mirrors, our url alias maps to archive.ubuntu.com
+  sed -i.orig '/^deb /s|http://[^ ]*\.archive\.ubuntu\.com|http://archive.ubuntu.com|g' /etc/apt/sources.list
 
 restore: |
   rm -f ./*.json
   rm -f /etc/apt/apt.conf.d/99proxy
   dpkg --purge fortune-mod
+  mv /etc/apt/sources.list.orig /etc/apt/sources.list
 
 execute: |
   # shellcheck disable=SC1091
