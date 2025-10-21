@@ -334,7 +334,7 @@ apt:
       urls:
         - http://archive.ubuntu.com/ubuntu
         - http://*.archive.ubuntu.com/ubuntu
-      dists:
+      suites:
         - "*"
       components:
         - "*"
