@@ -87,7 +87,7 @@ func (ins *StoreAppMediaInspector) inspectArtifactPNG(f ArtifactReader, a Respon
 
 	a.SetArtifactMetadata(md)
 
-	if a.RequestOpinion(ins.ID()) == opinions.Pending {
+	if a.InspectorRequestOpinion(ins) == opinions.Pending {
 		a.SetResponseApproved(ins, "store media file in PNG format").Annotate(notes)
 	} else {
 		a.SetResponseUnknown(ins, "unknown PNG image").Annotate(notes)
