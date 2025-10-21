@@ -233,7 +233,7 @@ func (ins *AptPackagesInspector) InspectRequest(a RequestArtifact) error {
 			Annotation{
 				"cfg-name":     info.CfgName,
 				"repository":   info.Repository,
-				"dist":         info.Suite,
+				"suite":        info.Suite,
 				"component":    info.Component,
 				"architecture": info.Architecture,
 			},
@@ -270,7 +270,7 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	suite, ok := a.RequestStringAnnotation(ins.ID(), "dist")
+	suite, ok := a.RequestStringAnnotation(ins.ID(), "suite")
 	if !ok {
 		a.SetResponseUnknown(ins, "suite not specified in request URL")
 		return nil

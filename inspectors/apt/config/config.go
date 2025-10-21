@@ -33,7 +33,7 @@ import (
 
 type AptInspectorConfigRepository struct {
 	Urls         []glob.Glob `yaml:"urls"`           // List of allowed URL glob patterns
-	Dists        []glob.Glob `yaml:"dists"`          // List of allowed dist glob patterns
+	Suites       []glob.Glob `yaml:"suites"`         // List of allowed dist glob patterns
 	Components   []glob.Glob `yaml:"components"`     // List of allowed component glob patterns
 	PublicKey    string      `yaml:"public-key"`     // Repository public key
 	BaseUrlAlias string      `yaml:"base-url-alias"` // Alias for URL scheme and hostname
@@ -43,7 +43,7 @@ type AptInspectorConfig struct {
 	Repositories map[string]AptInspectorConfigRepository
 }
 
-func checkRepositoryAndDist(cfg *AptInspectorConfig, u *url.URL, slog logger.Logger) (string, string, string, error) {
+func checkRepositoryAndSuite(cfg *AptInspectorConfig, u *url.URL, slog logger.Logger) (string, string, string, error) {
 	origin := utils.NormalizedOrigin(u)
 	parts := strings.Split(u.Path, "/")
 
@@ -97,11 +97,11 @@ func repositoryIsAllowed(cfg *AptInspectorConfig, repo string, slog logger.Logge
 	return "", false
 }
 
-// suiteIsAllowed verifies if the given dist matches an allowed pattern.
+// suiteIsAllowed verifies if the given suite matches an allowed pattern.
 func suiteIsAllowed(cfg *AptInspectorConfig, name, suite string, slog logger.Logger) bool {
 	r := cfg.Repositories[name]
 	slog.Debugf("apt inspector config: check if suite '%s' is allowed", suite)
-	for _, pattern := range r.Dists {
+	for _, pattern := range r.Suites {
 		if pattern.G.Match(suite) {
 			slog.Debugf("apt inspector config: found dist '%s'", suite)
 			return true
@@ -127,11 +127,11 @@ type InReleaseUrlInfo struct {
 	CfgName    string // Configuration entry name
 	Origin     string // HTTP scheme and host
 	Repository string // Apt repository root
-	Suite      string // Repository suite (series + pocket)
+	Suite      string // Repository suite (<series>-<pocket>)
 }
 
 func NewInReleaseUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger) (*InReleaseUrlInfo, error) {
-	name, repo, dist, err := checkRepositoryAndDist(cfg, u, slog)
+	name, repo, suite, err := checkRepositoryAndSuite(cfg, u, slog)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +145,7 @@ func NewInReleaseUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger
 		CfgName:    name,
 		Origin:     utils.NormalizedOrigin(u),
 		Repository: repo,
-		Suite:      dist,
+		Suite:      suite,
 	}
 	return info, nil
 }
@@ -154,14 +154,14 @@ type PackagesUrlInfo struct {
 	CfgName      string // Configuration entry name
 	Origin       string // HTTP scheme and host
 	Repository   string // Apt repository root
-	Suite        string // Repository suite name (series + pocket)
+	Suite        string // Repository suite name (<series>-<pocket>)
 	Component    string // Repository component
 	Architecture string //
 	Digest       string // Digest from by-hash URL
 }
 
 func NewPackagesUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger) (*PackagesUrlInfo, error) {
-	name, repo, suite, err := checkRepositoryAndDist(cfg, u, slog)
+	name, repo, suite, err := checkRepositoryAndSuite(cfg, u, slog)
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +217,7 @@ type TranslationUrlInfo struct {
 }
 
 func NewTranslationUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger) (*TranslationUrlInfo, error) {
-	name, repo, suite, err := checkRepositoryAndDist(cfg, u, slog)
+	name, repo, suite, err := checkRepositoryAndSuite(cfg, u, slog)
 	if err != nil {
 		return nil, err
 	}
@@ -247,13 +247,13 @@ type CommandsUrlInfo struct {
 	CfgName    string // Configuration entry name
 	Origin     string // HTTP scheme and host
 	Repository string // Apt repository root
-	Suite      string // Repository dist name
+	Suite      string // Repository suite name
 	Component  string // Repository component
 	Digest     string // Digest from by-hash URL
 }
 
 func NewCommandsUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger) (*CommandsUrlInfo, error) {
-	name, repo, suite, err := checkRepositoryAndDist(cfg, u, slog)
+	name, repo, suite, err := checkRepositoryAndSuite(cfg, u, slog)
 	if err != nil {
 		return nil, err
 	}

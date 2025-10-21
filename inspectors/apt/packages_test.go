@@ -157,7 +157,7 @@ func (s *aptSuite) TestPackagesInspectArtifact(c *C) {
 		a.SetRequestPending(ins, "some reason").Annotate(
 			Annotation{
 				"cfg-name":     "default",
-				"dist":         "jammy",
+				"suite":        "jammy",
 				"component":    "main",
 				"architecture": "amd64",
 			},
@@ -187,6 +187,60 @@ func (s *aptSuite) TestPackagesInspectArtifact(c *C) {
 			c.Assert(a.Approved(), Equals, false)
 			c.Check(a.ResponseInspection[ins.ID()].Reason, Equals, tc.rejectReason)
 		}
+	}
+}
+
+type packagesInspectArtifactMissingRequestFieldTest struct {
+	missingField string               // The missing request field
+	opinion      opinions.OpinionKind // The inspector's opinion
+	reason       string               // The reason for the opinion
+}
+
+var packagesInspectArtifactMissingRequestFieldTests = []packagesInspectArtifactMissingRequestFieldTest{{
+	missingField: "suite",
+	opinion:      opinions.Unknown,
+	reason:       "suite not specified in request URL",
+}, {
+	missingField: "component",
+	opinion:      opinions.Unknown,
+	reason:       "component not specified in request URL",
+}, {
+	missingField: "architecture",
+	opinion:      opinions.Unknown,
+	reason:       "architecture not specified in request URL",
+}, {
+	missingField: "cfg-name",
+	opinion:      opinions.Rejected,
+	reason:       "Packages file downloaded from unknown repository",
+}}
+
+func (s *aptSuite) TestPackagesInspectArtifactMissingRequestField(c *C) {
+	for _, tc := range packagesInspectArtifactMissingRequestFieldTests {
+		ins := apt.NewAptPackagesInspector(getAptInspectorConfig())
+
+		a := metadata.NewArtifact()
+		a.Metadata.Type = "application/x.apt.packages"
+
+		notes := Annotation{
+			"cfg-name":     "default",
+			"suite":        "jammy",
+			"component":    "main",
+			"architecture": "amd64",
+		}
+
+		delete(notes, tc.missingField)
+		a.SetRequestPending(ins, "some reason").Annotate(notes)
+
+		f, err := files.OpenArtifactFile("testdata/Packages.xz")
+		c.Assert(err, IsNil)
+		defer f.Close()
+
+		err = ins.InspectArtifact(f, a)
+		c.Assert(err, IsNil)
+
+		insp, _ := a.ResponseInspection[ins.ID()]
+		c.Assert(insp.Opinion, Equals, tc.opinion)
+		c.Assert(insp.Reason, Equals, tc.reason)
 	}
 }
 

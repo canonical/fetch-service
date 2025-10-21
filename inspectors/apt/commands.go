@@ -96,7 +96,7 @@ func (ins *AptCommandsInspector) InspectRequest(a RequestArtifact) error {
 		a.SetRequestPending(ins, "valid URL for Commands file").Annotate(
 			Annotation{
 				"repository": info.Repository,
-				"dist":       info.Suite,
+				"suite":      info.Suite,
 				"component":  info.Component,
 			},
 		)
@@ -220,14 +220,8 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 
 	a.SetArtifactMetadata(md)
 
-	dist, ok := a.RequestStringAnnotation(ins.ID(), "dist")
-	if !ok {
-		a.SetResponseUnknown(ins, "suite not specified in request URL")
-		return nil
-	}
-
 	notes := Annotation{
-		"suite":     dist,
+		"suite":     suite,
 		"component": component,
 		"arch":      arch,
 		"count":     item_count,

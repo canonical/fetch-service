@@ -120,7 +120,7 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 				"cfg-name":   info.CfgName,
 				"origin":     info.Origin,
 				"repository": info.Repository,
-				"dist":       info.Suite,
+				"suite":      info.Suite,
 			},
 		)
 	} else if info, err := apt_cfg.NewPackagesUrlInfo(u, &ins.config, slog); err == nil {
@@ -129,7 +129,7 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 			"cfg-name":     info.CfgName,
 			"origin":       info.Origin,
 			"repository":   info.Repository,
-			"dist":         info.Suite,
+			"suite":        info.Suite,
 			"component":    info.Component,
 			"architecture": info.Architecture,
 		}
@@ -147,7 +147,7 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 			"cfg-name":   info.CfgName,
 			"origin":     info.Origin,
 			"repository": info.Repository,
-			"dist":       info.Suite,
+			"suite":      info.Suite,
 			"component":  info.Component,
 		}
 		repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Suite)
@@ -164,7 +164,7 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 			"cfg-name":   info.CfgName,
 			"origin":     info.Origin,
 			"repository": info.Repository,
-			"dist":       info.Suite,
+			"suite":      info.Suite,
 			"component":  info.Component,
 		}
 		repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Suite)

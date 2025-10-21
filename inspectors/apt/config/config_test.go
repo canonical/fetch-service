@@ -63,7 +63,7 @@ type inReleaseUrlInfoTest struct {
 	url      string // The request URL
 	conf     string // The repository configuration entry
 	repo     string // The repository name (URL scheme and origin)
-	series   string // The distribution series
+	suite    string // The distribution series
 	errorMsg string // The error message, if any
 }
 
@@ -71,43 +71,43 @@ var inReleaseUrlInfoTests = []inReleaseUrlInfoTest{{
 	url:      "http://archive.ubuntu.com/ubuntu/dists/focal/InRelease",
 	conf:     "default",
 	repo:     "http://archive.ubuntu.com/ubuntu",
-	series:   "focal",
+	suite:    "focal",
 	errorMsg: "",
 }, {
 	url:      "http://us.archive.ubuntu.com/ubuntu/dists/focal/InRelease",
 	conf:     "default",
 	repo:     "http://us.archive.ubuntu.com/ubuntu",
-	series:   "focal",
+	suite:    "focal",
 	errorMsg: "",
 }, {
 	url:      "http://archive.ubuntu.com/ubuntu/dists/jammy/InRelease",
 	conf:     "none",
 	repo:     "http://archive.ubuntu.com/ubuntu",
-	series:   "jammy",
+	suite:    "jammy",
 	errorMsg: "invalid series: jammy",
 }, {
 	url:      "http://archive.ubuntu.com/ubuntu/dists/focal/NotInRelease",
 	conf:     "none",
 	repo:     "http://archive.ubuntu.com/ubuntu",
-	series:   "focal",
+	suite:    "focal",
 	errorMsg: "invalid InRelease URL path: .*",
 }, {
 	url:      "http://archive.ubuntu.com/ubuntu/focal/InRelease",
 	conf:     "none",
 	repo:     "none",
-	series:   "http://archive.ubuntu.com/ubuntu",
+	suite:    "http://archive.ubuntu.com/ubuntu",
 	errorMsg: "invalid repository URL: http://.*",
 }, {
 	url:      "https://esm.ubuntu.com:443/fips-preview/ubuntu/dists/noble/InRelease",
 	conf:     "esm",
 	repo:     "https://esm.ubuntu.com:443/fips-preview/ubuntu",
-	series:   "noble",
+	suite:    "noble",
 	errorMsg: "",
 }, {
 	url:      "https://esm.ubuntu.com:443/other-repo/ubuntu/dists/noble/InRelease",
 	conf:     "none",
 	repo:     "https://esm.ubuntu.com:443/other-repo/ubuntu",
-	series:   "noble",
+	suite:    "noble",
 	errorMsg: "invalid repository: https://esm.ubuntu.com:443/other-repo/ubuntu",
 }}
 
@@ -125,7 +125,7 @@ func (t *configSuite) TestInReleaseUrlInfo(c *C) {
 				CfgName:    tc.conf,
 				Origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 				Repository: tc.repo,
-				Suite:      tc.series,
+				Suite:      tc.suite,
 			})
 		} else {
 			c.Assert(err, ErrorMatches, tc.errorMsg)
