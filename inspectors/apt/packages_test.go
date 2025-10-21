@@ -238,7 +238,7 @@ func (s *aptSuite) TestPackagesInspectArtifactMissingRequestField(c *C) {
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
-		insp, _ := a.ResponseInspection[ins.ID()]
+		insp := a.ResponseInspection[ins.ID()]
 		c.Assert(insp.Opinion, Equals, tc.opinion)
 		c.Assert(insp.Reason, Equals, tc.reason)
 	}
