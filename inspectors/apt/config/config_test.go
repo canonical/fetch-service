@@ -45,13 +45,13 @@ func getTestAptConfig() config.AptInspectorConfig {
 		Repositories: map[string]config.AptInspectorConfigRepository{
 			"default": {
 				Urls:       []glob.Glob{glob.MustCompile("http://*.ubuntu.com/ubuntu")},
-				Dists:      []glob.Glob{glob.MustCompile("focal")},
+				Suites:     []glob.Glob{glob.MustCompile("focal")},
 				Components: []glob.Glob{glob.MustCompile("main")},
 				PublicKey:  "",
 			},
 			"esm": {
 				Urls:       []glob.Glob{glob.MustCompile("https://esm.ubuntu.com:443/fips*/ubuntu")},
-				Dists:      []glob.Glob{glob.MustCompile("noble")},
+				Suites:     []glob.Glob{glob.MustCompile("noble")},
 				Components: []glob.Glob{glob.MustCompile("main")},
 				PublicKey:  "",
 			},
@@ -63,7 +63,7 @@ type inReleaseUrlInfoTest struct {
 	url      string // The request URL
 	conf     string // The repository configuration entry
 	repo     string // The repository name (URL scheme and origin)
-	series   string // The distribution series
+	suite    string // The distribution series
 	errorMsg string // The error message, if any
 }
 
@@ -71,43 +71,43 @@ var inReleaseUrlInfoTests = []inReleaseUrlInfoTest{{
 	url:      "http://archive.ubuntu.com/ubuntu/dists/focal/InRelease",
 	conf:     "default",
 	repo:     "http://archive.ubuntu.com/ubuntu",
-	series:   "focal",
+	suite:    "focal",
 	errorMsg: "",
 }, {
 	url:      "http://us.archive.ubuntu.com/ubuntu/dists/focal/InRelease",
 	conf:     "default",
 	repo:     "http://us.archive.ubuntu.com/ubuntu",
-	series:   "focal",
+	suite:    "focal",
 	errorMsg: "",
 }, {
 	url:      "http://archive.ubuntu.com/ubuntu/dists/jammy/InRelease",
 	conf:     "none",
 	repo:     "http://archive.ubuntu.com/ubuntu",
-	series:   "jammy",
+	suite:    "jammy",
 	errorMsg: "invalid series: jammy",
 }, {
 	url:      "http://archive.ubuntu.com/ubuntu/dists/focal/NotInRelease",
 	conf:     "none",
 	repo:     "http://archive.ubuntu.com/ubuntu",
-	series:   "focal",
+	suite:    "focal",
 	errorMsg: "invalid InRelease URL path: .*",
 }, {
 	url:      "http://archive.ubuntu.com/ubuntu/focal/InRelease",
 	conf:     "none",
 	repo:     "none",
-	series:   "http://archive.ubuntu.com/ubuntu",
+	suite:    "http://archive.ubuntu.com/ubuntu",
 	errorMsg: "invalid repository URL: http://.*",
 }, {
 	url:      "https://esm.ubuntu.com:443/fips-preview/ubuntu/dists/noble/InRelease",
 	conf:     "esm",
 	repo:     "https://esm.ubuntu.com:443/fips-preview/ubuntu",
-	series:   "noble",
+	suite:    "noble",
 	errorMsg: "",
 }, {
 	url:      "https://esm.ubuntu.com:443/other-repo/ubuntu/dists/noble/InRelease",
 	conf:     "none",
 	repo:     "https://esm.ubuntu.com:443/other-repo/ubuntu",
-	series:   "noble",
+	suite:    "noble",
 	errorMsg: "invalid repository: https://esm.ubuntu.com:443/other-repo/ubuntu",
 }}
 
@@ -125,7 +125,7 @@ func (t *configSuite) TestInReleaseUrlInfo(c *C) {
 				CfgName:    tc.conf,
 				Origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 				Repository: tc.repo,
-				Dist:       tc.series,
+				Suite:      tc.suite,
 			})
 		} else {
 			c.Assert(err, ErrorMatches, tc.errorMsg)
@@ -206,7 +206,7 @@ func (t *configSuite) TestPackagesUrlInfo(c *C) {
 					CfgName:      tc.conf,
 					Origin:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 					Repository:   tc.repo,
-					Dist:         tc.series,
+					Suite:        tc.series,
 					Component:    "main",
 					Architecture: "amd64",
 					Digest:       "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
@@ -216,7 +216,7 @@ func (t *configSuite) TestPackagesUrlInfo(c *C) {
 					CfgName:      tc.conf,
 					Origin:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 					Repository:   tc.repo,
-					Dist:         tc.series,
+					Suite:        tc.series,
 					Component:    "main",
 					Architecture: "amd64",
 					Digest:       "",
@@ -294,7 +294,7 @@ func (t *configSuite) TestTranslationUrlInfo(c *C) {
 				CfgName:    tc.conf,
 				Origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 				Repository: tc.repo,
-				Dist:       tc.series,
+				Suite:      tc.series,
 				Component:  "main",
 				Digest:     "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
 			})
@@ -370,7 +370,7 @@ func (t *configSuite) TestCommandsUrlInfo(c *C) {
 				CfgName:    tc.conf,
 				Origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 				Repository: tc.repo,
-				Dist:       tc.series,
+				Suite:      tc.series,
 				Component:  "main",
 				Digest:     "6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
 			})
@@ -392,7 +392,7 @@ func (t *configSuite) TestCommandsUrlInfoByName(c *C) {
 		CfgName:    "default",
 		Origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 		Repository: "http://archive.ubuntu.com/ubuntu",
-		Dist:       "focal",
+		Suite:      "focal",
 		Component:  "main",
 		Digest:     "",
 	})

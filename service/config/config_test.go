@@ -334,7 +334,7 @@ apt:
       urls:
         - http://archive.ubuntu.com/ubuntu
         - http://*.archive.ubuntu.com/ubuntu
-      dists:
+      suites:
         - "*"
       components:
         - "*"
@@ -397,7 +397,7 @@ func (t *configSuite) TestGetSetInspectorsConfig(c *C) {
 				glob.MustCompile("http://archive.ubuntu.com/ubuntu"),
 				glob.MustCompile("http://*.archive.ubuntu.com/ubuntu"),
 			},
-			Dists: []glob.Glob{
+			Suites: []glob.Glob{
 				glob.MustCompile("*"),
 			},
 			Components: []glob.Glob{

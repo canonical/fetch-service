@@ -120,7 +120,7 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 				"cfg-name":   info.CfgName,
 				"origin":     info.Origin,
 				"repository": info.Repository,
-				"dist":       info.Dist,
+				"suite":      info.Suite,
 			},
 		)
 	} else if info, err := apt_cfg.NewPackagesUrlInfo(u, &ins.config, slog); err == nil {
@@ -129,11 +129,11 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 			"cfg-name":     info.CfgName,
 			"origin":       info.Origin,
 			"repository":   info.Repository,
-			"dist":         info.Dist,
+			"suite":        info.Suite,
 			"component":    info.Component,
 			"architecture": info.Architecture,
 		}
-		repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
+		repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Suite)
 		repo, _ = ins.getRepositoryAlias(repo, info.CfgName, slog)
 
 		if _, ok := ins.getReleaseState(repo); ok {
@@ -147,10 +147,10 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 			"cfg-name":   info.CfgName,
 			"origin":     info.Origin,
 			"repository": info.Repository,
-			"dist":       info.Dist,
+			"suite":      info.Suite,
 			"component":  info.Component,
 		}
-		repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
+		repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Suite)
 		repo, _ = ins.getRepositoryAlias(repo, info.CfgName, slog)
 
 		if _, ok := ins.getReleaseState(repo); ok {
@@ -164,10 +164,10 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 			"cfg-name":   info.CfgName,
 			"origin":     info.Origin,
 			"repository": info.Repository,
-			"dist":       info.Dist,
+			"suite":      info.Suite,
 			"component":  info.Component,
 		}
-		repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
+		repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Suite)
 		repo, _ = ins.getRepositoryAlias(repo, info.CfgName, slog)
 
 		if _, ok := ins.getReleaseState(repo); ok {
@@ -352,6 +352,7 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		Description: desc,
 		Vendor:      fields["Origin"],
 		Author:      fields["Origin"],
+		AptSuite:    fields["Suite"],
 	})
 
 	notes := Annotation{}
@@ -464,7 +465,7 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a Respons
 		a.SetResponseRejected(ins, "Packages file downloaded from unknown repository")
 		return nil
 	}
-	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
+	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Suite)
 	repo, ok = ins.getRepositoryAlias(repo, cfgName, slog)
 	if !ok {
 		a.SetResponseRejected(ins, "Unknown repository configuration name").Annotate(
@@ -521,7 +522,7 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ArtifactReader, a Resp
 		a.SetResponseRejected(ins, "Translation file downloaded from unknown repository")
 		return nil
 	}
-	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
+	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Suite)
 	repo, ok = ins.getRepositoryAlias(repo, cfgName, slog)
 	if !ok {
 		a.SetResponseRejected(ins, "Unknown repository configuration name").Annotate(
@@ -586,7 +587,7 @@ func (ins *AptReleaseInspector) validateCommandsFile(f ArtifactReader, a Respons
 		a.SetResponseRejected(ins, "Commands file downloaded from unknown repository")
 		return nil
 	}
-	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Dist)
+	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Suite)
 	repo, ok = ins.getRepositoryAlias(repo, cfgName, slog)
 	if !ok {
 		a.SetResponseRejected(ins, "Unknown repository configuration name").Annotate(

@@ -114,7 +114,7 @@ func (ins testInspector2) ID() string {
 
 func (t *metadataSuite) TestNewArtifact(c *C) {
 	a := metadata.NewArtifact()
-	c.Check(a.MetadataVersion, Equals, "0.2")
+	c.Check(a.MetadataVersion, Equals, "0.3")
 	c.Check(a.RequestInspection, Not(IsNil))
 	c.Check(a.ResponseInspection, Not(IsNil))
 	c.Check(a.Metadata, Not(IsNil))

@@ -147,7 +147,7 @@ func (s *aptSuite) TestAptCommandsInspector(c *C) {
 		ins := apt.NewAptCommandsInspector(getTestAptConfig())
 
 		a := metadata.NewArtifact()
-		a.SetRequestPending(ins, "test")
+		a.SetRequestPending(ins, "test").Annotate(common.Annotation{"suite": "jammy-security"})
 		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/devel/main/cnf/by-hash/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf"
 		a.Metadata.Type = "application/x.apt.commands"
 		a.Metadata.Sha256, _ = digests.NewSha256Digest("6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf")

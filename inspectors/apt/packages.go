@@ -165,7 +165,7 @@ type aptPackagesEntry struct {
 type aptPackages struct {
 	sha256       digests.Sha256Digest // packages file digest
 	origin       string               // URL origin of the archive
-	dist         string               // name of the distribution
+	suite        string               // name of the suite (<series>-<pocket>)
 	component    string               // name of the component
 	architecture string
 
@@ -173,11 +173,11 @@ type aptPackages struct {
 	entriesLock sync.Mutex
 }
 
-func newAptPackages(sha256 digests.Sha256Digest, origin, dist, component, architecture string) *aptPackages {
+func newAptPackages(sha256 digests.Sha256Digest, origin, suite, component, architecture string) *aptPackages {
 	return &aptPackages{
 		sha256:       sha256,
 		origin:       origin,
-		dist:         dist,
+		suite:        suite,
 		component:    component,
 		architecture: architecture,
 
@@ -233,7 +233,7 @@ func (ins *AptPackagesInspector) InspectRequest(a RequestArtifact) error {
 			Annotation{
 				"cfg-name":     info.CfgName,
 				"repository":   info.Repository,
-				"dist":         info.Dist,
+				"suite":        info.Suite,
 				"component":    info.Component,
 				"architecture": info.Architecture,
 			},
@@ -270,17 +270,20 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	dist, ok := a.RequestStringAnnotation(ins.ID(), "dist")
+	suite, ok := a.RequestStringAnnotation(ins.ID(), "suite")
 	if !ok {
-		return fmt.Errorf("inconsistent request annotation: missing dist")
+		a.SetResponseUnknown(ins, "suite not specified in request URL")
+		return nil
 	}
 	component, ok := a.RequestStringAnnotation(ins.ID(), "component")
 	if !ok {
-		return fmt.Errorf("inconsistent request annotation: missing component")
+		a.SetResponseUnknown(ins, "component not specified in request URL")
+		return nil
 	}
 	architecture, ok := a.RequestStringAnnotation(ins.ID(), "architecture")
 	if !ok {
-		return fmt.Errorf("inconsistent request annotation: missing architecture")
+		a.SetResponseUnknown(ins, "architecture not specified in request URL")
+		return nil
 	}
 
 	cfgName, ok := a.RequestStringAnnotation(ins.ID(), "cfg-name")
@@ -297,15 +300,15 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		return nil
 	}
 
-	pkg := newAptPackages(a.Sha256(), origin, dist, component, architecture)
+	pkg := newAptPackages(a.Sha256(), origin, suite, component, architecture)
 	ins.addPackages(origin, u.Path, pkg, a.Logger())
 
 	md := ArtifactMetadata{
 		Type:         mimetypes.AptPackages,
 		Name:         "Packages",
-		Version:      dist,
-		Description:  fmt.Sprintf("%s %s Packages file", dist, component),
+		Description:  fmt.Sprintf("%s %s Packages file", suite, component),
 		Architecture: architecture,
+		AptSuite:     suite,
 	}
 
 	// the file should be also annotated by the release inspector
@@ -495,7 +498,7 @@ func (ins *AptPackagesInspector) validateDebianPackage(f ArtifactReader, a Respo
 				"packages-size":         entry.Size,          // package size in the Packages file
 				"packages-file":         pkg.sha256.String(), // digest of the validating Packages file
 				"packages-is-valid":     packagesIsValid,     // packages file validated against Release
-				"dist":                  pkg.dist,            // dist from packages file
+				"dist":                  pkg.suite,           // suite from packages file
 				"component":             info.Component,      // component from URL
 			}
 

@@ -96,7 +96,7 @@ func (ins *AptCommandsInspector) InspectRequest(a RequestArtifact) error {
 		a.SetRequestPending(ins, "valid URL for Commands file").Annotate(
 			Annotation{
 				"repository": info.Repository,
-				"dist":       info.Dist,
+				"suite":      info.Suite,
 				"component":  info.Component,
 			},
 		)
@@ -208,6 +208,7 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		Type:        mimetypes.AptCommands,
 		Name:        "Commands",
 		Description: "Commands list for command-not-found",
+		AptSuite:    suite,
 	}
 
 	// the file should be also annotated by the release inspector
