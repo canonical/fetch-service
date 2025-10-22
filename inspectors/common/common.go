@@ -168,4 +168,5 @@ type ArtifactMetadata struct {
 	Copyright     string // The copyright line, if available
 	SourcePackage string // The name of the source package that generated this artifact, if available.
 	StoreRevision string // The revision of the artifact assigned by the store, if any.
+	AptSuite      string // The apt repository series and pocket
 }

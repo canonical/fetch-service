@@ -42,6 +42,7 @@ type Metadata struct {
 	Copyright     string       `json:"copyright,omitempty"`      // The copyright line, if available
 	SourcePackage string       `json:"source-package,omitempty"` // The name of the source package that generated this artifact.
 	StoreRevision string       `json:"store-revision,omitempty"` // The revision number assigned by the store to this artifact.
+	AptSuite      string       `json:"apt-suite,omitempty"`      // The apt repository series and pocket
 }
 
 // Download holds information about each artifact download.

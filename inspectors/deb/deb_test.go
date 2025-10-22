@@ -55,7 +55,7 @@ func getTestAptConfig() config.AptInspectorConfig {
 		Repositories: map[string]config.AptInspectorConfigRepository{
 			"default": {
 				Urls:       []glob.Glob{glob.MustCompile("http://archive.ubuntu.com/ubuntu")},
-				Dists:      []glob.Glob{glob.MustCompile("jammy")},
+				Suites:     []glob.Glob{glob.MustCompile("jammy")},
 				Components: []glob.Glob{glob.MustCompile("main")},
 				PublicKey:  "",
 			},

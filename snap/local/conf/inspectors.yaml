@@ -37,7 +37,7 @@ apt:
         - http://archive.ubuntu.com/ubuntu
         - http://*.archive.ubuntu.com/ubuntu
         - http://ports.ubuntu.com/ubuntu-ports
-      dists:
+      suites:
         - "*"
       components:
         - "*"
@@ -74,7 +74,7 @@ apt:
     security:
       urls:
         - http://security.ubuntu.com/ubuntu
-      dists:
+      suites:
         - "*"
       components:
         - "*"
@@ -112,7 +112,7 @@ apt:
     esm:
       urls:
         - https://esm.ubuntu.com:443/*/ubuntu
-      dists:
+      suites:
         - "*"
       components:
         - "*"
