@@ -238,7 +238,7 @@ func (a *Artifact) ResponseApproved() bool {
 	return res
 }
 
-// RequestOpinion returns the request opinion set by the inspector
+// InspectorRequestOpinion returns the request opinion set by the inspector
 // with the given ID.
 func (a *Artifact) InspectorRequestOpinion(ins Inspector) opinions.OpinionKind {
 	in, ok := a.RequestInspection[ins.ID()]

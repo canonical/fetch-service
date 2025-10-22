@@ -123,7 +123,7 @@ func NewStoreAppMediaUrlInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.
 
 	m := reStoreAppMedia.FindStringSubmatch(u.Path)
 	if len(m) != 4 {
-		return nil, errors.New("not a valid store transforms API path")
+		return nil, errors.New("not a valid store appmedia API path")
 
 	}
 	info := &StoreAppMediaUrlInfo{
