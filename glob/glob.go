@@ -31,7 +31,7 @@ type Glob struct {
 }
 
 func MustCompile(pattern string) Glob {
-	return Glob{G: glob.MustCompile(pattern)}
+	return Glob{G: glob.MustCompile(pattern, '/')}
 }
 
 func (t *Glob) UnmarshalYAML(unmarshal func(v interface{}) error) error {
@@ -40,7 +40,7 @@ func (t *Glob) UnmarshalYAML(unmarshal func(v interface{}) error) error {
 		return err
 	}
 
-	g, err := glob.Compile(s)
+	g, err := glob.Compile(s, '/')
 	if err != nil {
 		return err
 	}
