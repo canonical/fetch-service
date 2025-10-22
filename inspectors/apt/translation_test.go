@@ -103,7 +103,7 @@ func (s *aptSuite) TestAptTranslationInspector(c *C) {
 		ins := apt.NewAptTranslationInspector(getTestAptConfig())
 
 		a := metadata.NewArtifact()
-		a.SetRequestPending(ins, "test")
+		a.SetRequestPending(ins, "test").Annotate(Annotation{"suite": "jammy"})
 		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/devel/main/i18n/by-hash/SHA256/4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed"
 		a.Metadata.Type = "application/x.apt.translation"
 		a.Metadata.Sha256, _ = digests.NewSha256Digest("4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed")

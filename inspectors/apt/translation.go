@@ -131,7 +131,7 @@ func (ins *AptTranslationInspector) InspectRequest(a RequestArtifact) error {
 		a.SetRequestPending(ins, "valid URL for Translation file").Annotate(
 			Annotation{
 				"repository": info.Repository,
-				"dist":       info.Dist,
+				"suite":      info.Suite,
 				"component":  info.Component,
 			},
 		)
@@ -152,7 +152,7 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 
 	r, err := xz.NewReader(f, 0)
 	if err != nil {
-		a.SetResponseRejected(ins, "cannot read xz file")
+		a.SetResponseUnknown(ins, "cannot read xz file")
 		return nil
 	}
 
@@ -233,9 +233,16 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 		return nil
 	}
 
+	suite, ok := a.RequestStringAnnotation(ins.ID(), "suite")
+	if !ok {
+		a.SetResponseUnknown(ins, "suite not specified in request URL")
+		return nil
+	}
+
 	md := ArtifactMetadata{
-		Type: mimetypes.AptTranslation,
-		Name: "Translation",
+		Type:     mimetypes.AptTranslation,
+		Name:     "Translation",
+		AptSuite: suite,
 	}
 
 	// The file should be also annotated by the release inspector.

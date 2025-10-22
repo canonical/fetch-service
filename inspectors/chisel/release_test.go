@@ -56,7 +56,7 @@ func getTestAptConfig() apt_cfg.AptInspectorConfig {
 		Repositories: map[string]apt_cfg.AptInspectorConfigRepository{
 			"default": {
 				Urls:       []glob.Glob{glob.MustCompile("http://*.ubuntu.com/ubuntu")},
-				Dists:      []glob.Glob{glob.MustCompile("focal")},
+				Suites:     []glob.Glob{glob.MustCompile("focal")},
 				Components: []glob.Glob{glob.MustCompile("main")},
 				PublicKey:  ubuntuArchivePubKey.PubKeyArmor,
 			},
