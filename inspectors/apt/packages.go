@@ -498,7 +498,7 @@ func (ins *AptPackagesInspector) validateDebianPackage(f ArtifactReader, a Respo
 				"packages-size":         entry.Size,          // package size in the Packages file
 				"packages-file":         pkg.sha256.String(), // digest of the validating Packages file
 				"packages-is-valid":     packagesIsValid,     // packages file validated against Release
-				"dist":                  pkg.suite,           // dist from packages file
+				"dist":                  pkg.suite,           // suite from packages file
 				"component":             info.Component,      // component from URL
 			}
 
