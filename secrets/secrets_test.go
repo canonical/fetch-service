@@ -22,13 +22,13 @@ func (t *sessionSuite) TestValidateSecrets(c *C) {
 		// No secrets
 		{nil, nil},
 		// Good secret
-		{[]secrets.Secret{{Type: "basic-auth", Url: glob.MustCompile("www.example.com")}}, nil},
+		{[]secrets.Secret{{Type: secrets.BasicAuthType, Url: glob.MustCompile("www.example.com")}}, nil},
 		// Missing type
 		{[]secrets.Secret{{}}, secrets.ErrMissingSecretType},
 		// Invalid type
 		{[]secrets.Secret{{Type: "invalid-type"}}, secrets.ErrInvalidSecretType},
 		// Missing url
-		{[]secrets.Secret{{Type: "basic-auth"}}, secrets.ErrMissingSecretUrl},
+		{[]secrets.Secret{{Type: secrets.BasicAuthType}}, secrets.ErrMissingSecretUrl},
 	} {
 		err := secrets.ValidateSecrets(tc.sec)
 		c.Assert(err, Equals, tc.err)

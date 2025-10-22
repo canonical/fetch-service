@@ -73,8 +73,8 @@ func (t *messagesSuite) TestCreateSession(c *C) {
 
 func (t *messagesSuite) TestCreateSessionWithSecrets(c *C) {
 	s := []secrets.Secret{
-		{Type: "basic-auth", Url: glob.MustCompile("http://example.com")},
-		{Type: "basic-auth", Url: glob.MustCompile("http://another-example.com/*")},
+		{Type: secrets.BasicAuthType, Url: glob.MustCompile("http://example.com")},
+		{Type: secrets.BasicAuthType, Url: glob.MustCompile("http://another-example.com/*")},
 	}
 	var m messages.CreateSession = messages.NewCreateSession("policy", 42, s)
 	c.Check(cap(m.Rch), Equals, 1)

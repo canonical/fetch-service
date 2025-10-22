@@ -101,7 +101,7 @@ func (t *sessionSuite) TestNewWithId(c *C) {
 func (t *sessionSuite) TestNewWithSecrets(c *C) {
 	tmp := c.MkDir()
 	sec := []secrets.Secret{
-		{Type: "basic-auth", Url: glob.MustCompile("http://www.example.com/*")},
+		{Type: secrets.BasicAuthType, Url: glob.MustCompile("http://www.example.com/*")},
 	}
 	s := session.NewWithId("known-session-id", "known-token", tmp, 0, true, sec)
 	defer s.Discard()

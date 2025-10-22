@@ -649,11 +649,11 @@ func (t *serviceSuite) TestCreateSession(c *C) {
 		{false, "strict", nil, ""},
 		// Cases for secrets
 		// Good secret declaration
-		{true, "permissive", []secrets.Secret{{Type: "basic-auth", Url: glob.MustCompile("www.example.com")}}, ""},
+		{true, "permissive", []secrets.Secret{{Type: secrets.BasicAuthType, Url: glob.MustCompile("www.example.com")}}, ""},
 		// Missing type
 		{true, "permissive", []secrets.Secret{{}}, "Invalid secret: missing type"},
 		// Missing url
-		{true, "permissive", []secrets.Secret{{Type: "basic-auth"}}, "Invalid secret: missing url"},
+		{true, "permissive", []secrets.Secret{{Type: secrets.BasicAuthType}}, "Invalid secret: missing url"},
 		// Invalid type
 		{true, "permissive", []secrets.Secret{{Type: "invalid-type"}}, "Invalid secret: invalid type"},
 	} {

@@ -25,11 +25,17 @@ import (
 	"github.com/canonical/fetch-service/glob"
 )
 
+type SecretType string
+
 type Secret struct {
-	Type string
+	Type SecretType
 	Url  glob.Glob
 }
 
+// BasicAuthType is the only currently supported secret type
+const BasicAuthType SecretType = "basic-auth"
+
+// Error constants
 var (
 	ErrMissingSecretType = errors.New("Invalid secret: missing type")
 	ErrInvalidSecretType = errors.New("Invalid secret: invalid type")
@@ -41,7 +47,7 @@ func ValidateSecrets(sec []Secret) error {
 		if s.Type == "" {
 			return ErrMissingSecretType
 		}
-		if s.Type != "basic-auth" {
+		if s.Type != BasicAuthType {
 			return ErrInvalidSecretType
 		}
 		if s.Url.G == nil {
