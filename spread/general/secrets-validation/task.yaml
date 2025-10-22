@@ -17,6 +17,10 @@ environment:
   SECRETS_FILE/invalid_type: invalid_type_secrets.txt
   EXPECTED_FILE/invalid_type: invalid_type_expected.txt
 
+  # Missing credentials for 'basic' auth
+  SECRETS_FILE/missing_basic: missing_basic_secrets.txt
+  EXPECTED_FILE/missing_basic: missing_basic_expected.txt
+
 prepare: |
   snap stop fetch-service
   snap start fetch-service

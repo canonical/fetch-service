@@ -388,6 +388,16 @@ func GetSessionImpl(id string) *Session {
 	return sessions.Get(id)
 }
 
+// GetSessionSecrets returns the secrets corresponding to the given session ID.
+func GetSessionSecrets(id string) []secrets.Secret {
+	session := sessions.Get(id)
+	if session == nil {
+		return nil
+	}
+
+	return session.Secrets
+}
+
 // FinishAll gracefully finishes all active sessions.
 func FinishAll() {
 	sessions.Range(func(key, value any) bool {

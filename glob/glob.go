@@ -54,7 +54,7 @@ func (t *Glob) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &s); err != nil {
 		return err
 	}
-	g, err := glob.Compile(s)
+	g, err := glob.Compile(s, '/')
 	if err != nil {
 		return err
 	}

@@ -148,7 +148,8 @@ func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Debugf("create session parameters: %+v\n", params)
+	// Don't log the actual secrets, just how many
+	logger.Debugf("create session parameters: timeout=%v policy=%v secrets=%v\n", params.Timeout, params.Policy, len(params.Secrets))
 
 	msg := messages.NewCreateSession(params.Policy, params.Timeout, params.Secrets)
 	c.ch <- msg

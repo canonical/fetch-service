@@ -29,6 +29,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/canonical/fetch-service/secrets"
+	"github.com/canonical/fetch-service/session"
 	"github.com/elazarl/goproxy"
 	"github.com/elazarl/goproxy/transport"
 	"gopkg.in/tomb.v2"
@@ -194,8 +196,9 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 	a.Request = req
 	a.SessionId = sid
 
+	url := utils.NormalizedURL(req.URL)
 	a.CurrentDownload.StartTime = time.Now().UTC()
-	a.CurrentDownload.URL = utils.NormalizedURL(req.URL)
+	a.CurrentDownload.URL = url
 	a.CurrentDownload.Address = req.RemoteAddr
 	a.CurrentDownload.Method = req.Method
 	a.CurrentDownload.UserAgent = req.Header.Get("User-Agent")
@@ -213,6 +216,11 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 			http.StatusForbidden,
 			fmt.Sprintf("download authorization denied: %s", err),
 		)
+	}
+
+	sec := session.GetSessionSecrets(sid)
+	if secrets.InjectSecrets(sec, url, req) {
+		a.Logger().Debugf("applied secrets to %s", url)
 	}
 
 	req.Body, err = NewRequestHandler(req, a, p.ch)

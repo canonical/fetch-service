@@ -16,6 +16,11 @@ suites:
       snap install "$CRAFT_ARTIFACT" --dangerous
       snap set fetch-service permissive=true
       snap set fetch-service control.auth=craft:craft
+      snap set fetch-service log.file=fetch.log
+      mkdir -p /usr/local/share/ca-certificates
+      cp /var/snap/fetch-service/current/local-ca.crt /usr/local/share/ca-certificates
+      update-ca-certificates
+      systemctl restart snapd
 
   spread/inspectors/:
     summary: Inspector smoke tests
