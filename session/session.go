@@ -30,6 +30,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/canonical/fetch-service/secrets"
 	"github.com/google/uuid"
 
 	"github.com/canonical/fetch-service/inspectors"
@@ -65,7 +66,8 @@ type Session struct {
 	CacheDir      string        // location of session-specific cache
 	Timeout       time.Duration // maximum time allowed for a session
 	InspectorsCfg config.InspectorsConfig
-	Logger        logger.Logger // Session-aware log helper
+	Logger        logger.Logger    // Session-aware log helper
+	Secrets       []secrets.Secret // Per-session secrets
 
 	timer   *sessionTimer // timeout to auto-finish an idle session
 	revoked bool          // session token has been revoked
@@ -78,15 +80,15 @@ var (
 
 // New creates a session that stores artifact data and metadata under
 // spoolDir. The session is automatically finished if it times out.
-func New(spoolDir string, timeout time.Duration, permissive bool) *Session {
+func New(spoolDir string, timeout time.Duration, permissive bool, secrets []secrets.Secret) *Session {
 	sessionId := makeSessionId()
 	token := randomString(20)
 
-	return NewWithId(sessionId, token, spoolDir, timeout, permissive)
+	return NewWithId(sessionId, token, spoolDir, timeout, permissive, secrets)
 }
 
 // NewWithId creates a session using the specified sessionId and token.
-func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permissive bool) *Session {
+func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permissive bool, secrets []secrets.Secret) *Session {
 	_, ok := sessions.Load(sessionId)
 	if ok {
 		id := makeSessionId()
@@ -109,6 +111,7 @@ func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permiss
 		Timeout:       timeout,
 		InspectorsCfg: config.GetInspectorsConfig(),
 		Logger:        logger.NewSessionLogger(sessionId),
+		Secrets:       secrets,
 	}
 
 	cfg := config.GetInspectorsConfig()

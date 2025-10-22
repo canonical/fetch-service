@@ -52,7 +52,7 @@ var _ = Suite(&inspectorsSuite{})
 func (t *inspectorsSuite) TestRunRequestInspectors(c *C) {
 	a := metadata.NewArtifact()
 
-	s := session.New(c.MkDir(), 0, false)
+	s := session.New(c.MkDir(), 0, false, nil)
 	defer s.Discard()
 
 	err := s.Insps.RunRequestInspectors(a)
@@ -67,7 +67,7 @@ func (t *inspectorsSuite) TestRunRequestInspectors(c *C) {
 func (t *inspectorsSuite) TestRunRequestInspectorsPermissive(c *C) {
 	a := metadata.NewArtifact()
 
-	s := session.New(c.MkDir(), 0, true)
+	s := session.New(c.MkDir(), 0, true, nil)
 	defer s.Discard()
 
 	err := s.Insps.RunRequestInspectors(a)
@@ -91,7 +91,7 @@ func (t *inspectorsSuite) TestRunArtifactInspectors(c *C) {
 	a.CurrentDownload.Sha256 = h
 	a.Metadata.Sha256 = h
 
-	s := session.New(c.MkDir(), 0, false)
+	s := session.New(c.MkDir(), 0, false, nil)
 	defer s.Discard()
 
 	err = s.Insps.RunArtifactInspectors(dir, a)
@@ -118,7 +118,7 @@ func (t *inspectorsSuite) TestRunArtifactInspectorsPermissive(c *C) {
 	a.CurrentDownload.URL = "http://some.url"
 	a.Metadata.Sha256 = h
 
-	s := session.New(dir, 0, true)
+	s := session.New(dir, 0, true, nil)
 	defer s.Discard()
 
 	err = s.Insps.RunArtifactInspectors(dir, a)

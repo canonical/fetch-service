@@ -119,7 +119,7 @@ func fetchCtlCreateSession(v messages.FetchCtl, svc *Service) messages.FetchCtlR
 	}
 
 	timeout := time.Duration(t) * time.Second
-	s := sessionNewWithId(parms[0], parms[1], svc.opt.Spool, timeout, permissive)
+	s := sessionNewWithId(parms[0], parms[1], svc.opt.Spool, timeout, permissive, nil)
 
 	logger.Infof("service: session %s created", s.Id)
 	svc.totalSessions++

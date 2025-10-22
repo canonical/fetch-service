@@ -20,6 +20,7 @@
 package glob_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	. "gopkg.in/check.v1"
@@ -45,6 +46,19 @@ func (t *configSuite) TestGlobUnmarshal(c *C) {
 	err := yaml.Unmarshal(data, &y)
 	c.Assert(err, IsNil)
 	c.Assert(y.Foo, DeepEquals, glob.MustCompile("*.txt"))
+}
+
+func (t *configSuite) TestGlobUnmarshalJSON(c *C) {
+	type testGlob struct {
+		Foo glob.Glob `json:"foo"`
+	}
+
+	data := []byte(`{"foo": "*.txt"}`)
+
+	var j testGlob
+	err := json.Unmarshal(data, &j)
+	c.Assert(err, IsNil)
+	c.Assert(j.Foo, DeepEquals, glob.MustCompile("*.txt"))
 }
 
 func (t *configSuite) TestGlobMatch(c *C) {

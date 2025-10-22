@@ -52,7 +52,7 @@ func (t *serviceSuite) TestReuseInspectionResult(c *C) {
 	}
 
 	// Start session
-	s := session.New(opt.Spool, 0, true)
+	s := session.New(opt.Spool, 0, true, nil)
 	defer s.Discard()
 
 	// Create a fake artifact
