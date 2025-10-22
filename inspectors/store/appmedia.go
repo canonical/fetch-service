@@ -55,7 +55,7 @@ func (ins *StoreAppMediaInspector) InspectRequest(a RequestArtifact) error {
 		a.SetRequestPending(ins, "valid URL for store app media")
 	}
 
-	return nil // We don't recognize the request
+	return nil
 }
 
 func (ins *StoreAppMediaInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
