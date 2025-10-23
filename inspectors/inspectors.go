@@ -76,6 +76,7 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		store.NewStoreInfoApiInspector(cfg.Store, cfg.BldBin),
 		store.NewStoreResolveApiInspector(cfg.Store),
 		store.NewStoreTransformsApiInspector(cfg.Store),
+		store.NewStoreAppMediaInspector(cfg.Store),
 
 		// bld bin
 		// must run after store API

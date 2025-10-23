@@ -34,6 +34,7 @@ var (
 	reStoreInfoApi       = regexp.MustCompile(`^/v2/([a-z]+)/info/([a-zA-Z0-9-]+)$`)
 	reStoreResolveApi    = regexp.MustCompile(`^/v2/revisions/resolve$`)
 	reStoreTransformsApi = regexp.MustCompile(`^/v1/craft/workspaces/([a-zA-Z0-9-]+)/transforms$`)
+	reStoreAppMedia      = regexp.MustCompile(`^/site_media/appmedia/([0-9]+)/([0-9]+)/([a-zA-Z0-9.-]+)$`)
 )
 
 func checkRequestUrl(cfg *StoreInspectorConfig, u *url.URL, slog logger.Logger) error {
@@ -106,6 +107,27 @@ func NewStoreTransformsApiUrlInfo(u *url.URL, cfg *StoreInspectorConfig, slog lo
 	}
 	info := &StoreTransformsApiUrlInfo{
 		WorkspaceID: m[1],
+	}
+
+	return info, nil
+}
+
+type StoreAppMediaUrlInfo struct {
+	Filename string
+}
+
+func NewStoreAppMediaUrlInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreAppMediaUrlInfo, error) {
+	if err := checkRequestUrl(cfg, u, slog); err != nil {
+		return nil, err
+	}
+
+	m := reStoreAppMedia.FindStringSubmatch(u.Path)
+	if len(m) != 4 {
+		return nil, errors.New("not a valid store appmedia API path")
+
+	}
+	info := &StoreAppMediaUrlInfo{
+		Filename: m[3],
 	}
 
 	return info, nil
