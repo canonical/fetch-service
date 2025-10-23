@@ -1,8 +1,8 @@
 summary: Create session with inspectors configuration
 
 prepare: |
+  snap set fetch-service log.file=fetch.log
   snap stop fetch-service
-  # rm -f ./*.json ./*.deb
   snap start fetch-service
   sleep 5
   fetch-service.fetchctl version
@@ -10,28 +10,21 @@ prepare: |
 execute: |
   # shellcheck disable=SC1091
   . ../../utils.sh
+
+  # create a session
+  inspectors_conf=$(< session-inspectors.json)
+  tmpfile=$(mktemp)
+  curl -s -X POST -d '{"policy": "strict","inspectors-configuration":'"$inspectors_conf"'}' http://craft:craft@localhost:9999/session | tee "${tmpfile}"
+  session_id=$(jq -r .id "${tmpfile}")
+  token=$(jq -r .token "${tmpfile}")
+  rm "${tmpfile}"
   
-  snap start fetch-service
-  sleep 5  # give some time for the service to start
-  fetch-service.fetchctl version
-
-  # check if service is up and running
-  curl -sf http://localhost:9999/status
-
-  # create a strict session
-  session_id=8d9399b526be42678ac6a0a0e76a009b
-  token=5lE1VoyOG8t8f0Wsx6DP
-  fetch-service.fetchctl create-session --session-id=$session_id --token=$token session-inspectors.yaml
-
-  # set up proxy and download a file
+  # set up proxy
   export http_proxy="http://${session_id}:${token}@localhost:9988"
   export https_proxy="http://${session_id}:${token}@localhost:9988"
-
-  echo "Acquire::http::Proxy \"$http_proxy\";" > /etc/apt/apt.conf.d/99proxy
-  echo "Acquire::https::Proxy \"$https_proxy\";" >> /etc/apt/apt.conf.d/99proxy
   
-  apt-get update
-  apt-get install -y fortune-mod
+  # Successfully clone from a repo
+  git clone --single-branch --depth=1 https://github.com/canonical/imagecraft
   
   unset http_proxy
   unset https_proxy
@@ -41,16 +34,24 @@ execute: |
   get_session_report "$session_id" > session_report.json
 
   # check report
-  jq -r '(.artifacts[].metadata | select(.type=="application/vnd.debian.binary-package")).name' session_report.json | MATCH "fortune-mod"
-  # artifact was rejected because the repository url is not the "default" archive.ubuntu.com
-  jq -r '.artifacts[].result' session_report.json | MATCH "Rejected"
+  # artifact was rejected
+  jq -r '.artifacts[].result' session_report.json | MATCH "Approved"
   
   # remove session resources
   delete_session "$session_id"
   delete_resources "$session_id"
 
-
 restore: |
   snap stop fetch-service
-  rm -f ./*.json ./*.deb
-  rm -f /etc/apt/apt.conf.d/99proxy
+
+debug: |
+  # Dump the fetch-service log, if it exists
+  # shellcheck disable=SC2016
+  snap_data=$(snap run --shell fetch-service -c 'echo $SNAP_DATA')
+  logfile=${snap_data}/fetch.log
+  if [ -f "${logfile}" ]; then
+    echo "fetch-service log output:"
+    cat "${logfile}"
+  else
+    echo "fetch-service logfile does not exist."
+  fi

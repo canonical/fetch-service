@@ -36,7 +36,7 @@ import (
 	"github.com/canonical/fetch-service/metadata/digests"
 )
 
-// Disribution Release/InRelease file
+// Distribution Release/InRelease file
 // (http://archive.ubuntu.com/ubuntu/dists/jammy/InRelease)
 //
 // Example content:
