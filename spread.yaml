@@ -30,6 +30,13 @@ suites:
       systemctl restart snapd
     prepare-each: |
       snap stop fetch-service
+
+      # Clear the fetch-service log, so that it only contains output from the test
+      # shellcheck disable=SC2016
+      snap_data=$(snap run --shell fetch-service -c 'echo $SNAP_DATA')
+      logfile=${snap_data}/fetch.log
+      rm -f "${logfile}"
+
       snap start fetch-service
       sleep 5
       fetch-service.fetchctl version
