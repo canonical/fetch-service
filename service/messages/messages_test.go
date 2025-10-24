@@ -27,6 +27,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/service/config"
 	"github.com/canonical/fetch-service/service/messages"
 )
 
@@ -64,7 +65,7 @@ func (t *messagesSuite) TestCompleteInspection(c *C) {
 }
 
 func (t *messagesSuite) TestCreateSession(c *C) {
-	var m messages.CreateSession = messages.NewCreateSession("policy", 42, nil)
+	var m messages.CreateSession = messages.NewCreateSession("policy", 42, nil, config.SessionInspectorsConfig{})
 	c.Check(cap(m.Rch), Equals, 1)
 	c.Check(m.Policy, Equals, "policy")
 	c.Check(m.Timeout, Equals, uint64(42))
@@ -76,7 +77,7 @@ func (t *messagesSuite) TestCreateSessionWithSecrets(c *C) {
 		{Type: secrets.BasicAuthType, Url: glob.MustCompile("http://example.com")},
 		{Type: secrets.BasicAuthType, Url: glob.MustCompile("http://another-example.com/*")},
 	}
-	var m messages.CreateSession = messages.NewCreateSession("policy", 42, s)
+	var m messages.CreateSession = messages.NewCreateSession("policy", 42, s, config.SessionInspectorsConfig{})
 	c.Check(cap(m.Rch), Equals, 1)
 	c.Check(m.Policy, Equals, "policy")
 	c.Check(m.Timeout, Equals, uint64(42))

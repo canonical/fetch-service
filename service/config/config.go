@@ -371,3 +371,58 @@ func SetInspectorsConfig(cfg InspectorsConfig) {
 	defer globalInspectorsConfigLock.Unlock()
 	globalInspectorsConfig = cfg
 }
+
+// Session inspectors configuration
+
+type SessionInspectorsConfig struct {
+	Apt    *apt_cfg.AptInspectorConfig       `yaml:"apt" json:"apt"`
+	Git    *git_cfg.GitInspectorConfig       `yaml:"git" json:"git"`
+	Crafts *crafts_cfg.CraftsInspectorConfig `yaml:"crafts" json:"crafts"`
+	Chisel *chisel_cfg.ChiselInspectorConfig `yaml:"chisel" json:"chisel"`
+	Snap   *snap_cfg.SnapInspectorConfig     `yaml:"snap" json:"snap"`
+	Store  *store_cfg.StoreInspectorConfig   `yaml:"store" json:"store"`
+	BldBin *bldbin_cfg.BldBinInspectorConfig `yaml:"bldbin" json:"bldbin"`
+}
+
+// Combine applies inspectors configuration on an existing one.
+// The strategy is to replace configurations on a per-inspector basis.
+func (i *InspectorsConfig) Combine(c SessionInspectorsConfig) {
+	if c.Apt != nil {
+		i.Apt = apt_cfg.AptInspectorConfig{
+			Repositories: map[string]apt_cfg.AptInspectorConfigRepository{},
+		}
+		for k, v := range c.Apt.Repositories {
+			i.Apt.Repositories[k] = apt_cfg.AptInspectorConfigRepository{
+				Urls:         v.Urls,
+				Suites:       v.Suites,
+				Components:   v.Components,
+				PublicKey:    v.PublicKey,
+				BaseUrlAlias: v.BaseUrlAlias,
+			}
+		}
+	}
+	if c.Git != nil {
+		i.Git.Urls = make([]glob.Glob, len(c.Git.Urls))
+		copy(i.Git.Urls, c.Git.Urls)
+	}
+	if c.Crafts != nil {
+		i.Crafts.Urls = make([]glob.Glob, len(c.Crafts.Urls))
+		copy(i.Crafts.Urls, c.Crafts.Urls)
+	}
+	if c.Chisel != nil {
+		i.Chisel.Urls = make([]glob.Glob, len(c.Chisel.Urls))
+		copy(i.Chisel.Urls, c.Chisel.Urls)
+	}
+	if c.Snap != nil {
+		i.Snap.SnapDeclarationFilter = make([]snap_cfg.AssertionFilter, len(c.Snap.SnapDeclarationFilter))
+		copy(i.Snap.SnapDeclarationFilter, c.Snap.SnapDeclarationFilter)
+	}
+	if c.Store != nil {
+		i.Store.Urls = make([]glob.Glob, len(c.Store.Urls))
+		copy(i.Store.Urls, c.Store.Urls)
+	}
+	if c.BldBin != nil {
+		i.BldBin.Urls = make([]glob.Glob, len(c.BldBin.Urls))
+		copy(i.BldBin.Urls, c.BldBin.Urls)
+	}
+}

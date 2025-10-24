@@ -189,7 +189,7 @@ func handleCreateSession(v messages.CreateSession, spoolDir string, permissiveMo
 		}
 		return
 	}
-	s := session.New(spoolDir, timeout, permissive, sec)
+	s := session.New(spoolDir, timeout, permissive, sec, v.InspectorsConfig)
 	svc.totalSessions++
 	v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Token}
 }

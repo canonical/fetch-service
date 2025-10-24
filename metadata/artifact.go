@@ -239,6 +239,16 @@ func (a *Artifact) ResponseApproved() bool {
 	return res
 }
 
+// InspectorRequestOpinion returns the request opinion set by the inspector
+// with the given ID.
+func (a *Artifact) InspectorRequestOpinion(ins Inspector) opinions.OpinionKind {
+	in, ok := a.RequestInspection[ins.ID()]
+	if !ok {
+		return opinions.Unknown
+	}
+	return in.Opinion
+}
+
 // inspectAnnotation verifies whether the inspector has an inspection
 // opinion and returns its annotation or a default value.
 func inspectionAnnotation[T any](insp InspectionMap, id, key string, def T) (T, bool) {

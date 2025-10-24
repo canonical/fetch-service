@@ -47,6 +47,13 @@ suites:
       fetch-service.fetchctl version
     restore-each: |
       snap stop fetch-service
+      
+      # Clear the fetch-service log, so that it only contains output from the test
+      # shellcheck disable=SC2016
+      snap_data=$(snap run --shell fetch-service -c 'echo $SNAP_DATA')
+      logfile=${snap_data}/fetch.log
+      rm -f "${logfile}"
+
     debug-each: |
       # Dump the fetch-service log, if it exists
       # shellcheck disable=SC2016

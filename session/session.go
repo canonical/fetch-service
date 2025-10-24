@@ -48,7 +48,8 @@ const (
 )
 
 var (
-	ErrInvalidSessionPolicy = errors.New("Invalid session policy")
+	ErrInvalidSessionPolicy                  = errors.New("Invalid session policy")
+	ErrInvalidSessionInspectorsConfiguration = errors.New("Invalid inspectors configuration")
 
 	ExpiredSessionId = make(chan string, 1)
 )
@@ -80,15 +81,15 @@ var (
 
 // New creates a session that stores artifact data and metadata under
 // spoolDir. The session is automatically finished if it times out.
-func New(spoolDir string, timeout time.Duration, permissive bool, secrets []secrets.Secret) *Session {
+func New(spoolDir string, timeout time.Duration, permissive bool, secrets []secrets.Secret, inspectorsConfig config.SessionInspectorsConfig) *Session {
 	sessionId := makeSessionId()
 	token := randomString(20)
 
-	return NewWithId(sessionId, token, spoolDir, timeout, permissive, secrets)
+	return NewWithId(sessionId, token, spoolDir, timeout, permissive, secrets, inspectorsConfig)
 }
 
 // NewWithId creates a session using the specified sessionId and token.
-func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permissive bool, secrets []secrets.Secret) *Session {
+func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permissive bool, secrets []secrets.Secret, inspectorsConfig config.SessionInspectorsConfig) *Session {
 	_, ok := sessions.Load(sessionId)
 	if ok {
 		id := makeSessionId()
@@ -115,6 +116,7 @@ func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permiss
 	}
 
 	cfg := config.GetInspectorsConfig()
+	cfg.Combine(inspectorsConfig)
 	s.Insps = inspectors.New(permissive, cfg)
 
 	var sType = "strict"
