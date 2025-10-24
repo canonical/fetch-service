@@ -27,6 +27,7 @@ import (
 	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/proxy"
 	"github.com/canonical/fetch-service/service"
+	"github.com/canonical/fetch-service/service/config"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
 )
@@ -52,7 +53,7 @@ func (t *serviceSuite) TestReuseInspectionResult(c *C) {
 	}
 
 	// Start session
-	s := session.New(opt.Spool, 0, true, nil)
+	s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 
 	// Create a fake artifact

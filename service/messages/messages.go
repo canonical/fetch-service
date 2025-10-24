@@ -25,6 +25,7 @@ import (
 
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/secrets"
+	"github.com/canonical/fetch-service/service/config"
 )
 
 // ProxyAuth contains credentials for basic authentication.
@@ -108,18 +109,20 @@ type SessionCredentials struct {
 }
 
 type CreateSession struct {
-	Rch     chan SessionCredentials // Handler response channel
-	Timeout uint64                  // Session timeout in seconds
-	Policy  string                  // Session policy (strict or permissive)
-	Secrets []secrets.Secret        // Secrets for the session
+	Rch              chan SessionCredentials        // Handler response channel
+	Timeout          uint64                         // Session timeout in seconds
+	Policy           string                         // Session policy (strict or permissive)
+	Secrets          []secrets.Secret               // Secrets for the session
+	InspectorsConfig config.SessionInspectorsConfig // Session inspectors configuration
 }
 
-func NewCreateSession(policy string, timeout uint64, secrets []secrets.Secret) CreateSession {
+func NewCreateSession(policy string, timeout uint64, secrets []secrets.Secret, inspectorsConfig config.SessionInspectorsConfig) CreateSession {
 	return CreateSession{
-		Rch:     make(chan SessionCredentials, 1),
-		Policy:  policy,
-		Timeout: timeout,
-		Secrets: secrets,
+		Rch:              make(chan SessionCredentials, 1),
+		Policy:           policy,
+		Timeout:          timeout,
+		Secrets:          secrets,
+		InspectorsConfig: inspectorsConfig,
 	}
 }
 
@@ -218,4 +221,12 @@ func NewFetchCtl(operation, optype string, validateOnly bool, payload []byte) Fe
 type FetchCtlResult struct {
 	Status  string
 	Message string
+}
+
+type CreateSessionPayload struct {
+	SessionId        string `json:"session-id"`
+	Token            string `json:"token"`
+	Timeout          int    `json:"timeout"`
+	Mode             string `json:"mode"`
+	InspectorsConfig []byte `json:"inspectors-configuration"`
 }

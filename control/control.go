@@ -32,15 +32,17 @@ import (
 	"gopkg.in/tomb.v2"
 
 	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/service/config"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/utils"
 )
 
 // Parameters for session creation
 type createSessionParameters struct {
-	Timeout uint64           `json:"timeout"` // Session timeout in seconds
-	Policy  string           `json:"policy"`  // Session policy ("strict" or "permissive")
-	Secrets []secrets.Secret `json:"secrets"` // Session secrets
+	Timeout          uint64                         `json:"timeout"`                  // Session timeout in seconds
+	Policy           string                         `json:"policy"`                   // Session policy ("strict" or "permissive")
+	Secrets          []secrets.Secret               `json:"secrets"`                  // Session secrets
+	InspectorsConfig config.SessionInspectorsConfig `json:"inspectors-configuration"` // Session inspectors configuration
 }
 
 // Parameters for token revocation
@@ -150,7 +152,7 @@ func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
 
 	logger.Debugf("create session parameters: %+v\n", params)
 
-	msg := messages.NewCreateSession(params.Policy, params.Timeout, params.Secrets)
+	msg := messages.NewCreateSession(params.Policy, params.Timeout, params.Secrets, params.InspectorsConfig)
 	c.ch <- msg
 	cred := <-msg.Rch
 	if cred.Err != nil {

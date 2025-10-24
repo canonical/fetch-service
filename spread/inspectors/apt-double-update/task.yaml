@@ -13,7 +13,7 @@ restore: |
 
 execute: |
   # shellcheck disable=SC1091
-  . ../utils.sh
+  . ../../utils.sh
 
   # create strict session
   read -r session_id token < <(create_session strict)
