@@ -53,7 +53,8 @@ execute: |
   git config --global --add safe.directory "$(pwd)"
   git init .
   
-  git remote add origin https://www.github.com/canonical/fetch-service
+  # This is the url that Github itself gives in the web ui
+  git remote add origin https://github.com/canonical/fetch-service.git
   git fetch --depth 1 origin 0.10.1
   git reset --hard FETCH_HEAD
   
