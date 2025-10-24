@@ -69,9 +69,33 @@ Endpoints
   .. code-block::
 
     {
-        "timeout": <int>,	// session timeout in seconds
+        "timeout": <int>,	        // session timeout in seconds
         "policy": <string>		// "strict" or "permissive"
+        "secrets": [<secret>]           // optional list of session secrets
     }
+
+  ``secrets`` is an optional list of session-specific passwords and tokens. Each
+  ``<secret>`` object has the following keys:
+
+  .. code-block::
+
+    {
+        "type": <string>,	      // the kind of secret
+        "url": <string>		      // the address that this secret applies to
+        "basic-credentials": <string> // plaintext value for basic authentication
+    }
+
+  ``type`` specifies the authentication scheme for the secret. Currently, the only
+  supported value for ``type`` is ``basic-auth``, which refers to the `Basic HTTP
+  Authentication Scheme`_.
+
+  ``url`` defines the web address that this secret should be applied to. This key
+  supports globbing. If multiple secrets refer to the same ``url``, only the first
+  matching secret on the list gets applied.
+
+  ``basic-credentials`` contains the credentials for the ``basic-auth`` secret type.
+  These credentials are commonly formatted as ``user:password`` and must *not* be
+  encoded in base64.
 
 :Response:
 
@@ -229,3 +253,4 @@ Endpoints
 :Response:
   None.
 
+.. _Basic HTTP Authentication Scheme: https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Authentication#basic_authentication_scheme

@@ -650,13 +650,15 @@ func (t *serviceSuite) TestCreateSession(c *C) {
 		{false, "strict", nil, ""},
 		// Cases for secrets
 		// Good secret declaration
-		{true, "permissive", []secrets.Secret{{Type: secrets.BasicAuthType, Url: glob.MustCompile("www.example.com")}}, ""},
+		{true, "permissive", []secrets.Secret{{Type: secrets.BasicAuthType, Url: glob.MustCompile("www.example.com"), BasicCreds: "user:passwd"}}, ""},
 		// Missing type
-		{true, "permissive", []secrets.Secret{{}}, "Invalid secret: missing type"},
+		{true, "permissive", []secrets.Secret{{}}, secrets.ErrMissingSecretType.Error()},
 		// Missing url
-		{true, "permissive", []secrets.Secret{{Type: secrets.BasicAuthType}}, "Invalid secret: missing url"},
+		{true, "permissive", []secrets.Secret{{Type: secrets.BasicAuthType}}, secrets.ErrMissingSecretUrl.Error()},
 		// Invalid type
-		{true, "permissive", []secrets.Secret{{Type: "invalid-type"}}, "Invalid secret: invalid type"},
+		{true, "permissive", []secrets.Secret{{Type: "invalid-type"}}, secrets.ErrInvalidSecretType.Error()},
+		// Missing basic creds
+		{true, "permissive", []secrets.Secret{{Type: secrets.BasicAuthType, Url: glob.MustCompile("www.example.com")}}, secrets.ErrMissingBasicCreds.Error()},
 	} {
 		opt := service.Options{
 			ProxyPort:      1337,

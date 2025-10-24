@@ -20,7 +20,9 @@
 package secrets
 
 import (
+	"encoding/base64"
 	"errors"
+	"net/http"
 
 	"github.com/canonical/fetch-service/glob"
 )
@@ -28,8 +30,9 @@ import (
 type SecretType string
 
 type Secret struct {
-	Type SecretType
-	Url  glob.Glob
+	Type       SecretType
+	Url        glob.Glob
+	BasicCreds string `json:"basic-credentials"`
 }
 
 // BasicAuthType is the only currently supported secret type
@@ -40,6 +43,7 @@ var (
 	ErrMissingSecretType = errors.New("Invalid secret: missing type")
 	ErrInvalidSecretType = errors.New("Invalid secret: invalid type")
 	ErrMissingSecretUrl  = errors.New("Invalid secret: missing url")
+	ErrMissingBasicCreds = errors.New("Invalid secret: missing credentials for 'basic-auth'")
 )
 
 func ValidateSecrets(sec []Secret) error {
@@ -53,6 +57,35 @@ func ValidateSecrets(sec []Secret) error {
 		if s.Url.G == nil {
 			return ErrMissingSecretUrl
 		}
+		if err := validateCredentials(s); err != nil {
+			return err
+		}
 	}
 	return nil
+}
+
+func validateCredentials(sec Secret) error {
+	if sec.Type == BasicAuthType {
+		if sec.BasicCreds == "" {
+			return ErrMissingBasicCreds
+		}
+	}
+	return nil
+}
+
+func InjectSecrets(secrets []Secret, url string, req *http.Request) bool {
+	for _, s := range secrets {
+		if s.Url.Match(url) {
+			injectSecret(s, req)
+			return true
+		}
+	}
+	return false
+}
+
+func injectSecret(s Secret, req *http.Request) {
+	if s.Type == BasicAuthType {
+		cred := base64.StdEncoding.EncodeToString([]byte(s.BasicCreds))
+		req.Header.Set("Authorization", "Basic "+cred)
+	}
 }
