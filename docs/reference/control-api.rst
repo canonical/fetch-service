@@ -70,8 +70,9 @@ Endpoints
 
     {
         "timeout": <int>,	        // session timeout in seconds
-        "policy": <string>		// "strict" or "permissive"
-        "secrets": [<secret>]           // optional list of session secrets
+        "policy": <string>,		// "strict" or "permissive"
+        "secrets": [<secret>],           // optional list of session secrets
+        "inspectors-configuration": <inspectors-conf>           // optional inspectors configuration
     }
 
   ``secrets`` is an optional list of session-specific passwords and tokens. Each
@@ -96,7 +97,51 @@ Endpoints
   ``basic-credentials`` contains the credentials for the ``basic-auth`` secret type.
   These credentials are commonly formatted as ``user:password`` and must *not* be
   encoded in base64.
+  
+  ``inspectors-configuration`` is an optional object setting session-specific inspectors
+  configuration. Received configurations will override the default ones loaded by the
+  fetch-service.
 
+  .. code-block::
+
+    {
+        "git": {
+          "urls": [<list of strings>]
+        },
+        "crafts": {
+          "urls": [<list of strings>]
+        },
+        "chisel": {
+          "urls": [<list of strings>]
+        },
+        "store": {
+          "urls": [<list of strings>]
+        },
+        "bldbin": {
+          "urls": [<list of strings>]
+        },
+        "snap": {
+          "snap-declaration: [
+            {
+                "name": <string>,
+                "value": [<list of strings>],
+            },
+            (...)
+          ]
+        },
+        "apt": {
+          "repositories": {
+            <repository>: {
+                "urls": [<list of strings>],
+                "suites": [<list of strings>],
+                "components": [<list of strings>],
+                "public-key": <string>
+            },
+            (...)
+          }
+        },
+    }
+  
 :Response:
 
   .. code-block::
