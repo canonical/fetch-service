@@ -87,6 +87,7 @@ func (ins *BldBinInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 	tf := tar.NewReader(xr)
 
 	packageId, _ := a.RequestStringAnnotation("store.info-api", "package-id")
+	revision, _ := a.ResponseStringAnnotation("store.info-api", "revision")
 
 	for {
 		h, err := tf.Next()
@@ -105,11 +106,6 @@ func (ins *BldBinInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 			}
 			if binmd.Name == "" || binmd.Version == "" || binmd.Base == "" || binmd.Architecture == "" {
 				return nil // Not our metadata, file format is something else
-			}
-
-			revision, ok := a.ResponseStringAnnotation("store.info-api", "revision")
-			if !ok {
-				revision = "" // Revision is unspecified
 			}
 
 			md := ArtifactMetadata{
