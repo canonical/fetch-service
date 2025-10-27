@@ -24,6 +24,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	. "gopkg.in/check.v1"
@@ -742,5 +743,39 @@ func (t *configSuite) TestCombineInspectorsConfig(c *C) {
 		cfg := config.GetInspectorsConfig()
 		cfg.Combine(tc.sessionInspectorsConfig)
 		c.Check(cfg, DeepEquals, tc.combined)
+	}
+}
+
+// TestInspectorsConfigsInSync checks that all the fields from InspectorsConfig
+// have a corresponding one in SessionInspectorsConfig with:
+// - the same name
+// - the type being a pointer to the corresponding field in InspectorsConfig
+func (t *configSuite) TestInspectorsConfigsInSync(c *C) {
+	inspConfigType := reflect.TypeOf(config.InspectorsConfig{})
+	sessionInspConfigType := reflect.TypeOf(config.SessionInspectorsConfig{})
+
+	// Field names of both structs should also match
+	sessionInspConfigFields := make(map[string]reflect.Type)
+	for i := 0; i < sessionInspConfigType.NumField(); i++ {
+		sessionInspConfigFields[sessionInspConfigType.Field(i).Name] = sessionInspConfigType.Field(i).Type
+	}
+
+	// Check every field in InspectorsConfig
+	for i := 0; i < inspConfigType.NumField(); i++ {
+		inspConfigField := inspConfigType.Field(i)
+		inspConfigFieldName := inspConfigField.Name
+		inspConfigFieldType := inspConfigField.Type
+
+		// Check if the corresponding field exists in SessionInspectorsConfig
+		fType, ok := sessionInspConfigFields[inspConfigFieldName]
+		c.Assert(ok, Equals, true,
+			Commentf("Structs out of sync: InspectorsConfig has field '%s' which is missing from SessionInspectorsConfig", inspConfigFieldName),
+		)
+
+		// Check if the type of the field from SessionInspectorsConfig is a pointer to the type of
+		// corresponding field in InspectorsConfig
+		c.Assert(reflect.PointerTo(inspConfigFieldType), Equals, fType,
+			Commentf("Structs out of sync: SessionInspectorsConfig has field %s of type %s, which is not a pointer to %s from InspectorsConfig", inspConfigFieldName, fType, inspConfigFieldType),
+		)
 	}
 }
