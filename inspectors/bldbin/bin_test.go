@@ -134,6 +134,7 @@ func (s *bldbinSuite) TestBldBinArtifactInspector(c *C) {
 		storeIns := store.NewStoreInfoApiInspector(getTestStoreConfig(), getTestBldBinConfig())
 		ins := bldbin.NewBldBinInspector(getTestBldBinConfig())
 		a.SetRequestPending(storeIns, "test").Annotate(Annotation{"package-id": "package-id"})
+		a.SetResponseUnknown(storeIns, "test").Annotate(Annotation{"revision": "1234"})
 		a.SetRequestPending(ins, "test")
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
@@ -148,6 +149,7 @@ func (s *bldbinSuite) TestBldBinArtifactInspector(c *C) {
 			c.Check(a.Metadata.Author, Equals, "")
 			c.Check(a.Metadata.License, Equals, "GPL-3.0-or-later")
 			c.Check(a.Metadata.Architecture, Equals, "amd64")
+			c.Check(a.Metadata.StoreRevision, Equals, "1234")
 			c.Check(a.Metadata.ContentId, Equals, "package-id")
 		} else {
 			// We don't recognize this artifact
