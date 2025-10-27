@@ -30,6 +30,8 @@ import (
 	"github.com/canonical/fetch-service/inspectors/bldbin/config"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/files"
+	"github.com/canonical/fetch-service/inspectors/store"
+	storeConfig "github.com/canonical/fetch-service/inspectors/store/config"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
@@ -44,6 +46,14 @@ func Test(t *testing.T) { TestingT(t) }
 func getTestBldBinConfig() config.BldBinInspectorConfig {
 	return config.BldBinInspectorConfig{
 		Urls: []glob.Glob{glob.MustCompile("https://api.snapcraft.io:443/api/v1/bins/download/**")},
+	}
+}
+
+func getTestStoreConfig() storeConfig.StoreInspectorConfig {
+	return storeConfig.StoreInspectorConfig{
+		Urls: []glob.Glob{
+			glob.MustCompile("https://api.snapcraft.io:443/v2/bins/info/**"),
+		},
 	}
 }
 
@@ -121,7 +131,9 @@ func (s *bldbinSuite) TestBldBinArtifactInspector(c *C) {
 		c.Assert(err, IsNil)
 		defer f.Close()
 
+		storeIns := store.NewStoreInfoApiInspector(getTestStoreConfig(), getTestBldBinConfig())
 		ins := bldbin.NewBldBinInspector(getTestBldBinConfig())
+		a.SetRequestPending(storeIns, "test").Annotate(Annotation{"package-id": "package-id"})
 		a.SetRequestPending(ins, "test")
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
@@ -136,6 +148,7 @@ func (s *bldbinSuite) TestBldBinArtifactInspector(c *C) {
 			c.Check(a.Metadata.Author, Equals, "")
 			c.Check(a.Metadata.License, Equals, "GPL-3.0-or-later")
 			c.Check(a.Metadata.Architecture, Equals, "amd64")
+			c.Check(a.Metadata.ContentId, Equals, "package-id")
 		} else {
 			// We don't recognize this artifact
 			c.Check(a.ResponseApproved(), Equals, false)

@@ -96,6 +96,7 @@ func (ins *RockcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 		Version:     data.Version,
 		Description: data.Summary,
 		License:     data.License,
+		ContentId:   getSingleFetchedRef(a),
 	})
 	a.SetResponseApproved(ins, "rockcraft repository found")
 

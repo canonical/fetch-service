@@ -36,3 +36,17 @@ func checkGitRequestHeaders(a RequestArtifact) bool {
 	return a.RequestHeaderContains("Content-Type", "application/x-git-upload-pack-request") &&
 		a.RequestHeaderContains("Accept", "application/x-git-upload-pack-result")
 }
+
+func getSingleFetchedRef(a ResponseArtifact) string {
+	wants, ok := a.RequestAnnotation("git.upload-pack", "wants")
+	if !ok {
+		return ""
+	}
+
+	list, ok := wants.([]string)
+	if !ok || len(list) != 1 {
+		return ""
+	}
+
+	return list[0]
+}
