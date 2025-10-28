@@ -75,7 +75,7 @@ func (t *fetchctlSuite) TestCreateSession(c *C) {
 		time.Sleep(500 * time.Millisecond)
 
 		cmd := fetchctl.CreateSessionCmd{
-			SessionId:  tc.sid,
+			SessionID:  tc.sid,
 			Token:      tc.token,
 			Timeout:    tc.timeout,
 			Permissive: tc.permissive,

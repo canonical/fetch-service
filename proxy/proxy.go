@@ -76,7 +76,7 @@ func NewHTTPProxy(port int, spool string, cert, key []byte, ch chan interface{})
 	basicAuth := func(req *http.Request, user, passwd string) bool {
 		req.Header.Set(sessionIDHeader, user)
 		rch := make(chan bool)
-		ch <- messages.ProxyAuth{Rch: rch, Id: user, Pw: passwd}
+		ch <- messages.ProxyAuth{Rch: rch, ID: user, Pw: passwd}
 		return <-rch
 	}
 
@@ -185,7 +185,7 @@ func (p *HTTPProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 		sessionID, ok := ctx.UserData.(string)
 		if ok {
 			// Set session ID in mitm requests
-			//logger.Debugf("set session ID header in mitm request to %s", sessionId)
+			//logger.Debugf("set session ID header in mitm request to %s", sessionID)
 			req.Header.Set(sessionIDHeader, sessionID)
 		}
 	}
@@ -194,7 +194,7 @@ func (p *HTTPProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 
 	a := metadata.NewArtifact()
 	a.Request = req
-	a.SessionId = sid
+	a.SessionID = sid
 
 	url := utils.NormalizedURL(req.URL)
 	a.CurrentDownload.StartTime = time.Now().UTC()

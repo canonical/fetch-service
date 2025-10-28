@@ -56,8 +56,8 @@ func (ins *MavenJarInspector) InspectRequest(a RequestArtifact) error {
 		// Request marked as Unknown because it comes from the default maven.org origin
 		a.SetRequestUnknown(ins, "unsupported origin").Annotate(
 			Annotation{
-				"group-id":    artifactUrl.GroupId,
-				"artifact-id": artifactUrl.ArtifactId,
+				"group-id":    artifactUrl.GroupID,
+				"artifact-id": artifactUrl.ArtifactID,
 				"version":     artifactUrl.Version,
 			},
 		)

@@ -66,7 +66,7 @@ func (ins *SnapInspector) InspectRequest(a RequestArtifact) error {
 	if info, err := newSnapPackageUrlInfo(u); err == nil {
 		a.SetRequestPending(ins, "valid URL for snap package").Annotate(
 			Annotation{
-				"snap-id": info.snapId,
+				"snap-id": info.snapID,
 				"release": info.release,
 			},
 		)
@@ -128,8 +128,8 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 		)
 		return nil
 	}
-	snapId := snapRevisionAssertion.SnapID()
-	if snapId == "" {
+	snapID := snapRevisionAssertion.SnapID()
+	if snapID == "" {
 		a.SetResponseRejected(ins, "cannot find snap ID in snap-revision assertion").Annotate(
 			Annotation{
 				"snap-revision-assertion-header": snapRevisionAssertion.Header,
@@ -148,13 +148,13 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 	}
 
 	// Retrieve the snap-declaration assertion
-	snapDeclarationAssertion, err := downloadSnapDeclarationAssertion(snapId, slog)
+	snapDeclarationAssertion, err := downloadSnapDeclarationAssertion(snapID, slog)
 	if err != nil {
 		return fmt.Errorf("cannot retrieve snap-declaration assertion: %w", err)
 	}
 
-	publisherId := snapDeclarationAssertion.PublisherID()
-	if publisherId == "" {
+	publisherID := snapDeclarationAssertion.PublisherID()
+	if publisherID == "" {
 		a.SetResponseRejected(ins, "cannot find publisher ID in snap-declaration assertion").Annotate(
 			Annotation{
 				"snap-declaration-assertion-header": snapDeclarationAssertion.Header,
@@ -174,7 +174,7 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 	}
 
 	// Obtain the account assertion
-	accountAssertion, err := downloadAccountAssertion(publisherId, slog)
+	accountAssertion, err := downloadAccountAssertion(publisherID, slog)
 	if err != nil {
 		return fmt.Errorf("cannot retrieve account assertion: %w", err)
 	}
@@ -248,15 +248,15 @@ func downloadSnapRevisionAssertionImpl(snapSha3_384 string, slog logger.Logger) 
 
 var downloadSnapDeclarationAssertion = downloadSnapDeclarationAssertionImpl
 
-func downloadSnapDeclarationAssertionImpl(snapId string, slog logger.Logger) (*assertion, error) {
-	url := fmt.Sprintf("https://api.snapcraft.io/v2/assertions/snap-declaration/16/%s?max-format=5", snapId)
+func downloadSnapDeclarationAssertionImpl(snapID string, slog logger.Logger) (*assertion, error) {
+	url := fmt.Sprintf("https://api.snapcraft.io/v2/assertions/snap-declaration/16/%s?max-format=5", snapID)
 	return downloadAssertion(url, slog)
 }
 
 var downloadAccountAssertion = downloadAccountAssertionImpl
 
-func downloadAccountAssertionImpl(publisherId string, slog logger.Logger) (*assertion, error) {
-	url := fmt.Sprintf("https://api.snapcraft.io/v2/assertions/account/%s?max-format=5", publisherId)
+func downloadAccountAssertionImpl(publisherID string, slog logger.Logger) (*assertion, error) {
+	url := fmt.Sprintf("https://api.snapcraft.io/v2/assertions/account/%s?max-format=5", publisherID)
 	return downloadAssertion(url, slog)
 }
 

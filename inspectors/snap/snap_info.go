@@ -62,7 +62,7 @@ type snapInfo struct {
 	Title     string            `json:"title"`
 	Summary   string            `json:"summary"`
 	Publisher map[string]string `json:"publisher"`
-	SnapId    string            `json:"snap-id"`
+	SnapID    string            `json:"snap-id"`
 }
 
 type snapInfoBody struct {

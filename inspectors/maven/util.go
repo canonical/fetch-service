@@ -29,8 +29,8 @@ import (
 )
 
 type artifactUrl struct {
-	ArtifactId string
-	GroupId    string
+	ArtifactID string
+	GroupID    string
 	Version    string
 }
 
@@ -38,15 +38,15 @@ func parseUrl(slug *regexp.Regexp, url string) *artifactUrl {
 	m := slug.FindStringSubmatch(url)
 	if len(m) == 4 {
 		// Convert the "/" org separator into "."
-		return &artifactUrl{GroupId: strings.ReplaceAll(m[1], "/", "."), ArtifactId: m[2], Version: m[3]}
+		return &artifactUrl{GroupID: strings.ReplaceAll(m[1], "/", "."), ArtifactID: m[2], Version: m[3]}
 	}
 	return nil
 }
 
 // A handy tool in creating these Go structs is https://xml-to-go.github.io/
 type project struct {
-	ArtifactId  string `xml:"artifactId"`
-	GroupId     string `xml:"groupId"`
+	ArtifactID  string `xml:"artifactId"`
+	GroupID     string `xml:"groupId"`
 	Version     string `xml:"version"`
 	Description string `xml:"description"`
 	Developers  struct {
@@ -60,7 +60,7 @@ type project struct {
 		} `xml:"license"`
 	} `xml:"licenses"`
 	Parent struct {
-		GroupId string `xml:"groupId"`
+		GroupID string `xml:"groupId"`
 		Version string `xml:"version"`
 	} `xml:"parent"`
 }
@@ -73,13 +73,13 @@ func parsePom(tf io.Reader) (*ArtifactMetadata, error) {
 
 	md := &ArtifactMetadata{}
 
-	md.Name = p.ArtifactId
+	md.Name = p.ArtifactID
 
 	// Maven supports "hierarchical" poms, so if some of the fields are empty
 	// try to get them from the parent
-	md.Vendor = p.GroupId
-	if p.GroupId == "" {
-		md.Vendor = p.Parent.GroupId
+	md.Vendor = p.GroupID
+	if p.GroupID == "" {
+		md.Vendor = p.Parent.GroupID
 	}
 
 	md.Version = p.Version

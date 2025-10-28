@@ -52,7 +52,7 @@ type sessionSuite struct{}
 var _ = Suite(&sessionSuite{})
 
 func (t *sessionSuite) TestNewSession(c *C) {
-	idRestorer := session.MockMakeSessionId(func() string {
+	idRestorer := session.MockMakeSessionID(func() string {
 		return "6ba7b8109dad11d180b400c04fd430c8"
 	})
 	defer idRestorer()
@@ -69,32 +69,32 @@ func (t *sessionSuite) TestNewSession(c *C) {
 
 	defer s.Discard()
 
-	c.Assert(s.Id, Equals, "6ba7b8109dad11d180b400c04fd430c8")
+	c.Assert(s.ID, Equals, "6ba7b8109dad11d180b400c04fd430c8")
 	c.Assert(s.Token, Equals, "1ItfzwGBeJ8wsJdP0Nlx")
 	c.Assert(s.Start.After(before) || s.Start.Equal(before), Equals, true)
 	c.Assert(s.Start.Before(after) || s.Start.Equal(after), Equals, true)
 	c.Assert(s.End.Equal(time.Time{}), Equals, true)
-	c.Assert(s, Equals, session.GetSession(s.Id))
+	c.Assert(s, Equals, session.GetSession(s.ID))
 	c.Assert(len(s.Secrets), Equals, 0)
 }
 
-func (t *sessionSuite) TestNewWithId(c *C) {
-	restorer := session.MockMakeSessionId(func() string {
+func (t *sessionSuite) TestNewWithID(c *C) {
+	restorer := session.MockMakeSessionID(func() string {
 		return "6ba7b8109dad11d180b400c04fd430c8"
 	})
 	defer restorer()
 
 	tmp := c.MkDir()
-	s := session.NewWithId("known-session-id", "known-token", tmp, 0, true, nil, config.SessionInspectorsConfig{})
+	s := session.NewWithID("known-session-id", "known-token", tmp, 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
-	c.Assert(s.Id, Equals, "known-session-id")
+	c.Assert(s.ID, Equals, "known-session-id")
 	c.Assert(s.Token, Equals, "known-token")
 	c.Assert(len(s.Secrets), Equals, 0)
 
 	// Re-create session with same ID
-	s = session.NewWithId("known-session-id", "known-token", tmp, 0, true, nil, config.SessionInspectorsConfig{})
+	s = session.NewWithID("known-session-id", "known-token", tmp, 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
-	c.Assert(s.Id, Equals, "6ba7b8109dad11d180b400c04fd430c8")
+	c.Assert(s.ID, Equals, "6ba7b8109dad11d180b400c04fd430c8")
 	c.Assert(s.Token, Equals, "known-token")
 	c.Assert(len(s.Secrets), Equals, 0)
 }
@@ -104,9 +104,9 @@ func (t *sessionSuite) TestNewWithSecrets(c *C) {
 	sec := []secrets.Secret{
 		{Type: secrets.BasicAuthType, Url: glob.MustCompile("http://www.example.com/*")},
 	}
-	s := session.NewWithId("known-session-id", "known-token", tmp, 0, true, sec, config.SessionInspectorsConfig{})
+	s := session.NewWithID("known-session-id", "known-token", tmp, 0, true, sec, config.SessionInspectorsConfig{})
 	defer s.Discard()
-	c.Assert(s.Id, Equals, "known-session-id")
+	c.Assert(s.ID, Equals, "known-session-id")
 	c.Assert(s.Token, Equals, "known-token")
 	c.Assert(s.Secrets, DeepEquals, sec)
 }
@@ -125,11 +125,11 @@ func (t *sessionSuite) TestDiscardSession(c *C) {
 	s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 
-	c.Assert(s, Equals, session.GetSession(s.Id))
+	c.Assert(s, Equals, session.GetSession(s.ID))
 
 	s.Discard()
 
-	s = session.GetSession(s.Id)
+	s = session.GetSession(s.ID)
 	c.Assert(s, IsNil)
 }
 
@@ -143,17 +143,17 @@ func (t *sessionSuite) TestSessionTimeout(c *C) {
 	defer s2.Discard()
 
 	time.Sleep(2 * time.Second)
-	sessionID := <-session.ExpiredSessionId
-	c.Assert(sessionID, Equals, s1.Id)
-	sessionID = <-session.ExpiredSessionId
-	c.Assert(sessionID, Equals, s2.Id)
+	sessionID := <-session.ExpiredSessionID
+	c.Assert(sessionID, Equals, s1.ID)
+	sessionID = <-session.ExpiredSessionID
+	c.Assert(sessionID, Equals, s2.ID)
 }
 
 func (t *sessionSuite) TestSessionTimeoutCancel(c *C) {
 	s := session.New("", 2*time.Second, true, nil, config.SessionInspectorsConfig{})
 	time.Sleep(1 * time.Second)
 	s.Discard()
-	s = session.GetSession(s.Id)
+	s = session.GetSession(s.ID)
 	c.Assert(s, IsNil)
 }
 
@@ -213,7 +213,7 @@ func (t *sessionSuite) TestCheckAuth(c *C) {
 	defer s.Discard()
 
 	c.Assert(session.CheckAuth("foo", "bar"), Equals, false)
-	c.Assert(session.CheckAuth(s.Id, s.Token), Equals, true)
+	c.Assert(session.CheckAuth(s.ID, s.Token), Equals, true)
 }
 
 func (t *sessionSuite) TestAddMetadata(c *C) {
@@ -379,7 +379,7 @@ func (t *sessionSuite) TestGetSession(c *C) {
 	s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 
-	m = session.GetSession(s.Id)
+	m = session.GetSession(s.ID)
 	c.Assert(m, Equals, s)
 }
 
@@ -398,7 +398,7 @@ func (t *sessionSuite) TestSessionMetadata(c *C) {
 		c.Check(m.Generator, Equals, fmt.Sprintf("fetch-service %s", version.Version))
 		c.Check(m.Comment, Equals, "Metadata format is unstable and may change without prior notice.")
 		c.Check(m.Policy, Equals, tc.policy)
-		c.Check(m.SessionId, Equals, s.Id)
+		c.Check(m.SessionID, Equals, s.ID)
 		c.Check(m.StartTime, Not(DeepEquals), time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC))
 		c.Check(slices.Contains(m.Inspectors, "default"), Equals, true)
 		c.Check(m.SpoolPath, Not(Equals), "")
@@ -410,7 +410,7 @@ func (t *sessionSuite) TestFinish(c *C) {
 	s := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 
-	sessionDir := filepath.Join(spool, s.Id)
+	sessionDir := filepath.Join(spool, s.ID)
 	assetDir := filepath.Join(sessionDir, "assets")
 	cacheDir := filepath.Join(sessionDir, "cache")
 
@@ -585,6 +585,6 @@ func (t *sessionSuite) TestSessionInfos(c *C) {
 	defer s2.Discard()
 
 	all := session.SessionInfos()
-	c.Assert((all[0].SessionId == s1.Id && all[1].SessionId == s2.Id) ||
-		(all[0].SessionId == s2.Id && all[1].SessionId == s1.Id), Equals, true)
+	c.Assert((all[0].SessionID == s1.ID && all[1].SessionID == s2.ID) ||
+		(all[0].SessionID == s2.ID && all[1].SessionID == s1.ID), Equals, true)
 }

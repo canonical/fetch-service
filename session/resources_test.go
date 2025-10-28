@@ -74,7 +74,7 @@ func (t *sessionSuite) TestLoadSessionMetadata(c *C) {
 		sm, err := session.LoadSessionMetadata(spool, "my-session-id")
 		if tc.errMsg == "" {
 			c.Assert(err, IsNil)
-			c.Assert(sm.SessionId, Equals, "my-session-id")
+			c.Assert(sm.SessionID, Equals, "my-session-id")
 		} else {
 			c.Assert(err, ErrorMatches, tc.errMsg)
 		}

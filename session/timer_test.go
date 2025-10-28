@@ -40,7 +40,7 @@ func (t *sessionTimerSuite) TestExpiredSessionTimer(c *C) {
 	_ = session.NewSessionTimer(s, ch)
 
 	expired := <-ch
-	c.Assert(expired, Equals, s.Id)
+	c.Assert(expired, Equals, s.ID)
 }
 
 func (t *sessionTimerSuite) TestCanceledSessionTimer(c *C) {

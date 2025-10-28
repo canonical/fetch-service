@@ -22,7 +22,7 @@ package proxy
 var (
 	CopyHTTPHeader     = copyHTTPHeader
 	SplitCertKey       = splitCertKey
-	GetSessionIdHeader = getSessionIdHeader
+	GetSessionIDHeader = getSessionIDHeader
 )
 
 func (p *HTTPProxy) ForceError(err error) {

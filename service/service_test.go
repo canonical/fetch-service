@@ -253,7 +253,7 @@ func (t *serviceSuite) TestServiceIdleShutdown(c *C) {
 			t.ch <- msg
 			res := <-msg.Rch
 			c.Assert(res.Err, Equals, nil)
-			sid = res.Id
+			sid = res.ID
 		}
 
 		c.Assert(svc.Alive(), Equals, true)
@@ -305,7 +305,7 @@ func (t *serviceSuite) TestGetServiceStatus(c *C) {
 	res := <-msg.Rch
 
 	c.Assert(len(res.ActiveSessions), Equals, 1)
-	c.Check(res.ActiveSessions[0].SessionId, Not(Equals), "")
+	c.Check(res.ActiveSessions[0].SessionID, Not(Equals), "")
 	c.Check(res.ActiveSessions[0].Policy, Equals, "permissive")
 	c.Check(res.ActiveSessions[0].Timeout, Equals, uint64(6)*3600)
 
@@ -352,9 +352,9 @@ func (t *serviceSuite) TestRequestInspection(c *C) {
 
 		a := metadata.NewArtifact()
 		if tc.sessionExists {
-			a.SessionId = s.Id
+			a.SessionID = s.ID
 		} else {
-			a.SessionId = "foo"
+			a.SessionID = "foo"
 		}
 		msg := messages.NewRequestInspection(a)
 		t.ch <- msg
@@ -396,7 +396,7 @@ func (t *serviceSuite) TestEvaluateRequestInspection(c *C) {
 		defer s.Discard()
 
 		a := metadata.NewArtifact()
-		a.SessionId = s.Id
+		a.SessionID = s.ID
 		a.RequestInspection = tc.inspections
 		res := service.EvaluateRequestInspection(s, a)
 		c.Assert(res, Equals, tc.expectedError)
@@ -485,9 +485,9 @@ func (t *serviceSuite) TestResponseInspection(c *C) {
 			s.A[sha] = a
 		}
 		if tc.sessionExists {
-			a.SessionId = s.Id
+			a.SessionID = s.ID
 		} else {
-			a.SessionId = "foo"
+			a.SessionID = "foo"
 		}
 
 		msg := messages.NewResponseInspection(a)
@@ -524,7 +524,7 @@ func fakeArtifact(sha digests.Sha256Digest, s *session.Session, c *C) *metadata.
 	c.Assert(err, IsNil)
 
 	a.Tempfile = tmpfile.Name()
-	a.SessionId = s.Id
+	a.SessionID = s.ID
 	return a
 }
 
@@ -620,7 +620,7 @@ func (t *serviceSuite) TestEvaluateResponseInspection(c *C) {
 		defer s.Discard()
 
 		a := metadata.NewArtifact()
-		a.SessionId = s.Id
+		a.SessionID = s.ID
 		a.RequestInspection = metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Pending}}
 		a.ResponseInspection = tc.inspections
 		res := service.EvaluateResponseInspection(s, a)
@@ -679,7 +679,7 @@ func (t *serviceSuite) TestCreateSession(c *C) {
 
 		if tc.errMsg == "" {
 			c.Assert(res.Err, Equals, nil)
-			s := session.GetSession(res.Id)
+			s := session.GetSession(res.ID)
 			c.Assert(s.Permissive, Equals, tc.policy == "permissive")
 			s.Discard()
 		} else {
@@ -730,7 +730,7 @@ func (t *serviceSuite) TestDeleteResources(c *C) {
 
 		var sid string
 		if tc.sessionExists {
-			sid = s.Id
+			sid = s.ID
 		} else {
 			sid = "other value"
 		}
@@ -787,7 +787,7 @@ func (t *serviceSuite) TestRevokeToken(c *C) {
 
 		var sid string
 		if tc.sessionExists {
-			sid = s.Id
+			sid = s.ID
 		} else {
 			sid = "other value"
 		}
@@ -806,7 +806,7 @@ func (t *serviceSuite) TestRevokeToken(c *C) {
 		if tc.err == nil {
 			c.Assert(res.Err, IsNil)
 			c.Assert(res.SpoolPath, Equals, dir)
-			c.Assert(res.SessionId, Equals, s.Id)
+			c.Assert(res.SessionID, Equals, s.ID)
 		} else {
 			c.Assert(res.Err, Equals, tc.err)
 		}
@@ -853,7 +853,7 @@ func (t *serviceSuite) TestGetSessionReport(c *C) {
 
 		var sid string
 		if tc.sessionExists {
-			sid = s.Id
+			sid = s.ID
 		} else {
 			sid = "other value"
 		}
@@ -869,8 +869,8 @@ func (t *serviceSuite) TestGetSessionReport(c *C) {
 		if tc.err == nil {
 			c.Assert(res.Err, IsNil)
 			c.Assert(res.Artifacts, DeepEquals, []*metadata.Artifact{})
-			c.Assert(res.SessionId, Equals, s.Id)
-			c.Assert(res.SpoolPath, Equals, filepath.Join(dir, s.Id))
+			c.Assert(res.SessionID, Equals, s.ID)
+			c.Assert(res.SpoolPath, Equals, filepath.Join(dir, s.ID))
 		} else {
 			c.Assert(res.Err, Equals, tc.err)
 		}
@@ -917,7 +917,7 @@ func (t *serviceSuite) TestEndSession(c *C) {
 
 		var sid string
 		if tc.sessionExists {
-			sid = s.Id
+			sid = s.ID
 		} else {
 			sid = "other value"
 		}
@@ -1093,13 +1093,13 @@ func (t *serviceSuite) TestFetchctlCreateSession(c *C) {
 		{false, `{"session-id":"x", "token":"y", "timeout":0, "mode":"permissive", "inspectors-configuration":""}`, "x", "y", time.Duration(0), false},
 	} {
 		var ss *session.Session
-		restorer = service.MockSessionNewWithId(func(sessionID, token, spool string, timeout time.Duration, permissive bool, sec []secrets.Secret, inspectorsConfig config.SessionInspectorsConfig) *session.Session {
+		restorer = service.MockSessionNewWithID(func(sessionID, token, spool string, timeout time.Duration, permissive bool, sec []secrets.Secret, inspectorsConfig config.SessionInspectorsConfig) *session.Session {
 			c.Check(sessionID, Equals, tc.sid)
 			c.Check(token, Equals, tc.token)
 			c.Check(timeout, Equals, tc.timeout)
 			c.Check(permissive, Equals, tc.permissive)
 
-			ss = session.NewWithId(sessionID, token, spool, timeout, permissive, sec, inspectorsConfig)
+			ss = session.NewWithID(sessionID, token, spool, timeout, permissive, sec, inspectorsConfig)
 			return ss
 		})
 		defer restorer()

@@ -65,7 +65,7 @@ type Download struct {
 type SessionMetadata struct {
 	Generator  string    `json:"generator"`         // The name of the generator of this metadata
 	Comment    string    `json:"comment,omitempty"` // Free-form comment text
-	SessionId  string    `json:"session-id"`        // The unique session ID
+	SessionID  string    `json:"session-id"`        // The unique session ID
 	StartTime  time.Time `json:"start-time"`        // When the session started (UTC)
 	EndTime    time.Time `json:"end-time"`          // When the session finished (UTC)
 	Inspectors []string  `json:"inspectors"`        // A list of registered inspector IDs
@@ -76,7 +76,7 @@ type SessionMetadata struct {
 
 // SessionInfo contains brief information to be listed in service status.
 type SessionInfo struct {
-	SessionId string `json:"session-id"` // session ID
+	SessionID string `json:"session-id"` // session ID
 	StartTime string `json:"start-time"` // session start timestamp
 	Policy    string `json:"policy"`     // session policy ("strict" or "permissive")
 	Age       uint64 `json:"age"`        // session age in seconds

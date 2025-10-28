@@ -60,7 +60,7 @@ type snapRefreshItem struct {
 	ReleasedAt       string         `json:"released-at"`
 	Result           string         `json:"result"`
 	Snap             map[string]any `json:"snap"`
-	SnapId           string         `json:"snap-id"`
+	SnapID           string         `json:"snap-id"`
 }
 
 type snapRefreshBody struct {
@@ -80,7 +80,7 @@ func (ins *SnapRefreshInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		return nil // we don't recognize this artifact
 	}
 
-	if len(b.Results) > 0 && b.Results[0].EffectiveChannel != "" && b.Results[0].Name != "" && b.Results[0].SnapId != "" {
+	if len(b.Results) > 0 && b.Results[0].EffectiveChannel != "" && b.Results[0].Name != "" && b.Results[0].SnapID != "" {
 		a.SetArtifactMetadata(ArtifactMetadata{
 			Type:        mimetypes.SnapRefresh,
 			Name:        "Store protocol response",
@@ -91,7 +91,7 @@ func (ins *SnapRefreshInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 				"name":    b.Results[0].Name,
 				"channel": b.Results[0].EffectiveChannel,
 				"result":  b.Results[0].Result,
-				"snap-id": b.Results[0].SnapId,
+				"snap-id": b.Results[0].SnapID,
 			})
 	}
 

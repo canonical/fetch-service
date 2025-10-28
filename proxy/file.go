@@ -54,7 +54,7 @@ type FileDownloadHandler struct {
 
 func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool string, ch chan interface{}) (*FileDownloadHandler, error) {
 	r := resp.Request
-	sessionID, err := getSessionIdHeader(r)
+	sessionID, err := getSessionIDHeader(r)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +181,7 @@ func (h *FileDownloadHandler) Close() error {
 }
 
 // Extract and validate the session ID from the request header
-func getSessionIdHeader(r *http.Request) (string, error) {
+func getSessionIDHeader(r *http.Request) (string, error) {
 	id := r.Header.Get(sessionIDHeader)
 	if id == "" {
 		return "", errors.New("session ID cannot be empty")

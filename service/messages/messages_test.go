@@ -88,26 +88,26 @@ func (t *messagesSuite) TestCreateSessionWithSecrets(c *C) {
 func (t *messagesSuite) TestRevokeToken(c *C) {
 	var m = messages.NewRevokeToken("session-id", "token")
 	c.Check(cap(m.Rch), Equals, 1)
-	c.Check(m.Id, Equals, "session-id")
+	c.Check(m.ID, Equals, "session-id")
 	c.Check(m.Token, Equals, "token")
 }
 
 func (t *messagesSuite) TestSessionReport(c *C) {
 	var m = messages.NewSessionReport("session-id")
 	c.Check(cap(m.Rch), Equals, 1)
-	c.Check(m.Id, Equals, "session-id")
+	c.Check(m.ID, Equals, "session-id")
 }
 
 func (t *messagesSuite) TestEndSession(c *C) {
 	var m = messages.NewEndSession("session-id")
 	c.Check(cap(m.Rch), Equals, 1)
-	c.Check(m.Id, Equals, "session-id")
+	c.Check(m.ID, Equals, "session-id")
 }
 
 func (t *messagesSuite) TestDeleteResources(c *C) {
 	var m = messages.NewDeleteResources("session-id")
 	c.Check(cap(m.Rch), Equals, 1)
-	c.Check(m.Id, Equals, "session-id")
+	c.Check(m.ID, Equals, "session-id")
 }
 
 func (t *messagesSuite) TestFetchCtl(c *C) {

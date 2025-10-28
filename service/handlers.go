@@ -68,7 +68,7 @@ func handleMessages(svc *Service, msg interface{}) {
 		handleDeleteResources(v, svc.opt.Spool)
 
 	case messages.ProxyAuth:
-		v.Rch <- session.CheckAuth(v.Id, v.Pw)
+		v.Rch <- session.CheckAuth(v.ID, v.Pw)
 
 	case messages.FetchCtl:
 		logger.Infof("service: fetchctl operation: %s", v.Operation)
@@ -81,7 +81,7 @@ func handleMessages(svc *Service, msg interface{}) {
 }
 
 func handleRequestInspection(v messages.RequestInspection) {
-	sessionID := v.A.SessionId
+	sessionID := v.A.SessionID
 
 	s := session.GetSession(sessionID)
 	if s == nil {
@@ -96,7 +96,7 @@ func handleRequestInspection(v messages.RequestInspection) {
 }
 
 func handleResponseInspection(v messages.ResponseInspection, ch chan interface{}) {
-	sessionID := v.A.SessionId
+	sessionID := v.A.SessionID
 	digest := v.A.Metadata.Sha256
 	slog := v.A.Logger()
 
@@ -156,7 +156,7 @@ func handleResponseInspection(v messages.ResponseInspection, ch chan interface{}
 
 func handleCompleteInspection(v messages.CompleteInspection) {
 	digest := v.A.Metadata.Sha256
-	s := session.GetSession(v.A.SessionId)
+	s := session.GetSession(v.A.SessionID)
 	if !s.HasArtifact(digest) {
 		s.AddArtifact(v.A)
 
@@ -191,11 +191,11 @@ func handleCreateSession(v messages.CreateSession, spoolDir string, permissiveMo
 	}
 	s := session.New(spoolDir, timeout, permissive, sec, v.InspectorsConfig)
 	svc.totalSessions++
-	v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Token}
+	v.Rch <- messages.SessionCredentials{ID: s.ID, Token: s.Token}
 }
 
 func handleRevokeToken(v messages.RevokeToken, spoolDir string) {
-	sessionID := v.Id
+	sessionID := v.ID
 	s := session.GetSession(sessionID)
 	if s == nil {
 		v.Rch <- messages.RevokeTokenResult{
@@ -212,7 +212,7 @@ func handleRevokeToken(v messages.RevokeToken, spoolDir string) {
 	}
 
 	v.Rch <- messages.RevokeTokenResult{
-		SessionId: s.Id,
+		SessionID: s.ID,
 		StartTime: s.Start.String(),
 		EndTime:   s.End.String(),
 		SpoolPath: spoolDir,
@@ -220,7 +220,7 @@ func handleRevokeToken(v messages.RevokeToken, spoolDir string) {
 }
 
 func handleSessionReport(v messages.SessionReport) {
-	sessionID := v.Id
+	sessionID := v.ID
 	s := session.GetSession(sessionID)
 	if s == nil {
 		v.Rch <- messages.SessionReportResult{
@@ -248,7 +248,7 @@ func handleSessionReport(v messages.SessionReport) {
 }
 
 func handleEndSession(v messages.EndSession) {
-	sessionID := v.Id
+	sessionID := v.ID
 	s := session.GetSession(sessionID)
 	if s == nil {
 		v.Rch <- messages.ErrSessionNotFound
@@ -259,7 +259,7 @@ func handleEndSession(v messages.EndSession) {
 }
 
 func handleDeleteResources(v messages.DeleteResources, spoolDir string) {
-	sessionID := v.Id
+	sessionID := v.ID
 	s := session.GetSession(sessionID)
 	if s != nil {
 		v.Rch <- messages.ErrSessionNotFinished

@@ -67,7 +67,7 @@ func (t *fetchctlSuite) TestListArtifacts(c *C) {
 		time.Sleep(500 * time.Millisecond)
 
 		cmd := fetchctl.ListArtifactsCmd{
-			SessionId: tc.sid,
+			SessionID: tc.sid,
 		}
 
 		err := cmd.Execute([]string{"fetchctl", "list-artifacts"}) // only argv[0] is relevant

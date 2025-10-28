@@ -30,11 +30,11 @@ var (
 	NewSessionTimer = newSessionTimer
 )
 
-func MockMakeSessionId(mock func() string) (restorer func()) {
-	old := makeSessionId
-	makeSessionId = mock
+func MockMakeSessionID(mock func() string) (restorer func()) {
+	old := makeSessionID
+	makeSessionID = mock
 	return func() {
-		makeSessionId = old
+		makeSessionID = old
 	}
 }
 

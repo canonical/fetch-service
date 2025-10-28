@@ -64,7 +64,7 @@ var (
 	proxyNewHTTPProxy = proxy.NewHTTPProxy
 	controlNewServer  = control.NewServer
 	fetchctlNewServer = fetchctl.NewServer
-	sessionNewWithId  = session.NewWithId
+	sessionNewWithID  = session.NewWithID
 )
 
 func New(opt *Options) (*Service, error) {
@@ -177,7 +177,7 @@ loop:
 
 			handleMessages(svc, msg)
 
-		case sessionID := <-session.ExpiredSessionId:
+		case sessionID := <-session.ExpiredSessionID:
 			logger.Infof("service: session %s expired", sessionID)
 			s := session.GetSession(sessionID)
 			if s == nil {

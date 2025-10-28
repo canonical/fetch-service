@@ -48,7 +48,7 @@ var (
 )
 
 type snapPackageUrlInfo struct {
-	snapId  string
+	snapID  string
 	release string
 }
 
@@ -61,7 +61,7 @@ func newSnapPackageUrlInfo(u *url.URL) (*snapPackageUrlInfo, error) {
 		}
 	}
 	info := &snapPackageUrlInfo{
-		snapId:  m[1],
+		snapID:  m[1],
 		release: m[2],
 	}
 	return info, nil

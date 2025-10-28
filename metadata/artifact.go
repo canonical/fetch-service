@@ -54,7 +54,7 @@ type Artifact struct {
 	CurrentDownload    Download             `json:"-"`                         // Information about the current download
 	AssetDir           string               `json:"-"`                         // Location to store files and metadata
 	Tempfile           string               `json:"-"`                         // Path to temporary file containing downloaded data
-	SessionId          string               `json:"-"`                         // The current session ID
+	SessionID          string               `json:"-"`                         // The current session ID
 	SessionCacheDir    string               `json:"-"`                         // Location to store files and metadata
 	MimeType           *mimetype.MIME       `json:"-"`                         // The artifact MIME type
 	Request            *http.Request        `json:"-"`                         // request handle for body content inspection

@@ -36,7 +36,7 @@ func init() {
 }
 
 type ListArtifactsCmd struct {
-	SessionId string `long:"session-id" required:"true" description:"ID of the session holding the artifacts to list"`
+	SessionID string `long:"session-id" required:"true" description:"ID of the session holding the artifacts to list"`
 }
 
 func (cmd *ListArtifactsCmd) Execute(args []string) error {
@@ -54,7 +54,7 @@ func (cmd *ListArtifactsCmd) Execute(args []string) error {
 
 	request := fetchctl.OperationRequest{
 		Operation: "list-artifacts",
-		Payload:   cmd.SessionId,
+		Payload:   cmd.SessionID,
 	}
 	err = send(conn, request)
 	if err != nil {
