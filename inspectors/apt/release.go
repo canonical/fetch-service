@@ -22,6 +22,7 @@ package apt
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -246,60 +247,14 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 	sc := bufio.NewScanner(body)
 	sc.Split(bufio.ScanLines)
 
-	sha256Section := false
-
-	fields := map[string]string{}
-
-	n = 0
-	for sc.Scan() {
-		line := sc.Text()
-		if len(line) == 0 || line[0] == ' ' {
-			continue
-		}
-
-		k, v, ok := strings.Cut(line, ":")
-		if !ok {
-			continue
-		}
-		if k == "SHA256" {
-			sha256Section = true
-			break
-		}
-		v = strings.TrimSpace(v)
-
-		if v != "" {
-			fields[k] = v
-		}
-
-		if n > 100 {
-			return nil // this doesn't look like a Release file
-		}
-		n++
+	fields, err := parseUpToSignatures(sc)
+	if err != nil {
+		slog.Debug(err.Error())
+		return nil
 	}
 
-	if !sha256Section {
-		slog.Debug("no SHA256 section found")
-		return nil // we don't recognize this file
-	}
-
-	// Check if all expected fields are in place
-	expectedFields := []string{
-		"Origin",
-		"Label",
-		"Suite",
-		"Version",
-		"Codename",
-		"Date",
-		"Architectures",
-		"Components",
-	}
-
-	for _, k := range expectedFields {
-		_, ok := fields[k]
-		if !ok {
-			slog.Debugf("expected field %q not found", k)
-			return nil // we don't recognize this file
-		}
+	if isMissingFields(fields, slog) {
+		return nil
 	}
 
 	// We now assume this is an InRelease file
@@ -309,37 +264,10 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 	release.Sha256 = a.Sha256()
 	release.Vendor = fields["Origin"]
 
-	for sc.Scan() {
-		line := sc.Text()
-		if line[0] != ' ' {
-			break
-		}
-
-		// Read list of sha256_section and metadata files
-		f := strings.Fields(line)
-		if len(f) != 3 {
-			formatErrors = append(formatErrors, fmt.Sprintf("ill-formed line: %s", line))
-			continue
-		}
-		filepath := f[2]
-
-		digest, err := digests.NewSha256Digest(f[0])
-		if err != nil {
-			formatErrors = append(formatErrors, fmt.Sprintf("error parsing digest: %s", line))
-			continue
-		}
-
-		size, err := strconv.ParseUint(f[1], 10, 64)
-		if err != nil {
-			formatErrors = append(formatErrors, fmt.Sprintf("error parsing file size: %s", line))
-			continue
-		}
-
-		entry := releaseEntry{Size: size, Name: filepath}
-		release.Files[digest] = entry
+	errs := parseSignaturesSection(sc, &release)
+	if len(errs) > 0 {
+		formatErrors = append(formatErrors, errs...)
 	}
-
-	repo := strings.TrimSuffix(a.DownloadURL(), "/InRelease")
 
 	desc := fields["Description"]
 	if desc == "" {
@@ -378,10 +306,113 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 
 	a.SetResponseApproved(ins, "release file parsed and signature validated").Annotate(notes)
 
+	repo := strings.TrimSuffix(a.DownloadURL(), "/InRelease")
 	repo, _ = ins.getRepositoryAlias(repo, cfgName, slog)
 	ins.setReleaseState(repo, release)
 
 	return nil
+}
+
+func parseUpToSignatures(sc *bufio.Scanner) (map[string]string, error) {
+	fields := map[string]string{}
+	sha256Section := false
+
+	n := 0
+	for sc.Scan() {
+		line := sc.Text()
+		if len(line) == 0 || line[0] == ' ' {
+			continue
+		}
+
+		k, v, ok := strings.Cut(line, ":")
+		if !ok {
+			continue
+		}
+		if k == "SHA256" {
+			sha256Section = true
+			break
+		}
+		v = strings.TrimSpace(v)
+
+		if v != "" {
+			fields[k] = v
+		}
+
+		if n > 100 {
+			// this doesn't look like a Release file
+			return nil, errors.New("stoped parsing, file unlikely to be a Release file")
+		}
+		n++
+	}
+
+	if !sha256Section {
+		// we don't recognize this file
+		return nil, errors.New("no SHA256 section found")
+	}
+
+	return fields, nil
+}
+
+// parseSignaturesSection scan the given buffer to extract SHA256 signatures associated
+// to files. Works under the assumption the scanner was already advanced to the first
+// line of the SHA256 section of the Release file.
+func parseSignaturesSection(sc *bufio.Scanner, release *releaseFile) []string {
+	formatErrors := []string{}
+
+	for sc.Scan() {
+		line := sc.Text()
+		if line[0] != ' ' {
+			break
+		}
+
+		// Read list of sha256_section and metadata files
+		f := strings.Fields(line)
+		if len(f) != 3 {
+			formatErrors = append(formatErrors, fmt.Sprintf("ill-formed line: %s", line))
+			continue
+		}
+		filepath := f[2]
+
+		digest, err := digests.NewSha256Digest(f[0])
+		if err != nil {
+			formatErrors = append(formatErrors, fmt.Sprintf("error parsing digest: %s", line))
+			continue
+		}
+
+		size, err := strconv.ParseUint(f[1], 10, 64)
+		if err != nil {
+			formatErrors = append(formatErrors, fmt.Sprintf("error parsing file size: %s", line))
+			continue
+		}
+
+		entry := releaseEntry{Size: size, Name: filepath}
+		release.Files[digest] = entry
+	}
+
+	return formatErrors
+}
+
+func isMissingFields(fields map[string]string, slog logger.Logger) bool {
+	// Check if all expected fields are in place
+	expectedFields := []string{
+		"Origin",
+		"Label",
+		"Suite",
+		"Version",
+		"Codename",
+		"Date",
+		"Architectures",
+		"Components",
+	}
+
+	for _, k := range expectedFields {
+		_, ok := fields[k]
+		if !ok {
+			slog.Debugf("expected field %q not found", k)
+			return true
+		}
+	}
+	return false
 }
 
 func (ins *AptReleaseInspector) getRepositoryAlias(repo, cfgName string, slog logger.Logger) (string, bool) {
