@@ -45,7 +45,7 @@ Endpoints
                 "session-id": <string>,		// session ID
                 "start-time": <string>,		// start timestamp in RFC-3339 format
                 "policy": <string>,		// "strict" or "permissive"
-                "age": <int>,		// seconds since session start
+                "age": <int>,			// seconds since session start
                 "timeout": <int>		// session TTL in seconds
             },
             (...)
@@ -262,7 +262,7 @@ Endpoints
           },
         ],
         "spool-path": <string>,		// file spool pathname
-        "policy": <string>            // policy used in this session
+        "policy": <string>		// policy used in this session
     }         
 
 ``DELETE /session/<id>``
