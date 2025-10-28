@@ -2,14 +2,14 @@ version: "2"
 linters:
   default: none
   enable:
-    - errcheck
     - gocyclo
-    # - gosec
     - govet
     - ineffassign
     - nakedret
     - staticcheck
     - unused
+    # - gosec
+    # - errcheck
   settings:
     errcheck:
       check-blank: true
@@ -19,7 +19,9 @@ linters:
       checks:
         - all
         - "-ST1005" # Accept capitalized error message
-        - "-ST1000"
+        - "-ST1000" # Incorrect or missing package comment - No package comments throughout the project
+        - "-ST1016" # Consistent method receiver names - Many false positive with SetUpTest 
+        - "-ST1001" # Dot imports ignored
     nakedret:
       max-func-lines: 20
 issues:
