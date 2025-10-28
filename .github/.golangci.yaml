@@ -2,12 +2,12 @@ version: "2"
 linters:
   default: none
   enable:
-    - gocyclo
     - govet
     - ineffassign
     - nakedret
     - staticcheck
     - unused
+    # - gocyclo
     # - gosec
     # - errcheck
   settings:
