@@ -190,11 +190,12 @@ func (c *Server) deleteSessionToken(w http.ResponseWriter, r *http.Request) {
 	res := <-msg.Rch
 
 	if res.Err != nil {
-		if res.Err == messages.ErrSessionNotFound {
+		switch res.Err {
+		case messages.ErrSessionNotFound:
 			notFound(w, r)
-		} else if res.Err == messages.ErrInvalidSessionToken {
+		case messages.ErrInvalidSessionToken:
 			badRequest(w, r, res.Err.Error())
-		} else {
+		default:
 			internalServerError(w, r)
 		}
 		return
@@ -228,11 +229,12 @@ func (c *Server) getSessionReport(w http.ResponseWriter, r *http.Request) {
 	res := <-msg.Rch
 
 	if res.Err != nil {
-		if res.Err == messages.ErrSessionNotFound {
+		switch res.Err {
+		case messages.ErrSessionNotFound:
 			notFound(w, r)
-		} else if res.Err == messages.ErrSessionActive {
+		case messages.ErrSessionActive:
 			badRequest(w, r, res.Err.Error())
-		} else {
+		default:
 			internalServerError(w, r)
 		}
 		return
@@ -294,11 +296,12 @@ func (c *Server) deleteResources(w http.ResponseWriter, r *http.Request) {
 	err := <-msg.Rch
 
 	if err != nil {
-		if err == messages.ErrSessionNotFound {
+		switch err {
+		case messages.ErrSessionNotFound:
 			notFound(w, r)
-		} else if err == messages.ErrSessionActive {
+		case messages.ErrSessionActive:
 			badRequest(w, r, err.Error())
-		} else {
+		default:
 			internalServerError(w, r)
 		}
 	}

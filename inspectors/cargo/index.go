@@ -73,12 +73,12 @@ func (ins *CargoIndexInspector) InspectRequest(a RequestArtifact) error {
 	m := indexCrateSlug.FindStringSubmatch(url)
 
 	if len(m) == 2 {
-		crate_name := m[1]
+		crateName := m[1]
 		// Request marked as Unknown because it comes from the default crates.io origin
 		a.SetRequestUnknown(ins, "unsupported origin").Annotate(
 			Annotation{
 				"is-config":  false,
-				"crate-name": crate_name,
+				"crate-name": crateName,
 			},
 		)
 		return nil
@@ -107,9 +107,9 @@ func (ins *CargoIndexInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		return nil
 	}
 
-	crate, crate_ok := a.RequestStringAnnotation(ins.ID(), "crate-name")
+	crate, crateOK := a.RequestStringAnnotation(ins.ID(), "crate-name")
 
-	if !crate_ok {
+	if !crateOK {
 		return nil
 	}
 

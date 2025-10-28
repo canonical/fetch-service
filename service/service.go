@@ -177,18 +177,18 @@ loop:
 
 			handleMessages(svc, msg)
 
-		case sessionId := <-session.ExpiredSessionId:
-			logger.Infof("service: session %s expired", sessionId)
-			s := session.GetSession(sessionId)
+		case sessionID := <-session.ExpiredSessionId:
+			logger.Infof("service: session %s expired", sessionID)
+			s := session.GetSession(sessionID)
 			if s == nil {
-				logger.Warningf("service: session %s does not exist", sessionId)
+				logger.Warningf("service: session %s does not exist", sessionID)
 				break
 			}
 			if err := s.Finish(); err != nil {
-				logger.Errorf("service: cannot finish session %s: %s", sessionId, err)
+				logger.Errorf("service: cannot finish session %s: %s", sessionID, err)
 			}
-			if err := session.RemoveResources(svc.opt.Spool, sessionId); err != nil {
-				logger.Errorf("service: cannot remove session %s resources: %s", sessionId, err)
+			if err := session.RemoveResources(svc.opt.Spool, sessionID); err != nil {
+				logger.Errorf("service: cannot remove session %s resources: %s", sessionID, err)
 			}
 			if svc.opt.IdleShutdown > 0 {
 				idleTimer.Reset(time.Duration(svc.opt.IdleShutdown) * time.Second)

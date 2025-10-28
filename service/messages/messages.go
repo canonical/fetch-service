@@ -134,10 +134,10 @@ type RevokeToken struct {
 	Token string                 // The session token to revoke
 }
 
-func NewRevokeToken(sessionId, token string) RevokeToken {
+func NewRevokeToken(sessionID, token string) RevokeToken {
 	return RevokeToken{
 		Rch:   make(chan RevokeTokenResult, 1),
-		Id:    sessionId,
+		Id:    sessionID,
 		Token: token,
 	}
 }
@@ -157,10 +157,10 @@ type SessionReport struct {
 	Id  string
 }
 
-func NewSessionReport(sessionId string) SessionReport {
+func NewSessionReport(sessionID string) SessionReport {
 	return SessionReport{
 		Rch: make(chan SessionReportResult, 1),
-		Id:  sessionId,
+		Id:  sessionID,
 	}
 }
 
@@ -177,10 +177,10 @@ type EndSession struct {
 	Id  string
 }
 
-func NewEndSession(sessionId string) EndSession {
+func NewEndSession(sessionID string) EndSession {
 	return EndSession{
 		Rch: make(chan error, 1),
-		Id:  sessionId,
+		Id:  sessionID,
 	}
 }
 
@@ -191,10 +191,10 @@ type DeleteResources struct {
 	Id  string
 }
 
-func NewDeleteResources(sessionId string) DeleteResources {
+func NewDeleteResources(sessionID string) DeleteResources {
 	return DeleteResources{
 		Rch: make(chan error, 1),
-		Id:  sessionId,
+		Id:  sessionID,
 	}
 }
 

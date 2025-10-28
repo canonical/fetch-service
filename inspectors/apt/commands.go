@@ -55,13 +55,13 @@ func AptCommandsDetector(raw []byte, limit uint32) bool {
 		return false
 	}
 
-	expected_fields := []string{
+	expectedFields := []string{
 		"suite",
 		"component",
 		"arch",
 	}
 
-	for _, k := range expected_fields {
+	for _, k := range expectedFields {
 		_, ok := fields[k]
 		if !ok {
 			logger.Debugf("apt commands detector: expected field %q not found", k)
@@ -127,7 +127,7 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	buf := make([]byte, 0, 64*1024)
 	sc.Buffer(buf, 1024*1024)
 
-	item_count := 0
+	itemCount := 0
 	state_name := false
 	state_version := false
 	state_commands := false
@@ -197,7 +197,7 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 				a.SetResponseRejected(ins, "ill-formed entry in commands file")
 				return nil
 			}
-			item_count++
+			itemCount++
 			state_name = false
 			state_version = false
 			state_commands = false
@@ -224,7 +224,7 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		"suite":     suite,
 		"component": component,
 		"arch":      arch,
-		"count":     item_count,
+		"count":     itemCount,
 	}
 
 	_, ok = a.ResponseStringAnnotation(aptReleaseInspectorID, "release-file")

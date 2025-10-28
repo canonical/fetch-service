@@ -58,12 +58,12 @@ func AptTranslationDetector(raw []byte, limit uint32) bool {
 		return false
 	}
 
-	expected_fields := []string{
+	expectedFields := []string{
 		"Package",
 		"Description-md5",
 	}
 
-	for _, k := range expected_fields {
+	for _, k := range expectedFields {
 		_, ok := fields[k]
 		if !ok {
 			logger.Debugf("apt translation detector: expected field %q not found", k)
@@ -163,7 +163,7 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 	buf := make([]byte, 0, 64*1024)
 	sc.Buffer(buf, 1024*1024)
 
-	item_count := 0
+	itemCount := 0
 	state_package := false
 	state_md5sum := false
 	state_description := false
@@ -208,7 +208,7 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 			continue
 		} else if len(line) == 0 { // item ends
 			if state_description {
-				item_count++
+				itemCount++
 			}
 			state_package = false
 			state_md5sum = false
@@ -217,7 +217,7 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 	}
 
 	// Handle the last item if not followed by an empty line
-	if item_count > 0 {
+	if itemCount > 0 {
 		if state_package {
 			if !state_md5sum {
 				a.SetResponseRejected(ins, "description-md5 field missing for the last Package")
@@ -256,7 +256,7 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 
 	notes := Annotation{
 		"translation-language": lang,
-		"translation-count":    item_count,
+		"translation-count":    itemCount,
 	}
 
 	_, ok = a.ResponseStringAnnotation(aptReleaseInspectorID, "release-file")

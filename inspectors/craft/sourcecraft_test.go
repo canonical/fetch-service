@@ -173,8 +173,8 @@ func createTestSourcecraftArtifact(checkoutPath string) *metadata.Artifact {
 }
 
 func loadTestSourcecraftArtifactData() (*files.ArtifactFile, error) {
-	sourcepkg_file := filepath.Join("testdata", "sourcepkg.raw")
-	file, err := files.OpenArtifactFile(sourcepkg_file)
+	sourcepkgFile := filepath.Join("testdata", "sourcepkg.raw")
+	file, err := files.OpenArtifactFile(sourcepkgFile)
 	return file, err
 }
 

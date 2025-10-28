@@ -323,8 +323,14 @@ func (ins DebInspector) parseCopyright(tf io.Reader, md *ArtifactMetadata, slog 
 		}
 	}
 
-	t.Flush()
-	temp.Close()
+	err = t.Flush()
+	if err != nil {
+		return err
+	}
+	err = temp.Close()
+	if err != nil {
+		return err
+	}
 
 	md.License, err = utils.GetLicense(temp.Name(), slog)
 	if err != nil {

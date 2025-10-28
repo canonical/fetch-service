@@ -45,7 +45,7 @@ import (
 )
 
 const (
-	sessionIdHeader = "X-Fetch-Session-Id"
+	sessionIDHeader = "X-Fetch-Session-Id"
 	authRealm       = "fetch-service"
 )
 
@@ -74,7 +74,7 @@ func NewHttpProxy(port int, spool string, cert, key []byte, ch chan interface{})
 	}
 
 	basicAuth := func(req *http.Request, user, passwd string) bool {
-		req.Header.Set(sessionIdHeader, user)
+		req.Header.Set(sessionIDHeader, user)
 		rch := make(chan bool)
 		ch <- messages.ProxyAuth{Rch: rch, Id: user, Pw: passwd}
 		return <-rch
@@ -182,15 +182,15 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 	requestHeader := copyHttpHeader(req.Header)
 
 	if ctx.UserData != nil {
-		sessionId, ok := ctx.UserData.(string)
+		sessionID, ok := ctx.UserData.(string)
 		if ok {
 			// Set session ID in mitm requests
 			//logger.Debugf("set session ID header in mitm request to %s", sessionId)
-			req.Header.Set(sessionIdHeader, sessionId)
+			req.Header.Set(sessionIDHeader, sessionID)
 		}
 	}
 
-	sid := req.Header.Get(sessionIdHeader)
+	sid := req.Header.Get(sessionIDHeader)
 
 	a := metadata.NewArtifact()
 	a.Request = req

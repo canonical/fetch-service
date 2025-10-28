@@ -43,8 +43,8 @@ var urltests = []struct {
 	slug string
 
 	// expected output
-	group_id    string
-	artifact_id string
+	groupID    string
+	artifactID string
 	version     string
 }{
 	{"/joda-time/joda-time/2.2/joda-time-2.2.jar", "joda-time", "joda-time", "2.2"},
@@ -65,8 +65,8 @@ func (s *mavenSuite) TestJarInspectRequest(c *C) {
 		c.Assert(insp.Opinion, Equals, opinions.Unknown)
 		c.Assert(insp.Reason, Equals, "unsupported origin")
 
-		c.Check(a.RequestInspection[ins.ID()].Annotations["group-id"], Equals, jt.group_id)
-		c.Check(a.RequestInspection[ins.ID()].Annotations["artifact-id"], Equals, jt.artifact_id)
+		c.Check(a.RequestInspection[ins.ID()].Annotations["group-id"], Equals, jt.groupID)
+		c.Check(a.RequestInspection[ins.ID()].Annotations["artifact-id"], Equals, jt.artifactID)
 		c.Check(a.RequestInspection[ins.ID()].Annotations["version"], Equals, jt.version)
 	}
 }
@@ -74,8 +74,8 @@ func (s *mavenSuite) TestJarInspectRequest(c *C) {
 var jartests = []struct {
 	filename    string
 	slug        string
-	group_id    string
-	artifact_id string
+	groupID    string
+	artifactID string
 	version     string
 
 	description string
@@ -115,7 +115,7 @@ func (s *mavenSuite) TestJarInspectArtifact(c *C) {
 		a.RequestInspection[ins.ID()] = &Inspection{
 			Opinion:     opinions.Pending,
 			Reason:      "some reason",
-			Annotations: Annotation{"group-id": jt.group_id, "artifact-id": jt.artifact_id, "version": jt.version},
+			Annotations: Annotation{"group-id": jt.groupID, "artifact-id": jt.artifactID, "version": jt.version},
 		}
 
 		f, err := files.OpenArtifactFile(filename)
@@ -128,11 +128,11 @@ func (s *mavenSuite) TestJarInspectArtifact(c *C) {
 		c.Assert(a.Approved(), Equals, true)
 
 		c.Check(a.Metadata.Type, Equals, "application/jar")
-		c.Check(a.Metadata.Name, Equals, jt.artifact_id)
+		c.Check(a.Metadata.Name, Equals, jt.artifactID)
 		c.Check(a.Metadata.Version, Equals, jt.version)
 		c.Check(a.Metadata.Description, Equals, jt.description)
 		c.Check(a.Metadata.Author, Equals, jt.author)
 		c.Check(a.Metadata.License, Equals, jt.license)
-		c.Check(a.Metadata.Vendor, Equals, jt.group_id)
+		c.Check(a.Metadata.Vendor, Equals, jt.groupID)
 	}
 }

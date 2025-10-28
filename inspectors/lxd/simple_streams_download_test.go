@@ -147,7 +147,8 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectArtifact(c
 	ad.CurrentDownload = metadata.Download{
 		URL: "https://cloud-images.ubuntu.com:443/buildd/daily/jammy/20250621/jammy-server-cloudimg-amd64-lxd_combined.tar.gz",
 	}
-	expectedSha256, _ := digests.NewSha256Digest("b30a183187a391e87c7752a4e52724f6cc66ddcc875f8e842d1937680f243d8c")
+	expectedSha256, err := digests.NewSha256Digest("b30a183187a391e87c7752a4e52724f6cc66ddcc875f8e842d1937680f243d8c")
+	c.Assert(err, IsNil)
 	ad.Metadata.Sha256 = expectedSha256
 	ad.MimeType = mimetype.Lookup("application/gzip")
 
@@ -304,7 +305,8 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectImageMissi
 	ad := metadata.NewArtifact()
 	ad.CurrentDownload = metadata.Download{URL: "https://cloud-images.ubuntu.com:443/buildd/daily/jammy/20250621/no-image-found.img"}
 	ad.MimeType = mimetype.Lookup("application/gzip")
-	expectedSha256, _ := digests.NewSha256Digest("2d06e9092ec19fbe3c04402a0c1a53ae7c0b1079b041e5b5988c8febaabe25d3")
+	expectedSha256, err := digests.NewSha256Digest("2d06e9092ec19fbe3c04402a0c1a53ae7c0b1079b041e5b5988c8febaabe25d3")
+	c.Assert(err, IsNil)
 	ad.Metadata.Sha256 = expectedSha256
 
 	err = ins.InspectRequest(ad)
@@ -349,7 +351,8 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectImageSha25
 	ad.CurrentDownload = metadata.Download{
 		URL: "https://cloud-images.ubuntu.com:443/buildd/daily/jammy/20250621/jammy-server-cloudimg-amd64-lxd_combined.tar.gz",
 	}
-	wrongSha256, _ := digests.NewSha256Digest("1111111111111111111111111111111111111111111111111111111111111111")
+	wrongSha256, err := digests.NewSha256Digest("1111111111111111111111111111111111111111111111111111111111111111")
+	c.Assert(err, IsNil)
 	ad.Metadata.Sha256 = wrongSha256
 	ad.MimeType = mimetype.Lookup("application/gzip")
 

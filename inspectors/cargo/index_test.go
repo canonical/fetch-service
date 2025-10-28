@@ -34,8 +34,8 @@ import (
 	. "gopkg.in/check.v1"
 )
 
-var config_url = "https://index.crates.io:443/config.json"
-var crate_url = "https://index.crates.io:443/ti/me/time"
+var configURL = "https://index.crates.io:443/config.json"
+var crateURL = "https://index.crates.io:443/ti/me/time"
 
 func (s *cargoSuite) TestIndexInspectorID(c *C) {
 	ins := cargo.NewIndexInspector()
@@ -69,7 +69,7 @@ func (s *cargoSuite) TestIndexInspectRequestBadSlug(c *C) {
 func (s *cargoSuite) TestIndexInspectRequestConfig(c *C) {
 	ins := cargo.NewIndexInspector()
 	a := metadata.NewArtifact()
-	a.CurrentDownload = metadata.Download{URL: config_url}
+	a.CurrentDownload = metadata.Download{URL: configURL}
 
 	err := ins.InspectRequest(a)
 	c.Assert(err, IsNil)
@@ -85,7 +85,7 @@ func (s *cargoSuite) TestIndexInspectRequestConfig(c *C) {
 func (s *cargoSuite) TestIndexInspectRequestCrate(c *C) {
 	ins := cargo.NewIndexInspector()
 	a := metadata.NewArtifact()
-	a.CurrentDownload = metadata.Download{URL: crate_url}
+	a.CurrentDownload = metadata.Download{URL: crateURL}
 
 	err := ins.InspectRequest(a)
 	c.Assert(err, IsNil)
@@ -112,13 +112,14 @@ func (s *cargoSuite) TestIndexInspectArtifactConfig(c *C) {
 	c.Assert(err, IsNil)
 
 	ins := cargo.NewIndexInspector()
-	h, _ := digests.NewSha1Digest("85fc2d2a3764089191e57cd552601278a5985c46")
+	h, err := digests.NewSha1Digest("85fc2d2a3764089191e57cd552601278a5985c46")
+	c.Assert(err, IsNil)
 
 	a := metadata.NewArtifact()
 	a.Metadata.Type = "application/json"
 	a.Metadata.Sha1 = h
 	a.MimeType = mimetype.Lookup("application/json")
-	a.CurrentDownload.URL = config_url
+	a.CurrentDownload.URL = configURL
 	a.RequestInspection[ins.ID()] = &Inspection{
 		Opinion:     opinions.Pending,
 		Reason:      "some reason",
@@ -153,7 +154,7 @@ func (s *cargoSuite) TestIndexInspectArtifactCrate(c *C) {
 	a.Metadata.Type = "application/x-ndjson"
 	a.Metadata.Sha1 = h
 	a.MimeType = mimetype.Lookup("application/x-ndjson")
-	a.CurrentDownload.URL = config_url
+	a.CurrentDownload.URL = configURL
 	a.RequestInspection[ins.ID()] = &Inspection{
 		Opinion:     opinions.Pending,
 		Reason:      "some reason",

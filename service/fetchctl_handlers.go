@@ -136,8 +136,8 @@ func fetchCtlCreateSession(v messages.FetchCtl, svc *Service) messages.FetchCtlR
 }
 
 func fetchCtlListArtifacts(v messages.FetchCtl) messages.FetchCtlResult {
-	sessionId := string(v.Payload)
-	s := session.GetSession(sessionId)
+	sessionID := string(v.Payload)
+	s := session.GetSession(sessionID)
 	if s == nil {
 		return messages.FetchCtlResult{Status: "error", Message: "session does not exist"}
 	}

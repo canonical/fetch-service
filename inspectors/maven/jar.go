@@ -71,13 +71,13 @@ func (ins *MavenJarInspector) InspectArtifact(f ArtifactReader, a ResponseArtifa
 		return nil
 	}
 
-	group_id, ok := a.RequestStringAnnotation(ins.ID(), "group-id")
+	groupID, ok := a.RequestStringAnnotation(ins.ID(), "group-id")
 	if !ok {
 		// following SimpleIndexInspector here
 		return nil
 	}
 
-	artifact_id, ok := a.RequestStringAnnotation(ins.ID(), "artifact-id")
+	artifactID, ok := a.RequestStringAnnotation(ins.ID(), "artifact-id")
 	if !ok {
 		return nil
 	}
@@ -87,14 +87,14 @@ func (ins *MavenJarInspector) InspectArtifact(f ArtifactReader, a ResponseArtifa
 		return nil
 	}
 
-	pom_xml := fmt.Sprintf(`META-INF/maven/%s/%s/pom.xml`, group_id, artifact_id)
+	pomXML := fmt.Sprintf(`META-INF/maven/%s/%s/pom.xml`, groupID, artifactID)
 
 	zf, err := zip.NewReader(f, int64(f.Len()))
 	if err != nil {
 		return err
 	}
 	for _, i := range zf.File {
-		if i.Name == pom_xml {
+		if i.Name == pomXML {
 			zf, err := i.Open()
 			if err != nil {
 				return err
@@ -106,7 +106,7 @@ func (ins *MavenJarInspector) InspectArtifact(f ArtifactReader, a ResponseArtifa
 				return err
 			}
 
-			if md.Name == artifact_id && md.Version == version {
+			if md.Name == artifactID && md.Version == version {
 				a.SetArtifactMetadata(*md)
 				a.SetResponseApproved(ins, "Maven pom successfully parsed and validated")
 			}

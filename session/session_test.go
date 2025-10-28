@@ -143,10 +143,10 @@ func (t *sessionSuite) TestSessionTimeout(c *C) {
 	defer s2.Discard()
 
 	time.Sleep(2 * time.Second)
-	sessionId := <-session.ExpiredSessionId
-	c.Assert(sessionId, Equals, s1.Id)
-	sessionId = <-session.ExpiredSessionId
-	c.Assert(sessionId, Equals, s2.Id)
+	sessionID := <-session.ExpiredSessionId
+	c.Assert(sessionID, Equals, s1.Id)
+	sessionID = <-session.ExpiredSessionId
+	c.Assert(sessionID, Equals, s2.Id)
 }
 
 func (t *sessionSuite) TestSessionTimeoutCancel(c *C) {

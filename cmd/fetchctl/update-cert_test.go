@@ -59,7 +59,7 @@ func (t *fetchctlSuite) TestUpdateCert(c *C) {
 			c.Assert(err, IsNil)
 			c.Check(string(data[:n]), Equals, `{"operation":"update-cert","payload":"content"}`)
 
-			_, err = f.Write([]byte(fmt.Sprintf(`{"result":%q,"message":%q}`, tc.result, tc.message)))
+			_, err = fmt.Fprintf(f, `{"result":%q,"message":%q}`, tc.result, tc.message)
 			c.Assert(err, IsNil)
 			f.Close()
 		}()

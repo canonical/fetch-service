@@ -280,7 +280,7 @@ func (a *Artifact) RequestAnnotation(id, key string) (any, bool) {
 // inspector and annotation key are valid and the annotation type is
 // correct ok returns true, otherwise it returns false.
 func (a *Artifact) RequestStringAnnotation(id, key string) (string, bool) {
-	var def string = ""
+	var def = ""
 	return inspectionAnnotation(a.RequestInspection, id, key, def)
 }
 
@@ -289,7 +289,7 @@ func (a *Artifact) RequestStringAnnotation(id, key string) (string, bool) {
 // and annotation key are valid and the annotation type is correct ok
 // returns true, otherwise it returns false.
 func (a *Artifact) RequestBoolAnnotation(id, key string) (bool, bool) {
-	var def bool = false
+	var def = false
 	return inspectionAnnotation(a.RequestInspection, id, key, def)
 }
 
@@ -306,7 +306,7 @@ func (a *Artifact) ResponseAnnotation(id, key string) (any, bool) {
 // and annotation key are valid and the annotation type is correct ok returns
 // true, otherwise it returns false.
 func (a *Artifact) ResponseStringAnnotation(id, key string) (string, bool) {
-	var def string = ""
+	var def = ""
 	return inspectionAnnotation(a.ResponseInspection, id, key, def)
 }
 
@@ -315,7 +315,7 @@ func (a *Artifact) ResponseStringAnnotation(id, key string) (string, bool) {
 // and annotation key are valid and the annotation type is correct ok
 // returns true, otherwise it returns false.
 func (a *Artifact) ResponseBoolAnnotation(id, key string) (bool, bool) {
-	var def bool = false
+	var def = false
 	return inspectionAnnotation(a.ResponseInspection, id, key, def)
 }
 

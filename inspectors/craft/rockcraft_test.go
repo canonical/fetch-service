@@ -76,8 +76,8 @@ func (s *rockcraftSuite) TestUploadPackInspectorID(c *C) {
 }
 
 func loadTestRockcraftArtifactData() (*files.ArtifactFile, error) {
-	git_capture := filepath.Join("testdata", "rockcraftpkg.raw")
-	file, err := files.OpenArtifactFile(git_capture)
+	gitCapture := filepath.Join("testdata", "rockcraftpkg.raw")
+	file, err := files.OpenArtifactFile(gitCapture)
 	return file, err
 }
 

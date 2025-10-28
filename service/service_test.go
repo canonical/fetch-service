@@ -869,8 +869,8 @@ func (t *serviceSuite) TestGetSessionReport(c *C) {
 		if tc.err == nil {
 			c.Assert(res.Err, IsNil)
 			c.Assert(res.Artifacts, DeepEquals, []*metadata.Artifact{})
-			c.Assert(res.SessionMetadata.SessionId, Equals, s.Id)
-			c.Assert(res.SessionMetadata.SpoolPath, Equals, filepath.Join(dir, s.Id))
+			c.Assert(res.SessionId, Equals, s.Id)
+			c.Assert(res.SpoolPath, Equals, filepath.Join(dir, s.Id))
 		} else {
 			c.Assert(res.Err, Equals, tc.err)
 		}
@@ -1093,13 +1093,13 @@ func (t *serviceSuite) TestFetchctlCreateSession(c *C) {
 		{false, `{"session-id":"x", "token":"y", "timeout":0, "mode":"permissive", "inspectors-configuration":""}`, "x", "y", time.Duration(0), false},
 	} {
 		var ss *session.Session
-		restorer = service.MockSessionNewWithId(func(sessionId, token, spool string, timeout time.Duration, permissive bool, sec []secrets.Secret, inspectorsConfig config.SessionInspectorsConfig) *session.Session {
-			c.Check(sessionId, Equals, tc.sid)
+		restorer = service.MockSessionNewWithId(func(sessionID, token, spool string, timeout time.Duration, permissive bool, sec []secrets.Secret, inspectorsConfig config.SessionInspectorsConfig) *session.Session {
+			c.Check(sessionID, Equals, tc.sid)
 			c.Check(token, Equals, tc.token)
 			c.Check(timeout, Equals, tc.timeout)
 			c.Check(permissive, Equals, tc.permissive)
 
-			ss = session.NewWithId(sessionId, token, spool, timeout, permissive, sec, inspectorsConfig)
+			ss = session.NewWithId(sessionID, token, spool, timeout, permissive, sec, inspectorsConfig)
 			return ss
 		})
 		defer restorer()

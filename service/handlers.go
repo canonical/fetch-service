@@ -81,11 +81,11 @@ func handleMessages(svc *Service, msg interface{}) {
 }
 
 func handleRequestInspection(v messages.RequestInspection) {
-	sessionId := v.A.SessionId
+	sessionID := v.A.SessionId
 
-	s := session.GetSession(sessionId)
+	s := session.GetSession(sessionID)
 	if s == nil {
-		v.Rch <- fmt.Errorf("cannot inspect request: session %s is not active", sessionId)
+		v.Rch <- fmt.Errorf("cannot inspect request: session %s is not active", sessionID)
 		return
 	}
 
@@ -96,13 +96,13 @@ func handleRequestInspection(v messages.RequestInspection) {
 }
 
 func handleResponseInspection(v messages.ResponseInspection, ch chan interface{}) {
-	sessionId := v.A.SessionId
+	sessionID := v.A.SessionId
 	digest := v.A.Metadata.Sha256
 	slog := v.A.Logger()
 
-	s := session.GetSession(sessionId)
+	s := session.GetSession(sessionID)
 	if s == nil {
-		v.Rch <- fmt.Errorf("cannot inspect response: session %s is not active", sessionId)
+		v.Rch <- fmt.Errorf("cannot inspect response: session %s is not active", sessionID)
 		slog.Debugf("remove stale temporary file: %s", v.A.Tempfile)
 		os.Remove(v.A.Tempfile)
 		return
@@ -195,8 +195,8 @@ func handleCreateSession(v messages.CreateSession, spoolDir string, permissiveMo
 }
 
 func handleRevokeToken(v messages.RevokeToken, spoolDir string) {
-	sessionId := v.Id
-	s := session.GetSession(sessionId)
+	sessionID := v.Id
+	s := session.GetSession(sessionID)
 	if s == nil {
 		v.Rch <- messages.RevokeTokenResult{
 			Err: messages.ErrSessionNotFound,
@@ -220,8 +220,8 @@ func handleRevokeToken(v messages.RevokeToken, spoolDir string) {
 }
 
 func handleSessionReport(v messages.SessionReport) {
-	sessionId := v.Id
-	s := session.GetSession(sessionId)
+	sessionID := v.Id
+	s := session.GetSession(sessionID)
 	if s == nil {
 		v.Rch <- messages.SessionReportResult{
 			SessionMetadata: &metadata.SessionMetadata{Err: messages.ErrSessionNotFound},
@@ -232,7 +232,7 @@ func handleSessionReport(v messages.SessionReport) {
 	}
 
 	if !s.IsRevoked() {
-		err := fmt.Errorf("cannot get session report: session %s token was not revoked", sessionId)
+		err := fmt.Errorf("cannot get session report: session %s token was not revoked", sessionID)
 		v.Rch <- messages.SessionReportResult{
 			SessionMetadata: &metadata.SessionMetadata{Err: err},
 			Artifacts:       []*metadata.Artifact{},
@@ -248,8 +248,8 @@ func handleSessionReport(v messages.SessionReport) {
 }
 
 func handleEndSession(v messages.EndSession) {
-	sessionId := v.Id
-	s := session.GetSession(sessionId)
+	sessionID := v.Id
+	s := session.GetSession(sessionID)
 	if s == nil {
 		v.Rch <- messages.ErrSessionNotFound
 		return
@@ -259,17 +259,17 @@ func handleEndSession(v messages.EndSession) {
 }
 
 func handleDeleteResources(v messages.DeleteResources, spoolDir string) {
-	sessionId := v.Id
-	s := session.GetSession(sessionId)
+	sessionID := v.Id
+	s := session.GetSession(sessionID)
 	if s != nil {
 		v.Rch <- messages.ErrSessionNotFinished
 		return
 	}
 
 	// Delete session resources
-	go func(spoolDir, sessionId string) {
-		v.Rch <- session.RemoveResources(spoolDir, sessionId)
-	}(spoolDir, sessionId)
+	go func(spoolDir, sessionID string) {
+		v.Rch <- session.RemoveResources(spoolDir, sessionID)
+	}(spoolDir, sessionID)
 }
 
 func runRequestInspection(s *session.Session, a *metadata.Artifact) error {

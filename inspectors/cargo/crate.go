@@ -60,13 +60,13 @@ func (ins *CargoCrateInspector) InspectRequest(a RequestArtifact) error {
 	}
 	m = crateRequestSlug.FindStringSubmatch(url)
 	if len(m) == 3 {
-		package_name := m[1]
-		package_version := m[2]
+		packageName := m[1]
+		packageVersion := m[2]
 		// Request marked as Unknown because it comes from the default crates.io origin
 		a.SetRequestUnknown(ins, "unsupported origin").Annotate(
 			Annotation{
-				"package-name":    package_name,
-				"package-version": package_version,
+				"package-name":    packageName,
+				"package-version": packageVersion,
 			},
 		)
 		return nil
@@ -80,13 +80,13 @@ func (ins *CargoCrateInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		return nil
 	}
 
-	package_name, ok := a.RequestStringAnnotation(ins.ID(), "package-name")
+	packageName, ok := a.RequestStringAnnotation(ins.ID(), "package-name")
 	if !ok {
 		// following SimpleIndexInspector here
 		return nil
 	}
 
-	package_version, ok := a.RequestStringAnnotation(ins.ID(), "package-version")
+	packageVersion, ok := a.RequestStringAnnotation(ins.ID(), "package-version")
 	if !ok {
 		// following SimpleIndexInspector here
 		return nil
@@ -94,7 +94,7 @@ func (ins *CargoCrateInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 
 	slog := a.Logger()
 
-	cargotoml := fmt.Sprintf(`%s-%s/Cargo.toml`, package_name, package_version)
+	cargotoml := fmt.Sprintf(`%s-%s/Cargo.toml`, packageName, packageVersion)
 
 	zf, err := gzip.NewReader(f)
 	if err != nil {
@@ -119,7 +119,7 @@ func (ins *CargoCrateInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 				return err
 			}
 			// Check that crate metadata matches the request
-			if md.Name == package_name && md.Version == package_version {
+			if md.Name == packageName && md.Version == packageVersion {
 				a.SetArtifactMetadata(*md)
 				a.SetResponseApproved(ins, "rust crate successfully parsed")
 			}
@@ -143,14 +143,14 @@ type cargoToml struct {
 }
 
 func parseCargoToml(tf io.Reader) (*ArtifactMetadata, error) {
-	crate_md := cargoToml{}
+	crateMD := cargoToml{}
 
-	_, err := toml.NewDecoder(tf).Decode(&crate_md)
+	_, err := toml.NewDecoder(tf).Decode(&crateMD)
 	if err != nil {
 		return nil, err
 	}
 
-	pack := &crate_md.Package
+	pack := &crateMD.Package
 
 	author := ""
 	if len(pack.Authors) > 0 {

@@ -203,8 +203,8 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 
 	// Check if this is a valid InRelease file
 
-	format_errors := []string{}
-	integrity_errors := []string{}
+	formatErrors := []string{}
+	integrityErrors := []string{}
 
 	cfgName, ok := a.RequestStringAnnotation(ins.ID(), "cfg-name")
 	if !ok {
@@ -232,7 +232,7 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 	body, err := checkSignature(f, signotes, pubkey)
 	if err != nil {
 		slog.Warningf("signature checking error: %s", err)
-		integrity_errors = append(integrity_errors, fmt.Sprintf("signature verification failed: %s", err))
+		integrityErrors = append(integrityErrors, fmt.Sprintf("signature verification failed: %s", err))
 
 		// Update the reader if the file is not clearsigned
 		if body == nil {
@@ -283,7 +283,7 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 	}
 
 	// Check if all expected fields are in place
-	expected_fields := []string{
+	expectedFields := []string{
 		"Origin",
 		"Label",
 		"Suite",
@@ -294,7 +294,7 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		"Components",
 	}
 
-	for _, k := range expected_fields {
+	for _, k := range expectedFields {
 		_, ok := fields[k]
 		if !ok {
 			slog.Debugf("expected field %q not found", k)
@@ -318,20 +318,20 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		// Read list of sha256_section and metadata files
 		f := strings.Fields(line)
 		if len(f) != 3 {
-			format_errors = append(format_errors, fmt.Sprintf("ill-formed line: %s", line))
+			formatErrors = append(formatErrors, fmt.Sprintf("ill-formed line: %s", line))
 			continue
 		}
 		filepath := f[2]
 
 		digest, err := digests.NewSha256Digest(f[0])
 		if err != nil {
-			format_errors = append(format_errors, fmt.Sprintf("error parsing digest: %s", line))
+			formatErrors = append(formatErrors, fmt.Sprintf("error parsing digest: %s", line))
 			continue
 		}
 
 		size, err := strconv.ParseUint(f[1], 10, 64)
 		if err != nil {
-			format_errors = append(format_errors, fmt.Sprintf("error parsing file size: %s", line))
+			formatErrors = append(formatErrors, fmt.Sprintf("error parsing file size: %s", line))
 			continue
 		}
 
@@ -357,11 +357,11 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 
 	notes := Annotation{}
 
-	if len(format_errors) > 0 {
-		notes.Add("file format errors", format_errors)
+	if len(formatErrors) > 0 {
+		notes.Add("file format errors", formatErrors)
 	}
-	if len(integrity_errors) > 0 {
-		notes.Add("integrity errors", integrity_errors)
+	if len(integrityErrors) > 0 {
+		notes.Add("integrity errors", integrityErrors)
 	}
 
 	if len(notes) > 0 {

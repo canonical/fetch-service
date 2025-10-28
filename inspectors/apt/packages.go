@@ -114,7 +114,7 @@ func AptPackagesDetector(raw []byte, limit uint32) bool {
 	}
 
 	// If not, having all these is also good
-	expected_fields := []string{
+	expectedFields := []string{
 		"Package",
 		"Architecture",
 		"Version",
@@ -123,7 +123,7 @@ func AptPackagesDetector(raw []byte, limit uint32) bool {
 		"Maintainer",
 	}
 
-	for _, k := range expected_fields {
+	for _, k := range expectedFields {
 		_, ok := fields[k]
 		if !ok {
 			logger.Debugf("apt packages detector: expected field %q not found", k)

@@ -215,7 +215,7 @@ func createTarball(filename, subdir, contents string) error {
 }
 
 func createArtifact(ins Inspector) *metadata.Artifact {
-	h, _ := digests.NewSha1Digest("42962163ae017f7c2ffbcb79e4268e9c6250b8d9")
+	h, _ := digests.NewSha1Digest("42962163ae017f7c2ffbcb79e4268e9c6250b8d9") //nolint: errcheck
 
 	a := metadata.NewArtifact()
 	a.Metadata.Type = "application/gzip"

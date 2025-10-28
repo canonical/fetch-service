@@ -68,12 +68,12 @@ func (ins *SimpleIndexInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		return nil
 	}
 
-	content_type := a.ContentType()
+	contentType := a.ContentType()
 
 	switch {
 	case a.MimetypeIs("text/html"):
 		return parseHtmlIndex(ins, f, a, pkgName)
-	case a.MimetypeIs("application/json") && content_type == "application/vnd.pypi.simple.v1+json":
+	case a.MimetypeIs("application/json") && contentType == "application/vnd.pypi.simple.v1+json":
 		return parseJsonIndex(ins, f, a, pkgName)
 	default:
 		return nil

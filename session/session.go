@@ -82,19 +82,19 @@ var (
 // New creates a session that stores artifact data and metadata under
 // spoolDir. The session is automatically finished if it times out.
 func New(spoolDir string, timeout time.Duration, permissive bool, secrets []secrets.Secret, inspectorsConfig config.SessionInspectorsConfig) *Session {
-	sessionId := makeSessionId()
+	sessionID := makeSessionId()
 	token := randomString(20)
 
-	return NewWithId(sessionId, token, spoolDir, timeout, permissive, secrets, inspectorsConfig)
+	return NewWithId(sessionID, token, spoolDir, timeout, permissive, secrets, inspectorsConfig)
 }
 
 // NewWithId creates a session using the specified sessionId and token.
-func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permissive bool, secrets []secrets.Secret, inspectorsConfig config.SessionInspectorsConfig) *Session {
-	_, ok := sessions.Load(sessionId)
+func NewWithId(sessionID, token, spoolDir string, timeout time.Duration, permissive bool, secrets []secrets.Secret, inspectorsConfig config.SessionInspectorsConfig) *Session {
+	_, ok := sessions.Load(sessionID)
 	if ok {
 		id := makeSessionId()
-		logger.Warningf("cannot recreate existing session ID %s, use %s instead", sessionId, id)
-		sessionId = id
+		logger.Warningf("cannot recreate existing session ID %s, use %s instead", sessionID, id)
+		sessionID = id
 	}
 
 	if timeout == 0 {
@@ -102,16 +102,16 @@ func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permiss
 	}
 
 	s := &Session{
-		Id:            sessionId,
+		Id:            sessionID,
 		Token:         token,
 		Start:         time.Now().UTC(),
 		A:             map[digests.Sha256Digest]*metadata.Artifact{},
 		Permissive:    permissive,
-		SessionDir:    filepath.Join(spoolDir, sessionId),
-		CacheDir:      filepath.Join(spoolDir, sessionId, "cache"),
+		SessionDir:    filepath.Join(spoolDir, sessionID),
+		CacheDir:      filepath.Join(spoolDir, sessionID, "cache"),
 		Timeout:       timeout,
 		InspectorsCfg: config.GetInspectorsConfig(),
-		Logger:        logger.NewSessionLogger(sessionId),
+		Logger:        logger.NewSessionLogger(sessionID),
 		Secrets:       secrets,
 	}
 

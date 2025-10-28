@@ -54,14 +54,14 @@ type FileDownloadHandler struct {
 
 func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool string, ch chan interface{}) (*FileDownloadHandler, error) {
 	r := resp.Request
-	sessionId, err := getSessionIdHeader(r)
+	sessionID, err := getSessionIdHeader(r)
 	if err != nil {
 		return nil, err
 	}
 
 	insTimeout := 60 * time.Second // XXX: make this a configurable parameter
-	assetDir := filepath.Join(spool, sessionId, "assets")
-	cacheDir := filepath.Join(spool, sessionId, "cache")
+	assetDir := filepath.Join(spool, sessionID, "assets")
+	cacheDir := filepath.Join(spool, sessionID, "cache")
 
 	tempfile, err := os.CreateTemp("", "artifact-")
 	if err != nil {
@@ -182,13 +182,13 @@ func (h *FileDownloadHandler) Close() error {
 
 // Extract and validate the session ID from the request header
 func getSessionIdHeader(r *http.Request) (string, error) {
-	id := r.Header.Get(sessionIdHeader)
+	id := r.Header.Get(sessionIDHeader)
 	if id == "" {
 		return "", errors.New("session ID cannot be empty")
 	}
 
 	for _, c := range id {
-		if !((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
+		if (c < 'a' || 'z' < c) && (c < '0' || '9' < c) {
 			return "", fmt.Errorf("invalid session ID: %q", id)
 		}
 	}
