@@ -34,7 +34,7 @@ type StoreResolveApiInspector struct {
 	config config.StoreInspectorConfig
 }
 
-func NewStoreResolveApiInspector(cfg config.StoreInspectorConfig) *StoreResolveApiInspector {
+func NewStoreResolveAPIInspector(cfg config.StoreInspectorConfig) *StoreResolveApiInspector {
 	return &StoreResolveApiInspector{
 		config: cfg,
 	}
@@ -52,7 +52,7 @@ func (ins *StoreResolveApiInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	if _, err := config.NewStoreResolveApiUrlInfo(u, &ins.config, slog); err == nil {
+	if _, err := config.NewStoreResolveAPIUrlInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for store resolve API endpoint")
 	}
 

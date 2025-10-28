@@ -33,7 +33,7 @@ type StoreTransformsApiInspector struct {
 	config config.StoreInspectorConfig
 }
 
-func NewStoreTransformsApiInspector(cfg config.StoreInspectorConfig) *StoreTransformsApiInspector {
+func NewStoreTransformsAPIInspector(cfg config.StoreInspectorConfig) *StoreTransformsApiInspector {
 	return &StoreTransformsApiInspector{
 		config: cfg,
 	}
@@ -51,7 +51,7 @@ func (ins *StoreTransformsApiInspector) InspectRequest(a RequestArtifact) error 
 
 	slog := a.Logger()
 
-	if _, err := config.NewStoreTransformsApiUrlInfo(u, &ins.config, slog); err == nil {
+	if _, err := config.NewStoreTransformsAPIUrlInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for store transforms API endpoint")
 	}
 

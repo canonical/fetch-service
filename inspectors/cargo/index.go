@@ -133,7 +133,7 @@ func handleConfigArtifact(f ArtifactReader, a ResponseArtifact) (*ArtifactMetada
 	}
 	type Config struct {
 		Dl  string
-		Api string
+		API string
 	}
 	read := Config{}
 
@@ -146,8 +146,8 @@ func handleConfigArtifact(f ArtifactReader, a ResponseArtifact) (*ArtifactMetada
 		Type:        "application/json",
 		Name:        "config.json for Cargo package index",
 		Description: "config.json for Cargo package index",
-		Vendor:      read.Api,
-		Author:      read.Api,
+		Vendor:      read.API,
+		Author:      read.API,
 	}
 
 	return &md, nil

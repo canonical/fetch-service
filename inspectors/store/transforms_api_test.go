@@ -29,7 +29,7 @@ import (
 )
 
 func (s *storeSuite) TestStoreTransformApiInspectorID(c *C) {
-	ins := store.NewStoreTransformsApiInspector(getTestStoreInspectorConfig())
+	ins := store.NewStoreTransformsAPIInspector(getTestStoreInspectorConfig())
 	c.Assert(ins.ID(), Equals, "store.transforms-api")
 }
 
@@ -54,7 +54,7 @@ var storeTransformsApiInspectRequestTests = []storeTransformsApiInspectRequestTe
 
 func (s *storeSuite) TestStoreTransformsApiInspectRequest(c *C) {
 	for _, tc := range storeTransformsApiInspectRequestTests {
-		ins := store.NewStoreTransformsApiInspector(getTestStoreInspectorConfig())
+		ins := store.NewStoreTransformsAPIInspector(getTestStoreInspectorConfig())
 		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 
@@ -107,7 +107,7 @@ func (s *storeSuite) TestStoreTransformsApiArtifactInspector(c *C) {
 		c.Assert(err, IsNil)
 		defer f.Close()
 
-		ins := store.NewStoreTransformsApiInspector(getTestStoreInspectorConfig())
+		ins := store.NewStoreTransformsAPIInspector(getTestStoreInspectorConfig())
 		a.SetRequestPending(ins, "test")
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
@@ -137,7 +137,7 @@ func (s *storeSuite) TestStoreTransformsApiArtifactBadType(c *C) {
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	ins := store.NewStoreInfoApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
+	ins := store.NewStoreInfoAPIInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Check(a.Approved(), Equals, false)
