@@ -127,7 +127,7 @@ func (ins *AptTranslationInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	if info, err := apt_cfg.NewTranslationUrlInfo(u, &ins.config, slog); err == nil {
+	if info, err := apt_cfg.NewTranslationURLInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for Translation file").Annotate(
 			Annotation{
 				"repository": info.Repository,

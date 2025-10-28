@@ -56,7 +56,7 @@ func SnapcraftTest(t *testing.T) { TestingT(t) }
 
 func getTestSnapcraftConfig() config.CraftsInspectorConfig {
 	return config.CraftsInspectorConfig{
-		Urls: []glob.Glob{
+		URLs: []glob.Glob{
 			glob.MustCompile("https://github.com:443/**"),
 			glob.MustCompile("https://git.launchpad.net:443/**"),
 		},

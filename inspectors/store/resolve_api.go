@@ -52,7 +52,7 @@ func (ins *StoreResolveApiInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	if _, err := config.NewStoreResolveAPIUrlInfo(u, &ins.config, slog); err == nil {
+	if _, err := config.NewStoreResolveAPIURLInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for store resolve API endpoint")
 	}
 

@@ -43,7 +43,7 @@ import (
 
 func getTestChiselConfig() config.ChiselInspectorConfig {
 	return config.ChiselInspectorConfig{
-		Urls: []glob.Glob{
+		URLs: []glob.Glob{
 			glob.MustCompile("https://codeload.github.com:443/canonical/chisel-releases/**"),
 		},
 	}
@@ -55,7 +55,7 @@ func getTestAptConfig() apt_cfg.AptInspectorConfig {
 	return apt_cfg.AptInspectorConfig{
 		Repositories: map[string]apt_cfg.AptInspectorConfigRepository{
 			"default": {
-				Urls:       []glob.Glob{glob.MustCompile("http://*.ubuntu.com/ubuntu")},
+				URLs:       []glob.Glob{glob.MustCompile("http://*.ubuntu.com/ubuntu")},
 				Suites:     []glob.Glob{glob.MustCompile("focal")},
 				Components: []glob.Glob{glob.MustCompile("main")},
 				PublicKey:  ubuntuArchivePubKey.PubKeyArmor,

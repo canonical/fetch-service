@@ -100,14 +100,14 @@ func (ins *StoreInfoAPIInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	if info, err := config.NewStoreInfoAPIUrlInfo(u, &ins.config, slog); err == nil {
+	if info, err := config.NewStoreInfoAPIURLInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for store info API endpoint").Annotate(
 			Annotation{
 				"type":    info.PackageType,
 				"package": info.PackageName,
 			},
 		)
-	} else if _, err := bconfig.NewBldBinUrlInfo(u, &ins.bconfig, slog); err == nil {
+	} else if _, err := bconfig.NewBldBinURLInfo(u, &ins.bconfig, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for bld bin download")
 	}
 
@@ -117,7 +117,7 @@ func (ins *StoreInfoAPIInspector) InspectRequest(a RequestArtifact) error {
 type RevisionDownload struct {
 	Sha3_384 string `json:"sha3-384"`
 	Size     int    `json:"size"`
-	Url      string `json:"url"`
+	URL      string `json:"url"`
 }
 
 type apiInfoChannelMapRevision struct {
@@ -178,7 +178,7 @@ func (ins *StoreInfoAPIInspector) InspectArtifact(f ArtifactReader, a ResponseAr
 		return nil // we don't recognize this artifact
 	}
 
-	if info.ChannelMap[0].Revision.Download.Url == "" {
+	if info.ChannelMap[0].Revision.Download.URL == "" {
 		slog.Debug("no download url")
 		return nil // we don't recognize this artifact
 	}

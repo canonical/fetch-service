@@ -40,13 +40,13 @@ func Test(t *testing.T) { TestingT(t) }
 
 func getTestCraftsConfig() config.CraftsInspectorConfig {
 	return config.CraftsInspectorConfig{
-		Urls: []glob.Glob{
+		URLs: []glob.Glob{
 			glob.MustCompile("https://github.com:443/**"),
 		},
 	}
 }
 
-func (t *configSuite) TestCraftUrlInfo(c *C) {
+func (t *configSuite) TestCraftURLInfo(c *C) {
 	for _, tc := range []struct {
 		url     string
 		project string
@@ -62,11 +62,11 @@ func (t *configSuite) TestCraftUrlInfo(c *C) {
 		c.Assert(err, IsNil)
 
 		cfg := getTestCraftsConfig()
-		info, err := config.NewCraftUrlInfo(u, &cfg, t.slog)
+		info, err := config.NewCraftURLInfo(u, &cfg, t.slog)
 
 		if tc.msg == "" {
 			c.Assert(err, IsNil)
-			c.Assert(info, DeepEquals, &config.CraftUrlInfo{
+			c.Assert(info, DeepEquals, &config.CraftURLInfo{
 				Project: tc.project,
 			})
 		} else {

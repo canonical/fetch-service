@@ -102,17 +102,17 @@ func getTestAptConfig() apt_cfg.AptInspectorConfig {
 	return apt_cfg.AptInspectorConfig{
 		Repositories: map[string]apt_cfg.AptInspectorConfigRepository{
 			"default": {
-				Urls:       []glob.Glob{glob.MustCompile("http://archive.ubuntu.com/ubuntu")},
+				URLs:       []glob.Glob{glob.MustCompile("http://archive.ubuntu.com/ubuntu")},
 				Suites:     []glob.Glob{glob.MustCompile("jammy")},
 				Components: []glob.Glob{glob.MustCompile("main")},
 				PublicKey:  publicKey,
 			},
 			"aliased": {
-				Urls:         []glob.Glob{glob.MustCompile("http://notalias.ubuntu.com/**")},
+				URLs:         []glob.Glob{glob.MustCompile("http://notalias.ubuntu.com/**")},
 				Suites:       []glob.Glob{glob.MustCompile("noble")},
 				Components:   []glob.Glob{glob.MustCompile("main")},
 				PublicKey:    publicKey,
-				BaseUrlAlias: "http://alias.ubuntu.com",
+				BaseURLAlias: "http://alias.ubuntu.com",
 			},
 		},
 	}

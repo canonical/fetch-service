@@ -51,7 +51,7 @@ func (ins *StoreTransformsApiInspector) InspectRequest(a RequestArtifact) error 
 
 	slog := a.Logger()
 
-	if _, err := config.NewStoreTransformsAPIUrlInfo(u, &ins.config, slog); err == nil {
+	if _, err := config.NewStoreTransformsAPIURLInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for store transforms API endpoint")
 	}
 

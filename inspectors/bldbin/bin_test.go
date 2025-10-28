@@ -43,7 +43,7 @@ func Test(t *testing.T) { TestingT(t) }
 
 func getTestBldBinConfig() config.BldBinInspectorConfig {
 	return config.BldBinInspectorConfig{
-		Urls: []glob.Glob{glob.MustCompile("https://api.snapcraft.io:443/api/v1/bins/download/**")},
+		URLs: []glob.Glob{glob.MustCompile("https://api.snapcraft.io:443/api/v1/bins/download/**")},
 	}
 }
 

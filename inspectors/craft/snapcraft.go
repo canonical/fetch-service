@@ -74,7 +74,7 @@ func inspectCraftRequest(ins Inspector, a RequestArtifact, cfg *config.CraftsIns
 
 	slog := a.Logger()
 
-	_, err = config.NewCraftUrlInfo(u, cfg, slog)
+	_, err = config.NewCraftURLInfo(u, cfg, slog)
 	if err != nil {
 		return nil // we don't recognize this request
 	}

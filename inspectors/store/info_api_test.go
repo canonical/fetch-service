@@ -49,7 +49,7 @@ func Test(t *testing.T) { TestingT(t) }
 
 func getTestStoreInspectorConfig() config.StoreInspectorConfig {
 	return config.StoreInspectorConfig{
-		Urls: []glob.Glob{
+		URLs: []glob.Glob{
 			glob.MustCompile("https://api.snapcraft.io:443/v2/bins/info/**"),
 			glob.MustCompile("https://api.snapcraft.io:443/v2/revisions/resolve"),
 			glob.MustCompile("https://api.snapcraft.io:443/v1/craft/**"),
@@ -60,7 +60,7 @@ func getTestStoreInspectorConfig() config.StoreInspectorConfig {
 
 func getTestBldbinInspectorConfig() bconfig.BldBinInspectorConfig {
 	return bconfig.BldBinInspectorConfig{
-		Urls: []glob.Glob{
+		URLs: []glob.Glob{
 			glob.MustCompile("https://api.snapcraft.io:443/api/v1/bins/download/**"),
 		},
 	}

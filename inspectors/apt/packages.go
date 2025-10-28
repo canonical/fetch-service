@@ -228,7 +228,7 @@ func (ins *AptPackagesInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	if info, err := apt_cfg.NewPackagesUrlInfo(u, &ins.config, slog); err == nil {
+	if info, err := apt_cfg.NewPackagesURLInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for Packages file").Annotate(
 			Annotation{
 				"cfg-name":     info.CfgName,
@@ -238,7 +238,7 @@ func (ins *AptPackagesInspector) InspectRequest(a RequestArtifact) error {
 				"architecture": info.Architecture,
 			},
 		)
-	} else if info, err := apt_cfg.NewDebPackageUrlInfo(u, &ins.config, slog); err == nil {
+	} else if info, err := apt_cfg.NewDebPackageURLInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for deb package").Annotate(
 			Annotation{
 				"cfg-name":     info.CfgName,
@@ -447,7 +447,7 @@ func (ins *AptPackagesInspector) getOriginAlias(origin, cfgName string, slog log
 		return "", false
 	}
 
-	alias := repos.BaseUrlAlias
+	alias := repos.BaseURLAlias
 	if alias == "" {
 		slog.Debugf("origin not aliased: %s", origin)
 		return origin, true
@@ -480,7 +480,7 @@ func (ins *AptPackagesInspector) validateDebianPackage(f ArtifactReader, a Respo
 		return nil
 	}
 
-	info, err := apt_cfg.NewDebPackageUrlInfo(u, &ins.config, slog)
+	info, err := apt_cfg.NewDebPackageURLInfo(u, &ins.config, slog)
 	if err != nil {
 		return fmt.Errorf("invalid deb package URL")
 	}

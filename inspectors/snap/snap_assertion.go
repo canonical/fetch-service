@@ -89,13 +89,13 @@ func (ins *SnapAssertionInspector) InspectRequest(a RequestArtifact) error {
 	// its identifier, and the account-key assertion holds the public
 	// part of a key belonging to the account.
 	var reason string
-	if _, err := newSnapRevisionAssertionUrlInfo(u); err == nil {
+	if _, err := newSnapRevisionAssertionURLInfo(u); err == nil {
 		reason = "valid URL for snap-revision assertion download"
-	} else if _, err := newSnapDeclarationAssertionUrlInfo(u); err == nil {
+	} else if _, err := newSnapDeclarationAssertionURLInfo(u); err == nil {
 		reason = "valid URL for snap-declaration assertion download"
-	} else if _, err := newAccountAssertionUrlInfo(u); err == nil {
+	} else if _, err := newAccountAssertionURLInfo(u); err == nil {
 		reason = "valid URL for account-key assertion download"
-	} else if _, err := newAccountKeyAssertionUrlInfo(u); err == nil {
+	} else if _, err := newAccountKeyAssertionURLInfo(u); err == nil {
 		reason = "valid URL for account-key assertion download"
 	} else {
 		return nil // we don't recognize this request

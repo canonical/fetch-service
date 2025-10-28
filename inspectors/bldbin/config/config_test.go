@@ -40,18 +40,18 @@ func Test(t *testing.T) { TestingT(t) }
 
 func getTestBldBinConfig() config.BldBinInspectorConfig {
 	return config.BldBinInspectorConfig{
-		Urls: []glob.Glob{
+		URLs: []glob.Glob{
 			glob.MustCompile("https://api.snapcraft.io:443/api/v1/bins/download/**"),
 		},
 	}
 }
 
-type bldBinUrlInfoTest struct {
+type bldBinURLInfoTest struct {
 	url    string // The request URL
 	errMsg string // The error message, if any
 }
 
-var bldBinUrlInfoTests = []bldBinUrlInfoTest{{
+var bldBinURLInfoTests = []bldBinURLInfoTest{{
 	url:    "https://api.snapcraft.io:443/api/v1/bins/download/package_1.0.bin",
 	errMsg: "",
 }, {
@@ -65,17 +65,17 @@ var bldBinUrlInfoTests = []bldBinUrlInfoTest{{
 	errMsg: "invalid url .*",
 }}
 
-func (t *configSuite) TestBldBinUrlInfo(c *C) {
-	for _, tc := range bldBinUrlInfoTests {
+func (t *configSuite) TestBldBinURLInfo(c *C) {
+	for _, tc := range bldBinURLInfoTests {
 		u, err := url.Parse(tc.url)
 		c.Assert(err, IsNil)
 
 		cfg := getTestBldBinConfig()
-		info, err := config.NewBldBinUrlInfo(u, &cfg, t.slog)
+		info, err := config.NewBldBinURLInfo(u, &cfg, t.slog)
 
 		if tc.errMsg == "" {
 			c.Assert(err, IsNil)
-			c.Assert(info, DeepEquals, &config.BldBinUrlInfo{})
+			c.Assert(info, DeepEquals, &config.BldBinURLInfo{})
 		} else {
 			c.Assert(err, ErrorMatches, tc.errMsg)
 		}

@@ -63,7 +63,7 @@ func (ins *DebInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	if info, err := config.NewDebPackageUrlInfo(u, &ins.config, slog); err == nil {
+	if info, err := config.NewDebPackageURLInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for deb package").Annotate(
 			Annotation{
 				"repository":   info.Repository,

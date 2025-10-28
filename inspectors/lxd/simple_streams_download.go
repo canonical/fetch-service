@@ -87,7 +87,7 @@ func (ins *SimpleStreamsDownloadInspector) InspectRequest(a RequestArtifact) err
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	info, err := NewSimpleStreamsDownloadUrlInfo(u)
+	info, err := NewSimpleStreamsDownloadURLInfo(u)
 	if err == nil {
 		a.SetRequestPending(ins, "valid Simple Streams download request URL").Annotate(
 			Annotation{
@@ -98,7 +98,7 @@ func (ins *SimpleStreamsDownloadInspector) InspectRequest(a RequestArtifact) err
 		return nil
 	}
 
-	pinfo, err := NewProductItemUrlInfo(u)
+	pinfo, err := NewProductItemURLInfo(u)
 	if err == nil {
 		a.SetRequestPending(ins, "valid Simple Streams product item URL").Annotate(
 			Annotation{

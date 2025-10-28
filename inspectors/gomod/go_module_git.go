@@ -73,7 +73,7 @@ func (ins *GoModuleGitInspector) InspectRequest(a RequestArtifact) error {
 		return nil // we don't recognize this request
 	}
 
-	_, err = newGoModuleGitUrlInfo(u)
+	_, err = newGoModuleGitURLInfo(u)
 	if err != nil {
 		return nil // we don't recognize this request
 	}

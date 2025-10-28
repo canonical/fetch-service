@@ -52,13 +52,13 @@ func (ins *MavenPomInspector) InspectRequest(a RequestArtifact) error {
 		return nil
 	}
 
-	if artifactUrl := parseUrl(pomRequestSlug, url); artifactUrl != nil {
+	if artifactURL := parseURL(pomRequestSlug, url); artifactURL != nil {
 		// Request marked as Unknown because it comes from the default maven.org origin
 		a.SetRequestUnknown(ins, "unsupported origin").Annotate(
 			Annotation{
-				"group-id":    artifactUrl.GroupID,
-				"artifact-id": artifactUrl.ArtifactID,
-				"version":     artifactUrl.Version,
+				"group-id":    artifactURL.GroupID,
+				"artifact-id": artifactURL.ArtifactID,
+				"version":     artifactURL.Version,
 			},
 		)
 		return nil

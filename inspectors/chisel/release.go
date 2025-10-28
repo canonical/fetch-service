@@ -68,7 +68,7 @@ func (ins *ChiselReleaseInspector) ID() string {
 // [config.ChiselInspectorConfig].
 func (ins *ChiselReleaseInspector) InspectRequest(a RequestArtifact) error {
 	url := a.DownloadURL()
-	for _, pattern := range ins.cfg.Urls {
+	for _, pattern := range ins.cfg.URLs {
 		if pattern.G.Match(url) {
 			a.SetRequestPending(ins, "request matches valid URL")
 			return nil

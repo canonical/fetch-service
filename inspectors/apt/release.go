@@ -114,7 +114,7 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	if info, err := apt_cfg.NewInReleaseUrlInfo(u, &ins.config, slog); err == nil {
+	if info, err := apt_cfg.NewInReleaseURLInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for Release file").Annotate(
 			Annotation{
 				"cfg-name":   info.CfgName,
@@ -123,7 +123,7 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 				"suite":      info.Suite,
 			},
 		)
-	} else if info, err := apt_cfg.NewPackagesUrlInfo(u, &ins.config, slog); err == nil {
+	} else if info, err := apt_cfg.NewPackagesURLInfo(u, &ins.config, slog); err == nil {
 		// check if we already have downloaded InReleases from this repo
 		notes := Annotation{
 			"cfg-name":     info.CfgName,
@@ -141,7 +141,7 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 		} else {
 			a.SetRequestRejected(ins, "attempt to download packages file before Release").Annotate(notes)
 		}
-	} else if info, err := apt_cfg.NewTranslationUrlInfo(u, &ins.config, slog); err == nil {
+	} else if info, err := apt_cfg.NewTranslationURLInfo(u, &ins.config, slog); err == nil {
 		// check if we already have downloaded InReleases from this repo
 		notes := Annotation{
 			"cfg-name":   info.CfgName,
@@ -158,7 +158,7 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 		} else {
 			a.SetRequestRejected(ins, "attempt to download translation file before Release").Annotate(notes)
 		}
-	} else if info, err := apt_cfg.NewCommandsUrlInfo(u, &ins.config, slog); err == nil {
+	} else if info, err := apt_cfg.NewCommandURLInfo(u, &ins.config, slog); err == nil {
 		// check if we already have downloaded InReleases from this repo
 		notes := Annotation{
 			"cfg-name":   info.CfgName,
@@ -391,8 +391,8 @@ func (ins *AptReleaseInspector) getRepositoryAlias(repo, cfgName string, slog lo
 		return repo, false
 	}
 
-	baseUrl := repos.BaseUrlAlias
-	if baseUrl == "" {
+	baseURL := repos.BaseURLAlias
+	if baseURL == "" {
 		slog.Debugf("repository not aliased: %s", repo)
 		return repo, true
 	}
@@ -403,7 +403,7 @@ func (ins *AptReleaseInspector) getRepositoryAlias(repo, cfgName string, slog lo
 		return repo, true
 	}
 
-	alias, err := url.JoinPath(baseUrl, u.Path)
+	alias, err := url.JoinPath(baseURL, u.Path)
 	if err != nil {
 		slog.Debugf("error creating url alias: %s", err)
 		return repo, true
@@ -438,7 +438,7 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a Respons
 	}
 
 	slog.Debugf("packages file path: %s", u.Path)
-	info, err := apt_cfg.NewPackagesUrlInfo(u, &ins.config, slog)
+	info, err := apt_cfg.NewPackagesURLInfo(u, &ins.config, slog)
 	if err != nil {
 		a.SetResponseRejected(ins, "invalid path for packages file")
 		return nil
@@ -511,7 +511,7 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ArtifactReader, a Resp
 	}
 
 	slog.Debugf("translation file path: %s", u.Path)
-	info, err := apt_cfg.NewTranslationUrlInfo(u, &ins.config, slog)
+	info, err := apt_cfg.NewTranslationURLInfo(u, &ins.config, slog)
 	if err != nil {
 		a.SetResponseRejected(ins, "invalid path for translation file")
 		return nil
@@ -576,7 +576,7 @@ func (ins *AptReleaseInspector) validateCommandsFile(f ArtifactReader, a Respons
 	}
 
 	slog.Debugf("commands file path: %s", u.Path)
-	info, err := apt_cfg.NewCommandsUrlInfo(u, &ins.config, slog)
+	info, err := apt_cfg.NewCommandURLInfo(u, &ins.config, slog)
 	if err != nil {
 		a.SetResponseRejected(ins, "invalid path for commands file")
 		return nil

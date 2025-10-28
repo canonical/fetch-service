@@ -66,7 +66,7 @@ func (ins *BldBinInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	_, err = config.NewBldBinUrlInfo(u, &ins.config, slog)
+	_, err = config.NewBldBinURLInfo(u, &ins.config, slog)
 	if err != nil {
 		return nil // We don't recognize the request
 	}

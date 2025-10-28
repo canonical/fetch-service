@@ -92,7 +92,7 @@ func (ins *AptCommandsInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	if info, err := apt_cfg.NewCommandsUrlInfo(u, &ins.config, slog); err == nil {
+	if info, err := apt_cfg.NewCommandURLInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for Commands file").Annotate(
 			Annotation{
 				"repository": info.Repository,

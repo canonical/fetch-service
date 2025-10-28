@@ -330,28 +330,28 @@ func GetInspectorsConfig() InspectorsConfig {
 
 	for k, v := range globalInspectorsConfig.Apt.Repositories {
 		cfg.Apt.Repositories[k] = apt_cfg.AptInspectorConfigRepository{
-			Urls:         v.Urls,
+			URLs:         v.URLs,
 			Suites:       v.Suites,
 			Components:   v.Components,
 			PublicKey:    v.PublicKey,
-			BaseUrlAlias: v.BaseUrlAlias,
+			BaseURLAlias: v.BaseURLAlias,
 		}
 	}
 
-	cfg.Git.Urls = make([]glob.Glob, len(globalInspectorsConfig.Git.Urls))
-	copy(cfg.Git.Urls, globalInspectorsConfig.Git.Urls)
+	cfg.Git.URLs = make([]glob.Glob, len(globalInspectorsConfig.Git.URLs))
+	copy(cfg.Git.URLs, globalInspectorsConfig.Git.URLs)
 
-	cfg.Crafts.Urls = make([]glob.Glob, len(globalInspectorsConfig.Crafts.Urls))
-	copy(cfg.Crafts.Urls, globalInspectorsConfig.Crafts.Urls)
+	cfg.Crafts.URLs = make([]glob.Glob, len(globalInspectorsConfig.Crafts.URLs))
+	copy(cfg.Crafts.URLs, globalInspectorsConfig.Crafts.URLs)
 
-	cfg.Store.Urls = make([]glob.Glob, len(globalInspectorsConfig.Store.Urls))
-	copy(cfg.Store.Urls, globalInspectorsConfig.Store.Urls)
+	cfg.Store.URLs = make([]glob.Glob, len(globalInspectorsConfig.Store.URLs))
+	copy(cfg.Store.URLs, globalInspectorsConfig.Store.URLs)
 
-	cfg.BldBin.Urls = make([]glob.Glob, len(globalInspectorsConfig.BldBin.Urls))
-	copy(cfg.BldBin.Urls, globalInspectorsConfig.BldBin.Urls)
+	cfg.BldBin.URLs = make([]glob.Glob, len(globalInspectorsConfig.BldBin.URLs))
+	copy(cfg.BldBin.URLs, globalInspectorsConfig.BldBin.URLs)
 
-	cfg.Chisel.Urls = make([]glob.Glob, len(globalInspectorsConfig.Chisel.Urls))
-	copy(cfg.Chisel.Urls, globalInspectorsConfig.Chisel.Urls)
+	cfg.Chisel.URLs = make([]glob.Glob, len(globalInspectorsConfig.Chisel.URLs))
+	copy(cfg.Chisel.URLs, globalInspectorsConfig.Chisel.URLs)
 
 	cfg.Snap.SnapDeclarationFilter = make([]snap_cfg.AssertionFilter, len(globalInspectorsConfig.Snap.SnapDeclarationFilter))
 	for i, v := range globalInspectorsConfig.Snap.SnapDeclarationFilter {
@@ -393,36 +393,36 @@ func (i *InspectorsConfig) Combine(c SessionInspectorsConfig) {
 		}
 		for k, v := range c.Apt.Repositories {
 			i.Apt.Repositories[k] = apt_cfg.AptInspectorConfigRepository{
-				Urls:         v.Urls,
+				URLs:         v.URLs,
 				Suites:       v.Suites,
 				Components:   v.Components,
 				PublicKey:    v.PublicKey,
-				BaseUrlAlias: v.BaseUrlAlias,
+				BaseURLAlias: v.BaseURLAlias,
 			}
 		}
 	}
 	if c.Git != nil {
-		i.Git.Urls = make([]glob.Glob, len(c.Git.Urls))
-		copy(i.Git.Urls, c.Git.Urls)
+		i.Git.URLs = make([]glob.Glob, len(c.Git.URLs))
+		copy(i.Git.URLs, c.Git.URLs)
 	}
 	if c.Crafts != nil {
-		i.Crafts.Urls = make([]glob.Glob, len(c.Crafts.Urls))
-		copy(i.Crafts.Urls, c.Crafts.Urls)
+		i.Crafts.URLs = make([]glob.Glob, len(c.Crafts.URLs))
+		copy(i.Crafts.URLs, c.Crafts.URLs)
 	}
 	if c.Chisel != nil {
-		i.Chisel.Urls = make([]glob.Glob, len(c.Chisel.Urls))
-		copy(i.Chisel.Urls, c.Chisel.Urls)
+		i.Chisel.URLs = make([]glob.Glob, len(c.Chisel.URLs))
+		copy(i.Chisel.URLs, c.Chisel.URLs)
 	}
 	if c.Snap != nil {
 		i.Snap.SnapDeclarationFilter = make([]snap_cfg.AssertionFilter, len(c.Snap.SnapDeclarationFilter))
 		copy(i.Snap.SnapDeclarationFilter, c.Snap.SnapDeclarationFilter)
 	}
 	if c.Store != nil {
-		i.Store.Urls = make([]glob.Glob, len(c.Store.Urls))
-		copy(i.Store.Urls, c.Store.Urls)
+		i.Store.URLs = make([]glob.Glob, len(c.Store.URLs))
+		copy(i.Store.URLs, c.Store.URLs)
 	}
 	if c.BldBin != nil {
-		i.BldBin.Urls = make([]glob.Glob, len(c.BldBin.Urls))
-		copy(i.BldBin.Urls, c.BldBin.Urls)
+		i.BldBin.URLs = make([]glob.Glob, len(c.BldBin.URLs))
+		copy(i.BldBin.URLs, c.BldBin.URLs)
 	}
 }

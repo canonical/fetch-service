@@ -54,7 +54,7 @@ func (ins *SmartQueryInspector) InspectRequest(a RequestArtifact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	if info, err := config.NewSmartQueryUrlInfo(u, &ins.config, slog); err == nil {
+	if info, err := config.NewSmartQueryURLInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for git smart request").Annotate(
 			Annotation{
 				"server":   strings.SplitN(u.Host, ":", 2)[0],

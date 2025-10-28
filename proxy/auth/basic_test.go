@@ -58,8 +58,8 @@ func (h ConstantHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func oneShotProxy(proxy *goproxy.ProxyHttpServer) (client *http.Client, s *httptest.Server) {
 	s = httptest.NewServer(proxy)
 
-	proxyUrl, _ := url.Parse(s.URL)
-	tr := &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
+	proxyURL, _ := url.Parse(s.URL)
+	tr := &http.Transport{Proxy: http.ProxyURL(proxyURL)}
 	client = &http.Client{Transport: tr}
 	return
 }

@@ -46,7 +46,7 @@ func (ins *SnapRefreshInspector) InspectRequest(a RequestArtifact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	if _, err := newSnapRefreshUrlInfo(u); err == nil {
+	if _, err := newSnapRefreshURLInfo(u); err == nil {
 		a.SetRequestPending(ins, "valid URL for snap refresh endpoint")
 	}
 

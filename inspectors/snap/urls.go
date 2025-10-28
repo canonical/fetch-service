@@ -47,12 +47,12 @@ var (
 	reAccountKeyAssertion      = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/assertions/account-key/`)
 )
 
-type snapPackageUrlInfo struct {
+type snapPackageURLInfo struct {
 	snapID  string
 	release string
 }
 
-func newSnapPackageUrlInfo(u *url.URL) (*snapPackageUrlInfo, error) {
+func newSnapPackageURLInfo(u *url.URL) (*snapPackageURLInfo, error) {
 	m := reSnapPackage.FindStringSubmatch(u.String())
 	if len(m) != 3 {
 		m = reSnapPackageAlt.FindStringSubmatch(u.String())
@@ -60,79 +60,79 @@ func newSnapPackageUrlInfo(u *url.URL) (*snapPackageUrlInfo, error) {
 			return nil, fmt.Errorf("%s: not a valid snap package URL", u.Path)
 		}
 	}
-	info := &snapPackageUrlInfo{
+	info := &snapPackageURLInfo{
 		snapID:  m[1],
 		release: m[2],
 	}
 	return info, nil
 }
 
-type snapInfoUrlInfo struct {
+type snapInfoURLInfo struct {
 	name string
 }
 
-func newSnapInfoUrlInfo(u *url.URL) (*snapInfoUrlInfo, error) {
+func newSnapInfoURLInfo(u *url.URL) (*snapInfoURLInfo, error) {
 	m := reSnapInfo.FindStringSubmatch(u.String())
 	if len(m) != 2 {
 		return nil, fmt.Errorf("%s: not a valid snap info URL", u.Path)
 	}
-	info := &snapInfoUrlInfo{
+	info := &snapInfoURLInfo{
 		name: m[1],
 	}
 	return info, nil
 }
 
-type snapRefreshUrlInfo struct {
+type snapRefreshURLInfo struct {
 }
 
-func newSnapRefreshUrlInfo(u *url.URL) (*snapRefreshUrlInfo, error) {
+func newSnapRefreshURLInfo(u *url.URL) (*snapRefreshURLInfo, error) {
 	if !reSnapRefresh.MatchString(u.String()) {
 		return nil, fmt.Errorf("%s: not a valid snap refresh URL", u.String())
 	}
-	info := &snapRefreshUrlInfo{}
+	info := &snapRefreshURLInfo{}
 	return info, nil
 }
 
-type snapRevisionAssertionUrlInfo struct {
+type snapRevisionAssertionURLInfo struct {
 }
 
-func newSnapRevisionAssertionUrlInfo(u *url.URL) (*snapRevisionAssertionUrlInfo, error) {
+func newSnapRevisionAssertionURLInfo(u *url.URL) (*snapRevisionAssertionURLInfo, error) {
 	if !reSnapRevisionAssertion.MatchString(u.String()) {
 		return nil, fmt.Errorf("%s: not a valid snap-revision assertion URL", u.Path)
 	}
-	info := &snapRevisionAssertionUrlInfo{}
+	info := &snapRevisionAssertionURLInfo{}
 	return info, nil
 }
 
-type snapDeclarationAssertionUrlInfo struct {
+type snapDeclarationAssertionURLInfo struct {
 }
 
-func newSnapDeclarationAssertionUrlInfo(u *url.URL) (*snapDeclarationAssertionUrlInfo, error) {
+func newSnapDeclarationAssertionURLInfo(u *url.URL) (*snapDeclarationAssertionURLInfo, error) {
 	if !reSnapDeclarationAssertion.MatchString(u.String()) {
 		return nil, fmt.Errorf("%s: not a valid snap-declaration assertion URL", u.Path)
 	}
-	info := &snapDeclarationAssertionUrlInfo{}
+	info := &snapDeclarationAssertionURLInfo{}
 	return info, nil
 }
 
-type accountAssertionUrlInfo struct {
+type accountAssertionURLInfo struct {
 }
 
-func newAccountAssertionUrlInfo(u *url.URL) (*accountAssertionUrlInfo, error) {
+func newAccountAssertionURLInfo(u *url.URL) (*accountAssertionURLInfo, error) {
 	if !reAccountAssertion.MatchString(u.String()) {
 		return nil, fmt.Errorf("%s: not a valid account assertion URL", u.Path)
 	}
-	info := &accountAssertionUrlInfo{}
+	info := &accountAssertionURLInfo{}
 	return info, nil
 }
 
-type accountKeyAssertionUrlInfo struct {
+type accountKeyAssertionURLInfo struct {
 }
 
-func newAccountKeyAssertionUrlInfo(u *url.URL) (*accountKeyAssertionUrlInfo, error) {
+func newAccountKeyAssertionURLInfo(u *url.URL) (*accountKeyAssertionURLInfo, error) {
 	if !reAccountKeyAssertion.MatchString(u.String()) {
 		return nil, fmt.Errorf("%s: not a valid account-key assertion URL", u.Path)
 	}
-	info := &accountKeyAssertionUrlInfo{}
+	info := &accountKeyAssertionURLInfo{}
 	return info, nil
 }

@@ -37,29 +37,29 @@ var (
 	reStoreAppMedia      = regexp.MustCompile(`^/site_media/appmedia/([0-9]+)/([0-9]+)/([a-zA-Z0-9.-]+)$`)
 )
 
-func checkRequestUrl(cfg *StoreInspectorConfig, u *url.URL, slog logger.Logger) error {
-	requestUrl := utils.NormalizedOrigin(u) + u.Path
+func checkRequestURL(cfg *StoreInspectorConfig, u *url.URL, slog logger.Logger) error {
+	requestURL := utils.NormalizedOrigin(u) + u.Path
 
-	for _, h := range cfg.Urls {
-		if h.Match(requestUrl) {
+	for _, h := range cfg.URLs {
+		if h.Match(requestURL) {
 			slog.Debugf("url matches %v\n", h)
 			return nil
 		}
 	}
-	return fmt.Errorf("invalid url %s", requestUrl)
+	return fmt.Errorf("invalid url %s", requestURL)
 }
 
 type StoreInspectorConfig struct {
-	Urls []glob.Glob `yaml:"urls"` // List of allowed URL glob patterns
+	URLs []glob.Glob `yaml:"urls"` // List of allowed URL glob patterns
 }
 
-type StoreInfoAPIUrlInfo struct {
+type StoreInfoAPIURLInfo struct {
 	PackageType string
 	PackageName string
 }
 
-func NewStoreInfoAPIUrlInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreInfoAPIUrlInfo, error) {
-	if err := checkRequestUrl(cfg, u, slog); err != nil {
+func NewStoreInfoAPIURLInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreInfoAPIURLInfo, error) {
+	if err := checkRequestURL(cfg, u, slog); err != nil {
 		return nil, err
 	}
 
@@ -67,7 +67,7 @@ func NewStoreInfoAPIUrlInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.L
 	if len(m) != 3 {
 		return nil, errors.New("not a valid store info API path")
 	}
-	info := &StoreInfoAPIUrlInfo{
+	info := &StoreInfoAPIURLInfo{
 		PackageType: m[1],
 		PackageName: m[2],
 	}
@@ -75,11 +75,11 @@ func NewStoreInfoAPIUrlInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.L
 	return info, nil
 }
 
-type StoreResolveAPIUrlInfo struct {
+type StoreResolveAPIURLInfo struct {
 }
 
-func NewStoreResolveAPIUrlInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreResolveAPIUrlInfo, error) {
-	if err := checkRequestUrl(cfg, u, slog); err != nil {
+func NewStoreResolveAPIURLInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreResolveAPIURLInfo, error) {
+	if err := checkRequestURL(cfg, u, slog); err != nil {
 		return nil, err
 	}
 
@@ -88,15 +88,15 @@ func NewStoreResolveAPIUrlInfo(u *url.URL, cfg *StoreInspectorConfig, slog logge
 
 	}
 
-	return &StoreResolveAPIUrlInfo{}, nil
+	return &StoreResolveAPIURLInfo{}, nil
 }
 
-type StoreTransformsAPIUrlInfo struct {
+type StoreTransformsAPIURLInfo struct {
 	WorkspaceID string
 }
 
-func NewStoreTransformsAPIUrlInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreTransformsAPIUrlInfo, error) {
-	if err := checkRequestUrl(cfg, u, slog); err != nil {
+func NewStoreTransformsAPIURLInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreTransformsAPIURLInfo, error) {
+	if err := checkRequestURL(cfg, u, slog); err != nil {
 		return nil, err
 	}
 
@@ -105,19 +105,19 @@ func NewStoreTransformsAPIUrlInfo(u *url.URL, cfg *StoreInspectorConfig, slog lo
 		return nil, errors.New("not a valid store transforms API path")
 
 	}
-	info := &StoreTransformsAPIUrlInfo{
+	info := &StoreTransformsAPIURLInfo{
 		WorkspaceID: m[1],
 	}
 
 	return info, nil
 }
 
-type StoreAppMediaUrlInfo struct {
+type StoreAppMediaURLInfo struct {
 	Filename string
 }
 
-func NewStoreAppMediaUrlInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreAppMediaUrlInfo, error) {
-	if err := checkRequestUrl(cfg, u, slog); err != nil {
+func NewStoreAppMediaURLInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreAppMediaURLInfo, error) {
+	if err := checkRequestURL(cfg, u, slog); err != nil {
 		return nil, err
 	}
 
@@ -126,7 +126,7 @@ func NewStoreAppMediaUrlInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.
 		return nil, errors.New("not a valid store appmedia API path")
 
 	}
-	info := &StoreAppMediaUrlInfo{
+	info := &StoreAppMediaURLInfo{
 		Filename: m[3],
 	}
 
