@@ -76,15 +76,15 @@ func (ins *SourcecraftInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	if _, err := osStat(sourcecraftYamlPath); err != nil {
 		return nil
 	}
-	yamldataFilereader, err := osOpen(sourcecraftYamlPath)
+	yamlDataFileReader, err := osOpen(sourcecraftYamlPath)
 	if err != nil {
 		a.SetResponseRejected(ins, "cannot open sourcecraft.yaml file")
 		return nil
 	}
-	defer yamldataFilereader.Close()
+	defer yamlDataFileReader.Close()
 
 	var data sourcecraftYaml
-	dec := yaml.NewDecoder(yamldataFilereader)
+	dec := yaml.NewDecoder(yamlDataFileReader)
 	if err := dec.Decode(&data); err != nil {
 		a.SetResponseRejected(ins, "cannot decode sourcecraft.yaml")
 		return nil
