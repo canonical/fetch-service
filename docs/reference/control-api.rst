@@ -34,11 +34,10 @@ Endpoints
 
 :Response:
 
-  .. code-block:: json
-    :force:
+  .. code-block::
 
     {
-        "uptime": <int>,				// service uptime in seconds
+        "uptime": <int>,			// service uptime in seconds
         "start-time": <string>,			// start timestamp in RFC-3339 format
         "session-count": <int>,			// total number of created sessions
         "active-sessions": [			// list of sessions currently active
@@ -46,8 +45,8 @@ Endpoints
                 "session-id": <string>,		// session ID
                 "start-time": <string>,		// start timestamp in RFC-3339 format
                 "policy": <string>,		// "strict" or "permissive"
-                "age": <int>,			// seconds since session start
-                "timeout": <int>			// session TTL in seconds
+                "age": <int>,		// seconds since session start
+                "timeout": <int>		// session TTL in seconds
             },
             (...)
         ],
@@ -67,8 +66,7 @@ Endpoints
 
 :Parameters:
 
-  .. code-block:: json
-    :force:
+  .. code-block::
 
     {
         "timeout": <int>,		// session timeout in seconds
@@ -80,8 +78,7 @@ Endpoints
   ``secrets`` is an optional list of session-specific passwords and tokens. Each
   ``<secret>`` object has the following keys:
 
-  .. code-block:: json
-    :force:
+  .. code-block::
 
     {
         "type": <string>,	      // the kind of secret
@@ -105,8 +102,7 @@ Endpoints
   configuration. Received configurations will override the default ones loaded by the
   fetch-service.
 
-  .. code-block:: json
-    :force:
+  .. code-block::
 
     {
         "git": {
@@ -148,11 +144,10 @@ Endpoints
   
 :Response:
 
-  .. code-block:: json
-    :force:
+  .. code-block::
 
     {
-        "id": <string>,			// session ID
+        "id": <string>,		// session ID
         "token": <string>	// session token
     }
 
@@ -170,8 +165,7 @@ Endpoints
 
 :Parameters:
 
-  .. code-block:: json
-    :force:
+  .. code-block::
 
     {
         "token": <string>
@@ -179,8 +173,7 @@ Endpoints
 
 :Response:
 
-  .. code-block:: json
-    :force:
+  .. code-block::
 
     {
         "session-id": <string>,		// session ID
@@ -206,8 +199,7 @@ Endpoints
 
 :Response:
 
-  .. code-block:: json
-    :force:
+  .. code-block::
 
     {
         "session-id": <string>,		// session ID
