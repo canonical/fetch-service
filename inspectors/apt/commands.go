@@ -22,6 +22,7 @@ package apt
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -127,81 +128,18 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	buf := make([]byte, 0, 64*1024)
 	sc.Buffer(buf, 1024*1024)
 
-	itemCount := 0
-	stateName := false
-	stateVersion := false
-	stateCommands := false
-	suite := ""
-	component := ""
-	arch := ""
-
-	// Parse header
-	for sc.Scan() {
-		line := sc.Text()
-		if len(line) == 0 {
-			break
-		}
-
-		k, v, ok := strings.Cut(line, ":")
-		if !ok {
-			a.SetResponseRejected(ins, "ill-formed commands file header")
-			return nil
-		}
-		k = strings.TrimSpace(k)
-		v = strings.TrimSpace(v)
-
-		switch k {
-		case "suite":
-			suite = v
-		case "component":
-			component = v
-		case "arch":
-			arch = v
-		}
-	}
-
-	if suite == "" || component == "" || arch == "" {
-		a.SetResponseRejected(ins, "ill-formed commands file header")
+	suite, component, arch, err := parseHeader(sc)
+	if err != nil {
+		a.SetResponseRejected(ins, err.Error())
 		return nil
 	}
 
 	sc.Scan() // Skip empty line
 
-	// Parse package list and count entries
-	for sc.Scan() {
-		line := sc.Text()
-
-		if strings.HasPrefix(line, "name: ") {
-			if stateName {
-				a.SetResponseRejected(ins, "duplicate name field in commands file")
-				return nil
-			}
-			stateName = true
-			continue
-		} else if strings.HasPrefix(line, "version: ") {
-			if stateVersion {
-				a.SetResponseRejected(ins, "duplicate version field in commands file")
-				return nil
-			}
-			stateVersion = true
-			continue
-		} else if strings.HasPrefix(line, "commands: ") {
-			if stateCommands {
-				a.SetResponseRejected(ins, "duplicate commands field in commands file")
-				return nil
-			}
-			stateCommands = true
-			continue
-		} else if len(line) == 0 { // item ends
-			if !stateName || !stateVersion || !stateCommands {
-				a.SetResponseRejected(ins, "ill-formed entry in commands file")
-				return nil
-			}
-			itemCount++
-			stateName = false
-			stateVersion = false
-			stateCommands = false
-		}
+	itemCount, err := parsePkgList(sc)
+	if err != nil {
+		a.SetResponseRejected(ins, err.Error())
+		return nil
 	}
 
 	md := ArtifactMetadata{
@@ -235,4 +173,78 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	}
 
 	return nil
+}
+
+func parseHeader(sc *bufio.Scanner) (string, string, string, error) {
+	suite := ""
+	component := ""
+	arch := ""
+	errIllFormed := errors.New("ill-formed commands file header")
+	for sc.Scan() {
+		line := sc.Text()
+		if len(line) == 0 {
+			break
+		}
+
+		k, v, ok := strings.Cut(line, ":")
+		if !ok {
+			return "", "", "", errIllFormed
+		}
+		k = strings.TrimSpace(k)
+		v = strings.TrimSpace(v)
+
+		switch k {
+		case "suite":
+			suite = v
+		case "component":
+			component = v
+		case "arch":
+			arch = v
+		}
+	}
+	if suite == "" || component == "" || arch == "" {
+		return "", "", "", errIllFormed
+	}
+
+	return suite, component, arch, nil
+}
+
+func parsePkgList(sc *bufio.Scanner) (int, error) {
+	itemCount := 0
+	stateName := false
+	stateVersion := false
+	stateCommands := false
+	for sc.Scan() {
+		line := sc.Text()
+
+		if strings.HasPrefix(line, "name: ") {
+			if stateName {
+				return itemCount, errors.New("duplicate name field in commands file")
+			}
+			stateName = true
+			continue
+		} else if strings.HasPrefix(line, "version: ") {
+			if stateVersion {
+				return itemCount, errors.New("duplicate version field in commands file")
+			}
+			stateVersion = true
+			continue
+		} else if strings.HasPrefix(line, "commands: ") {
+			if stateCommands {
+				return itemCount, errors.New("duplicate commands field in commands file")
+			}
+			stateCommands = true
+			continue
+		} else if len(line) == 0 { // item ends
+			if !stateName || !stateVersion || !stateCommands {
+				return itemCount, errors.New("ill-formed entry in commands file")
+			}
+			itemCount++
+			stateName = false
+			stateVersion = false
+			stateCommands = false
+		}
+	}
+
+	return itemCount, nil
 }
