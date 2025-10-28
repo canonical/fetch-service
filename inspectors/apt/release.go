@@ -246,7 +246,7 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 	sc := bufio.NewScanner(body)
 	sc.Split(bufio.ScanLines)
 
-	sha256_section := false
+	sha256Section := false
 
 	fields := map[string]string{}
 
@@ -262,7 +262,7 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 			continue
 		}
 		if k == "SHA256" {
-			sha256_section = true
+			sha256Section = true
 			break
 		}
 		v = strings.TrimSpace(v)
@@ -277,7 +277,7 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		n++
 	}
 
-	if !sha256_section {
+	if !sha256Section {
 		slog.Debug("no SHA256 section found")
 		return nil // we don't recognize this file
 	}

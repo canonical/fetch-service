@@ -136,7 +136,7 @@ func (c *Server) getServiceStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	write_response(w, j)
+	writeResponse(w, j)
 }
 
 func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
@@ -167,7 +167,7 @@ func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	write_response(w, j)
+	writeResponse(w, j)
 }
 
 func (c *Server) deleteSessionToken(w http.ResponseWriter, r *http.Request) {
@@ -207,7 +207,7 @@ func (c *Server) deleteSessionToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	write_response(w, j)
+	writeResponse(w, j)
 }
 
 func (c *Server) getSessionReport(w http.ResponseWriter, r *http.Request) {
@@ -246,7 +246,7 @@ func (c *Server) getSessionReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	write_response(w, j)
+	writeResponse(w, j)
 }
 
 func (c *Server) deleteSession(w http.ResponseWriter, r *http.Request) {
@@ -328,28 +328,28 @@ func (c *Server) checkAuth(w http.ResponseWriter, r *http.Request) bool {
 func badRequest(w http.ResponseWriter, r *http.Request, reason string) {
 	logger.Warningf("400 Bad Request HTTP error: %s", r.URL)
 	w.WriteHeader(http.StatusBadRequest)
-	write_response(w, []byte(reason))
+	writeResponse(w, []byte(reason))
 }
 
 func internalServerError(w http.ResponseWriter, r *http.Request) {
 	logger.Warningf("500 Internal Server Error HTTP error: %s", r.URL)
 	w.WriteHeader(http.StatusInternalServerError)
-	write_response(w, []byte("500 Internal Server Error"))
+	writeResponse(w, []byte("500 Internal Server Error"))
 }
 
 func notFound(w http.ResponseWriter, r *http.Request) {
 	logger.Warningf("404 Not Found HTTP error: %s", r.URL)
 	w.WriteHeader(http.StatusNotFound)
-	write_response(w, []byte("404 Not Found"))
+	writeResponse(w, []byte("404 Not Found"))
 }
 
 func unauthorized(w http.ResponseWriter, r *http.Request) {
 	logger.Warningf("401 unauthorized HTTP error: %s", r.URL)
 	w.WriteHeader(http.StatusUnauthorized)
-	write_response(w, []byte("401 Unauthorized"))
+	writeResponse(w, []byte("401 Unauthorized"))
 }
 
-func write_response(w http.ResponseWriter, b []byte) {
+func writeResponse(w http.ResponseWriter, b []byte) {
 	logger.Debugf("control API response: %s\n", b)
 	var err error
 	_, err = w.Write(b)

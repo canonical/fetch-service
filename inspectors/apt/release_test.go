@@ -260,23 +260,23 @@ var aptReleasePackagesValidationTests = []aptReleasePackagesValidationTest{{
 
 func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
 	for _, tc := range aptReleasePackagesValidationTests {
-		sha256_rel, err := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
+		sha256Rel, err := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
 		c.Assert(err, IsNil)
-		sha256_pkg, err := digests.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
+		sha256Pkg, err := digests.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
 		c.Assert(err, IsNil)
 
 		a := metadata.NewArtifact()
 		a.CurrentDownload.URL = tc.url
 		a.Metadata.Type = mimetypes.AptPackages
-		a.Metadata.Sha256 = sha256_pkg
+		a.Metadata.Sha256 = sha256Pkg
 
 		f := strings.NewReader("fake content")
 
 		rf := apt.ReleaseFile{
-			Sha256: sha256_rel,
+			Sha256: sha256Rel,
 			Vendor: "Canonical",
 			Files: map[digests.Sha256Digest]apt.ReleaseEntry{
-				sha256_pkg: {
+				sha256Pkg: {
 					Size: 1337,
 					Name: "main/binary-amd64/Packages.xz",
 				},
@@ -346,24 +346,24 @@ var aptReleaseTranslationValidationTests = []aptReleaseTranslationValidationTest
 
 func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
 	for _, tc := range aptReleaseTranslationValidationTests {
-		sha256_rel, err := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
+		sha256Rel, err := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
 		c.Assert(err, IsNil)
-		sha256_trn, err := digests.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
+		sha256Trn, err := digests.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
 		c.Assert(err, IsNil)
 
 		a := metadata.NewArtifact()
 		a.CurrentDownload.URL = tc.url
 		a.Metadata.Type = mimetypes.AptTranslation
-		a.Metadata.Sha256 = sha256_trn
+		a.Metadata.Sha256 = sha256Trn
 		a.Metadata.Size = 1337
 
 		f := strings.NewReader("fake content")
 
 		rf := apt.ReleaseFile{
-			Sha256: sha256_rel,
+			Sha256: sha256Rel,
 			Vendor: "Canonical",
 			Files: map[digests.Sha256Digest]apt.ReleaseEntry{
-				sha256_trn: apt.ReleaseEntry{
+				sha256Trn: apt.ReleaseEntry{
 					Size: 1337,
 					Name: "main/i18n/Translation-en.xz",
 				},
@@ -445,26 +445,26 @@ var aptReleaseCommandsValidationTests = []aptReleaseCommandsValidationTest{{
 
 func (s *aptSuite) TestAptReleaseCommandsValidation(c *C) {
 	for _, tc := range aptReleaseCommandsValidationTests {
-		sha256_rel, err := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
+		sha256Rel, err := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
 		c.Assert(err, IsNil)
-		sha256_cmd, err := digests.NewSha256Digest("6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf")
+		sha256Cmd, err := digests.NewSha256Digest("6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf")
 		c.Assert(err, IsNil)
 
 		a := metadata.NewArtifact()
 		a.CurrentDownload.URL = tc.url
 		a.Metadata.Type = mimetypes.AptCommands
-		a.Metadata.Sha256 = sha256_cmd
+		a.Metadata.Sha256 = sha256Cmd
 		a.Metadata.Size = 1337
 
 		f := strings.NewReader("fake content")
 		rf := apt.ReleaseFile{
-			Sha256: sha256_rel,
+			Sha256: sha256Rel,
 			Vendor: "Canonical",
 			Files:  map[digests.Sha256Digest]apt.ReleaseEntry{},
 		}
 
 		if tc.isListed {
-			rf.Files[sha256_cmd] = apt.ReleaseEntry{
+			rf.Files[sha256Cmd] = apt.ReleaseEntry{
 				Size: 1337,
 				Name: "main/cnf/Commands-amd64.xz",
 			}

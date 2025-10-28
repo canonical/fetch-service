@@ -130,14 +130,14 @@ func (ins *GoModuleGitInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	}
 
 	// Read wants information from the git inspector annotation
-	w, has_wants := a.RequestAnnotation(GitUploadPackID, "wants")
-	if !has_wants {
+	w, hasWants := a.RequestAnnotation(GitUploadPackID, "wants")
+	if !hasWants {
 		// this must have been set by the git upload-pack inspector
 		return errors.New("cannot read request want annotation")
 	}
 
 	var wants []string
-	if has_wants {
+	if hasWants {
 		var ok bool
 		wants, ok = w.([]string)
 		if !ok || len(wants) < 1 {
