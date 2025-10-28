@@ -41,13 +41,11 @@ elsewhere.
 
 The inspectors configuration for the session can be provided as a positional argument::
 
-.. collapse:: inspectors.yaml
+.. literalinclude:: code/inspectors.yaml
+    :caption: inspectors.yaml
+    :language: yaml
 
-    .. literalinclude:: code/inspectors.yaml
-        :caption: inspectors.yaml
-        :language: yaml
-
-Then run:
+Then run::
         
    ./fetchctl create-session --session-id=abc --token=def --permissive inspectors.yaml
 
