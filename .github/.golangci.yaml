@@ -7,14 +7,7 @@ linters:
     - nakedret
     - staticcheck
     - unused
-    # - gocyclo
-    # - gosec
-    # - errcheck
   settings:
-    errcheck:
-      check-blank: true
-    gocyclo:
-      min-complexity: 15
     staticcheck:
       checks:
         - all
@@ -25,6 +18,6 @@ linters:
     nakedret:
       max-func-lines: 20
 issues:
-  # these values ensure that all issues will be surfaced
+  # These values ensure that all issues will be surfaced
   max-issues-per-linter: 0
   max-same-issues: 0
