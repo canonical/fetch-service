@@ -83,7 +83,7 @@ func NewReleaseFile() releaseFile {
 	}
 }
 
-// The apt Release file inspector inspects signed InRelease files.
+// The AptReleaseInspector inspects signed InRelease files.
 type AptReleaseInspector struct {
 	release     map[string]releaseFile // map repository to release file
 	releaseLock sync.Mutex

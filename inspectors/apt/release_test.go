@@ -260,8 +260,10 @@ var aptReleasePackagesValidationTests = []aptReleasePackagesValidationTest{{
 
 func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
 	for _, tc := range aptReleasePackagesValidationTests {
-		sha256_rel, _ := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
-		sha256_pkg, _ := digests.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
+		sha256_rel, err := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
+		c.Assert(err, IsNil)
+		sha256_pkg, err := digests.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
+		c.Assert(err, IsNil)
 
 		a := metadata.NewArtifact()
 		a.CurrentDownload.URL = tc.url
@@ -344,8 +346,10 @@ var aptReleaseTranslationValidationTests = []aptReleaseTranslationValidationTest
 
 func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
 	for _, tc := range aptReleaseTranslationValidationTests {
-		sha256_rel, _ := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
-		sha256_trn, _ := digests.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
+		sha256_rel, err := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
+		c.Assert(err, IsNil)
+		sha256_trn, err := digests.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
+		c.Assert(err, IsNil)
 
 		a := metadata.NewArtifact()
 		a.CurrentDownload.URL = tc.url
@@ -441,8 +445,10 @@ var aptReleaseCommandsValidationTests = []aptReleaseCommandsValidationTest{{
 
 func (s *aptSuite) TestAptReleaseCommandsValidation(c *C) {
 	for _, tc := range aptReleaseCommandsValidationTests {
-		sha256_rel, _ := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
-		sha256_cmd, _ := digests.NewSha256Digest("6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf")
+		sha256_rel, err := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
+		c.Assert(err, IsNil)
+		sha256_cmd, err := digests.NewSha256Digest("6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf")
+		c.Assert(err, IsNil)
 
 		a := metadata.NewArtifact()
 		a.CurrentDownload.URL = tc.url
@@ -471,7 +477,7 @@ func (s *aptSuite) TestAptReleaseCommandsValidation(c *C) {
 		}
 		a.SetRequestPending(ins, "test").Annotate(notes)
 		ins.SetRelease(map[string]apt.ReleaseFile{tc.releaseRepo: rf})
-		err := ins.InspectArtifact(f, a)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
 		c.Assert(a.Approved(), Equals, false)

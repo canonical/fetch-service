@@ -105,7 +105,8 @@ func (s *mavenSuite) TestJarInspectArtifact(c *C) {
 		filename := filepath.Join("testdata", jt.filename)
 
 		ins := maven.NewJarInspector()
-		h, _ := digests.NewSha1Digest("a5f29a7acaddea3f4af307e8cf2d0cc82645fd7d")
+		h, err := digests.NewSha1Digest("a5f29a7acaddea3f4af307e8cf2d0cc82645fd7d")
+		c.Assert(err, IsNil)
 
 		a := metadata.NewArtifact()
 		a.Metadata.Type = "application/jar"

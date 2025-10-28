@@ -148,7 +148,8 @@ func (s *cargoSuite) TestIndexInspectArtifactCrate(c *C) {
 	filename := filepath.Join("testdata", "time.ndjson")
 
 	ins := cargo.NewIndexInspector()
-	h, _ := digests.NewSha1Digest("85fc2d2a3764089191e57cd552601278a5985c46")
+	h, err := digests.NewSha1Digest("85fc2d2a3764089191e57cd552601278a5985c46")
+	c.Assert(err, IsNil)
 
 	a := metadata.NewArtifact()
 	a.Metadata.Type = "application/x-ndjson"
