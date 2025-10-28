@@ -35,7 +35,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 )
 
-// Check if the given raw data could be a valid commands file.
+// AptCommandsDetector checks if the given raw data could be a valid commands file.
 func AptCommandsDetector(raw []byte, limit uint32) bool {
 	r, err := xz.NewReader(bytes.NewReader(raw), 0)
 	if err != nil {
