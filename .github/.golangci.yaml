@@ -19,5 +19,10 @@ linters:
       checks:
         - all
         - "-ST1005" # Accept capitalized error message
+        - "-ST1000"
     nakedret:
       max-func-lines: 20
+issues:
+  # these values ensure that all issues will be surfaced
+  max-issues-per-linter: 0
+  max-same-issues: 0
