@@ -72,15 +72,15 @@ func (ins *SimpleIndexInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 
 	switch {
 	case a.MimetypeIs("text/html"):
-		return parseHtmlIndex(ins, f, a, pkgName)
+		return parseHTMLIndex(ins, f, a, pkgName)
 	case a.MimetypeIs("application/json") && contentType == "application/vnd.pypi.simple.v1+json":
-		return parseJsonIndex(ins, f, a, pkgName)
+		return parseJSONIndex(ins, f, a, pkgName)
 	default:
 		return nil
 	}
 }
 
-func parseHtmlIndex(ins *SimpleIndexInspector, f ArtifactReader, a ResponseArtifact, pkgName string) error {
+func parseHTMLIndex(ins *SimpleIndexInspector, f ArtifactReader, a ResponseArtifact, pkgName string) error {
 	z := html.NewTokenizer(f)
 
 	for {
@@ -153,7 +153,7 @@ func extractMetaProperty(t html.Token, name string) (content string, ok bool) {
 	return
 }
 
-func parseJsonIndex(ins *SimpleIndexInspector, f ArtifactReader, a ResponseArtifact, pkgName string) error {
+func parseJSONIndex(ins *SimpleIndexInspector, f ArtifactReader, a ResponseArtifact, pkgName string) error {
 	// FIXME: add better format verification, e.g. check schema
 
 	u, err := url.Parse(a.DownloadURL())
