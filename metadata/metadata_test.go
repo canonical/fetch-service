@@ -46,6 +46,8 @@ func createMetadata() metadata.Metadata {
 		License:       "GPLv3",
 		Copyright:     "Copyright Text",
 		SourcePackage: "my-source-package",
+		AptSuite:      "series-pocket",
+		ContentId:     "some-format-specific-identifier",
 	}
 }
 
@@ -70,6 +72,8 @@ func (s *metadataSuite) TestMetadataJson(c *C) {
 	c.Check(d["license"], Equals, "GPLv3")
 	c.Check(d["copyright"], Equals, "Copyright Text")
 	c.Check(d["source-package"], Equals, "my-source-package")
+	c.Check(d["content-id"], Equals, "some-format-specific-identifier")
+	c.Check(d["apt-suite"], Equals, "series-pocket")
 }
 
 func (s *metadataSuite) TestMetadataJsonNoSourcePackage(c *C) {

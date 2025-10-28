@@ -91,6 +91,7 @@ func (ins *CharmcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		Type:        mimetypes.Charmcraft,
 		Name:        data.Name,
 		Description: data.Summary,
+		ContentId:   getSingleFetchedRef(a),
 	})
 	a.SetResponseApproved(ins, "charmcraft repository found")
 	return nil

@@ -208,7 +208,7 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtifact(c *C) {
 			c.Check(a.Metadata.Name, Equals, "astral-uv")
 			c.Check(a.Metadata.Version, Equals, "0.4.20")
 			c.Check(a.Metadata.Description, Equals, "An extremely fast Python package installer and resolver, written in Rust.")
-			// FIXME: add more fields to test data
+			c.Check(a.Metadata.ContentId, Equals, "9ae13d6ca5afec49279f8515feb289a7069e5a29")
 		}
 	}
 }

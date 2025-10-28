@@ -159,7 +159,7 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtifact(c *C) {
 			c.Check(a.Metadata.Name, Equals, "charmcraft-core22")
 			c.Check(a.Metadata.Version, Equals, "3.1.2")
 			c.Check(a.Metadata.Description, Equals, "Pack Ubuntu 22.04 charms")
-			// FIXME: add more fields to test data
+			c.Check(a.Metadata.ContentId, Equals, "d9c2c0282d81a993c0011113996b541a1ef1ebc7")
 		}
 	}
 }

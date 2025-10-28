@@ -133,6 +133,7 @@ func (ins *SnapcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 		Version:     data.Version,
 		Description: data.Summary,
 		License:     data.License,
+		ContentId:   getSingleFetchedRef(a),
 	})
 	a.SetResponseApproved(ins, "snapcraft repository found")
 
