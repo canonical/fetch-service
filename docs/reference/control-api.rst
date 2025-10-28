@@ -71,8 +71,8 @@ Endpoints
     {
         "timeout": <int>,	        // session timeout in seconds
         "policy": <string>,		// "strict" or "permissive"
-        "secrets": [<secret>],           // optional list of session secrets
-        "inspectors-configuration": <inspectors-conf>           // optional inspectors configuration
+        "secrets": [<secret>],	// optional list of session secrets
+        "inspectors-configuration": <inspectors-conf>	// optional inspectors configuration
     }
 
   ``secrets`` is an optional list of session-specific passwords and tokens. Each
@@ -121,17 +121,17 @@ Endpoints
           "urls": [<list of strings>]
         },
         "snap": {
-          "snap-declaration: [
+          "snap-declaration": [
             {
                 "name": <string>,
-                "value": [<list of strings>],
+                "value": [<list of strings>]
             },
             (...)
           ]
         },
         "apt": {
           "repositories": {
-            <repository>: {
+            <repository name>: {
                 "urls": [<list of strings>],
                 "suites": [<list of strings>],
                 "components": [<list of strings>],
