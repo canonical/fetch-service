@@ -34,7 +34,7 @@ Endpoints
 
 :Response:
 
-  .. code-block::
+  .. code-block:: json
 
     {
         "uptime": <int>,				// service uptime in seconds
@@ -66,19 +66,19 @@ Endpoints
 
 :Parameters:
 
-  .. code-block::
+  .. code-block:: json
 
     {
-        "timeout": <int>,	        // session timeout in seconds
+        "timeout": <int>,		// session timeout in seconds
         "policy": <string>,		// "strict" or "permissive"
-        "secrets": [<secret>],	// optional list of session secrets
+        "secrets": [<secret>],		// optional list of session secrets
         "inspectors-configuration": <inspectors-conf>	// optional inspectors configuration
     }
 
   ``secrets`` is an optional list of session-specific passwords and tokens. Each
   ``<secret>`` object has the following keys:
 
-  .. code-block::
+  .. code-block:: json
 
     {
         "type": <string>,	      // the kind of secret
@@ -102,7 +102,7 @@ Endpoints
   configuration. Received configurations will override the default ones loaded by the
   fetch-service.
 
-  .. code-block::
+  .. code-block:: json
 
     {
         "git": {
@@ -144,7 +144,7 @@ Endpoints
   
 :Response:
 
-  .. code-block::
+  .. code-block:: json
 
     {
         "id": <string>,			// session ID
@@ -165,7 +165,7 @@ Endpoints
 
 :Parameters:
 
-  .. code-block::
+  .. code-block:: json
 
     {
         "token": <string>
@@ -173,7 +173,7 @@ Endpoints
 
 :Response:
 
-  .. code-block::
+  .. code-block:: json
 
     {
         "session-id": <string>,		// session ID
@@ -199,7 +199,7 @@ Endpoints
 
 :Response:
 
-  .. code-block::
+  .. code-block:: json
 
     {
         "session-id": <string>,		// session ID
