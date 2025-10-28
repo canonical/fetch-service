@@ -33,7 +33,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 )
 
-// Fields in the bld bin metadata.yaml
+// BldBinMetadata represents fields in the bld bin metadata.yaml
 type BldBinMetadata struct {
 	Name         string `yaml:"name"`
 	Version      string `yaml:"version"`

@@ -28,7 +28,7 @@ import (
 
 var logBuffer bytes.Buffer
 
-// InitTest sets up the logging system for testing.
+// Init sets up the logging system for testing.
 func Init(lv logger.Level) {
 	logBuffer.Reset()
 	logger.SetLevel(lv)

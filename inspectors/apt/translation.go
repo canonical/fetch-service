@@ -34,7 +34,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 )
 
-// Check if the given data could be a valid translation file.
+// AptTranslationDetector checks if the given data could be a valid translation file.
 // The translation file should contain the following fields:
 // - Package
 // - Description-md5

@@ -104,7 +104,7 @@ func (ins *AptReleaseInspector) ID() string {
 	return aptReleaseInspectorID
 }
 
-// AptReleaseInspector verifies if the request is valid for the types of
+// InspectRequest verifies if the request is valid for the types of
 // files handled by this inspector: InRelease, Packages.xz, and Translation.
 func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 	u, err := url.Parse(a.DownloadURL())
