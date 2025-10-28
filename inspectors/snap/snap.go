@@ -20,6 +20,7 @@
 package snap
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -112,38 +113,10 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 	if err != nil {
 		return fmt.Errorf("cannot retrieve snap-revision assertion: %w", err)
 	}
-	if snapRevisionAssertion.SnapSize() != fmt.Sprintf("%d", a.Size()) {
-		a.SetResponseRejected(ins, "snap size mismatch in snap-revision assertion").Annotate(
-			Annotation{
-				"snap-revision-assertion-header": snapRevisionAssertion.Header,
-			},
-		)
-		return nil
-	}
-	if snapRevisionAssertion.SnapSha384() != snapSha3_384 {
-		a.SetResponseRejected(ins, "snap-revision assertion digest mismatch").Annotate(
-			Annotation{
-				"snap-revision-assertion-header": snapRevisionAssertion.Header,
-			},
-		)
-		return nil
-	}
-	snapID := snapRevisionAssertion.SnapID()
-	if snapID == "" {
-		a.SetResponseRejected(ins, "cannot find snap ID in snap-revision assertion").Annotate(
-			Annotation{
-				"snap-revision-assertion-header": snapRevisionAssertion.Header,
-			},
-		)
-		return nil
-	}
-	if err := snapRevisionAssertion.VerifySignature(slog); err != nil {
-		a.SetResponseRejected(ins, "snap-revision assertion has invalid signature").Annotate(
-			Annotation{
-				"error-msg":                      err.Error(),
-				"snap-revision-assertion-header": snapRevisionAssertion.Header,
-			},
-		)
+
+	snapID, note, err := checkSnapRevisionAssertion(snapRevisionAssertion, snapSha3_384, slog, a)
+	if err != nil {
+		a.SetResponseRejected(ins, err.Error()).Annotate(note)
 		return nil
 	}
 
@@ -324,4 +297,31 @@ func checkSnapDeclarationFilter(cfg config.SnapInspectorConfig, assert *assertio
 	}
 
 	return nil
+}
+
+// checkSnapRevisionAssertion checks the snap revision assertion and extracts the snap ID
+func checkSnapRevisionAssertion(snapRevisionAssertion *assertion, snapSha3_384 string, slog logger.Logger, a ResponseArtifact) (string, Annotation, error) {
+	if snapRevisionAssertion.SnapSize() != fmt.Sprintf("%d", a.Size()) {
+		return "", Annotation{
+			"snap-revision-assertion-header": snapRevisionAssertion.Header,
+		}, errors.New("snap size mismatch in snap-revision assertion")
+	}
+	if snapRevisionAssertion.SnapSha384() != snapSha3_384 {
+		return "", Annotation{
+			"snap-revision-assertion-header": snapRevisionAssertion.Header,
+		}, errors.New("snap-revision assertion digest mismatch")
+	}
+	snapID := snapRevisionAssertion.SnapID()
+	if snapID == "" {
+		return "", Annotation{
+			"snap-revision-assertion-header": snapRevisionAssertion.Header,
+		}, errors.New("cannot find snap ID in snap-revision assertion")
+	}
+	if err := snapRevisionAssertion.VerifySignature(slog); err != nil {
+		return "", Annotation{
+			"error-msg":                      err.Error(),
+			"snap-revision-assertion-header": snapRevisionAssertion.Header,
+		}, errors.New("snap-revision assertion has invalid signature")
+	}
+	return snapID, nil, nil
 }
