@@ -40,19 +40,19 @@ func Test(t *testing.T) { TestingT(t) }
 
 func getTestStoreConfig() config.StoreInspectorConfig {
 	return config.StoreInspectorConfig{
-		Urls: []glob.Glob{
+		URLs: []glob.Glob{
 			glob.MustCompile("https://api.snapcraft.io:443/v2/bins/info/**"),
 			glob.MustCompile("https://api.snapcraft.io:443/v2/revisions/resolve"),
 		},
 	}
 }
 
-type storeInfoApiUrlInfoTest struct {
+type storeInfoAPIURLInfoTest struct {
 	url    string // The request URL
 	errMsg string // The error message, if any
 }
 
-var storeInfoApiUrlInfoTests = []storeInfoApiUrlInfoTest{{
+var storeInfoAPIURLInfoTests = []storeInfoAPIURLInfoTest{{
 	url:    "https://api.snapcraft.io:443/v2/bins/info/starcraft-test?fields=summary,description",
 	errMsg: "",
 }, {
@@ -65,17 +65,17 @@ var storeInfoApiUrlInfoTests = []storeInfoApiUrlInfoTest{{
 	errMsg: "invalid url .*",
 }}
 
-func (t *configSuite) TestStoreInfoApiUrlInfo(c *C) {
-	for _, tc := range storeInfoApiUrlInfoTests {
+func (t *configSuite) TestStoreInfoAPIURLInfo(c *C) {
+	for _, tc := range storeInfoAPIURLInfoTests {
 		u, err := url.Parse(tc.url)
 		c.Assert(err, IsNil)
 
 		cfg := getTestStoreConfig()
-		info, err := config.NewStoreInfoApiUrlInfo(u, &cfg, t.slog)
+		info, err := config.NewStoreInfoAPIURLInfo(u, &cfg, t.slog)
 
 		if tc.errMsg == "" {
 			c.Assert(err, IsNil)
-			c.Assert(info, DeepEquals, &config.StoreInfoApiUrlInfo{
+			c.Assert(info, DeepEquals, &config.StoreInfoAPIURLInfo{
 				PackageType: "bins",
 				PackageName: "starcraft-test",
 			})
@@ -85,12 +85,12 @@ func (t *configSuite) TestStoreInfoApiUrlInfo(c *C) {
 	}
 }
 
-type storeResolveApiUrlResolveTest struct {
+type storeResolveAPIURLResolveTest struct {
 	url    string // The request URL
 	errMsg string // The error message, if any
 }
 
-var storeResolveApiUrlResolveTests = []storeResolveApiUrlResolveTest{{
+var storeResolveAPIURLResolveTests = []storeResolveAPIURLResolveTest{{
 	url:    "https://api.snapcraft.io:443/v2/revisions/resolve",
 	errMsg: "",
 }, {
@@ -103,17 +103,17 @@ var storeResolveApiUrlResolveTests = []storeResolveApiUrlResolveTest{{
 	errMsg: "invalid url .*",
 }}
 
-func (t *configSuite) TestStoreResolveApiUrlResolve(c *C) {
-	for _, tc := range storeResolveApiUrlResolveTests {
+func (t *configSuite) TestStoreResolveAPIURLResolve(c *C) {
+	for _, tc := range storeResolveAPIURLResolveTests {
 		u, err := url.Parse(tc.url)
 		c.Assert(err, IsNil)
 
 		cfg := getTestStoreConfig()
-		info, err := config.NewStoreResolveApiUrlInfo(u, &cfg, t.slog)
+		info, err := config.NewStoreResolveAPIURLInfo(u, &cfg, t.slog)
 
 		if tc.errMsg == "" {
 			c.Assert(err, IsNil)
-			c.Assert(info, DeepEquals, &config.StoreResolveApiUrlInfo{})
+			c.Assert(info, DeepEquals, &config.StoreResolveAPIURLInfo{})
 		} else {
 			c.Assert(err, ErrorMatches, tc.errMsg)
 		}

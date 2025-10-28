@@ -51,7 +51,7 @@ func (ins *SimpleStreamsIndexInspector) InspectRequest(a RequestArtifact) error 
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	info, err := NewSimpleStreamsIndexUrlInfo(u)
+	info, err := NewSimpleStreamsIndexURLInfo(u)
 	if err != nil {
 		return nil // we don't recognize this request
 	}

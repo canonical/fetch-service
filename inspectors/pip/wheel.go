@@ -57,7 +57,7 @@ func (ins *WheelInspector) InspectRequest(a RequestArtifact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	if checkWheelUrl(u) == nil {
+	if checkWheelURL(u) == nil {
 		// Request marked as Unknown because it comes from the default pypi origin
 		a.SetRequestUnknown(ins, "unsupported origin")
 	}

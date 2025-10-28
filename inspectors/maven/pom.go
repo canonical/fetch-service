@@ -52,13 +52,13 @@ func (ins *MavenPomInspector) InspectRequest(a RequestArtifact) error {
 		return nil
 	}
 
-	if artifactUrl := parseUrl(pomRequestSlug, url); artifactUrl != nil {
+	if artifactURL := parseURL(pomRequestSlug, url); artifactURL != nil {
 		// Request marked as Unknown because it comes from the default maven.org origin
 		a.SetRequestUnknown(ins, "unsupported origin").Annotate(
 			Annotation{
-				"group-id":    artifactUrl.GroupId,
-				"artifact-id": artifactUrl.ArtifactId,
-				"version":     artifactUrl.Version,
+				"group-id":    artifactURL.GroupID,
+				"artifact-id": artifactURL.ArtifactID,
+				"version":     artifactURL.Version,
 			},
 		)
 		return nil
@@ -71,7 +71,7 @@ func (ins *MavenPomInspector) InspectArtifact(f ArtifactReader, a ResponseArtifa
 		return nil
 	}
 
-	artifact_id, ok := a.RequestStringAnnotation(ins.ID(), "artifact-id")
+	artifactID, ok := a.RequestStringAnnotation(ins.ID(), "artifact-id")
 	if !ok {
 		return nil
 	}
@@ -86,8 +86,8 @@ func (ins *MavenPomInspector) InspectArtifact(f ArtifactReader, a ResponseArtifa
 		return err
 	}
 
-	if md.Name == artifact_id && md.Version == version {
-		md.Name = fmt.Sprintf(`Maven POM file for '%s'`, artifact_id)
+	if md.Name == artifactID && md.Version == version {
+		md.Name = fmt.Sprintf(`Maven POM file for '%s'`, artifactID)
 		a.SetArtifactMetadata(*md)
 		a.SetResponseApproved(ins, "Maven pom successfully parsed and validated")
 	}

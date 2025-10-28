@@ -65,9 +65,9 @@ var _ = Suite(&serviceSuite{})
 
 // Check if the proxy and control API are created with the correct port number.
 func (t *serviceSuite) TestProxyPort(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		t.proxyPort = port
-		return &proxy.HttpProxy{}, nil
+		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
@@ -85,7 +85,7 @@ func (t *serviceSuite) TestProxyPort(c *C) {
 }
 
 func (t *serviceSuite) TestProxyStartError(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		return nil, errors.New("proxy start error")
 	})
 	defer restorer()
@@ -101,8 +101,8 @@ func (t *serviceSuite) TestProxyStartError(c *C) {
 }
 
 func (t *serviceSuite) TestFetchctlServerCrash(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
-		return &proxy.HttpProxy{}, nil
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
+		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
@@ -127,8 +127,8 @@ func (t *serviceSuite) TestFetchctlServerCrash(c *C) {
 }
 
 func (t *serviceSuite) TestControlServerCrash(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
-		return &proxy.HttpProxy{}, nil
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
+		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
@@ -153,11 +153,11 @@ func (t *serviceSuite) TestControlServerCrash(c *C) {
 	c.Assert(svc.Alive(), Equals, false)
 }
 
-func (t *serviceSuite) TestHttpProxyCrash(c *C) {
-	var px *proxy.HttpProxy
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+func (t *serviceSuite) TestHTTPProxyCrash(c *C) {
+	var px *proxy.HTTPProxy
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		var err error
-		px, err = proxy.NewHttpProxy(port, spool, cert, key, ch)
+		px, err = proxy.NewHTTPProxy(port, spool, cert, key, ch)
 		return px, err
 	})
 	defer restorer()
@@ -194,9 +194,9 @@ func (t *serviceSuite) TestHttpProxyCrash(c *C) {
 }
 
 func (t *serviceSuite) TestServiceEntombment(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		t.proxyPort = port
-		return &proxy.HttpProxy{}, nil
+		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
@@ -215,10 +215,10 @@ func (t *serviceSuite) TestServiceEntombment(c *C) {
 }
 
 func (t *serviceSuite) TestServiceIdleShutdown(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		t.ch = ch
 		t.proxyPort = port
-		return &proxy.HttpProxy{}, nil
+		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
@@ -253,7 +253,7 @@ func (t *serviceSuite) TestServiceIdleShutdown(c *C) {
 			t.ch <- msg
 			res := <-msg.Rch
 			c.Assert(res.Err, Equals, nil)
-			sid = res.Id
+			sid = res.ID
 		}
 
 		c.Assert(svc.Alive(), Equals, true)
@@ -275,10 +275,10 @@ func (t *serviceSuite) TestServiceIdleShutdown(c *C) {
 }
 
 func (t *serviceSuite) TestGetServiceStatus(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		t.ch = ch
 		t.proxyPort = port
-		return &proxy.HttpProxy{}, nil
+		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
@@ -305,7 +305,7 @@ func (t *serviceSuite) TestGetServiceStatus(c *C) {
 	res := <-msg.Rch
 
 	c.Assert(len(res.ActiveSessions), Equals, 1)
-	c.Check(res.ActiveSessions[0].SessionId, Not(Equals), "")
+	c.Check(res.ActiveSessions[0].SessionID, Not(Equals), "")
 	c.Check(res.ActiveSessions[0].Policy, Equals, "permissive")
 	c.Check(res.ActiveSessions[0].Timeout, Equals, uint64(6)*3600)
 
@@ -314,10 +314,10 @@ func (t *serviceSuite) TestGetServiceStatus(c *C) {
 }
 
 func (t *serviceSuite) TestRequestInspection(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		t.ch = ch
 		t.proxyPort = port
-		return &proxy.HttpProxy{}, nil
+		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
@@ -352,9 +352,9 @@ func (t *serviceSuite) TestRequestInspection(c *C) {
 
 		a := metadata.NewArtifact()
 		if tc.sessionExists {
-			a.SessionId = s.Id
+			a.SessionID = s.ID
 		} else {
-			a.SessionId = "foo"
+			a.SessionID = "foo"
 		}
 		msg := messages.NewRequestInspection(a)
 		t.ch <- msg
@@ -396,7 +396,7 @@ func (t *serviceSuite) TestEvaluateRequestInspection(c *C) {
 		defer s.Discard()
 
 		a := metadata.NewArtifact()
-		a.SessionId = s.Id
+		a.SessionID = s.ID
 		a.RequestInspection = tc.inspections
 		res := service.EvaluateRequestInspection(s, a)
 		c.Assert(res, Equals, tc.expectedError)
@@ -443,10 +443,10 @@ var responseInspectionTests = []responseInspectionTest{{
 }}
 
 func (t *serviceSuite) TestResponseInspection(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		t.ch = ch
 		t.proxyPort = port
-		return &proxy.HttpProxy{}, nil
+		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
@@ -471,7 +471,8 @@ func (t *serviceSuite) TestResponseInspection(c *C) {
 		s := session.New(opt.Spool, 0, tc.policy == "permissive", nil, config.SessionInspectorsConfig{})
 		defer s.Discard()
 
-		sha, _ := digests.NewSha256Digest("5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03")
+		sha, err := digests.NewSha256Digest("5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03")
+		c.Assert(err, IsNil)
 		a := metadata.NewArtifact()
 		a.Metadata.Sha256 = sha
 		a.AssetDir = filepath.Join(s.SessionDir, "assets")
@@ -485,9 +486,9 @@ func (t *serviceSuite) TestResponseInspection(c *C) {
 			s.A[sha] = a
 		}
 		if tc.sessionExists {
-			a.SessionId = s.Id
+			a.SessionID = s.ID
 		} else {
-			a.SessionId = "foo"
+			a.SessionID = "foo"
 		}
 
 		msg := messages.NewResponseInspection(a)
@@ -524,15 +525,15 @@ func fakeArtifact(sha digests.Sha256Digest, s *session.Session, c *C) *metadata.
 	c.Assert(err, IsNil)
 
 	a.Tempfile = tmpfile.Name()
-	a.SessionId = s.Id
+	a.SessionID = s.ID
 	return a
 }
 
 func (t *serviceSuite) TestResponseInspectionConcurrent(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		t.ch = ch
 		t.proxyPort = port
-		return &proxy.HttpProxy{}, nil
+		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
@@ -556,7 +557,8 @@ func (t *serviceSuite) TestResponseInspectionConcurrent(c *C) {
 	s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 
-	sha, _ := digests.NewSha256Digest("5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03")
+	sha, err := digests.NewSha256Digest("5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03")
+	c.Assert(err, IsNil)
 
 	// First artifact download
 	a1 := fakeArtifact(sha, s, c)
@@ -620,7 +622,7 @@ func (t *serviceSuite) TestEvaluateResponseInspection(c *C) {
 		defer s.Discard()
 
 		a := metadata.NewArtifact()
-		a.SessionId = s.Id
+		a.SessionID = s.ID
 		a.RequestInspection = metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Pending}}
 		a.ResponseInspection = tc.inspections
 		res := service.EvaluateResponseInspection(s, a)
@@ -628,10 +630,10 @@ func (t *serviceSuite) TestEvaluateResponseInspection(c *C) {
 	}
 }
 func (t *serviceSuite) TestCreateSession(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		t.ch = ch
 		t.proxyPort = port
-		return &proxy.HttpProxy{}, nil
+		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
@@ -650,15 +652,15 @@ func (t *serviceSuite) TestCreateSession(c *C) {
 		{false, "strict", nil, ""},
 		// Cases for secrets
 		// Good secret declaration
-		{true, "permissive", []secrets.Secret{{Type: secrets.BasicAuthType, Url: glob.MustCompile("www.example.com"), BasicCreds: "user:passwd"}}, ""},
+		{true, "permissive", []secrets.Secret{{Type: secrets.BasicAuthType, URL: glob.MustCompile("www.example.com"), BasicCreds: "user:passwd"}}, ""},
 		// Missing type
 		{true, "permissive", []secrets.Secret{{}}, secrets.ErrMissingSecretType.Error()},
 		// Missing url
-		{true, "permissive", []secrets.Secret{{Type: secrets.BasicAuthType}}, secrets.ErrMissingSecretUrl.Error()},
+		{true, "permissive", []secrets.Secret{{Type: secrets.BasicAuthType}}, secrets.ErrMissingSecretURL.Error()},
 		// Invalid type
 		{true, "permissive", []secrets.Secret{{Type: "invalid-type"}}, secrets.ErrInvalidSecretType.Error()},
 		// Missing basic creds
-		{true, "permissive", []secrets.Secret{{Type: secrets.BasicAuthType, Url: glob.MustCompile("www.example.com")}}, secrets.ErrMissingBasicCreds.Error()},
+		{true, "permissive", []secrets.Secret{{Type: secrets.BasicAuthType, URL: glob.MustCompile("www.example.com")}}, secrets.ErrMissingBasicCreds.Error()},
 	} {
 		opt := service.Options{
 			ProxyPort:      1337,
@@ -679,7 +681,7 @@ func (t *serviceSuite) TestCreateSession(c *C) {
 
 		if tc.errMsg == "" {
 			c.Assert(res.Err, Equals, nil)
-			s := session.GetSession(res.Id)
+			s := session.GetSession(res.ID)
 			c.Assert(s.Permissive, Equals, tc.policy == "permissive")
 			s.Discard()
 		} else {
@@ -692,10 +694,10 @@ func (t *serviceSuite) TestCreateSession(c *C) {
 }
 
 func (t *serviceSuite) TestDeleteResources(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		t.ch = ch
 		t.proxyPort = port
-		return &proxy.HttpProxy{}, nil
+		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
@@ -730,7 +732,7 @@ func (t *serviceSuite) TestDeleteResources(c *C) {
 
 		var sid string
 		if tc.sessionExists {
-			sid = s.Id
+			sid = s.ID
 		} else {
 			sid = "other value"
 		}
@@ -751,10 +753,10 @@ func (t *serviceSuite) TestDeleteResources(c *C) {
 }
 
 func (t *serviceSuite) TestRevokeToken(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		t.ch = ch
 		t.proxyPort = port
-		return &proxy.HttpProxy{}, nil
+		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
@@ -787,7 +789,7 @@ func (t *serviceSuite) TestRevokeToken(c *C) {
 
 		var sid string
 		if tc.sessionExists {
-			sid = s.Id
+			sid = s.ID
 		} else {
 			sid = "other value"
 		}
@@ -806,7 +808,7 @@ func (t *serviceSuite) TestRevokeToken(c *C) {
 		if tc.err == nil {
 			c.Assert(res.Err, IsNil)
 			c.Assert(res.SpoolPath, Equals, dir)
-			c.Assert(res.SessionId, Equals, s.Id)
+			c.Assert(res.SessionID, Equals, s.ID)
 		} else {
 			c.Assert(res.Err, Equals, tc.err)
 		}
@@ -817,10 +819,10 @@ func (t *serviceSuite) TestRevokeToken(c *C) {
 }
 
 func (t *serviceSuite) TestGetSessionReport(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		t.ch = ch
 		t.proxyPort = port
-		return &proxy.HttpProxy{}, nil
+		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
@@ -853,7 +855,7 @@ func (t *serviceSuite) TestGetSessionReport(c *C) {
 
 		var sid string
 		if tc.sessionExists {
-			sid = s.Id
+			sid = s.ID
 		} else {
 			sid = "other value"
 		}
@@ -869,8 +871,8 @@ func (t *serviceSuite) TestGetSessionReport(c *C) {
 		if tc.err == nil {
 			c.Assert(res.Err, IsNil)
 			c.Assert(res.Artifacts, DeepEquals, []*metadata.Artifact{})
-			c.Assert(res.SessionMetadata.SessionId, Equals, s.Id)
-			c.Assert(res.SessionMetadata.SpoolPath, Equals, filepath.Join(dir, s.Id))
+			c.Assert(res.SessionID, Equals, s.ID)
+			c.Assert(res.SpoolPath, Equals, filepath.Join(dir, s.ID))
 		} else {
 			c.Assert(res.Err, Equals, tc.err)
 		}
@@ -881,10 +883,10 @@ func (t *serviceSuite) TestGetSessionReport(c *C) {
 }
 
 func (t *serviceSuite) TestEndSession(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		t.ch = ch
 		t.proxyPort = port
-		return &proxy.HttpProxy{}, nil
+		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
@@ -917,7 +919,7 @@ func (t *serviceSuite) TestEndSession(c *C) {
 
 		var sid string
 		if tc.sessionExists {
-			sid = s.Id
+			sid = s.ID
 		} else {
 			sid = "other value"
 		}
@@ -945,10 +947,10 @@ func (t *serviceSuite) TestControlAuthentication(c *C) {
 	})
 	defer restorer()
 
-	restorer = service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+	restorer = service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		t.ch = ch
 		t.proxyPort = port
-		return &proxy.HttpProxy{}, nil
+		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
@@ -959,10 +961,10 @@ func (t *serviceSuite) TestControlAuthentication(c *C) {
 }
 
 func (t *serviceSuite) TestFetchctlConfiguration(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		t.ch = ch
 		t.proxyPort = port
-		return &proxy.HttpProxy{}, nil
+		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
@@ -1016,10 +1018,10 @@ func (t *serviceSuite) TestFetchctlConfiguration(c *C) {
 }
 
 func (t *serviceSuite) TestFetchctlCertificateUpdate(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		t.ch = ch
 		t.proxyPort = port
-		return &proxy.HttpProxy{}, nil
+		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
@@ -1068,10 +1070,10 @@ func (t *serviceSuite) TestFetchctlCertificateUpdate(c *C) {
 }
 
 func (t *serviceSuite) TestFetchctlCreateSession(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		t.ch = ch
 		t.proxyPort = port
-		return &proxy.HttpProxy{}, nil
+		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
@@ -1093,13 +1095,13 @@ func (t *serviceSuite) TestFetchctlCreateSession(c *C) {
 		{false, `{"session-id":"x", "token":"y", "timeout":0, "mode":"permissive", "inspectors-configuration":""}`, "x", "y", time.Duration(0), false},
 	} {
 		var ss *session.Session
-		restorer = service.MockSessionNewWithId(func(sessionId, token, spool string, timeout time.Duration, permissive bool, sec []secrets.Secret, inspectorsConfig config.SessionInspectorsConfig) *session.Session {
-			c.Check(sessionId, Equals, tc.sid)
+		restorer = service.MockSessionNewWithID(func(sessionID, token, spool string, timeout time.Duration, permissive bool, sec []secrets.Secret, inspectorsConfig config.SessionInspectorsConfig) *session.Session {
+			c.Check(sessionID, Equals, tc.sid)
 			c.Check(token, Equals, tc.token)
 			c.Check(timeout, Equals, tc.timeout)
 			c.Check(permissive, Equals, tc.permissive)
 
-			ss = session.NewWithId(sessionId, token, spool, timeout, permissive, sec, inspectorsConfig)
+			ss = session.NewWithID(sessionID, token, spool, timeout, permissive, sec, inspectorsConfig)
 			return ss
 		})
 		defer restorer()
@@ -1162,11 +1164,11 @@ var loadConfigsOrDefaultTests = []loadConfigsOrDefaultTest{{
 	finalConfDir: "/user/config",
 }}
 
-func (t *serviceSuite) TestLoadHttpProxyRulesOrDefault(c *C) {
+func (t *serviceSuite) TestLoadHTTPProxyRulesOrDefault(c *C) {
 	var aclConfigDir string
 
 	for _, tc := range loadConfigsOrDefaultTests {
-		restorer := service.MockConfigLoadProxyHttpRules(func(cfgdir string) error {
+		restorer := service.MockConfigLoadProxyHTTPRules(func(cfgdir string) error {
 			aclConfigDir = cfgdir
 			if tc.hasConfig && cfgdir == "/user/config" {
 				return nil
@@ -1187,7 +1189,7 @@ func (t *serviceSuite) TestLoadHttpProxyRulesOrDefault(c *C) {
 		}
 
 		aclConfigDir = ""
-		err := service.LoadHttpProxyRulesOrDefault("/user/config")
+		err := service.LoadHTTPProxyRulesOrDefault("/user/config")
 		c.Assert(err, IsNil)
 		c.Assert(aclConfigDir, Equals, tc.finalConfDir, Commentf("test case: %+v", tc))
 	}

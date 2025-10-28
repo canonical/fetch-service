@@ -40,11 +40,11 @@ func checkValidOrigin(u *url.URL) error {
 	return fmt.Errorf("invalid origin %s", origin)
 }
 
-type goModuleUrlInfo struct {
+type goModuleURLInfo struct {
 	project string
 }
 
-func newGoModuleGitUrlInfo(u *url.URL) (*goModuleUrlInfo, error) {
+func newGoModuleGitURLInfo(u *url.URL) (*goModuleURLInfo, error) {
 	if err := checkValidOrigin(u); err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func newGoModuleGitUrlInfo(u *url.URL) (*goModuleUrlInfo, error) {
 	if len(m) != 3 && len(m) != 2 {
 		return nil, fmt.Errorf("%s: not a valid URL path for git go modules", u.Path)
 	}
-	info := &goModuleUrlInfo{
+	info := &goModuleURLInfo{
 		project: m[len(m)-1],
 	}
 

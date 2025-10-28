@@ -54,7 +54,7 @@ type Artifact struct {
 	CurrentDownload    Download             `json:"-"`                         // Information about the current download
 	AssetDir           string               `json:"-"`                         // Location to store files and metadata
 	Tempfile           string               `json:"-"`                         // Path to temporary file containing downloaded data
-	SessionId          string               `json:"-"`                         // The current session ID
+	SessionID          string               `json:"-"`                         // The current session ID
 	SessionCacheDir    string               `json:"-"`                         // Location to store files and metadata
 	MimeType           *mimetype.MIME       `json:"-"`                         // The artifact MIME type
 	Request            *http.Request        `json:"-"`                         // request handle for body content inspection
@@ -281,7 +281,7 @@ func (a *Artifact) RequestAnnotation(id, key string) (any, bool) {
 // inspector and annotation key are valid and the annotation type is
 // correct ok returns true, otherwise it returns false.
 func (a *Artifact) RequestStringAnnotation(id, key string) (string, bool) {
-	var def string = ""
+	var def = ""
 	return inspectionAnnotation(a.RequestInspection, id, key, def)
 }
 
@@ -290,7 +290,7 @@ func (a *Artifact) RequestStringAnnotation(id, key string) (string, bool) {
 // and annotation key are valid and the annotation type is correct ok
 // returns true, otherwise it returns false.
 func (a *Artifact) RequestBoolAnnotation(id, key string) (bool, bool) {
-	var def bool = false
+	var def = false
 	return inspectionAnnotation(a.RequestInspection, id, key, def)
 }
 
@@ -307,7 +307,7 @@ func (a *Artifact) ResponseAnnotation(id, key string) (any, bool) {
 // and annotation key are valid and the annotation type is correct ok returns
 // true, otherwise it returns false.
 func (a *Artifact) ResponseStringAnnotation(id, key string) (string, bool) {
-	var def string = ""
+	var def = ""
 	return inspectionAnnotation(a.ResponseInspection, id, key, def)
 }
 
@@ -316,7 +316,7 @@ func (a *Artifact) ResponseStringAnnotation(id, key string) (string, bool) {
 // and annotation key are valid and the annotation type is correct ok
 // returns true, otherwise it returns false.
 func (a *Artifact) ResponseBoolAnnotation(id, key string) (bool, bool) {
-	var def bool = false
+	var def = false
 	return inspectionAnnotation(a.ResponseInspection, id, key, def)
 }
 

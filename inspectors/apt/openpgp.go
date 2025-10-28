@@ -38,7 +38,7 @@ var checkSignature = checkSignatureImpl
 
 func checkSignatureImpl(f io.ReadSeeker, notes Annotation, pubkey string) (io.ReadSeeker, error) {
 	var keys []*packet.PublicKey
-	var keyIds []string
+	var keyIDs []string
 
 	keyBlocks := strings.SplitAfter(pubkey, "-----END PGP PUBLIC KEY BLOCK-----")
 	for _, k := range keyBlocks {
@@ -51,11 +51,11 @@ func checkSignatureImpl(f io.ReadSeeker, notes Annotation, pubkey string) (io.Re
 			return nil, err
 		}
 		keys = append(keys, key)
-		keyIds = append(keyIds, key.KeyIdString())
+		keyIDs = append(keyIDs, key.KeyIdString())
 		logger.Debugf("key id: %v", key.KeyIdString())
 	}
 
-	notes.Add("public-keys", keyIds)
+	notes.Add("public-keys", keyIDs)
 
 	data, err := io.ReadAll(f)
 	if err != nil {

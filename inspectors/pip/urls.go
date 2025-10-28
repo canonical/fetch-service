@@ -50,7 +50,7 @@ func checkValidOrigin(u *url.URL) error {
 	return nil
 }
 
-func checkWheelUrl(u *url.URL) error {
+func checkWheelURL(u *url.URL) error {
 	if err := checkValidOrigin(u); err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func checkWheelUrl(u *url.URL) error {
 	return nil
 }
 
-func checkSdistUrl(u *url.URL) error {
+func checkSdistURL(u *url.URL) error {
 	if err := checkValidOrigin(u); err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func checkSdistUrl(u *url.URL) error {
 	return nil
 }
 
-func checkMetadataUrl(u *url.URL) error {
+func checkMetadataURL(u *url.URL) error {
 	if err := checkValidOrigin(u); err != nil {
 		return err
 	}

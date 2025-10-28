@@ -59,7 +59,7 @@ func (t *fetchctlSuite) TestListArtifacts(c *C) {
 			c.Assert(err, IsNil)
 			c.Check(string(data[:n]), Equals, fmt.Sprintf(`{"operation":"list-artifacts","payload":%q}`, tc.sid))
 
-			_, err = f.Write([]byte(fmt.Sprintf(`{"result":%q,"message":%q}`, tc.result, tc.errmsg)))
+			_, err = fmt.Fprintf(f, `{"result":%q,"message":%q}`, tc.result, tc.errmsg)
 			c.Assert(err, IsNil)
 			f.Close()
 		}()
@@ -67,7 +67,7 @@ func (t *fetchctlSuite) TestListArtifacts(c *C) {
 		time.Sleep(500 * time.Millisecond)
 
 		cmd := fetchctl.ListArtifactsCmd{
-			SessionId: tc.sid,
+			SessionID: tc.sid,
 		}
 
 		err := cmd.Execute([]string{"fetchctl", "list-artifacts"}) // only argv[0] is relevant

@@ -46,7 +46,7 @@ func (ins *SnapInfoInspector) InspectRequest(a RequestArtifact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	if info, err := newSnapInfoUrlInfo(u); err == nil {
+	if info, err := newSnapInfoURLInfo(u); err == nil {
 		a.SetRequestPending(ins, "valid URL for snap info endpoint").Annotate(
 			Annotation{
 				"name": info.name,
@@ -62,7 +62,7 @@ type snapInfo struct {
 	Title     string            `json:"title"`
 	Summary   string            `json:"summary"`
 	Publisher map[string]string `json:"publisher"`
-	SnapId    string            `json:"snap-id"`
+	SnapID    string            `json:"snap-id"`
 }
 
 type snapInfoBody struct {

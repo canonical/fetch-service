@@ -33,18 +33,18 @@ import (
 var (
 	EvaluateRequestInspection     = evaluateRequestInspection
 	EvaluateResponseInspection    = evaluateResponseInspection
-	LoadHttpProxyRulesOrDefault   = loadHttpProxyRulesOrDefault
+	LoadHTTPProxyRulesOrDefault   = loadHTTPProxyRulesOrDefault
 	LoadInspectorsConfigOrDefault = loadInspectorsConfigOrDefault
 
 	HandleResponseInspection = handleResponseInspection
 	HandleCompleteInspection = handleCompleteInspection
 )
 
-func MockNewHttpProxy(mock func(int, string, []byte, []byte, chan interface{}) (*proxy.HttpProxy, error)) (restorer func()) {
-	old := proxyNewHttpProxy
-	proxyNewHttpProxy = mock
+func MockNewHTTPProxy(mock func(int, string, []byte, []byte, chan interface{}) (*proxy.HTTPProxy, error)) (restorer func()) {
+	old := proxyNewHTTPProxy
+	proxyNewHTTPProxy = mock
 	return func() {
-		proxyNewHttpProxy = old
+		proxyNewHTTPProxy = old
 	}
 }
 
@@ -80,19 +80,19 @@ func MockProxyUpdateCert(mock func(bool, []byte, string, string) error) (restore
 	}
 }
 
-func MockSessionNewWithId(mock func(string, string, string, time.Duration, bool, []secrets.Secret, config.SessionInspectorsConfig) *session.Session) (restorer func()) {
-	old := sessionNewWithId
-	sessionNewWithId = mock
+func MockSessionNewWithID(mock func(string, string, string, time.Duration, bool, []secrets.Secret, config.SessionInspectorsConfig) *session.Session) (restorer func()) {
+	old := sessionNewWithID
+	sessionNewWithID = mock
 	return func() {
-		sessionNewWithId = old
+		sessionNewWithID = old
 	}
 }
 
-func MockConfigLoadProxyHttpRules(mock func(string) error) (restorer func()) {
-	old := configLoadHttpProxyRules
-	configLoadHttpProxyRules = mock
+func MockConfigLoadProxyHTTPRules(mock func(string) error) (restorer func()) {
+	old := configLoadHTTPProxyRules
+	configLoadHTTPProxyRules = mock
 	return func() {
-		configLoadHttpProxyRules = old
+		configLoadHTTPProxyRules = old
 	}
 }
 

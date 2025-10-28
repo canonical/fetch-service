@@ -67,7 +67,7 @@ func (t *fetchctlSuite) TestCreateSession(c *C) {
 			c.Assert(err, IsNil)
 			c.Check(string(data[:n]), Equals, fmt.Sprintf(`{"operation":"create-session","payload":%q}`, tc.payload))
 
-			_, err = f.Write([]byte(fmt.Sprintf(`{"result":%q,"message":%q}`, tc.result, tc.errmsg)))
+			_, err = fmt.Fprintf(f, `{"result":%q,"message":%q}`, tc.result, tc.errmsg)
 			c.Assert(err, IsNil)
 			f.Close()
 		}()
@@ -75,7 +75,7 @@ func (t *fetchctlSuite) TestCreateSession(c *C) {
 		time.Sleep(500 * time.Millisecond)
 
 		cmd := fetchctl.CreateSessionCmd{
-			SessionId:  tc.sid,
+			SessionID:  tc.sid,
 			Token:      tc.token,
 			Timeout:    tc.timeout,
 			Permissive: tc.permissive,

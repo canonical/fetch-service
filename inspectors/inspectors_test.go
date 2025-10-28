@@ -86,7 +86,8 @@ func (t *inspectorsSuite) TestRunArtifactInspectors(c *C) {
 	err := os.WriteFile(filepath.Join(dir, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.data"), data, 0644)
 	c.Assert(err, IsNil)
 
-	h, _ := digests.NewSha256Digest(MySha256)
+	h, err := digests.NewSha256Digest(MySha256)
+	c.Assert(err, IsNil)
 	a := metadata.NewArtifact()
 	a.CurrentDownload.ContentType = "text/plain"
 	a.CurrentDownload.Sha256 = h
@@ -112,7 +113,8 @@ func (t *inspectorsSuite) TestRunArtifactInspectorsPermissive(c *C) {
 	err := os.WriteFile(filepath.Join(dir, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.data"), data, 0644)
 	c.Assert(err, IsNil)
 
-	h, _ := digests.NewSha256Digest(MySha256)
+	h, err := digests.NewSha256Digest(MySha256)
+	c.Assert(err, IsNil)
 	a := metadata.NewArtifact()
 	a.CurrentDownload.ContentType = "text/plain"
 	a.CurrentDownload.Sha256 = h

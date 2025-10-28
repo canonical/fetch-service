@@ -28,17 +28,17 @@ import (
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
-func (s *storeSuite) TestStoreTransformApiInspectorID(c *C) {
-	ins := store.NewStoreTransformsApiInspector(getTestStoreInspectorConfig())
+func (s *storeSuite) TestStoreTransformAPIInspectorID(c *C) {
+	ins := store.NewStoreTransformsAPIInspector(getTestStoreInspectorConfig())
 	c.Assert(ins.ID(), Equals, "store.transforms-api")
 }
 
-type storeTransformsApiInspectRequestTest struct {
+type storeTransformsAPIInspectRequestTest struct {
 	url     string // The info request URL
 	pending bool   // Whether the inspection result should be pending
 }
 
-var storeTransformsApiInspectRequestTests = []storeTransformsApiInspectRequestTest{{
+var storeTransformsAPIInspectRequestTests = []storeTransformsAPIInspectRequestTest{{
 	url:     "https://api.snapcraft.io:443/v1/craft/workspaces/1234/transforms",
 	pending: true,
 }, {
@@ -52,9 +52,9 @@ var storeTransformsApiInspectRequestTests = []storeTransformsApiInspectRequestTe
 	pending: false,
 }}
 
-func (s *storeSuite) TestStoreTransformsApiInspectRequest(c *C) {
-	for _, tc := range storeTransformsApiInspectRequestTests {
-		ins := store.NewStoreTransformsApiInspector(getTestStoreInspectorConfig())
+func (s *storeSuite) TestStoreTransformsAPIInspectRequest(c *C) {
+	for _, tc := range storeTransformsAPIInspectRequestTests {
+		ins := store.NewStoreTransformsAPIInspector(getTestStoreInspectorConfig())
 		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 
@@ -69,13 +69,13 @@ func (s *storeSuite) TestStoreTransformsApiInspectRequest(c *C) {
 	}
 }
 
-type storeTransformsApiArtifactInspectorTest struct {
+type storeTransformsAPIArtifactInspectorTest struct {
 	filename string // The test file name
 	approved bool   // Whether the artifact should be approved
 	reason   string // The reason for approval or rejection
 }
 
-var storeTransformsApiArtifactInspectorTests = []storeTransformsApiArtifactInspectorTest{{
+var storeTransformsAPIArtifactInspectorTests = []storeTransformsAPIArtifactInspectorTest{{
 	filename: "testdata/transforms.json",
 	approved: true,
 	reason:   "valid store transforms API response",
@@ -97,8 +97,8 @@ var storeTransformsApiArtifactInspectorTests = []storeTransformsApiArtifactInspe
 	reason:   "", // unrecognized artifact
 }}
 
-func (s *storeSuite) TestStoreTransformsApiArtifactInspector(c *C) {
-	for _, tc := range storeTransformsApiArtifactInspectorTests {
+func (s *storeSuite) TestStoreTransformsAPIArtifactInspector(c *C) {
+	for _, tc := range storeTransformsAPIArtifactInspectorTests {
 		a := metadata.NewArtifact()
 		a.Metadata.Type = "application/json"
 		a.Metadata.Size = 1234
@@ -107,7 +107,7 @@ func (s *storeSuite) TestStoreTransformsApiArtifactInspector(c *C) {
 		c.Assert(err, IsNil)
 		defer f.Close()
 
-		ins := store.NewStoreTransformsApiInspector(getTestStoreInspectorConfig())
+		ins := store.NewStoreTransformsAPIInspector(getTestStoreInspectorConfig())
 		a.SetRequestPending(ins, "test")
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
@@ -128,7 +128,7 @@ func (s *storeSuite) TestStoreTransformsApiArtifactInspector(c *C) {
 	}
 }
 
-func (s *storeSuite) TestStoreTransformsApiArtifactBadType(c *C) {
+func (s *storeSuite) TestStoreTransformsAPIArtifactBadType(c *C) {
 	a := metadata.NewArtifact()
 	a.Metadata.Type = "text/plain"
 	a.Metadata.Size = 1743
@@ -137,7 +137,7 @@ func (s *storeSuite) TestStoreTransformsApiArtifactBadType(c *C) {
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	ins := store.NewStoreInfoApiInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
+	ins := store.NewStoreInfoAPIInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Check(a.Approved(), Equals, false)

@@ -41,7 +41,7 @@ func (t *aclSuite) SetUpTest(c *C) {
 
 var _ = Suite(&aclSuite{})
 
-var proxyConfig = config.HttpProxyConfig{
+var proxyConfig = config.HTTPProxyConfig{
 	Policy: config.Allow,
 	Rules: []config.Rule{
 		{
@@ -112,7 +112,7 @@ func (t *aclSuite) TestDefaultPolicy(c *C) {
 		{config.Allow, true},
 		{config.Deny, false},
 	} {
-		cfg := config.HttpProxyConfig{
+		cfg := config.HTTPProxyConfig{
 			Policy: tc.policy,
 			Rules: []config.Rule{
 				config.Rule{
@@ -140,11 +140,11 @@ func (t *aclSuite) TestDefaultPolicy(c *C) {
 	}
 }
 
-func setProxyConfig(cfg config.HttpProxyConfig) func() {
-	old := config.GetHttpProxyConfig()
-	config.SetHttpProxyConfig(cfg)
+func setProxyConfig(cfg config.HTTPProxyConfig) func() {
+	old := config.GetHTTPProxyConfig()
+	config.SetHTTPProxyConfig(cfg)
 	return func() {
-		config.SetHttpProxyConfig(old)
+		config.SetHTTPProxyConfig(old)
 	}
 }
 

@@ -73,9 +73,9 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		snap.NewSnapRefreshInspector(),
 
 		// store API
-		store.NewStoreInfoApiInspector(cfg.Store, cfg.BldBin),
-		store.NewStoreResolveApiInspector(cfg.Store),
-		store.NewStoreTransformsApiInspector(cfg.Store),
+		store.NewStoreInfoAPIInspector(cfg.Store, cfg.BldBin),
+		store.NewStoreResolveAPIInspector(cfg.Store),
+		store.NewStoreTransformsAPIInspector(cfg.Store),
 		store.NewStoreAppMediaInspector(cfg.Store),
 
 		// bld bin

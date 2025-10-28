@@ -33,7 +33,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 )
 
-// Fields in the bld bin metadata.yaml
+// BldBinMetadata represents fields in the bld bin metadata.yaml
 type BldBinMetadata struct {
 	Name         string `yaml:"name"`
 	Version      string `yaml:"version"`
@@ -66,7 +66,7 @@ func (ins *BldBinInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	_, err = config.NewBldBinUrlInfo(u, &ins.config, slog)
+	_, err = config.NewBldBinURLInfo(u, &ins.config, slog)
 	if err != nil {
 		return nil // We don't recognize the request
 	}

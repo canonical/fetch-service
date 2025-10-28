@@ -61,7 +61,7 @@ func (t *fetchctlSuite) TestUpdateConfig(c *C) {
 			c.Assert(err, IsNil)
 			c.Check(string(data[:n]), Equals, fmt.Sprintf(`{"operation":"update-config","type":%q,"payload":"content"}`, tc.optype))
 
-			_, err = f.Write([]byte(fmt.Sprintf(`{"result":%q,"message":%q}`, tc.result, tc.message)))
+			_, err = fmt.Fprintf(f, `{"result":%q,"message":%q}`, tc.result, tc.message)
 			c.Assert(err, IsNil)
 			f.Close()
 		}()

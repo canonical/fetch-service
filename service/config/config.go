@@ -131,13 +131,13 @@ type Rule struct {
 	Access ACLPolicy `yaml:"access"`
 }
 
-type HttpProxyConfig struct {
+type HTTPProxyConfig struct {
 	Policy ACLPolicy `yaml:"policy"`
 	Rules  []Rule    `yaml:"rules"`
 }
 
 type ACLConfig struct {
-	HttpProxy HttpProxyConfig `yaml:"http-proxy"`
+	HTTPProxy HTTPProxyConfig `yaml:"http-proxy"`
 }
 
 var (
@@ -145,33 +145,33 @@ var (
 	globalACLConfigLock sync.Mutex
 )
 
-func GetHttpProxyConfig() HttpProxyConfig {
+func GetHTTPProxyConfig() HTTPProxyConfig {
 	globalACLConfigLock.Lock()
 	defer globalACLConfigLock.Unlock()
 
-	cfg := HttpProxyConfig{
-		Policy: globalACLConfig.HttpProxy.Policy,
-		Rules:  make([]Rule, len(globalACLConfig.HttpProxy.Rules)),
+	cfg := HTTPProxyConfig{
+		Policy: globalACLConfig.HTTPProxy.Policy,
+		Rules:  make([]Rule, len(globalACLConfig.HTTPProxy.Rules)),
 	}
 
-	copy(cfg.Rules, globalACLConfig.HttpProxy.Rules)
+	copy(cfg.Rules, globalACLConfig.HTTPProxy.Rules)
 
 	return cfg
 }
 
-func SetHttpProxyConfig(cfg HttpProxyConfig) {
+func SetHTTPProxyConfig(cfg HTTPProxyConfig) {
 	globalACLConfigLock.Lock()
 	defer globalACLConfigLock.Unlock()
 
-	globalACLConfig.HttpProxy.Policy = cfg.Policy
-	globalACLConfig.HttpProxy.Rules = make([]Rule, len(cfg.Rules))
-	copy(globalACLConfig.HttpProxy.Rules, cfg.Rules)
+	globalACLConfig.HTTPProxy.Policy = cfg.Policy
+	globalACLConfig.HTTPProxy.Rules = make([]Rule, len(cfg.Rules))
+	copy(globalACLConfig.HTTPProxy.Rules, cfg.Rules)
 
 	logger.Infof("Proxy configuration updated: %d dst rules, default policy: %s",
 		len(cfg.Rules), cfg.Policy.String())
 }
 
-func LoadHttpProxyRules(cfgdir string) error {
+func LoadHTTPProxyRules(cfgdir string) error {
 	cfgfile := filepath.Join(cfgdir, aclConfigFile)
 	if _, err := os.Stat(cfgfile); err != nil {
 		return err
@@ -184,19 +184,19 @@ func LoadHttpProxyRules(cfgdir string) error {
 	}
 	defer f.Close()
 
-	cfg, err := decodeHttpProxyRules(f)
+	cfg, err := decodeHTTPProxyRules(f)
 	if err != nil {
 		return err
 	}
 
 	// The configuration is only updated if the configuration file
 	// is correctly parsed.
-	SetHttpProxyConfig(cfg.HttpProxy)
+	SetHTTPProxyConfig(cfg.HTTPProxy)
 
 	return nil
 }
 
-func decodeHttpProxyRules(r io.Reader) (ACLConfig, error) {
+func decodeHTTPProxyRules(r io.Reader) (ACLConfig, error) {
 	var cfg ACLConfig
 	dec := yaml.NewDecoder(r)
 	if err := dec.Decode(&cfg); err != nil {
@@ -210,12 +210,12 @@ func UpdateConfig(optype string, dryRun bool, payload []byte, cfgdir string) err
 
 	switch optype {
 	case "acl":
-		cfg, err := decodeHttpProxyRules(r)
+		cfg, err := decodeHTTPProxyRules(r)
 		if err != nil {
 			return err
 		}
 		if !dryRun {
-			SetHttpProxyConfig(cfg.HttpProxy)
+			SetHTTPProxyConfig(cfg.HTTPProxy)
 
 			// Overwrite the configuration file only if the data is valid
 			// and we're not in a dry run.
@@ -330,28 +330,28 @@ func GetInspectorsConfig() InspectorsConfig {
 
 	for k, v := range globalInspectorsConfig.Apt.Repositories {
 		cfg.Apt.Repositories[k] = apt_cfg.AptInspectorConfigRepository{
-			Urls:         v.Urls,
+			URLs:         v.URLs,
 			Suites:       v.Suites,
 			Components:   v.Components,
 			PublicKey:    v.PublicKey,
-			BaseUrlAlias: v.BaseUrlAlias,
+			BaseURLAlias: v.BaseURLAlias,
 		}
 	}
 
-	cfg.Git.Urls = make([]glob.Glob, len(globalInspectorsConfig.Git.Urls))
-	copy(cfg.Git.Urls, globalInspectorsConfig.Git.Urls)
+	cfg.Git.URLs = make([]glob.Glob, len(globalInspectorsConfig.Git.URLs))
+	copy(cfg.Git.URLs, globalInspectorsConfig.Git.URLs)
 
-	cfg.Crafts.Urls = make([]glob.Glob, len(globalInspectorsConfig.Crafts.Urls))
-	copy(cfg.Crafts.Urls, globalInspectorsConfig.Crafts.Urls)
+	cfg.Crafts.URLs = make([]glob.Glob, len(globalInspectorsConfig.Crafts.URLs))
+	copy(cfg.Crafts.URLs, globalInspectorsConfig.Crafts.URLs)
 
-	cfg.Store.Urls = make([]glob.Glob, len(globalInspectorsConfig.Store.Urls))
-	copy(cfg.Store.Urls, globalInspectorsConfig.Store.Urls)
+	cfg.Store.URLs = make([]glob.Glob, len(globalInspectorsConfig.Store.URLs))
+	copy(cfg.Store.URLs, globalInspectorsConfig.Store.URLs)
 
-	cfg.BldBin.Urls = make([]glob.Glob, len(globalInspectorsConfig.BldBin.Urls))
-	copy(cfg.BldBin.Urls, globalInspectorsConfig.BldBin.Urls)
+	cfg.BldBin.URLs = make([]glob.Glob, len(globalInspectorsConfig.BldBin.URLs))
+	copy(cfg.BldBin.URLs, globalInspectorsConfig.BldBin.URLs)
 
-	cfg.Chisel.Urls = make([]glob.Glob, len(globalInspectorsConfig.Chisel.Urls))
-	copy(cfg.Chisel.Urls, globalInspectorsConfig.Chisel.Urls)
+	cfg.Chisel.URLs = make([]glob.Glob, len(globalInspectorsConfig.Chisel.URLs))
+	copy(cfg.Chisel.URLs, globalInspectorsConfig.Chisel.URLs)
 
 	cfg.Snap.SnapDeclarationFilter = make([]snap_cfg.AssertionFilter, len(globalInspectorsConfig.Snap.SnapDeclarationFilter))
 	for i, v := range globalInspectorsConfig.Snap.SnapDeclarationFilter {
@@ -393,36 +393,36 @@ func (i *InspectorsConfig) Combine(c SessionInspectorsConfig) {
 		}
 		for k, v := range c.Apt.Repositories {
 			i.Apt.Repositories[k] = apt_cfg.AptInspectorConfigRepository{
-				Urls:         v.Urls,
+				URLs:         v.URLs,
 				Suites:       v.Suites,
 				Components:   v.Components,
 				PublicKey:    v.PublicKey,
-				BaseUrlAlias: v.BaseUrlAlias,
+				BaseURLAlias: v.BaseURLAlias,
 			}
 		}
 	}
 	if c.Git != nil {
-		i.Git.Urls = make([]glob.Glob, len(c.Git.Urls))
-		copy(i.Git.Urls, c.Git.Urls)
+		i.Git.URLs = make([]glob.Glob, len(c.Git.URLs))
+		copy(i.Git.URLs, c.Git.URLs)
 	}
 	if c.Crafts != nil {
-		i.Crafts.Urls = make([]glob.Glob, len(c.Crafts.Urls))
-		copy(i.Crafts.Urls, c.Crafts.Urls)
+		i.Crafts.URLs = make([]glob.Glob, len(c.Crafts.URLs))
+		copy(i.Crafts.URLs, c.Crafts.URLs)
 	}
 	if c.Chisel != nil {
-		i.Chisel.Urls = make([]glob.Glob, len(c.Chisel.Urls))
-		copy(i.Chisel.Urls, c.Chisel.Urls)
+		i.Chisel.URLs = make([]glob.Glob, len(c.Chisel.URLs))
+		copy(i.Chisel.URLs, c.Chisel.URLs)
 	}
 	if c.Snap != nil {
 		i.Snap.SnapDeclarationFilter = make([]snap_cfg.AssertionFilter, len(c.Snap.SnapDeclarationFilter))
 		copy(i.Snap.SnapDeclarationFilter, c.Snap.SnapDeclarationFilter)
 	}
 	if c.Store != nil {
-		i.Store.Urls = make([]glob.Glob, len(c.Store.Urls))
-		copy(i.Store.Urls, c.Store.Urls)
+		i.Store.URLs = make([]glob.Glob, len(c.Store.URLs))
+		copy(i.Store.URLs, c.Store.URLs)
 	}
 	if c.BldBin != nil {
-		i.BldBin.Urls = make([]glob.Glob, len(c.BldBin.Urls))
-		copy(i.BldBin.Urls, c.BldBin.Urls)
+		i.BldBin.URLs = make([]glob.Glob, len(c.BldBin.URLs))
+		copy(i.BldBin.URLs, c.BldBin.URLs)
 	}
 }

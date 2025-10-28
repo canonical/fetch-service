@@ -45,11 +45,11 @@ var (
 
 // Simple streams index
 
-type SimpleStreamsIndexUrlInfo struct {
+type SimpleStreamsIndexURLInfo struct {
 	Stream string // The stream portion of the URL
 }
 
-func NewSimpleStreamsIndexUrlInfo(u *url.URL) (*SimpleStreamsIndexUrlInfo, error) {
+func NewSimpleStreamsIndexURLInfo(u *url.URL) (*SimpleStreamsIndexURLInfo, error) {
 	if err := checkValidOrigin(u); err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func NewSimpleStreamsIndexUrlInfo(u *url.URL) (*SimpleStreamsIndexUrlInfo, error
 		return nil, fmt.Errorf("invalid URL path: %s", u.Path)
 	}
 
-	info := &SimpleStreamsIndexUrlInfo{
+	info := &SimpleStreamsIndexURLInfo{
 		Stream: m[1],
 	}
 	return info, nil
@@ -67,12 +67,12 @@ func NewSimpleStreamsIndexUrlInfo(u *url.URL) (*SimpleStreamsIndexUrlInfo, error
 
 // Simple stream product download request
 
-type SimpleStreamsDownloadUrlInfo struct {
+type SimpleStreamsDownloadURLInfo struct {
 	Stream   string // The stream portion of the URL
 	ItemPath string // The image to download
 }
 
-func NewSimpleStreamsDownloadUrlInfo(u *url.URL) (*SimpleStreamsDownloadUrlInfo, error) {
+func NewSimpleStreamsDownloadURLInfo(u *url.URL) (*SimpleStreamsDownloadURLInfo, error) {
 	if err := checkValidOrigin(u); err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func NewSimpleStreamsDownloadUrlInfo(u *url.URL) (*SimpleStreamsDownloadUrlInfo,
 		return nil, fmt.Errorf("invalid URL path: %s", u.Path)
 	}
 
-	info := &SimpleStreamsDownloadUrlInfo{
+	info := &SimpleStreamsDownloadURLInfo{
 		Stream:   m[1],
 		ItemPath: m[2],
 	}
@@ -91,14 +91,14 @@ func NewSimpleStreamsDownloadUrlInfo(u *url.URL) (*SimpleStreamsDownloadUrlInfo,
 
 // LXD product tarball
 
-type ProductItemUrlInfo struct {
+type ProductItemURLInfo struct {
 	ImageType string // Daily or releases
 	Series    string // The image series
 	Date      string // The date of the daily image
 	Name      string // The rootfs filename
 }
 
-func NewProductItemUrlInfo(u *url.URL) (*ProductItemUrlInfo, error) {
+func NewProductItemURLInfo(u *url.URL) (*ProductItemURLInfo, error) {
 	if err := checkValidOrigin(u); err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func NewProductItemUrlInfo(u *url.URL) (*ProductItemUrlInfo, error) {
 		return nil, fmt.Errorf("invalid URL path: %s", u.Path)
 	}
 
-	info := &ProductItemUrlInfo{
+	info := &ProductItemURLInfo{
 		ImageType: m[1],
 		Series:    m[2],
 		Date:      m[3],

@@ -49,7 +49,7 @@ func RunningFromSnap() bool {
 
 // Service implements the fetch service main loop.
 type Service struct {
-	p        *proxy.HttpProxy // proxy instance
+	p        *proxy.HTTPProxy // proxy instance
 	ctl      *control.Server  // control server
 	fetchctl *fetchctl.Server // configuration server
 	ch       chan interface{} // channel to get feedback from handlers
@@ -61,10 +61,10 @@ type Service struct {
 }
 
 var (
-	proxyNewHttpProxy = proxy.NewHttpProxy
+	proxyNewHTTPProxy = proxy.NewHTTPProxy
 	controlNewServer  = control.NewServer
 	fetchctlNewServer = fetchctl.NewServer
-	sessionNewWithId  = session.NewWithId
+	sessionNewWithID  = session.NewWithID
 )
 
 func New(opt *Options) (*Service, error) {
@@ -77,7 +77,7 @@ func New(opt *Options) (*Service, error) {
 	}
 
 	ch := make(chan interface{})
-	p, err := proxyNewHttpProxy(opt.ProxyPort, opt.Spool, cert, key, ch)
+	p, err := proxyNewHTTPProxy(opt.ProxyPort, opt.Spool, cert, key, ch)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func New(opt *Options) (*Service, error) {
 func (svc *Service) Start() error {
 	logger.Info("Loading service configuration...")
 
-	if err := loadHttpProxyRulesOrDefault(svc.opt.Config); err != nil {
+	if err := loadHTTPProxyRulesOrDefault(svc.opt.Config); err != nil {
 		return fmt.Errorf("cannot load proxy rules: %s", err)
 	}
 
@@ -122,15 +122,15 @@ func (svc *Service) Start() error {
 }
 
 var (
-	configLoadHttpProxyRules   = config.LoadHttpProxyRules
+	configLoadHTTPProxyRules   = config.LoadHTTPProxyRules
 	configLoadInspectorsConfig = config.LoadInspectorsConfig
 )
 
-func loadHttpProxyRulesOrDefault(cfgdir string) error {
-	err := configLoadHttpProxyRules(cfgdir)
+func loadHTTPProxyRulesOrDefault(cfgdir string) error {
+	err := configLoadHTTPProxyRules(cfgdir)
 	if errors.Is(err, os.ErrNotExist) {
 		if RunningFromSnap() {
-			err = configLoadHttpProxyRules(os.ExpandEnv(SnapBundledConfigDir))
+			err = configLoadHTTPProxyRules(os.ExpandEnv(SnapBundledConfigDir))
 		} else {
 			logger.Infof("ACL configuration file does not exist in %s", cfgdir)
 			return nil
@@ -177,18 +177,18 @@ loop:
 
 			handleMessages(svc, msg)
 
-		case sessionId := <-session.ExpiredSessionId:
-			logger.Infof("service: session %s expired", sessionId)
-			s := session.GetSession(sessionId)
+		case sessionID := <-session.ExpiredSessionID:
+			logger.Infof("service: session %s expired", sessionID)
+			s := session.GetSession(sessionID)
 			if s == nil {
-				logger.Warningf("service: session %s does not exist", sessionId)
+				logger.Warningf("service: session %s does not exist", sessionID)
 				break
 			}
 			if err := s.Finish(); err != nil {
-				logger.Errorf("service: cannot finish session %s: %s", sessionId, err)
+				logger.Errorf("service: cannot finish session %s: %s", sessionID, err)
 			}
-			if err := session.RemoveResources(svc.opt.Spool, sessionId); err != nil {
-				logger.Errorf("service: cannot remove session %s resources: %s", sessionId, err)
+			if err := session.RemoveResources(svc.opt.Spool, sessionID); err != nil {
+				logger.Errorf("service: cannot remove session %s resources: %s", sessionID, err)
 			}
 			if svc.opt.IdleShutdown > 0 {
 				idleTimer.Reset(time.Duration(svc.opt.IdleShutdown) * time.Second)

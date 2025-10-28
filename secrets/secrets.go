@@ -31,7 +31,7 @@ type SecretType string
 
 type Secret struct {
 	Type       SecretType
-	Url        glob.Glob
+	URL        glob.Glob
 	BasicCreds string `json:"basic-credentials"`
 }
 
@@ -42,7 +42,7 @@ const BasicAuthType SecretType = "basic-auth"
 var (
 	ErrMissingSecretType = errors.New("Invalid secret: missing type")
 	ErrInvalidSecretType = errors.New("Invalid secret: invalid type")
-	ErrMissingSecretUrl  = errors.New("Invalid secret: missing url")
+	ErrMissingSecretURL  = errors.New("Invalid secret: missing url")
 	ErrMissingBasicCreds = errors.New("Invalid secret: missing credentials for 'basic-auth'")
 )
 
@@ -54,8 +54,8 @@ func ValidateSecrets(sec []Secret) error {
 		if s.Type != BasicAuthType {
 			return ErrInvalidSecretType
 		}
-		if s.Url.G == nil {
-			return ErrMissingSecretUrl
+		if s.URL.G == nil {
+			return ErrMissingSecretURL
 		}
 		if err := validateCredentials(s); err != nil {
 			return err
@@ -75,7 +75,7 @@ func validateCredentials(sec Secret) error {
 
 func InjectSecrets(secrets []Secret, url string, req *http.Request) bool {
 	for _, s := range secrets {
-		if s.Url.Match(url) {
+		if s.URL.Match(url) {
 			injectSecret(s, req)
 			return true
 		}

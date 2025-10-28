@@ -87,9 +87,9 @@ func (ins *UploadPackInspector) InspectRequest(a RequestArtifact) error {
 		return nil
 	}
 
-	info, err := config.NewUploadPackUrlInfo(u, &ins.config, slog)
+	info, err := config.NewUploadPackURLInfo(u, &ins.config, slog)
 	if err != nil {
-		info = &config.UploadPackUrlInfo{}
+		info = &config.UploadPackURLInfo{}
 	}
 
 	// We're now sure this is a git upload pack request

@@ -33,10 +33,10 @@ import (
 )
 
 func (t *serviceSuite) TestReuseInspectionResult(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		t.ch = ch
 		t.proxyPort = port
-		return &proxy.HttpProxy{}, nil
+		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
@@ -57,7 +57,8 @@ func (t *serviceSuite) TestReuseInspectionResult(c *C) {
 	defer s.Discard()
 
 	// Create a fake artifact
-	sha, _ := digests.NewSha256Digest("5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03")
+	sha, err := digests.NewSha256Digest("5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03")
+	c.Assert(err, IsNil)
 	a1 := fakeArtifact(sha, s, c)
 
 	// We're the service dispatcher.

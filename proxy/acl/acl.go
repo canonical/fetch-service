@@ -34,7 +34,7 @@ func Allowed(ip net.IP) bool {
 	}
 
 	logger.Debugf("acl: check if connection to %s is allowed", ip.String())
-	cfg := config.GetHttpProxyConfig()
+	cfg := config.GetHTTPProxyConfig()
 
 	for _, rule := range cfg.Rules {
 		allowed := rule.Access == config.Allow

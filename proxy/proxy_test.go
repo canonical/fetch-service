@@ -55,7 +55,7 @@ func (t *proxySuite) SetUpTest(c *C) {
 func (t *proxySuite) TestServerError(c *C) {
 	ch := make(chan interface{}, 1)
 	spool := c.MkDir()
-	p, err := proxy.NewHttpProxy(5566, spool, testutils.ProxyCert, testutils.ProxyKey, ch)
+	p, err := proxy.NewHTTPProxy(5566, spool, testutils.ProxyCert, testutils.ProxyKey, ch)
 	c.Assert(err, IsNil)
 
 	err = errors.New("an error")
@@ -68,7 +68,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 	// start the fetch service proxy
 	ch := make(chan interface{}, 1)
 	spool := c.MkDir()
-	p, err := proxy.NewHttpProxy(5566, spool, testutils.ProxyCert, testutils.ProxyKey, ch)
+	p, err := proxy.NewHTTPProxy(5566, spool, testutils.ProxyCert, testutils.ProxyKey, ch)
 	c.Assert(err, IsNil)
 
 	err = p.Start()
@@ -87,7 +87,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 	// download a test file
 	proxyURL := url.URL{
 		Scheme: "http",
-		User:   url.UserPassword(s.Id, s.Token),
+		User:   url.UserPassword(s.ID, s.Token),
 		Host:   "localhost:5566",
 	}
 
@@ -115,7 +115,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 	// authorize download
 	msg := <-ch
 	auth := msg.(messages.ProxyAuth)
-	c.Assert(auth.Id, Equals, s.Id)
+	c.Assert(auth.ID, Equals, s.ID)
 	c.Assert(auth.Pw, Equals, s.Token)
 	auth.Rch <- true
 
@@ -167,7 +167,7 @@ func (t *proxySuite) TestCopyHeader(c *C) {
 		{"key", []string{"a", "b", "c"}},
 	} {
 		data := map[string][]string{tc.key: tc.val}
-		newData := proxy.CopyHttpHeader(data)
+		newData := proxy.CopyHTTPHeader(data)
 		delete(data, tc.key)
 		c.Assert(data[tc.key], IsNil)
 		c.Assert(newData, Not(Equals), data)

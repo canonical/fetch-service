@@ -87,7 +87,7 @@ func (ins *SimpleStreamsDownloadInspector) InspectRequest(a RequestArtifact) err
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	info, err := NewSimpleStreamsDownloadUrlInfo(u)
+	info, err := NewSimpleStreamsDownloadURLInfo(u)
 	if err == nil {
 		a.SetRequestPending(ins, "valid Simple Streams download request URL").Annotate(
 			Annotation{
@@ -98,7 +98,7 @@ func (ins *SimpleStreamsDownloadInspector) InspectRequest(a RequestArtifact) err
 		return nil
 	}
 
-	pinfo, err := NewProductItemUrlInfo(u)
+	pinfo, err := NewProductItemURLInfo(u)
 	if err == nil {
 		a.SetRequestPending(ins, "valid Simple Streams product item URL").Annotate(
 			Annotation{
@@ -115,7 +115,7 @@ type simpleStreamsDownload struct {
 	Updated   string                                `json:"updated"`
 	Format    string                                `json:"format"`
 	Datatype  string                                `json:"datatype"`
-	ContentId string                                `json:"content_id"`
+	ContentID string                                `json:"content_id"`
 	License   string                                `json:"license"`
 	Creator   string                                `json:"creator"`
 	Products  map[string]simpleStreamProductEntries `json:"products"`
@@ -188,7 +188,7 @@ func (ins *SimpleStreamsDownloadInspector) InspectArtifact(f ArtifactReader, a R
 	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:        mimetypes.SimpleStreamsProducts,
 		Name:        "Simple Streams Download",
-		Description: fmt.Sprintf("Simple Streams Download for %s", dl.ContentId),
+		Description: fmt.Sprintf("Simple Streams Download for %s", dl.ContentID),
 	})
 
 	a.SetResponseApproved(ins, "valid Simple Streams Download file").Annotate(

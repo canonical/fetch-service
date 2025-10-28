@@ -56,7 +56,7 @@ func SnapcraftTest(t *testing.T) { TestingT(t) }
 
 func getTestSnapcraftConfig() config.CraftsInspectorConfig {
 	return config.CraftsInspectorConfig{
-		Urls: []glob.Glob{
+		URLs: []glob.Glob{
 			glob.MustCompile("https://github.com:443/**"),
 			glob.MustCompile("https://git.launchpad.net:443/**"),
 		},
@@ -124,8 +124,8 @@ func createTestSnapcraftArtifact(checkoutPath string) *metadata.Artifact {
 }
 
 func loadTestSnapcraftArtifactData() (*files.ArtifactFile, error) {
-	sourcepkg_file := filepath.Join("testdata", "snapcraftpkg.raw")
-	file, err := files.OpenArtifactFile(sourcepkg_file)
+	sourcepkgFile := filepath.Join("testdata", "snapcraftpkg.raw")
+	file, err := files.OpenArtifactFile(sourcepkgFile)
 	return file, err
 }
 
@@ -297,7 +297,7 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtifactUnableToDecodeSnapcraftY
 func (s *snapcraftSuite) TestGetSnapcraftYaml(c *C) {
 	for _, tc := range []struct {
 		path        string
-		should_find bool
+		shouldFind bool
 	}{
 		{"snap/snapcraft.yaml", true},
 		{"snapcraft.yaml", true},
@@ -326,11 +326,11 @@ func (s *snapcraftSuite) TestGetSnapcraftYaml(c *C) {
 			c.Fatal(err)
 		}
 
-		snapcraft_path, found := craft.GetSnapcraftYamlPath(dir)
+		snapcraftPath, found := craft.GetSnapcraftYamlPath(dir)
 
-		c.Assert(found, Equals, tc.should_find)
+		c.Assert(found, Equals, tc.shouldFind)
 		if found {
-			c.Assert(snapcraft_path, Equals, full)
+			c.Assert(snapcraftPath, Equals, full)
 		}
 	}
 

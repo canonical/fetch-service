@@ -15,6 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 package git
 
 import (
@@ -130,9 +131,9 @@ func readPack(f io.Reader, w io.Writer, slog logger.Logger) error {
 			break
 		}
 
-		git_sideband_byte := make([]byte, 1)
+		gitSidebandByte := make([]byte, 1)
 
-		if _, err := f.Read(git_sideband_byte); err != nil {
+		if _, err := f.Read(gitSidebandByte); err != nil {
 			return err
 		}
 
@@ -146,7 +147,7 @@ func readPack(f io.Reader, w io.Writer, slog logger.Logger) error {
 		// data, sideband 2 will be used for progress information that the client will
 		// generally print to stderr and sideband 3 is used for error information."
 
-		if GitPackfileSideband(git_sideband_byte[0]) != PackfileData {
+		if GitPackfileSideband(gitSidebandByte[0]) != PackfileData {
 			slog.Debugf("Non-package data, skipping...")
 			continue
 		}

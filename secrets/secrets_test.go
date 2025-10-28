@@ -24,13 +24,13 @@ func (t *secretSuite) TestValidateSecrets(c *C) {
 		// No secrets
 		{nil, nil},
 		// Good secret
-		{[]secrets.Secret{{Type: secrets.BasicAuthType, Url: glob.MustCompile("www.example.com"), BasicCreds: "user:passwd"}}, nil},
+		{[]secrets.Secret{{Type: secrets.BasicAuthType, URL: glob.MustCompile("www.example.com"), BasicCreds: "user:passwd"}}, nil},
 		// Missing type
 		{[]secrets.Secret{{}}, secrets.ErrMissingSecretType},
 		// Invalid type
 		{[]secrets.Secret{{Type: "invalid-type"}}, secrets.ErrInvalidSecretType},
 		// Missing url
-		{[]secrets.Secret{{Type: secrets.BasicAuthType}}, secrets.ErrMissingSecretUrl},
+		{[]secrets.Secret{{Type: secrets.BasicAuthType}}, secrets.ErrMissingSecretURL},
 	} {
 		err := secrets.ValidateSecrets(tc.sec)
 		c.Assert(err, Equals, tc.err)
@@ -58,13 +58,13 @@ func (t *secretSuite) TestSecretsUnmarshalJSON(c *C) {
 
 	c.Assert(len(j.Secrets), Equals, 1)
 	c.Assert(j.Secrets[0].Type, Equals, secrets.BasicAuthType)
-	c.Assert(j.Secrets[0].Url, DeepEquals, glob.MustCompile("https://github.com:443/canonical/fetch-service.git/**"))
+	c.Assert(j.Secrets[0].URL, DeepEquals, glob.MustCompile("https://github.com:443/canonical/fetch-service.git/**"))
 	c.Assert(j.Secrets[0].BasicCreds, Equals, "user:passwd")
 }
 
 func (t *secretSuite) TestInjectSecrets(c *C) {
 	sec := []secrets.Secret{
-		{Type: secrets.BasicAuthType, Url: glob.MustCompile("https://github.com:443/canonical/fetch-service.git/**"), BasicCreds: "user:passwd"},
+		{Type: secrets.BasicAuthType, URL: glob.MustCompile("https://github.com:443/canonical/fetch-service.git/**"), BasicCreds: "user:passwd"},
 	}
 
 	for _, tc := range []struct {

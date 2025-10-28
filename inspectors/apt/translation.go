@@ -34,7 +34,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 )
 
-// Check if the given data could be a valid translation file.
+// AptTranslationDetector checks if the given data could be a valid translation file.
 // The translation file should contain the following fields:
 // - Package
 // - Description-md5
@@ -58,12 +58,12 @@ func AptTranslationDetector(raw []byte, limit uint32) bool {
 		return false
 	}
 
-	expected_fields := []string{
+	expectedFields := []string{
 		"Package",
 		"Description-md5",
 	}
 
-	for _, k := range expected_fields {
+	for _, k := range expectedFields {
 		_, ok := fields[k]
 		if !ok {
 			logger.Debugf("apt translation detector: expected field %q not found", k)
@@ -127,7 +127,7 @@ func (ins *AptTranslationInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	if info, err := apt_cfg.NewTranslationUrlInfo(u, &ins.config, slog); err == nil {
+	if info, err := apt_cfg.NewTranslationURLInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for Translation file").Annotate(
 			Annotation{
 				"repository": info.Repository,
@@ -163,10 +163,10 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 	buf := make([]byte, 0, 64*1024)
 	sc.Buffer(buf, 1024*1024)
 
-	item_count := 0
-	state_package := false
-	state_md5sum := false
-	state_description := false
+	itemCount := 0
+	statePackage := false
+	stateMD5sum := false
+	stateDescription := false
 	lang := ""
 
 	// Check if the Translation file is well-formed
@@ -174,25 +174,25 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 		line := sc.Text()
 
 		if strings.HasPrefix(line, "Package: ") {
-			if state_package {
+			if statePackage {
 				a.SetResponseRejected(ins, "misplaced package fields in translation file")
 				return nil
 			}
-			state_package = true
+			statePackage = true
 			continue
 		} else if strings.HasPrefix(line, "Description-md5: ") {
-			if !state_package {
+			if !statePackage {
 				a.SetResponseRejected(ins, "description-md5 field without Package field")
 				return nil
 			}
-			state_md5sum = true
+			stateMD5sum = true
 			continue
 		} else if strings.HasPrefix(line, "Description-") {
-			if !state_md5sum || !state_package {
+			if !stateMD5sum || !statePackage {
 				a.SetResponseRejected(ins, "description field without Package or Description-md5 field")
 				return nil
 			}
-			state_description = true
+			stateDescription = true
 			if lang == "" { // get the language code
 				descLang, _, langFound := strings.Cut(line, ":")
 				if langFound {
@@ -201,29 +201,29 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 			}
 			continue
 		} else if strings.HasPrefix(line, " ") { // Description field continuation with leading space
-			if !state_description {
+			if !stateDescription {
 				a.SetResponseRejected(ins, "description field without Package or Description-md5 field")
 				return nil
 			}
 			continue
 		} else if len(line) == 0 { // item ends
-			if state_description {
-				item_count++
+			if stateDescription {
+				itemCount++
 			}
-			state_package = false
-			state_md5sum = false
-			state_description = false
+			statePackage = false
+			stateMD5sum = false
+			stateDescription = false
 		}
 	}
 
 	// Handle the last item if not followed by an empty line
-	if item_count > 0 {
-		if state_package {
-			if !state_md5sum {
+	if itemCount > 0 {
+		if statePackage {
+			if !stateMD5sum {
 				a.SetResponseRejected(ins, "description-md5 field missing for the last Package")
 				return nil
 			}
-			if !state_description {
+			if !stateDescription {
 				a.SetResponseRejected(ins, "description field missing for the last Package")
 				return nil
 			}
@@ -256,7 +256,7 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 
 	notes := Annotation{
 		"translation-language": lang,
-		"translation-count":    item_count,
+		"translation-count":    itemCount,
 	}
 
 	_, ok = a.ResponseStringAnnotation(aptReleaseInspectorID, "release-file")

@@ -29,21 +29,21 @@ import (
 	"github.com/canonical/fetch-service/inspectors/store/config"
 )
 
-type StoreTransformsApiInspector struct {
+type StoreTransformsAPIInspector struct {
 	config config.StoreInspectorConfig
 }
 
-func NewStoreTransformsApiInspector(cfg config.StoreInspectorConfig) *StoreTransformsApiInspector {
-	return &StoreTransformsApiInspector{
+func NewStoreTransformsAPIInspector(cfg config.StoreInspectorConfig) *StoreTransformsAPIInspector {
+	return &StoreTransformsAPIInspector{
 		config: cfg,
 	}
 }
 
-func (*StoreTransformsApiInspector) ID() string {
+func (*StoreTransformsAPIInspector) ID() string {
 	return "store.transforms-api"
 }
 
-func (ins *StoreTransformsApiInspector) InspectRequest(a RequestArtifact) error {
+func (ins *StoreTransformsAPIInspector) InspectRequest(a RequestArtifact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -51,7 +51,7 @@ func (ins *StoreTransformsApiInspector) InspectRequest(a RequestArtifact) error 
 
 	slog := a.Logger()
 
-	if _, err := config.NewStoreTransformsApiUrlInfo(u, &ins.config, slog); err == nil {
+	if _, err := config.NewStoreTransformsAPIURLInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for store transforms API endpoint")
 	}
 
@@ -108,7 +108,7 @@ type workspaceTransforms struct {
 	Transforms  []transform `json:"transforms"`
 }
 
-func (ins *StoreTransformsApiInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
+func (ins *StoreTransformsAPIInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if !a.MimetypeIs("application/json") {
 		return nil
 	}

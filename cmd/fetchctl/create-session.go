@@ -38,7 +38,7 @@ func init() {
 }
 
 type CreateSessionCmd struct {
-	SessionId  string `long:"session-id" description:"Session ID of the newly created session"`
+	SessionID  string `long:"session-id" description:"Session ID of the newly created session"`
 	Token      string `long:"token" description:"Session token of the newly created session"`
 	Timeout    int    `long:"timeout" description:"Session timeout in seconds"`
 	Permissive bool   `long:"permissive" description:"Create a permissive session"`
@@ -78,7 +78,7 @@ func (cmd *CreateSessionCmd) Execute(args []string) error {
 	}
 
 	createPayload := messages.CreateSessionPayload{
-		SessionId:        cmd.SessionId,
+		SessionID:        cmd.SessionID,
 		Token:            cmd.Token,
 		Timeout:          cmd.Timeout,
 		Mode:             mode,

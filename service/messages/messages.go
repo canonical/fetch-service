@@ -31,7 +31,7 @@ import (
 // ProxyAuth contains credentials for basic authentication.
 type ProxyAuth struct {
 	Rch chan bool // return channel
-	Id  string    // user (session id)
+	ID  string    // user (session id)
 	Pw  string    // password
 }
 
@@ -103,7 +103,7 @@ func NewCompleteInspection(a *metadata.Artifact) CompleteInspection {
 // Session creation
 
 type SessionCredentials struct {
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Token string `json:"token"`
 	Err   error  `json:"-"`
 }
@@ -130,20 +130,20 @@ func NewCreateSession(policy string, timeout uint64, secrets []secrets.Secret, i
 
 type RevokeToken struct {
 	Rch   chan RevokeTokenResult // Handler response channel
-	Id    string                 // The session ID
+	ID    string                 // The session ID
 	Token string                 // The session token to revoke
 }
 
-func NewRevokeToken(sessionId, token string) RevokeToken {
+func NewRevokeToken(sessionID, token string) RevokeToken {
 	return RevokeToken{
 		Rch:   make(chan RevokeTokenResult, 1),
-		Id:    sessionId,
+		ID:    sessionID,
 		Token: token,
 	}
 }
 
 type RevokeTokenResult struct {
-	SessionId string `json:"session-id"`
+	SessionID string `json:"session-id"`
 	StartTime string `json:"start-time"`
 	EndTime   string `json:"end-time"`
 	SpoolPath string `json:"spool-path"`
@@ -154,13 +154,13 @@ type RevokeTokenResult struct {
 
 type SessionReport struct {
 	Rch chan SessionReportResult // Handler response channel
-	Id  string
+	ID  string
 }
 
-func NewSessionReport(sessionId string) SessionReport {
+func NewSessionReport(sessionID string) SessionReport {
 	return SessionReport{
 		Rch: make(chan SessionReportResult, 1),
-		Id:  sessionId,
+		ID:  sessionID,
 	}
 }
 
@@ -174,13 +174,13 @@ type SessionReportResult struct {
 
 type EndSession struct {
 	Rch chan error // Handler response channel
-	Id  string
+	ID  string
 }
 
-func NewEndSession(sessionId string) EndSession {
+func NewEndSession(sessionID string) EndSession {
 	return EndSession{
 		Rch: make(chan error, 1),
-		Id:  sessionId,
+		ID:  sessionID,
 	}
 }
 
@@ -188,13 +188,13 @@ func NewEndSession(sessionId string) EndSession {
 
 type DeleteResources struct {
 	Rch chan error // Handler response channel
-	Id  string
+	ID  string
 }
 
-func NewDeleteResources(sessionId string) DeleteResources {
+func NewDeleteResources(sessionID string) DeleteResources {
 	return DeleteResources{
 		Rch: make(chan error, 1),
-		Id:  sessionId,
+		ID:  sessionID,
 	}
 }
 
@@ -224,7 +224,7 @@ type FetchCtlResult struct {
 }
 
 type CreateSessionPayload struct {
-	SessionId        string `json:"session-id"`
+	SessionID        string `json:"session-id"`
 	Token            string `json:"token"`
 	Timeout          int    `json:"timeout"`
 	Mode             string `json:"mode"`

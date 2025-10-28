@@ -51,7 +51,7 @@ func (ins *StoreAppMediaInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	if _, err := config.NewStoreAppMediaUrlInfo(u, &ins.config, slog); err == nil {
+	if _, err := config.NewStoreAppMediaURLInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for store app media")
 	}
 

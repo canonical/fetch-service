@@ -251,17 +251,17 @@ http-proxy:
       access: allow
 `
 
-func (t *configSuite) TestGetSetHttpProxyConfig(c *C) {
+func (t *configSuite) TestGetSetHTTPProxyConfig(c *C) {
 	dir := c.MkDir()
 	cfgFile := filepath.Join(dir, "acl.yaml")
 	err := os.WriteFile(cfgFile, []byte(proxyConfig), 0644)
 	c.Assert(err, IsNil)
 
 	// Load rules from file
-	err = config.LoadHttpProxyRules(dir)
+	err = config.LoadHTTPProxyRules(dir)
 	c.Assert(err, IsNil)
 
-	cfg := config.GetHttpProxyConfig()
+	cfg := config.GetHTTPProxyConfig()
 	c.Check(cfg.Policy, Equals, config.Deny)
 	c.Check(cfg.Rules, DeepEquals, []config.Rule{
 		config.Rule{
@@ -291,7 +291,7 @@ func (t *configSuite) TestGetSetHttpProxyConfig(c *C) {
 	cfg.Policy = config.Allow
 	cfg.Rules[1].Dst = []config.IPNet{}
 
-	cfg2 := config.GetHttpProxyConfig()
+	cfg2 := config.GetHTTPProxyConfig()
 	c.Check(cfg2.Policy, Equals, config.Deny)
 	c.Check(cfg2.Rules[1].Dst, DeepEquals, []config.IPNet{
 		ipNet("1.2.3.4/32"),
@@ -300,10 +300,10 @@ func (t *configSuite) TestGetSetHttpProxyConfig(c *C) {
 	})
 
 	// Store the modified configuration
-	config.SetHttpProxyConfig(cfg)
+	config.SetHTTPProxyConfig(cfg)
 
 	// Reload configuration
-	cfg3 := config.GetHttpProxyConfig()
+	cfg3 := config.GetHTTPProxyConfig()
 	c.Check(cfg3.Policy, Equals, config.Allow)
 	c.Check(cfg3.Rules[1].Dst, DeepEquals, []config.IPNet{})
 }
@@ -387,19 +387,19 @@ func (t *configSuite) TestGetSetInspectorsConfig(c *C) {
 	c.Assert(err, IsNil)
 
 	cfg := config.GetInspectorsConfig()
-	c.Check(cfg.Git.Urls, HasLen, 1)
-	c.Check(cfg.Git.Urls[0], DeepEquals, glob.MustCompile("https://git.test:443/**"))
+	c.Check(cfg.Git.URLs, HasLen, 1)
+	c.Check(cfg.Git.URLs[0], DeepEquals, glob.MustCompile("https://git.test:443/**"))
 
-	c.Check(cfg.Crafts.Urls, HasLen, 1)
-	c.Check(cfg.Crafts.Urls[0], DeepEquals, glob.MustCompile("https://sourcecraft.test:443/**"))
+	c.Check(cfg.Crafts.URLs, HasLen, 1)
+	c.Check(cfg.Crafts.URLs[0], DeepEquals, glob.MustCompile("https://sourcecraft.test:443/**"))
 
-	c.Check(cfg.Chisel.Urls, HasLen, 1)
-	c.Check(cfg.Chisel.Urls[0], DeepEquals,
+	c.Check(cfg.Chisel.URLs, HasLen, 1)
+	c.Check(cfg.Chisel.URLs[0], DeepEquals,
 		glob.MustCompile("https://codeload.github.com:443/canonical/chisel-releases/**"))
 
 	c.Check(cfg.Apt.Repositories, DeepEquals, map[string]apt_cfg.AptInspectorConfigRepository{
 		"default": {
-			Urls: []glob.Glob{
+			URLs: []glob.Glob{
 				glob.MustCompile("http://archive.ubuntu.com/ubuntu"),
 				glob.MustCompile("http://*.archive.ubuntu.com/ubuntu"),
 			},
@@ -443,12 +443,12 @@ uOgcXny1UlwtCUzlrSaP
 	})
 
 	// Verify that loaded config is a copy
-	cfg.Git.Urls = []glob.Glob{}
-	cfg.Crafts.Urls = []glob.Glob{}
-	cfg.Chisel.Urls = []glob.Glob{}
+	cfg.Git.URLs = []glob.Glob{}
+	cfg.Crafts.URLs = []glob.Glob{}
+	cfg.Chisel.URLs = []glob.Glob{}
 	entry, ok := cfg.Apt.Repositories["default"]
 	c.Assert(ok, Equals, true)
-	entry.Urls = []glob.Glob{
+	entry.URLs = []glob.Glob{
 		glob.MustCompile("a"),
 		glob.MustCompile("b"),
 		glob.MustCompile("c"),
@@ -457,22 +457,22 @@ uOgcXny1UlwtCUzlrSaP
 	cfg.Apt.Repositories["extra"] = apt_cfg.AptInspectorConfigRepository{}
 
 	cfg2 := config.GetInspectorsConfig()
-	c.Check(cfg2.Git.Urls, HasLen, 1)
-	c.Check(cfg2.Crafts.Urls, HasLen, 1)
-	c.Check(cfg2.Chisel.Urls, HasLen, 1)
+	c.Check(cfg2.Git.URLs, HasLen, 1)
+	c.Check(cfg2.Crafts.URLs, HasLen, 1)
+	c.Check(cfg2.Chisel.URLs, HasLen, 1)
 	c.Check(cfg2.Apt.Repositories, HasLen, 1)
-	c.Check(cfg2.Apt.Repositories["default"].Urls, HasLen, 2)
+	c.Check(cfg2.Apt.Repositories["default"].URLs, HasLen, 2)
 
 	// Store the modified configuration
 	config.SetInspectorsConfig(cfg)
 
 	// Reload configuration
 	cfg3 := config.GetInspectorsConfig()
-	c.Check(cfg3.Git.Urls, HasLen, 0)
-	c.Check(cfg3.Crafts.Urls, HasLen, 0)
-	c.Check(cfg3.Chisel.Urls, HasLen, 0)
-	c.Check(cfg3.Apt.Repositories["default"].Urls, HasLen, 3)
-	c.Check(cfg3.Apt.Repositories["extra"].Urls, HasLen, 0)
+	c.Check(cfg3.Git.URLs, HasLen, 0)
+	c.Check(cfg3.Crafts.URLs, HasLen, 0)
+	c.Check(cfg3.Chisel.URLs, HasLen, 0)
+	c.Check(cfg3.Apt.Repositories["default"].URLs, HasLen, 3)
+	c.Check(cfg3.Apt.Repositories["extra"].URLs, HasLen, 0)
 
 }
 
@@ -484,18 +484,18 @@ var proxyRulesContent = testutils.Reindent(`
 	      access: deny
 `)
 
-func (t *configSuite) TestLoadHttpProxyRules(c *C) {
+func (t *configSuite) TestLoadHTTPProxyRules(c *C) {
 	dir := c.MkDir()
 
-	emptyConfig := config.HttpProxyConfig{Policy: config.Deny, Rules: []config.Rule{}}
-	config.SetHttpProxyConfig(emptyConfig)
+	emptyConfig := config.HTTPProxyConfig{Policy: config.Deny, Rules: []config.Rule{}}
+	config.SetHTTPProxyConfig(emptyConfig)
 
 	err := os.WriteFile(filepath.Join(dir, "acl.yaml"), proxyRulesContent, 0644)
 	c.Assert(err, IsNil)
 
-	err = config.LoadHttpProxyRules(dir)
+	err = config.LoadHTTPProxyRules(dir)
 	c.Assert(err, IsNil)
-	cfg := config.GetHttpProxyConfig()
+	cfg := config.GetHTTPProxyConfig()
 	c.Assert(cfg.Policy, Equals, config.Allow)
 	c.Assert(cfg.Rules, DeepEquals, []config.Rule{{
 		Dst:    []config.IPNet{{net.IPNet{IP: net.IP{1, 2, 0, 0}, Mask: net.IPMask{255, 255, 0, 0}}}},
@@ -503,13 +503,13 @@ func (t *configSuite) TestLoadHttpProxyRules(c *C) {
 	}})
 }
 
-func (t *configSuite) TestLoadHttpProxyRulesMissing(c *C) {
+func (t *configSuite) TestLoadHTTPProxyRulesMissing(c *C) {
 	dir := c.MkDir()
 
-	emptyConfig := config.HttpProxyConfig{Policy: config.Deny, Rules: []config.Rule{}}
-	config.SetHttpProxyConfig(emptyConfig)
+	emptyConfig := config.HTTPProxyConfig{Policy: config.Deny, Rules: []config.Rule{}}
+	config.SetHTTPProxyConfig(emptyConfig)
 
-	err := config.LoadHttpProxyRules(dir)
+	err := config.LoadHTTPProxyRules(dir)
 	c.Assert(errors.Is(err, os.ErrNotExist), Equals, true)
 }
 
@@ -535,7 +535,7 @@ func (t *configSuite) TestLoadInspectorsConfig(c *C) {
 	cfg := config.GetInspectorsConfig()
 	c.Assert(cfg.Apt, DeepEquals, apt_cfg.AptInspectorConfig{
 		Repositories: map[string]apt_cfg.AptInspectorConfigRepository{"default": {
-			Urls: []glob.Glob{glob.MustCompile("http://archive.ubuntu.com/ubuntu")},
+			URLs: []glob.Glob{glob.MustCompile("http://archive.ubuntu.com/ubuntu")},
 		}},
 	})
 }
@@ -561,7 +561,7 @@ var combineInspectorsConfigTests = []combineInspectorsConfigTest{
 			Apt: &apt_cfg.AptInspectorConfig{
 				Repositories: map[string]apt_cfg.AptInspectorConfigRepository{
 					"another": {
-						Urls:       []glob.Glob{glob.MustCompile("http://test.com/ubuntu")},
+						URLs:       []glob.Glob{glob.MustCompile("http://test.com/ubuntu")},
 						Suites:     []glob.Glob{glob.MustCompile("*")},
 						Components: []glob.Glob{glob.MustCompile("*")},
 						PublicKey:  "",
@@ -569,15 +569,15 @@ var combineInspectorsConfigTests = []combineInspectorsConfigTest{
 				},
 			},
 			Git: &git_cfg.GitInspectorConfig{
-				Urls: []glob.Glob{
+				URLs: []glob.Glob{
 					glob.MustCompile("https://git.test2:443/**"),
 				},
 			},
 			Crafts: &crafts_cfg.CraftsInspectorConfig{
-				Urls: []glob.Glob{glob.MustCompile("https://git.launchpad.net:443/**")},
+				URLs: []glob.Glob{glob.MustCompile("https://git.launchpad.net:443/**")},
 			},
 			Chisel: &chisel_cfg.ChiselInspectorConfig{
-				Urls: []glob.Glob{
+				URLs: []glob.Glob{
 					glob.MustCompile("https://codeload.another.com:443/canonical/chisel-releases/**"),
 				},
 			},
@@ -590,12 +590,12 @@ var combineInspectorsConfigTests = []combineInspectorsConfigTest{
 				},
 			},
 			Store: &store_cfg.StoreInspectorConfig{
-				Urls: []glob.Glob{
+				URLs: []glob.Glob{
 					glob.MustCompile("https://a-store.com:443"),
 				},
 			},
 			BldBin: &bldbin_cfg.BldBinInspectorConfig{
-				Urls: []glob.Glob{
+				URLs: []glob.Glob{
 					glob.MustCompile("https://another.snapcraft.io:443/api/v1/bins/download/**"),
 				},
 			},
@@ -604,7 +604,7 @@ var combineInspectorsConfigTests = []combineInspectorsConfigTest{
 			Apt: apt_cfg.AptInspectorConfig{
 				Repositories: map[string]apt_cfg.AptInspectorConfigRepository{
 					"another": {
-						Urls:       []glob.Glob{glob.MustCompile("http://test.com/ubuntu")},
+						URLs:       []glob.Glob{glob.MustCompile("http://test.com/ubuntu")},
 						Suites:     []glob.Glob{glob.MustCompile("*")},
 						Components: []glob.Glob{glob.MustCompile("*")},
 						PublicKey:  "",
@@ -612,17 +612,17 @@ var combineInspectorsConfigTests = []combineInspectorsConfigTest{
 				},
 			},
 			Git: git_cfg.GitInspectorConfig{
-				Urls: []glob.Glob{
+				URLs: []glob.Glob{
 					glob.MustCompile("https://git.test2:443/**"),
 				},
 			},
 			Crafts: crafts_cfg.CraftsInspectorConfig{
-				Urls: []glob.Glob{
+				URLs: []glob.Glob{
 					glob.MustCompile("https://git.launchpad.net:443/**"),
 				},
 			},
 			Chisel: chisel_cfg.ChiselInspectorConfig{
-				Urls: []glob.Glob{
+				URLs: []glob.Glob{
 					glob.MustCompile("https://codeload.another.com:443/canonical/chisel-releases/**"),
 				},
 			},
@@ -635,12 +635,12 @@ var combineInspectorsConfigTests = []combineInspectorsConfigTest{
 				},
 			},
 			Store: store_cfg.StoreInspectorConfig{
-				Urls: []glob.Glob{
+				URLs: []glob.Glob{
 					glob.MustCompile("https://a-store.com:443"),
 				},
 			},
 			BldBin: bldbin_cfg.BldBinInspectorConfig{
-				Urls: []glob.Glob{
+				URLs: []glob.Glob{
 					glob.MustCompile("https://another.snapcraft.io:443/api/v1/bins/download/**"),
 				},
 			},
@@ -653,7 +653,7 @@ var combineInspectorsConfigTests = []combineInspectorsConfigTest{
 			Apt: apt_cfg.AptInspectorConfig{
 				Repositories: map[string]apt_cfg.AptInspectorConfigRepository{
 					"default": {
-						Urls: []glob.Glob{
+						URLs: []glob.Glob{
 							glob.MustCompile("http://archive.ubuntu.com/ubuntu"),
 							glob.MustCompile("http://*.archive.ubuntu.com/ubuntu"),
 						},
@@ -697,17 +697,17 @@ uOgcXny1UlwtCUzlrSaP
 				},
 			},
 			Git: git_cfg.GitInspectorConfig{
-				Urls: []glob.Glob{
+				URLs: []glob.Glob{
 					glob.MustCompile("https://git.test:443/**"),
 				},
 			},
 			Crafts: crafts_cfg.CraftsInspectorConfig{
-				Urls: []glob.Glob{
+				URLs: []glob.Glob{
 					glob.MustCompile("https://sourcecraft.test:443/**"),
 				},
 			},
 			Chisel: chisel_cfg.ChiselInspectorConfig{
-				Urls: []glob.Glob{
+				URLs: []glob.Glob{
 					glob.MustCompile("https://codeload.github.com:443/canonical/chisel-releases/**"),
 				},
 			},
@@ -720,10 +720,10 @@ uOgcXny1UlwtCUzlrSaP
 				},
 			},
 			Store: store_cfg.StoreInspectorConfig{
-				Urls: []glob.Glob{},
+				URLs: []glob.Glob{},
 			},
 			BldBin: bldbin_cfg.BldBinInspectorConfig{
-				Urls: []glob.Glob{},
+				URLs: []glob.Glob{},
 			},
 		},
 	}}

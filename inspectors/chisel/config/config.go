@@ -24,5 +24,5 @@ import (
 )
 
 type ChiselInspectorConfig struct {
-	Urls []glob.Glob `yaml:"urls"`
+	URLs []glob.Glob `yaml:"urls"`
 }

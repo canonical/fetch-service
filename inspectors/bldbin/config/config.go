@@ -28,31 +28,31 @@ import (
 	"github.com/canonical/fetch-service/utils"
 )
 
-func checkRequestUrl(cfg *BldBinInspectorConfig, u *url.URL, slog logger.Logger) error {
-	requestUrl := utils.NormalizedOrigin(u) + u.Path
+func checkRequestURL(cfg *BldBinInspectorConfig, u *url.URL, slog logger.Logger) error {
+	requestURL := utils.NormalizedOrigin(u) + u.Path
 
-	for _, h := range cfg.Urls {
-		if h.Match(requestUrl) {
+	for _, h := range cfg.URLs {
+		if h.Match(requestURL) {
 			slog.Debugf("url matches %v\n", h)
 			return nil
 		}
 	}
-	return fmt.Errorf("invalid url %s", requestUrl)
+	return fmt.Errorf("invalid url %s", requestURL)
 }
 
 type BldBinInspectorConfig struct {
-	Urls []glob.Glob `yaml:"urls"` // List of allowed URL glob patterns
+	URLs []glob.Glob `yaml:"urls"` // List of allowed URL glob patterns
 }
 
-type BldBinUrlInfo struct {
+type BldBinURLInfo struct {
 }
 
-func NewBldBinUrlInfo(u *url.URL, cfg *BldBinInspectorConfig, slog logger.Logger) (*BldBinUrlInfo, error) {
-	if err := checkRequestUrl(cfg, u, slog); err != nil {
+func NewBldBinURLInfo(u *url.URL, cfg *BldBinInspectorConfig, slog logger.Logger) (*BldBinURLInfo, error) {
+	if err := checkRequestURL(cfg, u, slog); err != nil {
 		return nil, err
 	}
 
-	info := &BldBinUrlInfo{}
+	info := &BldBinURLInfo{}
 
 	return info, nil
 }

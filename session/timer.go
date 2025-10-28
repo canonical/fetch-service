@@ -40,7 +40,7 @@ func newSessionTimer(s *Session, ch chan string) *sessionTimer {
 	go func() {
 		select {
 		case <-t.C:
-			ch <- s.Id
+			ch <- s.ID
 		case <-t.done:
 		}
 	}()

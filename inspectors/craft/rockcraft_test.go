@@ -55,7 +55,7 @@ func RockcraftTest(t *testing.T) { TestingT(t) }
 
 func getTestRockcraftConfig() config.CraftsInspectorConfig {
 	return config.CraftsInspectorConfig{
-		Urls: []glob.Glob{
+		URLs: []glob.Glob{
 			glob.MustCompile("https://github.com:443/**"),
 			glob.MustCompile("https://git.launchpad.net:443/**"),
 		},
@@ -76,8 +76,8 @@ func (s *rockcraftSuite) TestUploadPackInspectorID(c *C) {
 }
 
 func loadTestRockcraftArtifactData() (*files.ArtifactFile, error) {
-	git_capture := filepath.Join("testdata", "rockcraftpkg.raw")
-	file, err := files.OpenArtifactFile(git_capture)
+	gitCapture := filepath.Join("testdata", "rockcraftpkg.raw")
+	file, err := files.OpenArtifactFile(gitCapture)
 	return file, err
 }
 

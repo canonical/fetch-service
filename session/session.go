@@ -51,12 +51,12 @@ var (
 	ErrInvalidSessionPolicy                  = errors.New("Invalid session policy")
 	ErrInvalidSessionInspectorsConfiguration = errors.New("Invalid inspectors configuration")
 
-	ExpiredSessionId = make(chan string, 1)
+	ExpiredSessionID = make(chan string, 1)
 )
 
 // Session has information about each authorized client.
 type Session struct {
-	Id            string    // the session ID
+	ID            string    // the session ID
 	Token         string    // the session token
 	Start         time.Time // session start time
 	End           time.Time // session end time
@@ -75,26 +75,26 @@ type Session struct {
 }
 
 var (
-	makeSessionId = makeSessionIdImpl
+	makeSessionID = makeSessionIDImpl
 	randomString  = randomStringImpl
 )
 
 // New creates a session that stores artifact data and metadata under
 // spoolDir. The session is automatically finished if it times out.
 func New(spoolDir string, timeout time.Duration, permissive bool, secrets []secrets.Secret, inspectorsConfig config.SessionInspectorsConfig) *Session {
-	sessionId := makeSessionId()
+	sessionID := makeSessionID()
 	token := randomString(20)
 
-	return NewWithId(sessionId, token, spoolDir, timeout, permissive, secrets, inspectorsConfig)
+	return NewWithID(sessionID, token, spoolDir, timeout, permissive, secrets, inspectorsConfig)
 }
 
-// NewWithId creates a session using the specified sessionId and token.
-func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permissive bool, secrets []secrets.Secret, inspectorsConfig config.SessionInspectorsConfig) *Session {
-	_, ok := sessions.Load(sessionId)
+// NewWithID creates a session using the specified sessionID and token.
+func NewWithID(sessionID, token, spoolDir string, timeout time.Duration, permissive bool, secrets []secrets.Secret, inspectorsConfig config.SessionInspectorsConfig) *Session {
+	_, ok := sessions.Load(sessionID)
 	if ok {
-		id := makeSessionId()
-		logger.Warningf("cannot recreate existing session ID %s, use %s instead", sessionId, id)
-		sessionId = id
+		id := makeSessionID()
+		logger.Warningf("cannot recreate existing session ID %s, use %s instead", sessionID, id)
+		sessionID = id
 	}
 
 	if timeout == 0 {
@@ -102,16 +102,16 @@ func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permiss
 	}
 
 	s := &Session{
-		Id:            sessionId,
+		ID:            sessionID,
 		Token:         token,
 		Start:         time.Now().UTC(),
 		A:             map[digests.Sha256Digest]*metadata.Artifact{},
 		Permissive:    permissive,
-		SessionDir:    filepath.Join(spoolDir, sessionId),
-		CacheDir:      filepath.Join(spoolDir, sessionId, "cache"),
+		SessionDir:    filepath.Join(spoolDir, sessionID),
+		CacheDir:      filepath.Join(spoolDir, sessionID, "cache"),
 		Timeout:       timeout,
 		InspectorsCfg: config.GetInspectorsConfig(),
-		Logger:        logger.NewSessionLogger(sessionId),
+		Logger:        logger.NewSessionLogger(sessionID),
 		Secrets:       secrets,
 	}
 
@@ -125,8 +125,8 @@ func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permiss
 	}
 	s.Logger.Infof("create %s session, timeout = %s", sType, timeout)
 
-	sessions.Store(s.Id, s)
-	s.timer = newSessionTimer(s, ExpiredSessionId)
+	sessions.Store(s.ID, s)
+	s.timer = newSessionTimer(s, ExpiredSessionID)
 
 	return s
 }
@@ -143,7 +143,7 @@ func (s *Session) Metadata() *metadata.SessionMetadata {
 		Generator:  fmt.Sprintf("fetch-service %s", version.Version),
 		Policy:     policy,
 		Comment:    "Metadata format is unstable and may change without prior notice.",
-		SessionId:  s.Id,
+		SessionID:  s.ID,
 		StartTime:  s.Start,
 		EndTime:    s.End,
 		Inspectors: s.Insps.List(),
@@ -219,13 +219,13 @@ func (s *Session) SaveSessionMetadata(sm *metadata.SessionMetadata) error {
 
 // Discard deletes this session.
 func (s *Session) Discard() {
-	_, ok := sessions.Load(s.Id)
+	_, ok := sessions.Load(s.ID)
 	if !ok {
 		s.Logger.Warning("cannot discard non-existing session")
 		return
 	}
 	s.Logger.Info("discarding session")
-	sessions.Delete(s.Id)
+	sessions.Delete(s.ID)
 	s.timer.Cancel() // end session timer
 	s.Logger.Info("session discarded")
 }
@@ -330,7 +330,7 @@ func (s *Session) removeTempFile(name string) {
 }
 
 // Generate a unique session ID
-func makeSessionIdImpl() string {
+func makeSessionIDImpl() string {
 	id := [16]byte(uuid.New())
 	return hex.EncodeToString(id[:])
 }
@@ -433,7 +433,7 @@ func SessionInfos() []metadata.SessionInfo {
 		}
 
 		res = append(res, metadata.SessionInfo{
-			SessionId: id,
+			SessionID: id,
 			StartTime: s.Start.String(),
 			Policy:    policy,
 			Age:       uint64(time.Since(s.Start).Seconds()),

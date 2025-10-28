@@ -109,7 +109,7 @@ func (t *controlSuite) TestCreateSession(c *C) {
 
 		go func() {
 			msg := <-ch
-			cred := messages.SessionCredentials{Id: "A", Token: "B"}
+			cred := messages.SessionCredentials{ID: "A", Token: "B"}
 			if tc.errmsg != "" {
 				cred.Err = errors.New(tc.errmsg)
 			}
@@ -124,7 +124,7 @@ func (t *controlSuite) TestCreateSession(c *C) {
 			var cred messages.SessionCredentials
 			err = json.Unmarshal(w.Body.Bytes(), &cred)
 			c.Assert(err, IsNil)
-			c.Check(cred, DeepEquals, messages.SessionCredentials{Id: "A", Token: "B"})
+			c.Check(cred, DeepEquals, messages.SessionCredentials{ID: "A", Token: "B"})
 		}
 	}
 }
@@ -156,7 +156,7 @@ func (t *controlSuite) TestDeleteSessionToken(c *C) {
 		go func() {
 			msg := <-ch
 			msg.(messages.RevokeToken).Rch <- messages.RevokeTokenResult{
-				SessionId: tc.idvar,
+				SessionID: tc.idvar,
 				Err:       tc.err,
 			}
 		}()
@@ -170,7 +170,7 @@ func (t *controlSuite) TestDeleteSessionToken(c *C) {
 			err = json.Unmarshal(w.Body.Bytes(), &res)
 			c.Assert(err, IsNil)
 			c.Check(res.Err, IsNil)
-			c.Check(res.SessionId, Equals, tc.idvar)
+			c.Check(res.SessionID, Equals, tc.idvar)
 		}
 	}
 }

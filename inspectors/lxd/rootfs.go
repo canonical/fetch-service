@@ -51,7 +51,7 @@ func (ins *RootfsInspector) InspectRequest(a RequestArtifact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	info, err := NewProductItemUrlInfo(u)
+	info, err := NewProductItemURLInfo(u)
 	if err != nil {
 		return nil
 	}

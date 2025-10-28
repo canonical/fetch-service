@@ -125,19 +125,19 @@ func fetchCtlCreateSession(v messages.FetchCtl, svc *Service) messages.FetchCtlR
 		}
 	}
 
-	s := sessionNewWithId(params.SessionId, params.Token, svc.opt.Spool, timeout, permissive, nil, cfg)
+	s := sessionNewWithID(params.SessionID, params.Token, svc.opt.Spool, timeout, permissive, nil, cfg)
 
-	logger.Infof("service: session %s created", s.Id)
+	logger.Infof("service: session %s created", s.ID)
 	svc.totalSessions++
 	return messages.FetchCtlResult{
 		Status:  "ok",
-		Message: fmt.Sprintf("session %s:%s created (%s)", s.Id, s.Token, s.Metadata().Policy),
+		Message: fmt.Sprintf("session %s:%s created (%s)", s.ID, s.Token, s.Metadata().Policy),
 	}
 }
 
 func fetchCtlListArtifacts(v messages.FetchCtl) messages.FetchCtlResult {
-	sessionId := string(v.Payload)
-	s := session.GetSession(sessionId)
+	sessionID := string(v.Payload)
+	s := session.GetSession(sessionID)
 	if s == nil {
 		return messages.FetchCtlResult{Status: "error", Message: "session does not exist"}
 	}

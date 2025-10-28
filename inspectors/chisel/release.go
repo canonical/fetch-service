@@ -36,7 +36,7 @@ import (
 	"github.com/canonical/fetch-service/utils"
 )
 
-// The Chisel release inspector verifies the chisel-releases repository's [1]
+// The ChiselReleaseInspector verifies the chisel-releases repository's [1]
 // tarball download request and response artifact.
 //
 // Chisel [2] downloads the tarball via a GET request to
@@ -68,7 +68,7 @@ func (ins *ChiselReleaseInspector) ID() string {
 // [config.ChiselInspectorConfig].
 func (ins *ChiselReleaseInspector) InspectRequest(a RequestArtifact) error {
 	url := a.DownloadURL()
-	for _, pattern := range ins.cfg.Urls {
+	for _, pattern := range ins.cfg.URLs {
 		if pattern.G.Match(url) {
 			a.SetRequestPending(ins, "request matches valid URL")
 			return nil

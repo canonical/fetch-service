@@ -30,21 +30,21 @@ import (
 	"github.com/canonical/fetch-service/inspectors/store/config"
 )
 
-type StoreResolveApiInspector struct {
+type StoreResolveAPIInspector struct {
 	config config.StoreInspectorConfig
 }
 
-func NewStoreResolveApiInspector(cfg config.StoreInspectorConfig) *StoreResolveApiInspector {
-	return &StoreResolveApiInspector{
+func NewStoreResolveAPIInspector(cfg config.StoreInspectorConfig) *StoreResolveAPIInspector {
+	return &StoreResolveAPIInspector{
 		config: cfg,
 	}
 }
 
-func (*StoreResolveApiInspector) ID() string {
+func (*StoreResolveAPIInspector) ID() string {
 	return "store.resolve-api"
 }
 
-func (ins *StoreResolveApiInspector) InspectRequest(a RequestArtifact) error {
+func (ins *StoreResolveAPIInspector) InspectRequest(a RequestArtifact) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -52,14 +52,14 @@ func (ins *StoreResolveApiInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	if _, err := config.NewStoreResolveApiUrlInfo(u, &ins.config, slog); err == nil {
+	if _, err := config.NewStoreResolveAPIURLInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for store resolve API endpoint")
 	}
 
 	return nil // We don't recognize the request
 }
 
-type storeResolveApiResult struct {
+type storeResolveAPIResult struct {
 	ID          string `json:"id"`
 	InstanceKey string `json:"instance-key"`
 	Name        string `json:"name"`
@@ -67,18 +67,18 @@ type storeResolveApiResult struct {
 	Status      string `json:"status"`
 }
 
-type storeResolveApiData struct {
-	CraftResults   []storeResolveApiResult `json:"craft-results"`
-	PackageResults []storeResolveApiResult `json:"package-results"`
+type storeResolveAPIData struct {
+	CraftResults   []storeResolveAPIResult `json:"craft-results"`
+	PackageResults []storeResolveAPIResult `json:"package-results"`
 }
 
-func (ins *StoreResolveApiInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
+func (ins *StoreResolveAPIInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if !a.MimetypeIs("application/json") {
 		return nil
 	}
 
 	decoder := json.NewDecoder(f)
-	var data storeResolveApiData
+	var data storeResolveAPIData
 	if err := decoder.Decode(&data); err != nil {
 		return nil // we don't recognize this artifact
 	}
@@ -87,7 +87,7 @@ func (ins *StoreResolveApiInspector) InspectArtifact(f ArtifactReader, a Respons
 		return nil // we don't recognize this artifact
 	}
 
-	var result storeResolveApiResult
+	var result storeResolveAPIResult
 	if len(data.CraftResults) > 0 {
 		result = data.CraftResults[0]
 	} else {

@@ -39,33 +39,33 @@ var _ = Suite(&messagesSuite{})
 func Test(t *testing.T) { TestingT(t) }
 
 func (t *messagesSuite) TestGetServiceStatus(c *C) {
-	var m messages.GetServiceStatus = messages.NewGetServiceStatus()
+	var m = messages.NewGetServiceStatus()
 	c.Check(cap(m.Rch), Equals, 1)
 }
 
 func (t *messagesSuite) TestRequestInspection(c *C) {
 	a := metadata.NewArtifact()
-	var m messages.RequestInspection = messages.NewRequestInspection(a)
+	var m = messages.NewRequestInspection(a)
 	c.Check(cap(m.Rch), Equals, 1)
 	c.Check(m.A, Equals, a)
 }
 
 func (t *messagesSuite) TestResponseInspection(c *C) {
 	a := metadata.NewArtifact()
-	var m messages.ResponseInspection = messages.NewResponseInspection(a)
+	var m = messages.NewResponseInspection(a)
 	c.Check(cap(m.Rch), Equals, 1)
 	c.Check(m.A, Equals, a)
 }
 
 func (t *messagesSuite) TestCompleteInspection(c *C) {
 	a := metadata.NewArtifact()
-	var m messages.CompleteInspection = messages.NewCompleteInspection(a)
+	var m = messages.NewCompleteInspection(a)
 	c.Check(cap(m.Rch), Equals, 1)
 	c.Check(m.A, Equals, a)
 }
 
 func (t *messagesSuite) TestCreateSession(c *C) {
-	var m messages.CreateSession = messages.NewCreateSession("policy", 42, nil, config.SessionInspectorsConfig{})
+	var m = messages.NewCreateSession("policy", 42, nil, config.SessionInspectorsConfig{})
 	c.Check(cap(m.Rch), Equals, 1)
 	c.Check(m.Policy, Equals, "policy")
 	c.Check(m.Timeout, Equals, uint64(42))
@@ -74,10 +74,10 @@ func (t *messagesSuite) TestCreateSession(c *C) {
 
 func (t *messagesSuite) TestCreateSessionWithSecrets(c *C) {
 	s := []secrets.Secret{
-		{Type: secrets.BasicAuthType, Url: glob.MustCompile("http://example.com")},
-		{Type: secrets.BasicAuthType, Url: glob.MustCompile("http://another-example.com/*")},
+		{Type: secrets.BasicAuthType, URL: glob.MustCompile("http://example.com")},
+		{Type: secrets.BasicAuthType, URL: glob.MustCompile("http://another-example.com/*")},
 	}
-	var m messages.CreateSession = messages.NewCreateSession("policy", 42, s, config.SessionInspectorsConfig{})
+	var m = messages.NewCreateSession("policy", 42, s, config.SessionInspectorsConfig{})
 	c.Check(cap(m.Rch), Equals, 1)
 	c.Check(m.Policy, Equals, "policy")
 	c.Check(m.Timeout, Equals, uint64(42))
@@ -86,32 +86,32 @@ func (t *messagesSuite) TestCreateSessionWithSecrets(c *C) {
 }
 
 func (t *messagesSuite) TestRevokeToken(c *C) {
-	var m messages.RevokeToken = messages.NewRevokeToken("session-id", "token")
+	var m = messages.NewRevokeToken("session-id", "token")
 	c.Check(cap(m.Rch), Equals, 1)
-	c.Check(m.Id, Equals, "session-id")
+	c.Check(m.ID, Equals, "session-id")
 	c.Check(m.Token, Equals, "token")
 }
 
 func (t *messagesSuite) TestSessionReport(c *C) {
-	var m messages.SessionReport = messages.NewSessionReport("session-id")
+	var m = messages.NewSessionReport("session-id")
 	c.Check(cap(m.Rch), Equals, 1)
-	c.Check(m.Id, Equals, "session-id")
+	c.Check(m.ID, Equals, "session-id")
 }
 
 func (t *messagesSuite) TestEndSession(c *C) {
-	var m messages.EndSession = messages.NewEndSession("session-id")
+	var m = messages.NewEndSession("session-id")
 	c.Check(cap(m.Rch), Equals, 1)
-	c.Check(m.Id, Equals, "session-id")
+	c.Check(m.ID, Equals, "session-id")
 }
 
 func (t *messagesSuite) TestDeleteResources(c *C) {
-	var m messages.DeleteResources = messages.NewDeleteResources("session-id")
+	var m = messages.NewDeleteResources("session-id")
 	c.Check(cap(m.Rch), Equals, 1)
-	c.Check(m.Id, Equals, "session-id")
+	c.Check(m.ID, Equals, "session-id")
 }
 
 func (t *messagesSuite) TestFetchCtl(c *C) {
-	var m messages.FetchCtl = messages.NewFetchCtl("operation", "type", true, []byte("payload"))
+	var m = messages.NewFetchCtl("operation", "type", true, []byte("payload"))
 	c.Check(cap(m.Rch), Equals, 1)
 	c.Check(m.Operation, Equals, "operation")
 	c.Check(m.Type, Equals, "type")

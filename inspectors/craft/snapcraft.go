@@ -74,7 +74,7 @@ func inspectCraftRequest(ins Inspector, a RequestArtifact, cfg *config.CraftsIns
 
 	slog := a.Logger()
 
-	_, err = config.NewCraftUrlInfo(u, cfg, slog)
+	_, err = config.NewCraftURLInfo(u, cfg, slog)
 	if err != nil {
 		return nil // we don't recognize this request
 	}
@@ -113,15 +113,15 @@ func (ins *SnapcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 	if !found {
 		return nil
 	}
-	yamldata_filereader, err := osOpen(snapcraftYamlPath)
+	yamlDataFileReader, err := osOpen(snapcraftYamlPath)
 	if err != nil {
 		a.SetResponseRejected(ins, "cannot open snapcraft.yaml file")
 		return nil
 	}
-	defer yamldata_filereader.Close()
+	defer yamlDataFileReader.Close()
 
 	var data snapcraftYaml
-	dec := yaml.NewDecoder(yamldata_filereader)
+	dec := yaml.NewDecoder(yamlDataFileReader)
 	if err := dec.Decode(&data); err != nil {
 		a.SetResponseRejected(ins, "cannot decode snapcraft.yaml")
 		return nil

@@ -45,7 +45,7 @@ import (
 )
 
 const (
-	sessionIdHeader = "X-Fetch-Session-Id"
+	sessionIDHeader = "X-Fetch-Session-Id"
 	authRealm       = "fetch-service"
 )
 
@@ -54,8 +54,8 @@ type proxyData struct {
 	a *metadata.Artifact // the artifact to be inspected
 }
 
-// HttpProxy implements a proxy that inspects downloaded contents.
-type HttpProxy struct {
+// HTTPProxy implements a proxy that inspects downloaded contents.
+type HTTPProxy struct {
 	port  int                      // tcp port the proxy is listening on
 	ch    chan interface{}         // channel to service dispatcher
 	spool string                   // path to file spool
@@ -64,7 +64,7 @@ type HttpProxy struct {
 	tomb  tomb.Tomb                // proxy service reaper
 }
 
-func NewHttpProxy(port int, spool string, cert, key []byte, ch chan interface{}) (*HttpProxy, error) {
+func NewHTTPProxy(port int, spool string, cert, key []byte, ch chan interface{}) (*HTTPProxy, error) {
 	ca, err := CreateProxyCA(cert, key)
 	if err != nil {
 		return nil, err
@@ -74,13 +74,13 @@ func NewHttpProxy(port int, spool string, cert, key []byte, ch chan interface{})
 	}
 
 	basicAuth := func(req *http.Request, user, passwd string) bool {
-		req.Header.Set(sessionIdHeader, user)
+		req.Header.Set(sessionIDHeader, user)
 		rch := make(chan bool)
-		ch <- messages.ProxyAuth{Rch: rch, Id: user, Pw: passwd}
+		ch <- messages.ProxyAuth{Rch: rch, ID: user, Pw: passwd}
 		return <-rch
 	}
 
-	p := HttpProxy{port: port, ch: ch, spool: spool}
+	p := HTTPProxy{port: port, ch: ch, spool: spool}
 
 	proxy := goproxy.NewProxyHttpServer()
 	//proxy.Verbose = true
@@ -102,7 +102,7 @@ func NewHttpProxy(port int, spool string, cert, key []byte, ch chan interface{})
 }
 
 // Start runs the proxy on the specified tcp port.
-func (p *HttpProxy) Start() error {
+func (p *HTTPProxy) Start() error {
 	addr := fmt.Sprintf(":%d", p.port)
 	p.srv = http.Server{Addr: addr, Handler: p.proxy}
 
@@ -124,7 +124,7 @@ func (p *HttpProxy) Start() error {
 }
 
 // Stop shuts down the proxy.
-func (p *HttpProxy) Stop() error {
+func (p *HTTPProxy) Stop() error {
 	logger.Infof("Shutting down the HTTP proxy...")
 	if err := p.srv.Close(); err != nil {
 		return err
@@ -136,16 +136,16 @@ func (p *HttpProxy) Stop() error {
 	return nil
 }
 
-func (p *HttpProxy) Dying() <-chan struct{} {
+func (p *HTTPProxy) Dying() <-chan struct{} {
 	return p.tomb.Dying()
 }
 
-func (p *HttpProxy) Err() error {
+func (p *HTTPProxy) Err() error {
 	return p.tomb.Err()
 }
 
 // processRoundTrip gets destination connection information to check ACLs.
-func (p *HttpProxy) processRoundTrip(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+func (p *HTTPProxy) processRoundTrip(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
 	host, _, err := net.SplitHostPort(req.URL.Host)
 	if err != nil {
 		host = req.URL.Host
@@ -177,24 +177,24 @@ func (p *HttpProxy) processRoundTrip(req *http.Request, ctx *goproxy.ProxyCtx) (
 }
 
 // processRequest handles HTTP requests to the server.
-func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+func (p *HTTPProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
 	logger.Debugf("proxy: process request: %s", req.URL.String())
-	requestHeader := copyHttpHeader(req.Header)
+	requestHeader := copyHTTPHeader(req.Header)
 
 	if ctx.UserData != nil {
-		sessionId, ok := ctx.UserData.(string)
+		sessionID, ok := ctx.UserData.(string)
 		if ok {
 			// Set session ID in mitm requests
-			//logger.Debugf("set session ID header in mitm request to %s", sessionId)
-			req.Header.Set(sessionIdHeader, sessionId)
+			//logger.Debugf("set session ID header in mitm request to %s", sessionID)
+			req.Header.Set(sessionIDHeader, sessionID)
 		}
 	}
 
-	sid := req.Header.Get(sessionIdHeader)
+	sid := req.Header.Get(sessionIDHeader)
 
 	a := metadata.NewArtifact()
 	a.Request = req
-	a.SessionId = sid
+	a.SessionID = sid
 
 	url := utils.NormalizedURL(req.URL)
 	a.CurrentDownload.StartTime = time.Now().UTC()
@@ -234,7 +234,7 @@ func (p *HttpProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 }
 
 // processResponse handles HTTP responses from the server.
-func (p *HttpProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
+func (p *HTTPProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
 	if resp == nil || resp.StatusCode != http.StatusOK {
 		return resp
 	}
@@ -257,7 +257,7 @@ func (p *HttpProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) 
 		return internalErrorResponse(resp.Request, "Cannot handle file downloads")
 	}
 
-	newResp := copyHttpResponse(resp)
+	newResp := copyHTTPResponse(resp)
 	newResp.Body = body
 
 	return newResp
@@ -311,8 +311,8 @@ func forbiddenResponse(r *http.Request, msg string) *http.Response {
 	return goproxy.NewResponse(r, goproxy.ContentTypeText, http.StatusForbidden, msg)
 }
 
-// copyHttpHeader deepcopies HTTP header maps.
-func copyHttpHeader(h http.Header) http.Header {
+// copyHTTPHeader deepcopies HTTP header maps.
+func copyHTTPHeader(h http.Header) http.Header {
 	c := make(http.Header, len(h))
 	for k, v := range h {
 		val := make([]string, len(v))
@@ -322,16 +322,16 @@ func copyHttpHeader(h http.Header) http.Header {
 	return c
 }
 
-// copyHttpResponse deepcopies HTTP responses.
-func copyHttpResponse(r *http.Response) *http.Response {
+// copyHTTPResponse deepcopies HTTP responses.
+func copyHTTPResponse(r *http.Response) *http.Response {
 	if r == nil {
 		return nil
 	}
 
 	newResp := *r
 	newResp.Body = nil
-	newResp.Header = copyHttpHeader(r.Header)
-	newResp.Trailer = copyHttpHeader(r.Trailer)
+	newResp.Header = copyHTTPHeader(r.Header)
+	newResp.Trailer = copyHTTPHeader(r.Trailer)
 
 	return &newResp
 }

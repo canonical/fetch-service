@@ -179,4 +179,4 @@ EEIOYFrFjr6mz0hoFywPXCGPJfgBkroXKRXx30YBz7dv23YQ973YtXdcppOvAX1u
 MNIllRTPUjfVhOcekGJFT6Fa5/s5WOctwQAHyYxrtjpg3fupPjg=
 =JbF+
 -----END PGP PRIVATE KEY BLOCK-----
-`
+` //nolint:gosec,G101
