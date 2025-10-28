@@ -251,17 +251,17 @@ http-proxy:
       access: allow
 `
 
-func (t *configSuite) TestGetSetHttpProxyConfig(c *C) {
+func (t *configSuite) TestGetSetHTTPProxyConfig(c *C) {
 	dir := c.MkDir()
 	cfgFile := filepath.Join(dir, "acl.yaml")
 	err := os.WriteFile(cfgFile, []byte(proxyConfig), 0644)
 	c.Assert(err, IsNil)
 
 	// Load rules from file
-	err = config.LoadHttpProxyRules(dir)
+	err = config.LoadHTTPProxyRules(dir)
 	c.Assert(err, IsNil)
 
-	cfg := config.GetHttpProxyConfig()
+	cfg := config.GetHTTPProxyConfig()
 	c.Check(cfg.Policy, Equals, config.Deny)
 	c.Check(cfg.Rules, DeepEquals, []config.Rule{
 		config.Rule{
@@ -291,7 +291,7 @@ func (t *configSuite) TestGetSetHttpProxyConfig(c *C) {
 	cfg.Policy = config.Allow
 	cfg.Rules[1].Dst = []config.IPNet{}
 
-	cfg2 := config.GetHttpProxyConfig()
+	cfg2 := config.GetHTTPProxyConfig()
 	c.Check(cfg2.Policy, Equals, config.Deny)
 	c.Check(cfg2.Rules[1].Dst, DeepEquals, []config.IPNet{
 		ipNet("1.2.3.4/32"),
@@ -300,10 +300,10 @@ func (t *configSuite) TestGetSetHttpProxyConfig(c *C) {
 	})
 
 	// Store the modified configuration
-	config.SetHttpProxyConfig(cfg)
+	config.SetHTTPProxyConfig(cfg)
 
 	// Reload configuration
-	cfg3 := config.GetHttpProxyConfig()
+	cfg3 := config.GetHTTPProxyConfig()
 	c.Check(cfg3.Policy, Equals, config.Allow)
 	c.Check(cfg3.Rules[1].Dst, DeepEquals, []config.IPNet{})
 }
@@ -484,18 +484,18 @@ var proxyRulesContent = testutils.Reindent(`
 	      access: deny
 `)
 
-func (t *configSuite) TestLoadHttpProxyRules(c *C) {
+func (t *configSuite) TestLoadHTTPProxyRules(c *C) {
 	dir := c.MkDir()
 
-	emptyConfig := config.HttpProxyConfig{Policy: config.Deny, Rules: []config.Rule{}}
-	config.SetHttpProxyConfig(emptyConfig)
+	emptyConfig := config.HTTPProxyConfig{Policy: config.Deny, Rules: []config.Rule{}}
+	config.SetHTTPProxyConfig(emptyConfig)
 
 	err := os.WriteFile(filepath.Join(dir, "acl.yaml"), proxyRulesContent, 0644)
 	c.Assert(err, IsNil)
 
-	err = config.LoadHttpProxyRules(dir)
+	err = config.LoadHTTPProxyRules(dir)
 	c.Assert(err, IsNil)
-	cfg := config.GetHttpProxyConfig()
+	cfg := config.GetHTTPProxyConfig()
 	c.Assert(cfg.Policy, Equals, config.Allow)
 	c.Assert(cfg.Rules, DeepEquals, []config.Rule{{
 		Dst:    []config.IPNet{{net.IPNet{IP: net.IP{1, 2, 0, 0}, Mask: net.IPMask{255, 255, 0, 0}}}},
@@ -503,13 +503,13 @@ func (t *configSuite) TestLoadHttpProxyRules(c *C) {
 	}})
 }
 
-func (t *configSuite) TestLoadHttpProxyRulesMissing(c *C) {
+func (t *configSuite) TestLoadHTTPProxyRulesMissing(c *C) {
 	dir := c.MkDir()
 
-	emptyConfig := config.HttpProxyConfig{Policy: config.Deny, Rules: []config.Rule{}}
-	config.SetHttpProxyConfig(emptyConfig)
+	emptyConfig := config.HTTPProxyConfig{Policy: config.Deny, Rules: []config.Rule{}}
+	config.SetHTTPProxyConfig(emptyConfig)
 
-	err := config.LoadHttpProxyRules(dir)
+	err := config.LoadHTTPProxyRules(dir)
 	c.Assert(errors.Is(err, os.ErrNotExist), Equals, true)
 }
 

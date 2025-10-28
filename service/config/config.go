@@ -131,13 +131,13 @@ type Rule struct {
 	Access ACLPolicy `yaml:"access"`
 }
 
-type HttpProxyConfig struct {
+type HTTPProxyConfig struct {
 	Policy ACLPolicy `yaml:"policy"`
 	Rules  []Rule    `yaml:"rules"`
 }
 
 type ACLConfig struct {
-	HttpProxy HttpProxyConfig `yaml:"http-proxy"`
+	HTTPProxy HTTPProxyConfig `yaml:"http-proxy"`
 }
 
 var (
@@ -145,33 +145,33 @@ var (
 	globalACLConfigLock sync.Mutex
 )
 
-func GetHttpProxyConfig() HttpProxyConfig {
+func GetHTTPProxyConfig() HTTPProxyConfig {
 	globalACLConfigLock.Lock()
 	defer globalACLConfigLock.Unlock()
 
-	cfg := HttpProxyConfig{
-		Policy: globalACLConfig.HttpProxy.Policy,
-		Rules:  make([]Rule, len(globalACLConfig.HttpProxy.Rules)),
+	cfg := HTTPProxyConfig{
+		Policy: globalACLConfig.HTTPProxy.Policy,
+		Rules:  make([]Rule, len(globalACLConfig.HTTPProxy.Rules)),
 	}
 
-	copy(cfg.Rules, globalACLConfig.HttpProxy.Rules)
+	copy(cfg.Rules, globalACLConfig.HTTPProxy.Rules)
 
 	return cfg
 }
 
-func SetHttpProxyConfig(cfg HttpProxyConfig) {
+func SetHTTPProxyConfig(cfg HTTPProxyConfig) {
 	globalACLConfigLock.Lock()
 	defer globalACLConfigLock.Unlock()
 
-	globalACLConfig.HttpProxy.Policy = cfg.Policy
-	globalACLConfig.HttpProxy.Rules = make([]Rule, len(cfg.Rules))
-	copy(globalACLConfig.HttpProxy.Rules, cfg.Rules)
+	globalACLConfig.HTTPProxy.Policy = cfg.Policy
+	globalACLConfig.HTTPProxy.Rules = make([]Rule, len(cfg.Rules))
+	copy(globalACLConfig.HTTPProxy.Rules, cfg.Rules)
 
 	logger.Infof("Proxy configuration updated: %d dst rules, default policy: %s",
 		len(cfg.Rules), cfg.Policy.String())
 }
 
-func LoadHttpProxyRules(cfgdir string) error {
+func LoadHTTPProxyRules(cfgdir string) error {
 	cfgfile := filepath.Join(cfgdir, aclConfigFile)
 	if _, err := os.Stat(cfgfile); err != nil {
 		return err
@@ -184,19 +184,19 @@ func LoadHttpProxyRules(cfgdir string) error {
 	}
 	defer f.Close()
 
-	cfg, err := decodeHttpProxyRules(f)
+	cfg, err := decodeHTTPProxyRules(f)
 	if err != nil {
 		return err
 	}
 
 	// The configuration is only updated if the configuration file
 	// is correctly parsed.
-	SetHttpProxyConfig(cfg.HttpProxy)
+	SetHTTPProxyConfig(cfg.HTTPProxy)
 
 	return nil
 }
 
-func decodeHttpProxyRules(r io.Reader) (ACLConfig, error) {
+func decodeHTTPProxyRules(r io.Reader) (ACLConfig, error) {
 	var cfg ACLConfig
 	dec := yaml.NewDecoder(r)
 	if err := dec.Decode(&cfg); err != nil {
@@ -210,12 +210,12 @@ func UpdateConfig(optype string, dryRun bool, payload []byte, cfgdir string) err
 
 	switch optype {
 	case "acl":
-		cfg, err := decodeHttpProxyRules(r)
+		cfg, err := decodeHTTPProxyRules(r)
 		if err != nil {
 			return err
 		}
 		if !dryRun {
-			SetHttpProxyConfig(cfg.HttpProxy)
+			SetHTTPProxyConfig(cfg.HTTPProxy)
 
 			// Overwrite the configuration file only if the data is valid
 			// and we're not in a dry run.
