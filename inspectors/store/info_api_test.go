@@ -66,17 +66,17 @@ func getTestBldbinInspectorConfig() bconfig.BldBinInspectorConfig {
 	}
 }
 
-func (s *storeSuite) TestStoreInfoApiInspectorID(c *C) {
+func (s *storeSuite) TestStoreInfoAPIInspectorID(c *C) {
 	ins := store.NewStoreInfoAPIInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 	c.Assert(ins.ID(), Equals, "store.info-api")
 }
 
-type storeInfoApiInspectRequestTest struct {
+type storeInfoAPIInspectRequestTest struct {
 	url     string // The info request URL
 	pending bool   // Whether the inspection result should be pending
 }
 
-var storeInfoApiInspectRequestTests = []storeInfoApiInspectRequestTest{{
+var storeInfoAPIInspectRequestTests = []storeInfoAPIInspectRequestTest{{
 	url:     "https://api.snapcraft.io:443/v2/bins/info/package-name",
 	pending: true,
 }, {
@@ -99,8 +99,8 @@ var storeInfoApiInspectRequestTests = []storeInfoApiInspectRequestTest{{
 	pending: true,
 }}
 
-func (s *storeSuite) TestStoreInfoApiInspectRequest(c *C) {
-	for _, tc := range storeInfoApiInspectRequestTests {
+func (s *storeSuite) TestStoreInfoAPIInspectRequest(c *C) {
+	for _, tc := range storeInfoAPIInspectRequestTests {
 		ins := store.NewStoreInfoAPIInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
@@ -116,7 +116,7 @@ func (s *storeSuite) TestStoreInfoApiInspectRequest(c *C) {
 	}
 }
 
-func (s *storeSuite) TestStoreInfoApiArtifactInspector(c *C) {
+func (s *storeSuite) TestStoreInfoAPIArtifactInspector(c *C) {
 	a := metadata.NewArtifact()
 	a.Metadata.Type = "application/json"
 	a.Metadata.Size = 1743
@@ -156,7 +156,7 @@ func (s *storeSuite) TestStoreInfoApiArtifactInspector(c *C) {
 	c.Check(channel, Equals, "latest/edge")
 }
 
-func (s *storeSuite) TestStoreInfoApiArtifactBadType(c *C) {
+func (s *storeSuite) TestStoreInfoAPIArtifactBadType(c *C) {
 	a := metadata.NewArtifact()
 	a.Metadata.Type = "text/plain"
 	a.Metadata.Size = 1743
@@ -171,7 +171,7 @@ func (s *storeSuite) TestStoreInfoApiArtifactBadType(c *C) {
 	c.Check(a.Approved(), Equals, false)
 }
 
-func (s *storeSuite) TestStoreInfoApiArtifactBadContent(c *C) {
+func (s *storeSuite) TestStoreInfoAPIArtifactBadContent(c *C) {
 	a := metadata.NewArtifact()
 	a.Metadata.Type = "application/json"
 	a.Metadata.Size = 1743

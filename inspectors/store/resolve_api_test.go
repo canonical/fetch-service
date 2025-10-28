@@ -28,17 +28,17 @@ import (
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
-func (s *storeSuite) TestStoreResolveApiInspectorID(c *C) {
+func (s *storeSuite) TestStoreResolveAPIInspectorID(c *C) {
 	ins := store.NewStoreResolveAPIInspector(getTestStoreInspectorConfig())
 	c.Assert(ins.ID(), Equals, "store.resolve-api")
 }
 
-type storeResolveApiInspectRequestTest struct {
+type storeResolveAPIInspectRequestTest struct {
 	url     string // The info request URL
 	pending bool   // Whether the inspection result should be pending
 }
 
-var storeResolveApiInspectRequestTests = []storeResolveApiInspectRequestTest{{
+var storeResolveAPIInspectRequestTests = []storeResolveAPIInspectRequestTest{{
 	url:     "https://api.snapcraft.io:443/v2/revisions/resolve",
 	pending: true,
 }, {
@@ -52,8 +52,8 @@ var storeResolveApiInspectRequestTests = []storeResolveApiInspectRequestTest{{
 	pending: false,
 }}
 
-func (s *storeSuite) TestStoreResolveApiInspectRequest(c *C) {
-	for _, tc := range storeResolveApiInspectRequestTests {
+func (s *storeSuite) TestStoreResolveAPIInspectRequest(c *C) {
+	for _, tc := range storeResolveAPIInspectRequestTests {
 		ins := store.NewStoreResolveAPIInspector(getTestStoreInspectorConfig())
 		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
@@ -69,13 +69,13 @@ func (s *storeSuite) TestStoreResolveApiInspectRequest(c *C) {
 	}
 }
 
-type storeResolveApiArtifactInspectorTest struct {
+type storeResolveAPIArtifactInspectorTest struct {
 	filename string // The test file name
 	approved bool   // Whether the artifact should be approved
 	reason   string // The reason for approval or rejection
 }
 
-var storeResolveApiArtifactInspectorTests = []storeResolveApiArtifactInspectorTest{{
+var storeResolveAPIArtifactInspectorTests = []storeResolveAPIArtifactInspectorTest{{
 	filename: "testdata/resolve.json",
 	approved: true,
 	reason:   "valid store resolve_revisions API response",
@@ -101,8 +101,8 @@ var storeResolveApiArtifactInspectorTests = []storeResolveApiArtifactInspectorTe
 	reason:   "", // unrecognized artifact
 }}
 
-func (s *storeSuite) TestStoreResolveApiArtifactInspector(c *C) {
-	for _, tc := range storeResolveApiArtifactInspectorTests {
+func (s *storeSuite) TestStoreResolveAPIArtifactInspector(c *C) {
+	for _, tc := range storeResolveAPIArtifactInspectorTests {
 		a := metadata.NewArtifact()
 		a.Metadata.Type = "application/json"
 		a.Metadata.Size = 1234
@@ -135,7 +135,7 @@ func (s *storeSuite) TestStoreResolveApiArtifactInspector(c *C) {
 	}
 }
 
-func (s *storeSuite) TestStoreResolveApiArtifactBadType(c *C) {
+func (s *storeSuite) TestStoreResolveAPIArtifactBadType(c *C) {
 	a := metadata.NewArtifact()
 	a.Metadata.Type = "text/plain"
 	a.Metadata.Size = 1743
