@@ -290,7 +290,7 @@ func (s *aptSuite) TestAptReleasePackagesValidation(c *C) {
 		}
 		a.SetRequestPending(ins, "test").Annotate(notes)
 		ins.SetRelease(map[string]apt.ReleaseFile{tc.releaseRepo: rf})
-		err := ins.InspectArtifact(f, a)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 		c.Assert(a.Approved(), Equals, false)
 		if tc.opinion == opinions.Unknown {
@@ -377,7 +377,7 @@ func (s *aptSuite) TestAptReleaseTranslationValidation(c *C) {
 		}
 		a.SetRequestPending(ins, "test").Annotate(notes)
 		ins.SetRelease(map[string]apt.ReleaseFile{tc.releaseRepo: rf})
-		err := ins.InspectArtifact(f, a)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 		c.Assert(a.Approved(), Equals, false)
 		if tc.opinion == opinions.Unknown {
