@@ -35,6 +35,7 @@ Endpoints
 :Response:
 
   .. code-block:: json
+     :force:
 
     {
         "uptime": <int>,				// service uptime in seconds
@@ -67,6 +68,7 @@ Endpoints
 :Parameters:
 
   .. code-block:: json
+      :force:
 
     {
         "timeout": <int>,		// session timeout in seconds
@@ -79,6 +81,7 @@ Endpoints
   ``<secret>`` object has the following keys:
 
   .. code-block:: json
+      :force:
 
     {
         "type": <string>,	      // the kind of secret
@@ -103,6 +106,7 @@ Endpoints
   fetch-service.
 
   .. code-block:: json
+      :force:
 
     {
         "git": {
@@ -145,6 +149,7 @@ Endpoints
 :Response:
 
   .. code-block:: json
+      :force:
 
     {
         "id": <string>,			// session ID
@@ -166,6 +171,7 @@ Endpoints
 :Parameters:
 
   .. code-block:: json
+      :force:
 
     {
         "token": <string>
@@ -174,6 +180,7 @@ Endpoints
 :Response:
 
   .. code-block:: json
+      :force:
 
     {
         "session-id": <string>,		// session ID
@@ -200,6 +207,7 @@ Endpoints
 :Response:
 
   .. code-block:: json
+      :force:
 
     {
         "session-id": <string>,		// session ID
