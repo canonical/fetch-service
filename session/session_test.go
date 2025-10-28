@@ -52,15 +52,15 @@ type sessionSuite struct{}
 var _ = Suite(&sessionSuite{})
 
 func (t *sessionSuite) TestNewSession(c *C) {
-	id_restorer := session.MockMakeSessionId(func() string {
+	idRestorer := session.MockMakeSessionId(func() string {
 		return "6ba7b8109dad11d180b400c04fd430c8"
 	})
-	defer id_restorer()
+	defer idRestorer()
 
-	rs_restorer := session.MockRandomString(func(int) string {
+	rsRestorer := session.MockRandomString(func(int) string {
 		return "1ItfzwGBeJ8wsJdP0Nlx"
 	})
-	defer rs_restorer()
+	defer rsRestorer()
 
 	before := time.Now()
 	tmp := c.MkDir()
@@ -220,7 +220,8 @@ func (t *sessionSuite) TestAddMetadata(c *C) {
 	s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 
-	h, _ := digests.NewSha256Digest(MySha256)
+	h, err := digests.NewSha256Digest(MySha256)
+	c.Assert(err, IsNil)
 	c.Assert(s.A, HasLen, 0)
 	c.Assert(s.HasArtifact(h), Equals, false)
 
@@ -238,7 +239,8 @@ func (t *sessionSuite) TestAddDownload(c *C) {
 	s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 
-	h, _ := digests.NewSha256Digest(MySha256)
+	h, err := digests.NewSha256Digest(MySha256)
+	c.Assert(err, IsNil)
 	a := metadata.NewArtifact()
 	a.Metadata.Name = "test-metadata"
 	a.Metadata.Sha256 = h
@@ -259,7 +261,8 @@ func (t *sessionSuite) TestAddInvalidDownload(c *C) {
 	s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 
-	h, _ := digests.NewSha256Digest(MySha256)
+	h, err := digests.NewSha256Digest(MySha256)
+	c.Assert(err, IsNil)
 	a := metadata.NewArtifact()
 	a.Metadata.Name = "test-metadata"
 	a.Metadata.Sha256 = h
@@ -306,7 +309,8 @@ func (t *sessionSuite) TestSaveData(c *C) {
 		tmp := c.MkDir()
 		tempfile := filepath.Join(tmp, "tempfile")
 
-		h, _ := digests.NewSha256Digest(MySha256)
+		h, err := digests.NewSha256Digest(MySha256)
+		c.Assert(err, IsNil)
 
 		a := metadata.NewArtifact()
 		a.AssetDir = tmp
@@ -316,7 +320,7 @@ func (t *sessionSuite) TestSaveData(c *C) {
 
 		// The temporary file exists for every downloaded artifact
 		content := []byte("hello world")
-		err := os.WriteFile(tempfile, content, 0644)
+		err = os.WriteFile(tempfile, content, 0644)
 		c.Assert(err, IsNil)
 
 		if tc.artifactAdded {
@@ -347,7 +351,8 @@ func (t *sessionSuite) TestSaveMetadata(c *C) {
 
 	tmp := c.MkDir()
 
-	h, _ := digests.NewSha256Digest(MySha256)
+	h, err := digests.NewSha256Digest(MySha256)
+	c.Assert(err, IsNil)
 	a := metadata.NewArtifact()
 	a.AssetDir = tmp
 	a.Metadata.Name = "test-metadata"
@@ -355,7 +360,7 @@ func (t *sessionSuite) TestSaveMetadata(c *C) {
 
 	s.AddArtifact(a)
 
-	err := s.SaveMetadata(h)
+	err = s.SaveMetadata(h)
 	c.Assert(err, IsNil)
 
 	data, err := os.ReadFile(filepath.Join(tmp, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.json"))
@@ -514,8 +519,10 @@ func (t *sessionSuite) TestArtifacts(c *C) {
 	s := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 
-	d0, _ := digests.NewSha256Digest("1234567890123456789012345678901234567890123456789012345678901234")
-	d1, _ := digests.NewSha256Digest("1111111111222222222233333333334444444444555555555566666666667777")
+	d0, err := digests.NewSha256Digest("1234567890123456789012345678901234567890123456789012345678901234")
+	c.Assert(err, IsNil)
+	d1, err := digests.NewSha256Digest("1111111111222222222233333333334444444444555555555566666666667777")
+	c.Assert(err, IsNil)
 
 	m0 := metadata.Artifact{}
 	m1 := metadata.Artifact{}

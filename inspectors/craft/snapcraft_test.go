@@ -326,11 +326,11 @@ func (s *snapcraftSuite) TestGetSnapcraftYaml(c *C) {
 			c.Fatal(err)
 		}
 
-		snapcraft_path, found := craft.GetSnapcraftYamlPath(dir)
+		snapcraftPath, found := craft.GetSnapcraftYamlPath(dir)
 
 		c.Assert(found, Equals, tc.shouldFind)
 		if found {
-			c.Assert(snapcraft_path, Equals, full)
+			c.Assert(snapcraftPath, Equals, full)
 		}
 	}
 

@@ -128,9 +128,9 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	sc.Buffer(buf, 1024*1024)
 
 	itemCount := 0
-	state_name := false
-	state_version := false
-	state_commands := false
+	stateName := false
+	stateVersion := false
+	stateCommands := false
 	suite := ""
 	component := ""
 	arch := ""
@@ -172,35 +172,35 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		line := sc.Text()
 
 		if strings.HasPrefix(line, "name: ") {
-			if state_name {
+			if stateName {
 				a.SetResponseRejected(ins, "duplicate name field in commands file")
 				return nil
 			}
-			state_name = true
+			stateName = true
 			continue
 		} else if strings.HasPrefix(line, "version: ") {
-			if state_version {
+			if stateVersion {
 				a.SetResponseRejected(ins, "duplicate version field in commands file")
 				return nil
 			}
-			state_version = true
+			stateVersion = true
 			continue
 		} else if strings.HasPrefix(line, "commands: ") {
-			if state_commands {
+			if stateCommands {
 				a.SetResponseRejected(ins, "duplicate commands field in commands file")
 				return nil
 			}
-			state_commands = true
+			stateCommands = true
 			continue
 		} else if len(line) == 0 { // item ends
-			if !state_name || !state_version || !state_commands {
+			if !stateName || !stateVersion || !stateCommands {
 				a.SetResponseRejected(ins, "ill-formed entry in commands file")
 				return nil
 			}
 			itemCount++
-			state_name = false
-			state_version = false
-			state_commands = false
+			stateName = false
+			stateVersion = false
+			stateCommands = false
 		}
 	}
 

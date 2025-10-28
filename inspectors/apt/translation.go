@@ -164,9 +164,9 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 	sc.Buffer(buf, 1024*1024)
 
 	itemCount := 0
-	state_package := false
-	state_md5sum := false
-	state_description := false
+	statePackage := false
+	stateMD5sum := false
+	stateDescription := false
 	lang := ""
 
 	// Check if the Translation file is well-formed
@@ -174,25 +174,25 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 		line := sc.Text()
 
 		if strings.HasPrefix(line, "Package: ") {
-			if state_package {
+			if statePackage {
 				a.SetResponseRejected(ins, "misplaced package fields in translation file")
 				return nil
 			}
-			state_package = true
+			statePackage = true
 			continue
 		} else if strings.HasPrefix(line, "Description-md5: ") {
-			if !state_package {
+			if !statePackage {
 				a.SetResponseRejected(ins, "description-md5 field without Package field")
 				return nil
 			}
-			state_md5sum = true
+			stateMD5sum = true
 			continue
 		} else if strings.HasPrefix(line, "Description-") {
-			if !state_md5sum || !state_package {
+			if !stateMD5sum || !statePackage {
 				a.SetResponseRejected(ins, "description field without Package or Description-md5 field")
 				return nil
 			}
-			state_description = true
+			stateDescription = true
 			if lang == "" { // get the language code
 				descLang, _, langFound := strings.Cut(line, ":")
 				if langFound {
@@ -201,29 +201,29 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 			}
 			continue
 		} else if strings.HasPrefix(line, " ") { // Description field continuation with leading space
-			if !state_description {
+			if !stateDescription {
 				a.SetResponseRejected(ins, "description field without Package or Description-md5 field")
 				return nil
 			}
 			continue
 		} else if len(line) == 0 { // item ends
-			if state_description {
+			if stateDescription {
 				itemCount++
 			}
-			state_package = false
-			state_md5sum = false
-			state_description = false
+			statePackage = false
+			stateMD5sum = false
+			stateDescription = false
 		}
 	}
 
 	// Handle the last item if not followed by an empty line
 	if itemCount > 0 {
-		if state_package {
-			if !state_md5sum {
+		if statePackage {
+			if !stateMD5sum {
 				a.SetResponseRejected(ins, "description-md5 field missing for the last Package")
 				return nil
 			}
-			if !state_description {
+			if !stateDescription {
 				a.SetResponseRejected(ins, "description field missing for the last Package")
 				return nil
 			}

@@ -76,15 +76,15 @@ func (ins *RockcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 	if _, err := osStat(rockcraftYamlPath); err != nil {
 		return nil
 	}
-	yamldata_filereader, err := osOpen(rockcraftYamlPath)
+	yamldataFilereader, err := osOpen(rockcraftYamlPath)
 	if err != nil {
 		a.SetResponseRejected(ins, "cannot open rockcraft.yaml file")
 		return nil
 	}
-	defer yamldata_filereader.Close()
+	defer yamldataFilereader.Close()
 
 	var data rockcraftYaml
-	dec := yaml.NewDecoder(yamldata_filereader)
+	dec := yaml.NewDecoder(yamldataFilereader)
 	if err := dec.Decode(&data); err != nil {
 		a.SetResponseRejected(ins, "cannot decode rockcraft.yaml")
 		return nil
