@@ -39,11 +39,13 @@ it to ``fetch``, as it's simply a different entrypoint for the same file::
 This creates a permissive session in the running fetch service, which can then be used
 elsewhere.
 
-The inspectors configuration for the session can be provided as a positional argument::
+The inspectors configuration for the session can be provided as a positional argument:
 
-.. literalinclude:: code/inspectors.yaml
-    :caption: inspectors.yaml
-    :language: yaml
+.. collapse:: inspectors.yaml
+
+    .. literalinclude:: code/inspectors.yaml
+        :caption: inspectors.yaml
+        :language: yaml
 
 Then run::
         
