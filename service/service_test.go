@@ -471,7 +471,8 @@ func (t *serviceSuite) TestResponseInspection(c *C) {
 		s := session.New(opt.Spool, 0, tc.policy == "permissive", nil, config.SessionInspectorsConfig{})
 		defer s.Discard()
 
-		sha, _ := digests.NewSha256Digest("5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03")
+		sha, err := digests.NewSha256Digest("5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03")
+		c.Assert(err, IsNil)
 		a := metadata.NewArtifact()
 		a.Metadata.Sha256 = sha
 		a.AssetDir = filepath.Join(s.SessionDir, "assets")
@@ -556,7 +557,8 @@ func (t *serviceSuite) TestResponseInspectionConcurrent(c *C) {
 	s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
 	defer s.Discard()
 
-	sha, _ := digests.NewSha256Digest("5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03")
+	sha, err := digests.NewSha256Digest("5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03")
+	c.Assert(err, IsNil)
 
 	// First artifact download
 	a1 := fakeArtifact(sha, s, c)
