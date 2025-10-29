@@ -86,7 +86,7 @@ func (ins *BldBinInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 
 	tf := tar.NewReader(xr)
 
-	packageId, _ := a.RequestStringAnnotation("store.info-api", "package-id")
+	packageID, _ := a.RequestStringAnnotation("store.info-api", "package-id")
 	revision, _ := a.ResponseStringAnnotation("store.info-api", "revision")
 
 	for {
@@ -117,7 +117,7 @@ func (ins *BldBinInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 				License:       binmd.License,
 				Vendor:        binmd.Contact,
 				StoreRevision: revision,
-				ContentId:     packageId,
+				ContentID:     packageID,
 			}
 
 			a.SetArtifactMetadata(md)

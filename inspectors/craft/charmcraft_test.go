@@ -202,7 +202,7 @@ func (s *charmcraftSuite) TestCharmcraftGitInspectArtifact(c *C) {
 	c.Check(a.Metadata.Name, Equals, "sample-charmcraft-project")
 	c.Check(a.Metadata.Version, Equals, "")
 	c.Check(a.Metadata.Description, Equals, "A very short one-line summary of the charm.")
-	c.Check(a.Metadata.ContentId, Equals, "d9c2c0282d81a993c0011113996b541a1ef1ebc7")
+	c.Check(a.Metadata.ContentID, Equals, "d9c2c0282d81a993c0011113996b541a1ef1ebc7")
 }
 
 func (s *charmcraftSuite) TestCharmcraftGitInspectArtifactMissingCharmcraftYaml(c *C) {

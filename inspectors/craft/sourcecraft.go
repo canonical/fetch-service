@@ -96,7 +96,7 @@ func (ins *SourcecraftInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		Version:     data.Version,
 		Description: data.Summary,
 		License:     data.License,
-		ContentId:   getSingleFetchedRef(a),
+		ContentID:   getSingleFetchedRef(a),
 	})
 	a.SetResponseApproved(ins, "sourcecraft repository found")
 	return nil
