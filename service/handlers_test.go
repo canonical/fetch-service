@@ -145,10 +145,10 @@ func (t *serviceSuite) TestReuseInspectionResult(c *C) {
 }
 
 func (t *serviceSuite) TestCompleteInspectionAfterSessionFinished(c *C) {
-	restorer := service.MockNewHttpProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HttpProxy, error) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		t.ch = ch
 		t.proxyPort = port
-		return &proxy.HttpProxy{}, nil
+		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
