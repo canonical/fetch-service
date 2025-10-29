@@ -162,7 +162,7 @@ func handleCompleteInspection(v messages.CompleteInspection) {
 	digest := v.A.Metadata.Sha256
 	s := session.GetSession(v.A.SessionID)
 	if s == nil {
-		v.Rch <- fmt.Errorf("cannot complete inspection: session %s is not active", v.A.SessionId)
+		v.Rch <- fmt.Errorf("cannot complete inspection: session %s is not active", v.A.SessionID)
 		return
 	}
 	if !s.HasArtifact(digest) {
