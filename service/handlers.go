@@ -147,7 +147,11 @@ func handleResponseInspection(v messages.ResponseInspection, ch chan interface{}
 		// Add artifact to session after inspection
 		cinsp := messages.NewCompleteInspection(v.A)
 		ch <- cinsp
-		<-cinsp.Rch
+		errCompletion := <-cinsp.Rch
+		if errCompletion != nil {
+			v.Rch <- errCompletion
+			return
+		}
 
 		v.Rch <- err
 
@@ -157,9 +161,12 @@ func handleResponseInspection(v messages.ResponseInspection, ch chan interface{}
 func handleCompleteInspection(v messages.CompleteInspection) {
 	digest := v.A.Metadata.Sha256
 	s := session.GetSession(v.A.SessionID)
+	if s == nil {
+		v.Rch <- fmt.Errorf("cannot complete inspection: session %s is not active", v.A.SessionID)
+		return
+	}
 	if !s.HasArtifact(digest) {
 		s.AddArtifact(v.A)
-
 	}
 	s.AddDownload(v.A.CurrentDownload)
 
