@@ -552,13 +552,13 @@ func (t *configSuite) TestInspectorsConfigMissing(c *C) {
 }
 
 type combineInspectorsConfigTest struct {
-	sessionInspectorsConfig config.SessionInspectorsConfig
+	sessionInspectorsConfig config.OverrideInspectorsConfig
 	combined                config.InspectorsConfig
 }
 
 var combineInspectorsConfigTests = []combineInspectorsConfigTest{
 	{
-		sessionInspectorsConfig: config.SessionInspectorsConfig{
+		sessionInspectorsConfig: config.OverrideInspectorsConfig{
 			Apt: &apt_cfg.AptInspectorConfig{
 				Repositories: map[string]apt_cfg.AptInspectorConfigRepository{
 					"another": {
@@ -649,7 +649,7 @@ var combineInspectorsConfigTests = []combineInspectorsConfigTest{
 	},
 	// override nothing when nothing is given
 	{
-		sessionInspectorsConfig: config.SessionInspectorsConfig{},
+		sessionInspectorsConfig: config.OverrideInspectorsConfig{},
 		combined: config.InspectorsConfig{
 			Apt: apt_cfg.AptInspectorConfig{
 				Repositories: map[string]apt_cfg.AptInspectorConfigRepository{
@@ -752,7 +752,7 @@ func (t *configSuite) TestCombineInspectorsConfig(c *C) {
 // - the type being a pointer to the corresponding field in InspectorsConfig
 func (t *configSuite) TestInspectorsConfigsInSync(c *C) {
 	inspConfigType := reflect.TypeOf(config.InspectorsConfig{})
-	sessionInspConfigType := reflect.TypeOf(config.SessionInspectorsConfig{})
+	sessionInspConfigType := reflect.TypeOf(config.OverrideInspectorsConfig{})
 
 	// Field names of both structs should also match
 	sessionInspConfigFields := make(map[string]reflect.Type)

@@ -249,7 +249,7 @@ func (t *serviceSuite) TestServiceIdleShutdown(c *C) {
 
 		var sid string
 		if tc.createSession {
-			msg := messages.NewCreateSession("permissive", 1338, nil, config.SessionInspectorsConfig{})
+			msg := messages.NewCreateSession("permissive", 1338, nil, config.OverrideInspectorsConfig{})
 			t.ch <- msg
 			res := <-msg.Rch
 			c.Assert(res.Err, Equals, nil)
@@ -297,7 +297,7 @@ func (t *serviceSuite) TestGetServiceStatus(c *C) {
 
 	err = svc.Start()
 	c.Assert(err, IsNil)
-	s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
+	s := session.New(opt.Spool, 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	msg := messages.NewGetServiceStatus()
@@ -347,7 +347,7 @@ func (t *serviceSuite) TestRequestInspection(c *C) {
 
 		err = svc.Start()
 		c.Assert(err, IsNil)
-		s := session.New(opt.Spool, 0, tc.policy == "permissive", nil, config.SessionInspectorsConfig{})
+		s := session.New(opt.Spool, 0, tc.policy == "permissive", nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		a := metadata.NewArtifact()
@@ -392,7 +392,7 @@ func (t *serviceSuite) TestEvaluateRequestInspection(c *C) {
 		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Pending}, "bar": &Inspection{Opinion: opinions.Rejected}}, ErrRejectedRequest},
 		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Rejected}, "bar": &Inspection{Opinion: opinions.Unknown}}, ErrRejectedRequest},
 	} {
-		s := session.New("/my/spool", 0, tc.policy == "permissive", nil, config.SessionInspectorsConfig{})
+		s := session.New("/my/spool", 0, tc.policy == "permissive", nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		a := metadata.NewArtifact()
@@ -468,7 +468,7 @@ func (t *serviceSuite) TestResponseInspection(c *C) {
 
 		err = svc.Start()
 		c.Assert(err, IsNil)
-		s := session.New(opt.Spool, 0, tc.policy == "permissive", nil, config.SessionInspectorsConfig{})
+		s := session.New(opt.Spool, 0, tc.policy == "permissive", nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		sha, err := digests.NewSha256Digest("5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03")
@@ -554,7 +554,7 @@ func (t *serviceSuite) TestResponseInspectionConcurrent(c *C) {
 
 	err = svc.Start()
 	c.Assert(err, IsNil)
-	s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
+	s := session.New(opt.Spool, 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	sha, err := digests.NewSha256Digest("5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03")
@@ -618,7 +618,7 @@ func (t *serviceSuite) TestEvaluateResponseInspection(c *C) {
 		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Approved}, "bar": &Inspection{Opinion: opinions.Rejected}}, opinions.Rejected, ErrRejectedArtifact},
 		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Rejected}, "bar": &Inspection{Opinion: opinions.Unknown}}, opinions.Rejected, ErrRejectedArtifact},
 	} {
-		s := session.New("/my/spool", 0, tc.policy == "permissive", nil, config.SessionInspectorsConfig{})
+		s := session.New("/my/spool", 0, tc.policy == "permissive", nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		a := metadata.NewArtifact()
@@ -675,7 +675,7 @@ func (t *serviceSuite) TestCreateSession(c *C) {
 		err = svc.Start()
 		c.Assert(err, IsNil)
 
-		msg := messages.NewCreateSession(tc.policy, 666, tc.sec, config.SessionInspectorsConfig{})
+		msg := messages.NewCreateSession(tc.policy, 666, tc.sec, config.OverrideInspectorsConfig{})
 		t.ch <- msg
 		res := <-msg.Rch
 
@@ -727,7 +727,7 @@ func (t *serviceSuite) TestDeleteResources(c *C) {
 		err = svc.Start()
 		c.Assert(err, IsNil)
 
-		s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
+		s := session.New(opt.Spool, 0, true, nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		var sid string
@@ -784,7 +784,7 @@ func (t *serviceSuite) TestRevokeToken(c *C) {
 
 		err = svc.Start()
 		c.Assert(err, IsNil)
-		s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
+		s := session.New(opt.Spool, 0, true, nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		var sid string
@@ -850,7 +850,7 @@ func (t *serviceSuite) TestGetSessionReport(c *C) {
 
 		err = svc.Start()
 		c.Assert(err, IsNil)
-		s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
+		s := session.New(opt.Spool, 0, true, nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		var sid string
@@ -914,7 +914,7 @@ func (t *serviceSuite) TestEndSession(c *C) {
 
 		err = svc.Start()
 		c.Assert(err, IsNil)
-		s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
+		s := session.New(opt.Spool, 0, true, nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		var sid string
@@ -1002,7 +1002,7 @@ func (t *serviceSuite) TestFetchctlConfiguration(c *C) {
 
 		err = svc.Start()
 		c.Assert(err, IsNil)
-		s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
+		s := session.New(opt.Spool, 0, true, nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		msg := messages.NewFetchCtl(tc.operation, tc.optype, tc.dryRun, nil)
@@ -1054,7 +1054,7 @@ func (t *serviceSuite) TestFetchctlCertificateUpdate(c *C) {
 
 		err = svc.Start()
 		c.Assert(err, IsNil)
-		s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
+		s := session.New(opt.Spool, 0, true, nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		msg := messages.NewFetchCtl("update-cert", "", tc.dryRun, nil)
@@ -1095,7 +1095,7 @@ func (t *serviceSuite) TestFetchctlCreateSession(c *C) {
 		{false, `{"session-id":"x", "token":"y", "timeout":0, "mode":"permissive", "inspectors-configuration":""}`, "x", "y", time.Duration(0), false},
 	} {
 		var ss *session.Session
-		restorer = service.MockSessionNewWithID(func(sessionID, token, spool string, timeout time.Duration, permissive bool, sec []secrets.Secret, inspectorsConfig config.SessionInspectorsConfig) *session.Session {
+		restorer = service.MockSessionNewWithID(func(sessionID, token, spool string, timeout time.Duration, permissive bool, sec []secrets.Secret, inspectorsConfig config.OverrideInspectorsConfig) *session.Session {
 			c.Check(sessionID, Equals, tc.sid)
 			c.Check(token, Equals, tc.token)
 			c.Check(timeout, Equals, tc.timeout)
@@ -1217,7 +1217,7 @@ func (t *serviceSuite) TestInspectorsConfigOrDefault(c *C) {
 		}
 
 		inspConfigDir = ""
-		err := service.LoadInspectorsConfigOrDefault("/user/config")
+		err := service.LoadDefaultInspectorsConfigCombine("/user/config")
 		c.Assert(err, IsNil)
 		c.Assert(inspConfigDir, Equals, tc.finalConfDir, Commentf("test case: %+v", tc))
 

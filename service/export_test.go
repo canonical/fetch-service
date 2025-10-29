@@ -31,10 +31,10 @@ import (
 )
 
 var (
-	EvaluateRequestInspection     = evaluateRequestInspection
-	EvaluateResponseInspection    = evaluateResponseInspection
-	LoadHTTPProxyRulesOrDefault   = loadHTTPProxyRulesOrDefault
-	LoadInspectorsConfigOrDefault = loadInspectorsConfigOrDefault
+	EvaluateRequestInspection          = evaluateRequestInspection
+	EvaluateResponseInspection         = evaluateResponseInspection
+	LoadHTTPProxyRulesOrDefault        = loadHTTPProxyRulesOrDefault
+	LoadDefaultInspectorsConfigCombine = loadDefaultInspectorsConfigCombine
 
 	HandleResponseInspection = handleResponseInspection
 	HandleCompleteInspection = handleCompleteInspection
@@ -80,7 +80,7 @@ func MockProxyUpdateCert(mock func(bool, []byte, string, string) error) (restore
 	}
 }
 
-func MockSessionNewWithID(mock func(string, string, string, time.Duration, bool, []secrets.Secret, config.SessionInspectorsConfig) *session.Session) (restorer func()) {
+func MockSessionNewWithID(mock func(string, string, string, time.Duration, bool, []secrets.Secret, config.OverrideInspectorsConfig) *session.Session) (restorer func()) {
 	old := sessionNewWithID
 	sessionNewWithID = mock
 	return func() {

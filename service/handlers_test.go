@@ -53,7 +53,7 @@ func (t *serviceSuite) TestReuseInspectionResult(c *C) {
 	}
 
 	// Start session
-	s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
+	s := session.New(opt.Spool, 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	// Create a fake artifact
