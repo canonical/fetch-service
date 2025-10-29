@@ -747,17 +747,17 @@ func (t *configSuite) TestCombineInspectorsConfig(c *C) {
 }
 
 // TestInspectorsConfigsInSync checks that all the fields from InspectorsConfig
-// have a corresponding one in SessionInspectorsConfig with:
+// have a corresponding one in OverrideInspectorsConfig with:
 // - the same name
 // - the type being a pointer to the corresponding field in InspectorsConfig
 func (t *configSuite) TestInspectorsConfigsInSync(c *C) {
 	inspConfigType := reflect.TypeOf(config.InspectorsConfig{})
-	sessionInspConfigType := reflect.TypeOf(config.OverrideInspectorsConfig{})
+	overrideInspConfigType := reflect.TypeOf(config.OverrideInspectorsConfig{})
 
 	// Field names of both structs should also match
-	sessionInspConfigFields := make(map[string]reflect.Type)
-	for i := 0; i < sessionInspConfigType.NumField(); i++ {
-		sessionInspConfigFields[sessionInspConfigType.Field(i).Name] = sessionInspConfigType.Field(i).Type
+	overrideInspConfigFields := make(map[string]reflect.Type)
+	for i := 0; i < overrideInspConfigType.NumField(); i++ {
+		overrideInspConfigFields[overrideInspConfigType.Field(i).Name] = overrideInspConfigType.Field(i).Type
 	}
 
 	// Check every field in InspectorsConfig
@@ -766,16 +766,16 @@ func (t *configSuite) TestInspectorsConfigsInSync(c *C) {
 		inspConfigFieldName := inspConfigField.Name
 		inspConfigFieldType := inspConfigField.Type
 
-		// Check if the corresponding field exists in SessionInspectorsConfig
-		fType, ok := sessionInspConfigFields[inspConfigFieldName]
+		// Check if the corresponding field exists in OverrideInspectorsConfig
+		fType, ok := overrideInspConfigFields[inspConfigFieldName]
 		c.Assert(ok, Equals, true,
-			Commentf("Structs out of sync: InspectorsConfig has field '%s' which is missing from SessionInspectorsConfig", inspConfigFieldName),
+			Commentf("Structs out of sync: InspectorsConfig has field '%s' which is missing from OverrideInspectorsConfig", inspConfigFieldName),
 		)
 
-		// Check if the type of the field from SessionInspectorsConfig is a pointer to the type of
+		// Check if the type of the field from OverrideInspectorsConfig is a pointer to the type of
 		// corresponding field in InspectorsConfig
 		c.Assert(reflect.PointerTo(inspConfigFieldType), Equals, fType,
-			Commentf("Structs out of sync: SessionInspectorsConfig has field %s of type %s, which is not a pointer to %s from InspectorsConfig", inspConfigFieldName, fType, inspConfigFieldType),
+			Commentf("Structs out of sync: OverrideInspectorsConfig has field %s of type %s, which is not a pointer to %s from InspectorsConfig", inspConfigFieldName, fType, inspConfigFieldType),
 		)
 	}
 }
