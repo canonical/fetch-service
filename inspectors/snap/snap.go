@@ -216,7 +216,7 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 		Vendor:        accountAssertion.DisplayName(),
 		Architecture:  strings.Join(data.Architectures, ","),
 		StoreRevision: snapRevisionAssertion.SnapRevision(),
-		ContentId:     snapId,
+		ContentID:     snapID,
 	})
 
 	if err := checkSnapDeclarationFilter(ins.config, snapDeclarationAssertion, slog); err != nil {

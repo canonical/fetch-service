@@ -47,7 +47,7 @@ func createMetadata() metadata.Metadata {
 		Copyright:     "Copyright Text",
 		SourcePackage: "my-source-package",
 		AptSuite:      "series-pocket",
-		ContentId:     "some-format-specific-identifier",
+		ContentID:     "some-format-specific-identifier",
 	}
 }
 
