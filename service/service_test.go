@@ -1287,7 +1287,7 @@ type loadInspectorsConfigsOrDefaultTest struct {
 	err           error
 }
 
-var overrideError = errors.New("unable to override conf")
+var errOverride = errors.New("unable to override conf")
 
 var loadInspectorsConfigsOrDefaultTests = []loadInspectorsConfigsOrDefaultTest{{
 	isSnap:        false,
@@ -1316,7 +1316,7 @@ var loadInspectorsConfigsOrDefaultTests = []loadInspectorsConfigsOrDefaultTest{{
 	hasSnapConfig: true,
 	hasConfig:     false,
 	overrideFail:  true,
-	err:           overrideError,
+	err:           errOverride,
 }}
 
 func (t *serviceSuite) TestInspectorsConfigOrDefault(c *C) {
@@ -1337,7 +1337,7 @@ func (t *serviceSuite) TestInspectorsConfigOrDefault(c *C) {
 				return nil
 			}
 			if tc.overrideFail {
-				return overrideError
+				return errOverride
 			}
 			return os.ErrNotExist
 		})
