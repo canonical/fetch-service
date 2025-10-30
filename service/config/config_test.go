@@ -541,6 +541,47 @@ func (t *configSuite) TestLoadInspectorsConfig(c *C) {
 	})
 }
 
+var inspectorsConfigOverrideContent = testutils.Reindent(`
+	git:
+	  urls:
+	    - "https://github.com:443/**"
+	apt:
+	  repositories:
+	    default:
+	      urls:
+	        - http://another.ubuntu.com/ubuntu
+`)
+
+func (t *configSuite) TestLoadOverrideInspectorsConfig(c *C) {
+	defaultDir := c.MkDir()
+	overrideDir := c.MkDir()
+
+	emptyConfig := config.InspectorsConfig{}
+	config.SetInspectorsConfig(emptyConfig)
+
+	err := os.WriteFile(filepath.Join(defaultDir, "inspectors.yaml"), inspectorsConfigContent, 0644)
+	c.Assert(err, IsNil)
+
+	err = os.WriteFile(filepath.Join(overrideDir, "inspectors.yaml"), inspectorsConfigOverrideContent, 0644)
+	c.Assert(err, IsNil)
+
+	err = config.LoadInspectorsConfig(overrideDir)
+	c.Assert(err, IsNil)
+	err = config.LoadOverrideInspectorsConfig(overrideDir)
+	c.Assert(err, IsNil)
+	cfg := config.GetInspectorsConfig()
+	c.Assert(cfg.Apt, DeepEquals, apt_cfg.AptInspectorConfig{
+		Repositories: map[string]apt_cfg.AptInspectorConfigRepository{"default": {
+			URLs: []glob.Glob{glob.MustCompile("http://another.ubuntu.com/ubuntu")},
+		}},
+	})
+	c.Assert(cfg.Git, DeepEquals, git_cfg.GitInspectorConfig{
+		URLs: []glob.Glob{
+			glob.MustCompile("https://github.com:443/**"),
+		},
+	})
+}
+
 func (t *configSuite) TestInspectorsConfigMissing(c *C) {
 	dir := c.MkDir()
 
