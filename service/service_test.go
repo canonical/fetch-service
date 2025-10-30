@@ -63,6 +63,10 @@ func (t *serviceSuite) TearDownTest(c *C) {
 
 var _ = Suite(&serviceSuite{})
 
+const (
+	inspectorsConfigFile = "inspectors.yaml"
+)
+
 // Check if the proxy and control API are created with the correct port number.
 func (t *serviceSuite) TestProxyPort(c *C) {
 	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
@@ -172,11 +176,16 @@ func (t *serviceSuite) TestHTTPProxyCrash(c *C) {
 	err = os.WriteFile(keyPath, testutils.ProxyKey, 0644)
 	c.Assert(err, IsNil)
 
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
+	c.Assert(err, IsNil)
+
 	opt := service.Options{
 		ProxyPort:   1337,
 		ControlPort: 7331,
 		CertPath:    certPath,
 		KeyPath:     keyPath,
+		Config:      confDir,
 	}
 
 	svc, err := service.New(&opt)
@@ -226,6 +235,10 @@ func (t *serviceSuite) TestServiceIdleShutdown(c *C) {
 	certPath, keyPath, err := createCertFiles(dir)
 	c.Assert(err, IsNil)
 
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
+	c.Assert(err, IsNil)
+
 	for _, tc := range []struct {
 		createSession bool
 		serviceAlive  bool
@@ -240,6 +253,7 @@ func (t *serviceSuite) TestServiceIdleShutdown(c *C) {
 			Spool:          dir,
 			CertPath:       certPath,
 			KeyPath:        keyPath,
+			Config:         confDir,
 		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
@@ -286,11 +300,16 @@ func (t *serviceSuite) TestGetServiceStatus(c *C) {
 	certPath, keyPath, err := createCertFiles(dir)
 	c.Assert(err, IsNil)
 
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
+	c.Assert(err, IsNil)
+
 	opt := service.Options{
 		ProxyPort: 1337,
 		Spool:     dir,
 		CertPath:  certPath,
 		KeyPath:   keyPath,
+		Config:    confDir,
 	}
 	svc, err := service.New(&opt)
 	c.Assert(err, IsNil)
@@ -325,11 +344,16 @@ func (t *serviceSuite) TestRequestInspection(c *C) {
 	certPath, keyPath, err := createCertFiles(dir)
 	c.Assert(err, IsNil)
 
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
+	c.Assert(err, IsNil)
+
 	opt := service.Options{
 		ProxyPort: 1337,
 		Spool:     dir,
 		CertPath:  certPath,
 		KeyPath:   keyPath,
+		Config:    confDir,
 	}
 
 	for _, tc := range []struct {
@@ -455,12 +479,17 @@ func (t *serviceSuite) TestResponseInspection(c *C) {
 		certPath, keyPath, err := createCertFiles(dir)
 		c.Assert(err, IsNil)
 
+		confDir := c.MkDir()
+		_, err = createInspectorConfigFile(confDir)
+		c.Assert(err, IsNil)
+
 		spoolDir := dir
 		opt := service.Options{
 			ProxyPort: 1337,
 			Spool:     spoolDir,
 			CertPath:  certPath,
 			KeyPath:   keyPath,
+			Config:    confDir,
 		}
 
 		svc, err := service.New(&opt)
@@ -541,12 +570,17 @@ func (t *serviceSuite) TestResponseInspectionConcurrent(c *C) {
 	certPath, keyPath, err := createCertFiles(dir)
 	c.Assert(err, IsNil)
 
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
+	c.Assert(err, IsNil)
+
 	spoolDir := dir
 	opt := service.Options{
 		ProxyPort: 1337,
 		Spool:     spoolDir,
 		CertPath:  certPath,
 		KeyPath:   keyPath,
+		Config:    confDir,
 	}
 
 	svc, err := service.New(&opt)
@@ -641,6 +675,10 @@ func (t *serviceSuite) TestCreateSession(c *C) {
 	certPath, keyPath, err := createCertFiles(dir)
 	c.Assert(err, IsNil)
 
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
+	c.Assert(err, IsNil)
+
 	for _, tc := range []struct {
 		permissiveMode bool
 		policy         string
@@ -668,6 +706,7 @@ func (t *serviceSuite) TestCreateSession(c *C) {
 			PermissiveMode: tc.permissiveMode,
 			CertPath:       certPath,
 			KeyPath:        keyPath,
+			Config:         confDir,
 		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
@@ -714,11 +753,16 @@ func (t *serviceSuite) TestDeleteResources(c *C) {
 
 		spoolDir := dir
 
+		confDir := c.MkDir()
+		_, err = createInspectorConfigFile(confDir)
+		c.Assert(err, IsNil)
+
 		opt := service.Options{
 			ProxyPort: 1337,
 			Spool:     spoolDir,
 			CertPath:  certPath,
 			KeyPath:   keyPath,
+			Config:    confDir,
 		}
 
 		svc, err := service.New(&opt)
@@ -764,6 +808,10 @@ func (t *serviceSuite) TestRevokeToken(c *C) {
 	certPath, keyPath, err := createCertFiles(dir)
 	c.Assert(err, IsNil)
 
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
+	c.Assert(err, IsNil)
+
 	for _, tc := range []struct {
 		sessionExists bool
 		tokenIsValid  bool
@@ -778,6 +826,7 @@ func (t *serviceSuite) TestRevokeToken(c *C) {
 			Spool:     dir,
 			CertPath:  certPath,
 			KeyPath:   keyPath,
+			Config:    confDir,
 		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
@@ -839,11 +888,16 @@ func (t *serviceSuite) TestGetSessionReport(c *C) {
 		certPath, keyPath, err := createCertFiles(dir)
 		c.Assert(err, IsNil)
 
+		confDir := c.MkDir()
+		_, err = createInspectorConfigFile(confDir)
+		c.Assert(err, IsNil)
+
 		opt := service.Options{
 			ProxyPort: 1337,
 			Spool:     dir,
 			CertPath:  certPath,
 			KeyPath:   keyPath,
+			Config:    confDir,
 		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
@@ -894,6 +948,10 @@ func (t *serviceSuite) TestEndSession(c *C) {
 	certPath, keyPath, err := createCertFiles(dir)
 	c.Assert(err, IsNil)
 
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
+	c.Assert(err, IsNil)
+
 	for _, tc := range []struct {
 		sessionExists bool
 		tokenRevoked  bool
@@ -908,6 +966,7 @@ func (t *serviceSuite) TestEndSession(c *C) {
 			Spool:     dir,
 			CertPath:  certPath,
 			KeyPath:   keyPath,
+			Config:    confDir,
 		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
@@ -972,6 +1031,10 @@ func (t *serviceSuite) TestFetchctlConfiguration(c *C) {
 	certPath, keyPath, err := createCertFiles(dir)
 	c.Assert(err, IsNil)
 
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
+	c.Assert(err, IsNil)
+
 	for _, tc := range []struct {
 		operation string
 		optype    string
@@ -996,7 +1059,13 @@ func (t *serviceSuite) TestFetchctlConfiguration(c *C) {
 		defer restorer()
 
 		spool := filepath.Join(dir, "spool")
-		opt := service.Options{ProxyPort: 1337, Spool: spool, CertPath: certPath, KeyPath: keyPath}
+		opt := service.Options{
+			ProxyPort: 1337,
+			Spool:     spool,
+			CertPath:  certPath,
+			KeyPath:   keyPath,
+			Config:    confDir,
+		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
 
@@ -1029,6 +1098,10 @@ func (t *serviceSuite) TestFetchctlCertificateUpdate(c *C) {
 	certPath, keyPath, err := createCertFiles(dir)
 	c.Assert(err, IsNil)
 
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
+	c.Assert(err, IsNil)
+
 	for _, tc := range []struct {
 		dryRun  bool
 		fail    bool
@@ -1048,7 +1121,13 @@ func (t *serviceSuite) TestFetchctlCertificateUpdate(c *C) {
 		defer restorer()
 
 		spool := filepath.Join(dir, "spool")
-		opt := service.Options{ProxyPort: 1337, Spool: spool, CertPath: certPath, KeyPath: keyPath}
+		opt := service.Options{
+			ProxyPort: 1337,
+			Spool:     spool,
+			CertPath:  certPath,
+			KeyPath:   keyPath,
+			Config:    confDir,
+		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
 
@@ -1079,6 +1158,10 @@ func (t *serviceSuite) TestFetchctlCreateSession(c *C) {
 
 	dir := c.MkDir()
 	certPath, keyPath, err := createCertFiles(dir)
+	c.Assert(err, IsNil)
+
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
 	c.Assert(err, IsNil)
 
 	for _, tc := range []struct {
@@ -1113,6 +1196,7 @@ func (t *serviceSuite) TestFetchctlCreateSession(c *C) {
 			CertPath:       certPath,
 			KeyPath:        keyPath,
 			PermissiveMode: tc.globalPerm,
+			Config:         confDir,
 		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
@@ -1241,9 +1325,22 @@ func createCertFiles(dir string) (string, string, error) {
 	return certPath, keyPath, nil
 }
 
+func createInspectorConfigFile(dir string) (string, error) {
+	confPath := filepath.Join(dir, inspectorsConfigFile)
+	if err := os.WriteFile(confPath, testutils.DefaultInspectorsConf, 0644); err != nil {
+		return "", err
+	}
+
+	return confPath, nil
+}
+
 func serviceOptionsFixture(c *C) *service.Options {
 	dir := c.MkDir()
 	certPath, keyPath, err := createCertFiles(dir)
+	c.Assert(err, IsNil)
+
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
 	c.Assert(err, IsNil)
 
 	return &service.Options{
@@ -1251,5 +1348,6 @@ func serviceOptionsFixture(c *C) *service.Options {
 		ControlPort: 7331,
 		CertPath:    certPath,
 		KeyPath:     keyPath,
+		Config:      confDir,
 	}
 }
