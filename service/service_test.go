@@ -1279,36 +1279,81 @@ func (t *serviceSuite) TestLoadHTTPProxyRulesOrDefault(c *C) {
 	}
 }
 
-func (t *serviceSuite) TestInspectorsConfigOrDefault(c *C) {
-	var inspConfigDir string
+type loadInspectorsConfigsOrDefaultTest struct {
+	isSnap        bool // Whether we're running from snap
+	hasConfig     bool // Whether the user has created a configuration file
+	hasSnapConfig bool // Whether the a configuration file was found in the snap
+	overrideFail  bool // Wether the configurations overriding failed or not
+	err           error
+}
 
-	for _, tc := range loadConfigsOrDefaultTests {
-		restorer := service.MockConfigLoadInspectorsConfig(func(cfgdir string) error {
-			inspConfigDir = cfgdir
+var overrideError = errors.New("unable to override conf")
+
+var loadInspectorsConfigsOrDefaultTests = []loadInspectorsConfigsOrDefaultTest{{
+	isSnap:        false,
+	hasSnapConfig: false,
+	hasConfig:     false,
+	err:           os.ErrNotExist,
+}, {
+	isSnap:        false,
+	hasSnapConfig: false,
+	hasConfig:     true,
+}, {
+	isSnap:        true,
+	hasSnapConfig: false,
+	hasConfig:     false,
+	err:           os.ErrNotExist,
+}, {
+	isSnap:        true,
+	hasSnapConfig: true,
+	hasConfig:     false,
+}, {
+	isSnap:        true,
+	hasSnapConfig: true,
+	hasConfig:     false,
+}, {
+	isSnap:        true,
+	hasSnapConfig: true,
+	hasConfig:     false,
+	overrideFail:  true,
+	err:           overrideError,
+}}
+
+func (t *serviceSuite) TestInspectorsConfigOrDefault(c *C) {
+	for _, tc := range loadInspectorsConfigsOrDefaultTests {
+		restorerConfigLoadInspectorsConfig := service.MockConfigLoadInspectorsConfig(func(cfgdir string) error {
 			if tc.hasConfig && cfgdir == "/user/config" {
 				return nil
 			}
-			if tc.isSnap && cfgdir == "/snap/fetch-service/x1/conf" {
+			if tc.isSnap && tc.hasSnapConfig && cfgdir == "/snap/fetch-service/x1/conf" {
 				return nil
 			}
 			return os.ErrNotExist
 		})
-		defer restorer()
+		defer restorerConfigLoadInspectorsConfig()
+
+		restorerConfigLoadOverrideInspectorsConfig := service.MockConfigLoadOverrideInspectorsConfig(func(cfgdir string) error {
+			if tc.hasConfig && cfgdir == "/user/config" {
+				return nil
+			}
+			if tc.overrideFail {
+				return overrideError
+			}
+			return os.ErrNotExist
+		})
+		defer restorerConfigLoadOverrideInspectorsConfig()
 
 		if tc.isSnap {
 			os.Setenv("SNAP", "/snap/fetch-service/x1")
 			os.Setenv("SNAP_NAME", "fetch-service")
 		}
 
-		inspConfigDir = ""
 		err := service.LoadDefaultInspectorsConfigCombine("/user/config")
-		c.Assert(err, IsNil)
-		c.Assert(inspConfigDir, Equals, tc.finalConfDir, Commentf("test case: %+v", tc))
+		c.Assert(err, Equals, tc.err)
 
 		os.Unsetenv("SNAP")
 		os.Unsetenv("SNAP_NAME")
 	}
-
 }
 
 func createCertFiles(dir string) (string, string, error) {

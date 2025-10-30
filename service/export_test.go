@@ -103,3 +103,11 @@ func MockConfigLoadInspectorsConfig(mock func(string) error) (restorer func()) {
 		configLoadInspectorsConfig = old
 	}
 }
+
+func MockConfigLoadOverrideInspectorsConfig(mock func(string) error) (restorer func()) {
+	old := configLoadOverrideInspectorsConfig
+	configLoadOverrideInspectorsConfig = mock
+	return func() {
+		configLoadOverrideInspectorsConfig = old
+	}
+}
