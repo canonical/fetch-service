@@ -98,9 +98,9 @@ Endpoints
   These credentials are commonly formatted as ``user:password`` and must *not* be
   encoded in base64.
   
-  ``inspectors-configuration`` is an optional object setting session-specific inspectors
-  configuration. Received configurations will override the default ones loaded by the
-  fetch-service.
+  ``inspectors-configuration`` specifies an optional configuration for the
+  session's inspectors. If set, this overrides the default configuration loaded by the
+  Fetch Service.
 
   .. code-block::
 

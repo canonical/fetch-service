@@ -20,7 +20,7 @@ This can be done using the following ``openssl`` commands::
 Start the fetch service
 -----------------------
 
-You can run the fetch service itself with `go run`::
+You can run the fetch service itself with ``go run``::
 
    go run ./cmd/fetch --permissive-mode --cert=./ca.pem --key=ca.key.pem --spool=./spool --verbosity=debug
 
@@ -39,7 +39,7 @@ it to ``fetch``, as it's simply a different entrypoint for the same file::
 This creates a permissive session in the running fetch service, which can then be used
 elsewhere.
 
-The inspectors configuration for the session can be provided as a positional argument.
+The inspectors configuration for the session is provided as a optional positional argument.
 Save the following file:
 
 .. literalinclude:: code/inspectors.yaml
