@@ -26,12 +26,10 @@ jobs:
         uses: golangci/golangci-lint-action@v8
         with:
           version: latest
-          args: '--config=.github/.golangci.yaml --output.text.colors'
+          args: '-c .github/.golangci.yaml'
       - name: Run shellcheck
         run: |
-          shellcheck spread/.extension
-          spread/tools/utils/spread-shellcheck -v spread.yaml
-          find spread -name task.yaml | xargs spread/tools/utils/spread-shellcheck -v
+          make lint-shellcheck
 
   unit-tests:
     runs-on: [noble, amd64]
