@@ -100,7 +100,7 @@ Endpoints
   
   ``inspectors-configuration`` specifies an optional configuration for the
   session's inspectors. If set, this overrides the default configuration loaded by the
-  Fetch Service.
+  Fetch Service. The inspector configuration has the following keys:
 
   .. code-block::
 

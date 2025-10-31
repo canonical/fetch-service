@@ -39,7 +39,8 @@ it to ``fetch``, as it's simply a different entrypoint for the same file::
 This creates a permissive session in the running fetch service, which can then be used
 elsewhere.
 
-The inspectors configuration for the session is provided as a optional positional argument.
+The inspectors configuration for the session is provided through an optional positional
+argument.
 Save the following file:
 
 .. literalinclude:: code/inspectors.yaml
