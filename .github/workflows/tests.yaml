@@ -29,7 +29,6 @@ jobs:
           args: '-c .github/.golangci.yaml'
       - name: Run shellcheck
         run: |
-          shellcheck --version
           make lint-shellcheck
 
   unit-tests:
