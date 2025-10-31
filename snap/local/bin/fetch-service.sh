@@ -35,7 +35,7 @@ if [[ -z "${log_file}" ]]; then
 		"--key=${SNAP_DATA}/certs/ca.key.pem" \
 		"--verbosity=${verbosity}" \
 		"${profile}" \
-		"${permissive}"
+		${permissive}
 else
 	exec "${SNAP}/bin/fetch" \
 		"--proxy-port=${proxy_port}" \
@@ -47,5 +47,5 @@ else
 		"--key=${SNAP_DATA}/certs/ca.key.pem" \
 		"--verbosity=${verbosity}" \
 		"${profile}" \
-		"${permissive}" > >(tee -a "${SNAP_DATA}/${log_file}")
+		${permissive} > >(tee -a "${SNAP_DATA}/${log_file}")
 fi
