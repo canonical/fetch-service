@@ -565,7 +565,7 @@ func (t *configSuite) TestLoadOverrideInspectorsConfig(c *C) {
 	err = os.WriteFile(filepath.Join(overrideDir, "inspectors.yaml"), inspectorsConfigOverrideContent, 0644)
 	c.Assert(err, IsNil)
 
-	err = config.LoadInspectorsConfig(overrideDir)
+	err = config.LoadInspectorsConfig(defaultDir)
 	c.Assert(err, IsNil)
 	err = config.LoadOverrideInspectorsConfig(overrideDir)
 	c.Assert(err, IsNil)
