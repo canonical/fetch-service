@@ -25,6 +25,7 @@ FETCH_SERVICE_AUTH="$control_auth"
 export FETCH_SERVICE_AUTH
 
 if [[ -z "${log_file}" ]]; then
+    # shellcheck disable=SC2086
 	exec "${SNAP}/bin/fetch" \
 		"--proxy-port=${proxy_port}" \
 		"--control-port=${control_port}" \
@@ -37,6 +38,7 @@ if [[ -z "${log_file}" ]]; then
 		${profile} \
 		${permissive}
 else
+    # shellcheck disable=SC2086
 	exec "${SNAP}/bin/fetch" \
 		"--proxy-port=${proxy_port}" \
 		"--control-port=${control_port}" \
