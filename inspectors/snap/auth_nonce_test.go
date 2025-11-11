@@ -45,7 +45,7 @@ var snapAuthNonceInspectRequestTests = []snapAuthNonceInspectRequestTest{{
 	url:     "https://api.snapcraft.io:443/api/v1/snaps/auth/nonces2",
 	pending: false,
 }, {
-	url:     "http://api.snapcraft.io/api/v1/snaps/auth/nonces2",
+	url:     "http://api.snapcraft.io/api/v1/snaps/auth/nonces",
 	pending: false,
 }, {
 	url:     "https://api.snapcraft.io:443/v2/auth/nonces",
