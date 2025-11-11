@@ -52,6 +52,7 @@ const (
 	StoreResolveAPI            = "application/x.canonical.store.resolve-api"
 	StoreTransformsAPI         = "application/x.canonical.store.transforms-api"
 	BldBinPackage              = "application/x.canonical.bld-bin-package"
-	LxdRootfs                  = "application/x.canonical.lxd-rootfs"
+	LXDRootFS                  = "application/x.canonical.lxd-rootfs"
+	LXDInstanceTypes           = "application/x.canonical.lxd-instance-types"
 	ChiselRelease              = "application/x.canonical.chisel-release"
 )
