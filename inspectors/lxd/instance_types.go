@@ -82,7 +82,7 @@ func (ins *InstanceTypesInspector) InspectArtifact(f ArtifactReader, a ResponseA
 	for _, t := range data {
 		for _, inst := range t {
 			if inst.CPU == "" {
-				return nil // Not an instances types file
+				return nil // Not an instance types file
 			}
 		}
 	}
