@@ -37,6 +37,9 @@ var (
 	validOrigins = []*regexp.Regexp{
 		regexp.MustCompile(`^http://cloud-images.ubuntu.com$`),
 		regexp.MustCompile(`^https://cloud-images.ubuntu.com:443$`),
+	}
+
+	validMetaOrigins = []*regexp.Regexp{
 		regexp.MustCompile(`^https://images.lxd.canonical.com:443$`),
 	}
 
@@ -125,7 +128,7 @@ func NewProductItemURLInfo(u *url.URL) (*ProductItemURLInfo, error) {
 type InstanceTypesURLInfo struct{}
 
 func newInstanceTypesURLInfo(u *url.URL) (*InstanceTypesURLInfo, error) {
-	if err := checkValidOrigin(u); err != nil {
+	if err := checkValidMetaOrigin(u); err != nil {
 		return nil, err
 	}
 
@@ -139,6 +142,16 @@ func newInstanceTypesURLInfo(u *url.URL) (*InstanceTypesURLInfo, error) {
 func checkValidOrigin(u *url.URL) error {
 	origin := fmt.Sprintf("%s://%s", u.Scheme, u.Host)
 	for _, h := range validOrigins {
+		if h.MatchString(origin) {
+			return nil
+		}
+	}
+	return fmt.Errorf("invalid origin %s", origin)
+}
+
+func checkValidMetaOrigin(u *url.URL) error {
+	origin := fmt.Sprintf("%s://%s", u.Scheme, u.Host)
+	for _, h := range validMetaOrigins {
 		if h.MatchString(origin) {
 			return nil
 		}
