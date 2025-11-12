@@ -64,12 +64,12 @@ func (ins *SnapAuthNonceInspector) InspectArtifact(f ArtifactReader, a ResponseA
 		return nil
 	}
 
-	decoder := json.NewDecoder(f)
-	decoder.DisallowUnknownFields()
-
 	if a.InspectorRequestOpinion(ins) != opinions.Pending {
 		return nil // Not from the snap store, we don't recognize this artifact
 	}
+
+	decoder := json.NewDecoder(f)
+	decoder.DisallowUnknownFields()
 
 	var data snapAuthNonce
 	if err := decoder.Decode(&data); err != nil {
