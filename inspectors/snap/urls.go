@@ -35,6 +35,7 @@ import (
 // https://api.snapcraft.io:443/v2/assertions/account/ekRMaarzOfN1Vu3sDY0Bt1aGnM8Cd4kG?..."
 // https://api.snapcraft.io:443/v2/assertions/account-key/BWDEoaqyr25nF5SNCvEv2v7QnM9QsfCc0PBMYD_i2NGSQ32EF2d4D0hqUel3m8ul?...
 // https://api.snapcraft.io:443/api/v1/snaps/auth/nonces
+// https://api.snapcraft.io:443/api/v1/snaps/auth/devices
 
 var (
 	reSnapPackage    = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/download/([A-Za-z0-9]+)_([0-9]+)\.snap`)
@@ -47,7 +48,8 @@ var (
 	reAccountAssertion         = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/assertions/account/`)
 	reAccountKeyAssertion      = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/assertions/account-key/`)
 
-	reSnapAuthNonce = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/auth/nonces$`)
+	reSnapAuthNonce   = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/auth/nonces$`)
+	reSerialAssertion = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/auth/devices$`)
 )
 
 type snapPackageURLInfo struct {
@@ -148,5 +150,16 @@ func newSnapAuthNonceURLInfo(u *url.URL) (*snapAuthNonceURLInfo, error) {
 		return nil, fmt.Errorf("%s: not a valid auth nonce URL", u.Path)
 	}
 	info := &snapAuthNonceURLInfo{}
+	return info, nil
+}
+
+type serialAssertionURLInfo struct {
+}
+
+func newSerialAssertionURLInfo(u *url.URL) (*serialAssertionURLInfo, error) {
+	if !reSerialAssertion.MatchString(u.String()) {
+		return nil, fmt.Errorf("%s: not a valid serial assertion URL", u.Path)
+	}
+	info := &serialAssertionURLInfo{}
 	return info, nil
 }

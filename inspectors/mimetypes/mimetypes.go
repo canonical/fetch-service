@@ -48,6 +48,7 @@ const (
 	SnapDeclarationAssertion   = "application/x.ubuntu.assertion.snap-declaration"
 	AccountAssertion           = "application/x.ubuntu.assertion.account"
 	AccountKeyAssertion        = "application/x.ubuntu.assertion.account-key"
+	SerialAssertion            = "application/x.ubuntu.assertion.serial"
 	RustCrate                  = "application/x.rust.crate"
 	StoreInfoAPI               = "application/x.canonical.store.info-api"
 	StoreResolveAPI            = "application/x.canonical.store.resolve-api"
