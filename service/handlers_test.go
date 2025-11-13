@@ -143,3 +143,54 @@ func (t *serviceSuite) TestReuseInspectionResult(c *C) {
 	// All downloads added to the artifact.
 	c.Assert(s.A[sha].Downloads, HasLen, 3)
 }
+
+func (t *serviceSuite) TestCompleteInspectionAfterSessionFinished(c *C) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
+		t.ch = ch
+		t.proxyPort = port
+		return &proxy.HTTPProxy{}, nil
+	})
+	defer restorer()
+
+	dir := c.MkDir()
+	certPath, keyPath, err := createCertFiles(dir)
+	c.Assert(err, IsNil)
+
+	opt := service.Options{
+		ProxyPort: 1337,
+		Spool:     dir,
+		CertPath:  certPath,
+		KeyPath:   keyPath,
+	}
+
+	// Start session
+	s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
+	defer s.Discard()
+
+	// Create a fake artifact
+	sha, _ := digests.NewSha256Digest("5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03")
+	a := fakeArtifact(sha, s, c)
+
+	// Request inspection
+	insp1 := messages.NewResponseInspection(a)
+	ch := make(chan interface{})
+	go service.HandleResponseInspection(insp1, ch)
+
+	// Receive the complete inspection message
+	msg := <-ch
+	v := msg.(messages.CompleteInspection)
+
+	// Finish the session
+	err = s.Finish()
+	c.Assert(err, IsNil)
+
+	// Finally try to complete the inspection
+	go service.HandleCompleteInspection(v)
+
+	// Receive the complete inspection result.
+	err = <-insp1.Rch
+	c.Assert(err, ErrorMatches, "cannot complete inspection: session .* is not active")
+
+	// Artifact was not saved
+	c.Assert(s.HasArtifact(sha), Equals, false)
+}

@@ -37,7 +37,7 @@ Endpoints
   .. code-block::
 
     {
-        "uptime": <int>,				// service uptime in seconds
+        "uptime": <int>,			// service uptime in seconds
         "start-time": <string>,			// start timestamp in RFC-3339 format
         "session-count": <int>,			// total number of created sessions
         "active-sessions": [			// list of sessions currently active
@@ -46,7 +46,7 @@ Endpoints
                 "start-time": <string>,		// start timestamp in RFC-3339 format
                 "policy": <string>,		// "strict" or "permissive"
                 "age": <int>,			// seconds since session start
-                "timeout": <int>			// session TTL in seconds
+                "timeout": <int>		// session TTL in seconds
             },
             (...)
         ],
@@ -69,9 +69,10 @@ Endpoints
   .. code-block::
 
     {
-        "timeout": <int>,	        // session timeout in seconds
-        "policy": <string>		// "strict" or "permissive"
-        "secrets": [<secret>]           // optional list of session secrets
+        "timeout": <int>,		// session timeout in seconds
+        "policy": <string>,		// "strict" or "permissive"
+        "secrets": [<secret>],		// optional list of session secrets
+        "inspectors-configuration": <inspectors-conf>	// optional inspectors configuration
     }
 
   ``secrets`` is an optional list of session-specific passwords and tokens. Each
@@ -96,13 +97,57 @@ Endpoints
   ``basic-credentials`` contains the credentials for the ``basic-auth`` secret type.
   These credentials are commonly formatted as ``user:password`` and must *not* be
   encoded in base64.
+  
+  ``inspectors-configuration`` specifies an optional configuration for the
+  session's inspectors. If set, this overrides the default configuration loaded by the
+  Fetch Service. The inspector configuration has the following keys:
 
+  .. code-block::
+
+    {
+        "git": {
+          "urls": [<list of strings>]
+        },
+        "crafts": {
+          "urls": [<list of strings>]
+        },
+        "chisel": {
+          "urls": [<list of strings>]
+        },
+        "store": {
+          "urls": [<list of strings>]
+        },
+        "bldbin": {
+          "urls": [<list of strings>]
+        },
+        "snap": {
+          "snap-declaration": [
+            {
+                "name": <string>,
+                "value": [<list of strings>]
+            },
+            (...)
+          ]
+        },
+        "apt": {
+          "repositories": {
+            <repository name>: {
+                "urls": [<list of strings>],
+                "suites": [<list of strings>],
+                "components": [<list of strings>],
+                "public-key": <string>
+            },
+            (...)
+          }
+        },
+    }
+  
 :Response:
 
   .. code-block::
 
     {
-        "id": <string>,			// session ID
+        "id": <string>,		// session ID
         "token": <string>	// session token
     }
 
@@ -217,7 +262,7 @@ Endpoints
           },
         ],
         "spool-path": <string>,		// file spool pathname
-        "policy": <string>            // policy used in this session
+        "policy": <string>		// policy used in this session
     }         
 
 ``DELETE /session/<id>``

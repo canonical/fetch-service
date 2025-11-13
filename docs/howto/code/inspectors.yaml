@@ -1,0 +1,4 @@
+git:
+  urls: ["https://github.com:443/**"]
+crafts:
+  urls: ["https://github.com:443/**"]
