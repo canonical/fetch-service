@@ -1283,7 +1283,7 @@ type loadInspectorsConfigsOrDefaultTest struct {
 	isSnap        bool // Whether we're running from snap
 	hasConfig     bool // Whether the user has created a configuration file
 	hasSnapConfig bool // Whether the a configuration file was found in the snap
-	overrideFail  bool // Wether the configurations overriding failed or not
+	overrideFail  bool // Whether the configurations overriding failed or not
 	err           error
 }
 
