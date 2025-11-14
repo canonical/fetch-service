@@ -42,7 +42,8 @@ const (
 	SnapPackage                = "application/x.canonical.snap-package"
 	SnapRefresh                = "application/x.canonical.snap-refresh"
 	SnapInfo                   = "application/x.canonical.snap-info"
-	SnapNames                  = "application/x.canonical.snap-names"
+  SnapSections               = "application/x.canonical.snap-sections"
+	SnapNames                  = "application/x.canonical.snap-names"	
 	SnapdAuthSessions          = "application/x.canonical.snapd-auth-sessions"
 	SnapAuthNonce              = "application/x.canonical.snapd-auth-nonce"
 	Assertion                  = "application/x.ubuntu.assertion"
@@ -56,6 +57,7 @@ const (
 	StoreResolveAPI            = "application/x.canonical.store.resolve-api"
 	StoreTransformsAPI         = "application/x.canonical.store.transforms-api"
 	BldBinPackage              = "application/x.canonical.bld-bin-package"
-	LxdRootfs                  = "application/x.canonical.lxd-rootfs"
+	LXDRootFS                  = "application/x.canonical.lxd-rootfs"
+	LXDInstanceTypes           = "application/x.canonical.lxd-instance-types"
 	ChiselRelease              = "application/x.canonical.chisel-release"
 )

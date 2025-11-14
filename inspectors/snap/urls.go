@@ -34,6 +34,7 @@ import (
 // https://api.snapcraft.io:443/v2/assertions/snap-declaration/16/CSO04Jhav2yK0uz97cr0ipQRyqg0qQL6?...
 // https://api.snapcraft.io:443/v2/assertions/account/ekRMaarzOfN1Vu3sDY0Bt1aGnM8Cd4kG?..."
 // https://api.snapcraft.io:443/v2/assertions/account-key/BWDEoaqyr25nF5SNCvEv2v7QnM9QsfCc0PBMYD_i2NGSQ32EF2d4D0hqUel3m8ul?...
+// https://api.snapcraft.io:443/api/v1/snaps/sections
 // https://api.snapcraft.io:443/api/v1/snaps/auth/sessions
 // https://api.snapcraft.io:443/api/v1/snaps/auth/nonces
 // https://api.snapcraft.io:443/api/v1/snaps/names
@@ -49,8 +50,9 @@ var (
 	reSnapDeclarationAssertion = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/assertions/snap-declaration/`)
 	reAccountAssertion         = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/assertions/account/`)
 	reAccountKeyAssertion      = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/assertions/account-key/`)
-
-	reSnapNames        = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/names(?:\?.*)?$`)
+  
+	reSnapSections     = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/sections$`)
+  reSnapNames        = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/names(?:\?.*)?$`)
 	reSnapAuthSessions = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/auth/sessions$`)
 	reSnapAuthNonce    = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/auth/nonces$`)
 	reSerialAssertion  = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/auth/devices$`)
@@ -145,6 +147,17 @@ func newAccountKeyAssertionURLInfo(u *url.URL) (*accountKeyAssertionURLInfo, err
 	info := &accountKeyAssertionURLInfo{}
 	return info, nil
 }
+
+type snapSectionsURLInfo struct {
+}
+
+func newSnapSectionsURLInfo(u *url.URL) (*snapSectionsURLInfo, error) {
+	if !reSnapSections.MatchString(u.String()) {
+		return nil, fmt.Errorf("%s: not a valid snap sections URL", u.Path)
+	}
+	info := &snapSectionsURLInfo{}
+  return info, nil
+}  
 
 type snapAuthSessionsURLInfo struct {
 }
