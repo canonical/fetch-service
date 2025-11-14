@@ -261,7 +261,6 @@ func parseTranslationFile(sc *bufio.Scanner) (string, int, error) {
 		if statePackage {
 			if !stateMD5sum {
 				return "", itemCount, errors.New("description-md5 field missing for the last Package")
-
 			}
 			if !stateDescription {
 				return "", itemCount, errors.New("description field missing for the last Package")
