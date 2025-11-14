@@ -84,6 +84,10 @@ func (ins *SnapSectionsInspector) InspectArtifact(f ArtifactReader, a ResponseAr
 		return nil // we don't recognize this artifact
 	}
 
+	if data.Embedded.IndexSections == nil {
+		return nil // we don't recognize this artifact
+	}
+
 	num := len(data.Embedded.IndexSections)
 	if num == 0 {
 		return nil // we don't recognize this artifact
