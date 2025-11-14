@@ -88,7 +88,7 @@ var snapNamesArtifactInspectorTests = []snapNamesArtifactInspectorTest{{
 	approved: false,
 	reason:   "", // unrecognized artifact
 }, {
-	filename: "testdata/refresh.json",
+	filename: "testdata/sections.json",
 	pending:  false,
 	approved: false,
 	reason:   "", // unrecognized artifact

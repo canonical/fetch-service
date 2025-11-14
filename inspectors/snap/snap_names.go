@@ -69,12 +69,12 @@ type packageInfo struct {
 	Version     string      `json:"version"`
 }
 
-type embedded struct {
+type embeddedInfo struct {
 	PackageList []packageInfo `json:"clickindex:package"`
 }
 
 type namesResult struct {
-	Embedded embedded `json:"_embedded"`
+	Embedded embeddedInfo `json:"_embedded"`
 }
 
 func (ins *SnapNamesInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
