@@ -372,9 +372,9 @@ func SetInspectorsConfig(cfg InspectorsConfig) {
 	globalInspectorsConfig = cfg
 }
 
-// Session inspectors configuration
+// Override inspectors configuration
 
-type SessionInspectorsConfig struct {
+type OverrideInspectorsConfig struct {
 	Apt    *apt_cfg.AptInspectorConfig       `yaml:"apt" json:"apt"`
 	Git    *git_cfg.GitInspectorConfig       `yaml:"git" json:"git"`
 	Crafts *crafts_cfg.CraftsInspectorConfig `yaml:"crafts" json:"crafts"`
@@ -384,9 +384,48 @@ type SessionInspectorsConfig struct {
 	BldBin *bldbin_cfg.BldBinInspectorConfig `yaml:"bldbin" json:"bldbin"`
 }
 
+func LoadOverrideInspectorsConfig(cfgdir string) error {
+	cfgfile := filepath.Join(cfgdir, inspectorsConfigFile)
+	if _, err := os.Stat(cfgfile); err != nil {
+		return err
+	}
+
+	logger.Infof("Load inspectors configuration override from %s", cfgfile)
+
+	f, err := os.Open(cfgfile)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	overrideCfg, err := decodeOverrideInspectorsConfig(f)
+	if err != nil {
+		return err
+	}
+
+	// The configuration is only updated if the configuration file
+	// is correctly parsed.
+	cfg := GetInspectorsConfig()
+	cfg.Combine(overrideCfg)
+	SetInspectorsConfig(cfg)
+
+	logger.Info("Inspectors configuration updated")
+
+	return nil
+}
+
+func decodeOverrideInspectorsConfig(r io.Reader) (OverrideInspectorsConfig, error) {
+	var cfg OverrideInspectorsConfig
+	dec := yaml.NewDecoder(r)
+	if err := dec.Decode(&cfg); err != nil {
+		return cfg, err
+	}
+	return cfg, nil
+}
+
 // Combine applies inspectors configuration on an existing one.
 // The strategy is to replace configurations on a per-inspector basis.
-func (i *InspectorsConfig) Combine(c SessionInspectorsConfig) {
+func (i *InspectorsConfig) Combine(c OverrideInspectorsConfig) {
 	if c.Apt != nil {
 		i.Apt = apt_cfg.AptInspectorConfig{
 			Repositories: map[string]apt_cfg.AptInspectorConfigRepository{},
