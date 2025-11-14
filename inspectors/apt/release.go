@@ -340,7 +340,7 @@ func parseUpToSignatures(sc *bufio.Scanner) (map[string]string, error) {
 
 		if n > 100 {
 			// this doesn't look like a Release file
-			return nil, errors.New("stoped parsing, file unlikely to be a Release file")
+			return nil, errors.New("stopped parsing, file unlikely to be a Release file")
 		}
 		n++
 	}
