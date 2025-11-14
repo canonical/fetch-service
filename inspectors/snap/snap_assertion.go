@@ -97,6 +97,8 @@ func (ins *SnapAssertionInspector) InspectRequest(a RequestArtifact) error {
 		reason = "valid URL for account-key assertion download"
 	} else if _, err := newAccountKeyAssertionURLInfo(u); err == nil {
 		reason = "valid URL for account-key assertion download"
+	} else if _, err := newSerialAssertionURLInfo(u); err == nil {
+		reason = "valid URL for serial assertion download"
 	} else {
 		return nil // we don't recognize this request
 	}
@@ -150,6 +152,8 @@ func (ins *SnapAssertionInspector) InspectArtifact(f ArtifactReader, a ResponseA
 		mtype = mimetypes.AccountAssertion
 	case "account-key":
 		mtype = mimetypes.AccountKeyAssertion
+	case "serial":
+		mtype = mimetypes.SerialAssertion
 	}
 
 	a.SetArtifactMetadata(ArtifactMetadata{
