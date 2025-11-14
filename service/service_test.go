@@ -63,6 +63,10 @@ func (t *serviceSuite) TearDownTest(c *C) {
 
 var _ = Suite(&serviceSuite{})
 
+const (
+	inspectorsConfigFile = "inspectors.yaml"
+)
+
 // Check if the proxy and control API are created with the correct port number.
 func (t *serviceSuite) TestProxyPort(c *C) {
 	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
@@ -172,11 +176,16 @@ func (t *serviceSuite) TestHTTPProxyCrash(c *C) {
 	err = os.WriteFile(keyPath, testutils.ProxyKey, 0644)
 	c.Assert(err, IsNil)
 
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
+	c.Assert(err, IsNil)
+
 	opt := service.Options{
 		ProxyPort:   1337,
 		ControlPort: 7331,
 		CertPath:    certPath,
 		KeyPath:     keyPath,
+		Config:      confDir,
 	}
 
 	svc, err := service.New(&opt)
@@ -226,6 +235,10 @@ func (t *serviceSuite) TestServiceIdleShutdown(c *C) {
 	certPath, keyPath, err := createCertFiles(dir)
 	c.Assert(err, IsNil)
 
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
+	c.Assert(err, IsNil)
+
 	for _, tc := range []struct {
 		createSession bool
 		serviceAlive  bool
@@ -240,6 +253,7 @@ func (t *serviceSuite) TestServiceIdleShutdown(c *C) {
 			Spool:          dir,
 			CertPath:       certPath,
 			KeyPath:        keyPath,
+			Config:         confDir,
 		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
@@ -249,7 +263,7 @@ func (t *serviceSuite) TestServiceIdleShutdown(c *C) {
 
 		var sid string
 		if tc.createSession {
-			msg := messages.NewCreateSession("permissive", 1338, nil, config.SessionInspectorsConfig{})
+			msg := messages.NewCreateSession("permissive", 1338, nil, config.OverrideInspectorsConfig{})
 			t.ch <- msg
 			res := <-msg.Rch
 			c.Assert(res.Err, Equals, nil)
@@ -286,18 +300,23 @@ func (t *serviceSuite) TestGetServiceStatus(c *C) {
 	certPath, keyPath, err := createCertFiles(dir)
 	c.Assert(err, IsNil)
 
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
+	c.Assert(err, IsNil)
+
 	opt := service.Options{
 		ProxyPort: 1337,
 		Spool:     dir,
 		CertPath:  certPath,
 		KeyPath:   keyPath,
+		Config:    confDir,
 	}
 	svc, err := service.New(&opt)
 	c.Assert(err, IsNil)
 
 	err = svc.Start()
 	c.Assert(err, IsNil)
-	s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
+	s := session.New(opt.Spool, 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	msg := messages.NewGetServiceStatus()
@@ -325,11 +344,16 @@ func (t *serviceSuite) TestRequestInspection(c *C) {
 	certPath, keyPath, err := createCertFiles(dir)
 	c.Assert(err, IsNil)
 
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
+	c.Assert(err, IsNil)
+
 	opt := service.Options{
 		ProxyPort: 1337,
 		Spool:     dir,
 		CertPath:  certPath,
 		KeyPath:   keyPath,
+		Config:    confDir,
 	}
 
 	for _, tc := range []struct {
@@ -347,7 +371,7 @@ func (t *serviceSuite) TestRequestInspection(c *C) {
 
 		err = svc.Start()
 		c.Assert(err, IsNil)
-		s := session.New(opt.Spool, 0, tc.policy == "permissive", nil, config.SessionInspectorsConfig{})
+		s := session.New(opt.Spool, 0, tc.policy == "permissive", nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		a := metadata.NewArtifact()
@@ -392,7 +416,7 @@ func (t *serviceSuite) TestEvaluateRequestInspection(c *C) {
 		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Pending}, "bar": &Inspection{Opinion: opinions.Rejected}}, ErrRejectedRequest},
 		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Rejected}, "bar": &Inspection{Opinion: opinions.Unknown}}, ErrRejectedRequest},
 	} {
-		s := session.New("/my/spool", 0, tc.policy == "permissive", nil, config.SessionInspectorsConfig{})
+		s := session.New("/my/spool", 0, tc.policy == "permissive", nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		a := metadata.NewArtifact()
@@ -455,12 +479,17 @@ func (t *serviceSuite) TestResponseInspection(c *C) {
 		certPath, keyPath, err := createCertFiles(dir)
 		c.Assert(err, IsNil)
 
+		confDir := c.MkDir()
+		_, err = createInspectorConfigFile(confDir)
+		c.Assert(err, IsNil)
+
 		spoolDir := dir
 		opt := service.Options{
 			ProxyPort: 1337,
 			Spool:     spoolDir,
 			CertPath:  certPath,
 			KeyPath:   keyPath,
+			Config:    confDir,
 		}
 
 		svc, err := service.New(&opt)
@@ -468,7 +497,7 @@ func (t *serviceSuite) TestResponseInspection(c *C) {
 
 		err = svc.Start()
 		c.Assert(err, IsNil)
-		s := session.New(opt.Spool, 0, tc.policy == "permissive", nil, config.SessionInspectorsConfig{})
+		s := session.New(opt.Spool, 0, tc.policy == "permissive", nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		sha, err := digests.NewSha256Digest("5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03")
@@ -541,12 +570,17 @@ func (t *serviceSuite) TestResponseInspectionConcurrent(c *C) {
 	certPath, keyPath, err := createCertFiles(dir)
 	c.Assert(err, IsNil)
 
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
+	c.Assert(err, IsNil)
+
 	spoolDir := dir
 	opt := service.Options{
 		ProxyPort: 1337,
 		Spool:     spoolDir,
 		CertPath:  certPath,
 		KeyPath:   keyPath,
+		Config:    confDir,
 	}
 
 	svc, err := service.New(&opt)
@@ -554,7 +588,7 @@ func (t *serviceSuite) TestResponseInspectionConcurrent(c *C) {
 
 	err = svc.Start()
 	c.Assert(err, IsNil)
-	s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
+	s := session.New(opt.Spool, 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	sha, err := digests.NewSha256Digest("5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03")
@@ -618,7 +652,7 @@ func (t *serviceSuite) TestEvaluateResponseInspection(c *C) {
 		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Approved}, "bar": &Inspection{Opinion: opinions.Rejected}}, opinions.Rejected, ErrRejectedArtifact},
 		{"strict", metadata.InspectionMap{"foo": &Inspection{Opinion: opinions.Rejected}, "bar": &Inspection{Opinion: opinions.Unknown}}, opinions.Rejected, ErrRejectedArtifact},
 	} {
-		s := session.New("/my/spool", 0, tc.policy == "permissive", nil, config.SessionInspectorsConfig{})
+		s := session.New("/my/spool", 0, tc.policy == "permissive", nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		a := metadata.NewArtifact()
@@ -639,6 +673,10 @@ func (t *serviceSuite) TestCreateSession(c *C) {
 
 	dir := c.MkDir()
 	certPath, keyPath, err := createCertFiles(dir)
+	c.Assert(err, IsNil)
+
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
 	c.Assert(err, IsNil)
 
 	for _, tc := range []struct {
@@ -668,6 +706,7 @@ func (t *serviceSuite) TestCreateSession(c *C) {
 			PermissiveMode: tc.permissiveMode,
 			CertPath:       certPath,
 			KeyPath:        keyPath,
+			Config:         confDir,
 		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
@@ -675,7 +714,7 @@ func (t *serviceSuite) TestCreateSession(c *C) {
 		err = svc.Start()
 		c.Assert(err, IsNil)
 
-		msg := messages.NewCreateSession(tc.policy, 666, tc.sec, config.SessionInspectorsConfig{})
+		msg := messages.NewCreateSession(tc.policy, 666, tc.sec, config.OverrideInspectorsConfig{})
 		t.ch <- msg
 		res := <-msg.Rch
 
@@ -714,11 +753,16 @@ func (t *serviceSuite) TestDeleteResources(c *C) {
 
 		spoolDir := dir
 
+		confDir := c.MkDir()
+		_, err = createInspectorConfigFile(confDir)
+		c.Assert(err, IsNil)
+
 		opt := service.Options{
 			ProxyPort: 1337,
 			Spool:     spoolDir,
 			CertPath:  certPath,
 			KeyPath:   keyPath,
+			Config:    confDir,
 		}
 
 		svc, err := service.New(&opt)
@@ -727,7 +771,7 @@ func (t *serviceSuite) TestDeleteResources(c *C) {
 		err = svc.Start()
 		c.Assert(err, IsNil)
 
-		s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
+		s := session.New(opt.Spool, 0, true, nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		var sid string
@@ -764,6 +808,10 @@ func (t *serviceSuite) TestRevokeToken(c *C) {
 	certPath, keyPath, err := createCertFiles(dir)
 	c.Assert(err, IsNil)
 
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
+	c.Assert(err, IsNil)
+
 	for _, tc := range []struct {
 		sessionExists bool
 		tokenIsValid  bool
@@ -778,13 +826,14 @@ func (t *serviceSuite) TestRevokeToken(c *C) {
 			Spool:     dir,
 			CertPath:  certPath,
 			KeyPath:   keyPath,
+			Config:    confDir,
 		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
 
 		err = svc.Start()
 		c.Assert(err, IsNil)
-		s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
+		s := session.New(opt.Spool, 0, true, nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		var sid string
@@ -839,18 +888,23 @@ func (t *serviceSuite) TestGetSessionReport(c *C) {
 		certPath, keyPath, err := createCertFiles(dir)
 		c.Assert(err, IsNil)
 
+		confDir := c.MkDir()
+		_, err = createInspectorConfigFile(confDir)
+		c.Assert(err, IsNil)
+
 		opt := service.Options{
 			ProxyPort: 1337,
 			Spool:     dir,
 			CertPath:  certPath,
 			KeyPath:   keyPath,
+			Config:    confDir,
 		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
 
 		err = svc.Start()
 		c.Assert(err, IsNil)
-		s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
+		s := session.New(opt.Spool, 0, true, nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		var sid string
@@ -894,6 +948,10 @@ func (t *serviceSuite) TestEndSession(c *C) {
 	certPath, keyPath, err := createCertFiles(dir)
 	c.Assert(err, IsNil)
 
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
+	c.Assert(err, IsNil)
+
 	for _, tc := range []struct {
 		sessionExists bool
 		tokenRevoked  bool
@@ -908,13 +966,14 @@ func (t *serviceSuite) TestEndSession(c *C) {
 			Spool:     dir,
 			CertPath:  certPath,
 			KeyPath:   keyPath,
+			Config:    confDir,
 		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
 
 		err = svc.Start()
 		c.Assert(err, IsNil)
-		s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
+		s := session.New(opt.Spool, 0, true, nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		var sid string
@@ -972,6 +1031,10 @@ func (t *serviceSuite) TestFetchctlConfiguration(c *C) {
 	certPath, keyPath, err := createCertFiles(dir)
 	c.Assert(err, IsNil)
 
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
+	c.Assert(err, IsNil)
+
 	for _, tc := range []struct {
 		operation string
 		optype    string
@@ -996,13 +1059,19 @@ func (t *serviceSuite) TestFetchctlConfiguration(c *C) {
 		defer restorer()
 
 		spool := filepath.Join(dir, "spool")
-		opt := service.Options{ProxyPort: 1337, Spool: spool, CertPath: certPath, KeyPath: keyPath}
+		opt := service.Options{
+			ProxyPort: 1337,
+			Spool:     spool,
+			CertPath:  certPath,
+			KeyPath:   keyPath,
+			Config:    confDir,
+		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
 
 		err = svc.Start()
 		c.Assert(err, IsNil)
-		s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
+		s := session.New(opt.Spool, 0, true, nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		msg := messages.NewFetchCtl(tc.operation, tc.optype, tc.dryRun, nil)
@@ -1029,6 +1098,10 @@ func (t *serviceSuite) TestFetchctlCertificateUpdate(c *C) {
 	certPath, keyPath, err := createCertFiles(dir)
 	c.Assert(err, IsNil)
 
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
+	c.Assert(err, IsNil)
+
 	for _, tc := range []struct {
 		dryRun  bool
 		fail    bool
@@ -1048,13 +1121,19 @@ func (t *serviceSuite) TestFetchctlCertificateUpdate(c *C) {
 		defer restorer()
 
 		spool := filepath.Join(dir, "spool")
-		opt := service.Options{ProxyPort: 1337, Spool: spool, CertPath: certPath, KeyPath: keyPath}
+		opt := service.Options{
+			ProxyPort: 1337,
+			Spool:     spool,
+			CertPath:  certPath,
+			KeyPath:   keyPath,
+			Config:    confDir,
+		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
 
 		err = svc.Start()
 		c.Assert(err, IsNil)
-		s := session.New(opt.Spool, 0, true, nil, config.SessionInspectorsConfig{})
+		s := session.New(opt.Spool, 0, true, nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		msg := messages.NewFetchCtl("update-cert", "", tc.dryRun, nil)
@@ -1081,6 +1160,10 @@ func (t *serviceSuite) TestFetchctlCreateSession(c *C) {
 	certPath, keyPath, err := createCertFiles(dir)
 	c.Assert(err, IsNil)
 
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
+	c.Assert(err, IsNil)
+
 	for _, tc := range []struct {
 		globalPerm bool
 		payload    string
@@ -1095,7 +1178,7 @@ func (t *serviceSuite) TestFetchctlCreateSession(c *C) {
 		{false, `{"session-id":"x", "token":"y", "timeout":0, "mode":"permissive", "inspectors-configuration":""}`, "x", "y", time.Duration(0), false},
 	} {
 		var ss *session.Session
-		restorer = service.MockSessionNewWithID(func(sessionID, token, spool string, timeout time.Duration, permissive bool, sec []secrets.Secret, inspectorsConfig config.SessionInspectorsConfig) *session.Session {
+		restorer = service.MockSessionNewWithID(func(sessionID, token, spool string, timeout time.Duration, permissive bool, sec []secrets.Secret, inspectorsConfig config.OverrideInspectorsConfig) *session.Session {
 			c.Check(sessionID, Equals, tc.sid)
 			c.Check(token, Equals, tc.token)
 			c.Check(timeout, Equals, tc.timeout)
@@ -1113,6 +1196,7 @@ func (t *serviceSuite) TestFetchctlCreateSession(c *C) {
 			CertPath:       certPath,
 			KeyPath:        keyPath,
 			PermissiveMode: tc.globalPerm,
+			Config:         confDir,
 		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
@@ -1195,36 +1279,81 @@ func (t *serviceSuite) TestLoadHTTPProxyRulesOrDefault(c *C) {
 	}
 }
 
-func (t *serviceSuite) TestInspectorsConfigOrDefault(c *C) {
-	var inspConfigDir string
+type loadInspectorsConfigsOrDefaultTest struct {
+	isSnap        bool // Whether we're running from snap
+	hasConfig     bool // Whether the user has created a configuration file
+	hasSnapConfig bool // Whether the a configuration file was found in the snap
+	overrideFail  bool // Whether the configurations overriding failed or not
+	err           error
+}
 
-	for _, tc := range loadConfigsOrDefaultTests {
-		restorer := service.MockConfigLoadInspectorsConfig(func(cfgdir string) error {
-			inspConfigDir = cfgdir
+var errOverride = errors.New("unable to override conf")
+
+var loadInspectorsConfigsOrDefaultTests = []loadInspectorsConfigsOrDefaultTest{{
+	isSnap:        false,
+	hasSnapConfig: false,
+	hasConfig:     false,
+	err:           os.ErrNotExist,
+}, {
+	isSnap:        false,
+	hasSnapConfig: false,
+	hasConfig:     true,
+}, {
+	isSnap:        true,
+	hasSnapConfig: false,
+	hasConfig:     false,
+	err:           os.ErrNotExist,
+}, {
+	isSnap:        true,
+	hasSnapConfig: true,
+	hasConfig:     false,
+}, {
+	isSnap:        true,
+	hasSnapConfig: true,
+	hasConfig:     false,
+}, {
+	isSnap:        true,
+	hasSnapConfig: true,
+	hasConfig:     false,
+	overrideFail:  true,
+	err:           errOverride,
+}}
+
+func (t *serviceSuite) TestInspectorsConfigOrDefault(c *C) {
+	for _, tc := range loadInspectorsConfigsOrDefaultTests {
+		restorerConfigLoadInspectorsConfig := service.MockConfigLoadInspectorsConfig(func(cfgdir string) error {
 			if tc.hasConfig && cfgdir == "/user/config" {
 				return nil
 			}
-			if tc.isSnap && cfgdir == "/snap/fetch-service/x1/conf" {
+			if tc.isSnap && tc.hasSnapConfig && cfgdir == "/snap/fetch-service/x1/conf" {
 				return nil
 			}
 			return os.ErrNotExist
 		})
-		defer restorer()
+		defer restorerConfigLoadInspectorsConfig()
+
+		restorerConfigLoadOverrideInspectorsConfig := service.MockConfigLoadOverrideInspectorsConfig(func(cfgdir string) error {
+			if tc.hasConfig && cfgdir == "/user/config" {
+				return nil
+			}
+			if tc.overrideFail {
+				return errOverride
+			}
+			return os.ErrNotExist
+		})
+		defer restorerConfigLoadOverrideInspectorsConfig()
 
 		if tc.isSnap {
 			os.Setenv("SNAP", "/snap/fetch-service/x1")
 			os.Setenv("SNAP_NAME", "fetch-service")
 		}
 
-		inspConfigDir = ""
-		err := service.LoadInspectorsConfigOrDefault("/user/config")
-		c.Assert(err, IsNil)
-		c.Assert(inspConfigDir, Equals, tc.finalConfDir, Commentf("test case: %+v", tc))
+		err := service.LoadDefaultInspectorsConfigCombine("/user/config")
+		c.Assert(err, Equals, tc.err)
 
 		os.Unsetenv("SNAP")
 		os.Unsetenv("SNAP_NAME")
 	}
-
 }
 
 func createCertFiles(dir string) (string, string, error) {
@@ -1241,9 +1370,22 @@ func createCertFiles(dir string) (string, string, error) {
 	return certPath, keyPath, nil
 }
 
+func createInspectorConfigFile(dir string) (string, error) {
+	confPath := filepath.Join(dir, inspectorsConfigFile)
+	if err := os.WriteFile(confPath, testutils.DefaultInspectorsConf, 0644); err != nil {
+		return "", err
+	}
+
+	return confPath, nil
+}
+
 func serviceOptionsFixture(c *C) *service.Options {
 	dir := c.MkDir()
 	certPath, keyPath, err := createCertFiles(dir)
+	c.Assert(err, IsNil)
+
+	confDir := c.MkDir()
+	_, err = createInspectorConfigFile(confDir)
 	c.Assert(err, IsNil)
 
 	return &service.Options{
@@ -1251,5 +1393,6 @@ func serviceOptionsFixture(c *C) *service.Options {
 		ControlPort: 7331,
 		CertPath:    certPath,
 		KeyPath:     keyPath,
+		Config:      confDir,
 	}
 }

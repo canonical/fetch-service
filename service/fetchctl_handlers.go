@@ -117,7 +117,7 @@ func fetchCtlCreateSession(v messages.FetchCtl, svc *Service) messages.FetchCtlR
 	permissive := svc.opt.PermissiveMode && params.Mode == "permissive"
 	timeout := time.Duration(params.Timeout) * time.Second
 
-	cfg := config.SessionInspectorsConfig{}
+	cfg := config.OverrideInspectorsConfig{}
 	if len(params.InspectorsConfig) > 0 {
 		err = yaml.Unmarshal(params.InspectorsConfig, &cfg)
 		if err != nil {

@@ -100,7 +100,7 @@ func (svc *Service) Start() error {
 		return fmt.Errorf("cannot load proxy rules: %s", err)
 	}
 
-	if err := loadInspectorsConfigOrDefault(svc.opt.Config); err != nil {
+	if err := loadDefaultInspectorsConfigCombine(svc.opt.Config); err != nil {
 		return fmt.Errorf("cannot load inspectors configuration: %s", err)
 	}
 
@@ -122,8 +122,9 @@ func (svc *Service) Start() error {
 }
 
 var (
-	configLoadHTTPProxyRules   = config.LoadHTTPProxyRules
-	configLoadInspectorsConfig = config.LoadInspectorsConfig
+	configLoadHTTPProxyRules           = config.LoadHTTPProxyRules
+	configLoadInspectorsConfig         = config.LoadInspectorsConfig
+	configLoadOverrideInspectorsConfig = config.LoadOverrideInspectorsConfig
 )
 
 func loadHTTPProxyRulesOrDefault(cfgdir string) error {
@@ -139,17 +140,24 @@ func loadHTTPProxyRulesOrDefault(cfgdir string) error {
 	return err
 }
 
-func loadInspectorsConfigOrDefault(cfgdir string) error {
-	err := configLoadInspectorsConfig(cfgdir)
-	if errors.Is(err, os.ErrNotExist) {
-		if RunningFromSnap() {
-			err = configLoadInspectorsConfig(os.ExpandEnv(SnapBundledConfigDir))
-		} else {
+func loadDefaultInspectorsConfigCombine(cfgdir string) error {
+	if !RunningFromSnap() {
+		return configLoadInspectorsConfig(cfgdir)
+	}
+	err := configLoadInspectorsConfig(os.ExpandEnv(SnapBundledConfigDir))
+	if err != nil {
+		// Failing to load the configuration shipped in the snap is fatal error
+		return err
+	}
+	err = configLoadOverrideInspectorsConfig(cfgdir)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
 			logger.Infof("Inspectors configuration file does not exist in %s", cfgdir)
 			return nil
 		}
+		return err
 	}
-	return err
+	return nil
 }
 
 var (
