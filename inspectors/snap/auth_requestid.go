@@ -51,7 +51,7 @@ func (ins *SnapAuthRequestIDInspector) InspectRequest(a RequestArtifact) error {
 		return nil // we don't recognize this request
 	}
 
-	a.SetRequestPending(ins, "valid URL for snapd authentication nonce")
+	a.SetRequestPending(ins, "valid URL for snapd device authentication request ID")
 	return nil
 }
 
