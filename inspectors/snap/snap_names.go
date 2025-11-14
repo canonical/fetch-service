@@ -51,7 +51,7 @@ func (ins *SnapNamesInspector) InspectRequest(a RequestArtifact) error {
 		return nil // we don't recognize this request
 	}
 
-	a.SetRequestPending(ins, "valid URL for Snap Store sections list")
+	a.SetRequestPending(ins, "valid URL for Snap package names list")
 	return nil
 }
 
