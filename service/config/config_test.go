@@ -541,6 +541,47 @@ func (t *configSuite) TestLoadInspectorsConfig(c *C) {
 	})
 }
 
+var inspectorsConfigOverrideContent = testutils.Reindent(`
+	git:
+	  urls:
+	    - "https://github.com:443/**"
+	apt:
+	  repositories:
+	    default:
+	      urls:
+	        - http://another.ubuntu.com/ubuntu
+`)
+
+func (t *configSuite) TestLoadOverrideInspectorsConfig(c *C) {
+	defaultDir := c.MkDir()
+	overrideDir := c.MkDir()
+
+	emptyConfig := config.InspectorsConfig{}
+	config.SetInspectorsConfig(emptyConfig)
+
+	err := os.WriteFile(filepath.Join(defaultDir, "inspectors.yaml"), inspectorsConfigContent, 0644)
+	c.Assert(err, IsNil)
+
+	err = os.WriteFile(filepath.Join(overrideDir, "inspectors.yaml"), inspectorsConfigOverrideContent, 0644)
+	c.Assert(err, IsNil)
+
+	err = config.LoadInspectorsConfig(defaultDir)
+	c.Assert(err, IsNil)
+	err = config.LoadOverrideInspectorsConfig(overrideDir)
+	c.Assert(err, IsNil)
+	cfg := config.GetInspectorsConfig()
+	c.Assert(cfg.Apt, DeepEquals, apt_cfg.AptInspectorConfig{
+		Repositories: map[string]apt_cfg.AptInspectorConfigRepository{"default": {
+			URLs: []glob.Glob{glob.MustCompile("http://another.ubuntu.com/ubuntu")},
+		}},
+	})
+	c.Assert(cfg.Git, DeepEquals, git_cfg.GitInspectorConfig{
+		URLs: []glob.Glob{
+			glob.MustCompile("https://github.com:443/**"),
+		},
+	})
+}
+
 func (t *configSuite) TestInspectorsConfigMissing(c *C) {
 	dir := c.MkDir()
 
@@ -552,13 +593,13 @@ func (t *configSuite) TestInspectorsConfigMissing(c *C) {
 }
 
 type combineInspectorsConfigTest struct {
-	sessionInspectorsConfig config.SessionInspectorsConfig
+	sessionInspectorsConfig config.OverrideInspectorsConfig
 	combined                config.InspectorsConfig
 }
 
 var combineInspectorsConfigTests = []combineInspectorsConfigTest{
 	{
-		sessionInspectorsConfig: config.SessionInspectorsConfig{
+		sessionInspectorsConfig: config.OverrideInspectorsConfig{
 			Apt: &apt_cfg.AptInspectorConfig{
 				Repositories: map[string]apt_cfg.AptInspectorConfigRepository{
 					"another": {
@@ -649,7 +690,7 @@ var combineInspectorsConfigTests = []combineInspectorsConfigTest{
 	},
 	// override nothing when nothing is given
 	{
-		sessionInspectorsConfig: config.SessionInspectorsConfig{},
+		sessionInspectorsConfig: config.OverrideInspectorsConfig{},
 		combined: config.InspectorsConfig{
 			Apt: apt_cfg.AptInspectorConfig{
 				Repositories: map[string]apt_cfg.AptInspectorConfigRepository{
@@ -747,17 +788,17 @@ func (t *configSuite) TestCombineInspectorsConfig(c *C) {
 }
 
 // TestInspectorsConfigsInSync checks that all the fields from InspectorsConfig
-// have a corresponding one in SessionInspectorsConfig with:
+// have a corresponding one in OverrideInspectorsConfig with:
 // - the same name
 // - the type being a pointer to the corresponding field in InspectorsConfig
 func (t *configSuite) TestInspectorsConfigsInSync(c *C) {
 	inspConfigType := reflect.TypeOf(config.InspectorsConfig{})
-	sessionInspConfigType := reflect.TypeOf(config.SessionInspectorsConfig{})
+	overrideInspConfigType := reflect.TypeOf(config.OverrideInspectorsConfig{})
 
 	// Field names of both structs should also match
-	sessionInspConfigFields := make(map[string]reflect.Type)
-	for i := 0; i < sessionInspConfigType.NumField(); i++ {
-		sessionInspConfigFields[sessionInspConfigType.Field(i).Name] = sessionInspConfigType.Field(i).Type
+	overrideInspConfigFields := make(map[string]reflect.Type)
+	for i := 0; i < overrideInspConfigType.NumField(); i++ {
+		overrideInspConfigFields[overrideInspConfigType.Field(i).Name] = overrideInspConfigType.Field(i).Type
 	}
 
 	// Check every field in InspectorsConfig
@@ -766,16 +807,16 @@ func (t *configSuite) TestInspectorsConfigsInSync(c *C) {
 		inspConfigFieldName := inspConfigField.Name
 		inspConfigFieldType := inspConfigField.Type
 
-		// Check if the corresponding field exists in SessionInspectorsConfig
-		fType, ok := sessionInspConfigFields[inspConfigFieldName]
+		// Check if the corresponding field exists in OverrideInspectorsConfig
+		fType, ok := overrideInspConfigFields[inspConfigFieldName]
 		c.Assert(ok, Equals, true,
-			Commentf("Structs out of sync: InspectorsConfig has field '%s' which is missing from SessionInspectorsConfig", inspConfigFieldName),
+			Commentf("Structs out of sync: InspectorsConfig has field '%s' which is missing from OverrideInspectorsConfig", inspConfigFieldName),
 		)
 
-		// Check if the type of the field from SessionInspectorsConfig is a pointer to the type of
+		// Check if the type of the field from OverrideInspectorsConfig is a pointer to the type of
 		// corresponding field in InspectorsConfig
 		c.Assert(reflect.PointerTo(inspConfigFieldType), Equals, fType,
-			Commentf("Structs out of sync: SessionInspectorsConfig has field %s of type %s, which is not a pointer to %s from InspectorsConfig", inspConfigFieldName, fType, inspConfigFieldType),
+			Commentf("Structs out of sync: OverrideInspectorsConfig has field %s of type %s, which is not a pointer to %s from InspectorsConfig", inspConfigFieldName, fType, inspConfigFieldType),
 		)
 	}
 }
