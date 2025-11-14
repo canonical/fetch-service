@@ -31,6 +31,7 @@ import (
 // https://cloud-images.ubuntu.com:443/buildd/daily/streams/v1/com.ubuntu.cloud:daily:download.json
 // http://cloud-images.ubuntu.com/buildd/daily/noble/20250629/noble-server-cloudimg-amd64-lxd_combined.tar.gz
 // https://cloud-images.ubuntu.com:443/buildd/daily/noble/20250629/noble-server-cloudimg-amd64-lxd_combined.tar.gz
+// https://images.lxd.canonical.com:443/meta/instance-types/all.yaml
 
 var (
 	validOrigins = []*regexp.Regexp{
@@ -38,9 +39,14 @@ var (
 		regexp.MustCompile(`^https://cloud-images.ubuntu.com:443$`),
 	}
 
+	validMetaOrigins = []*regexp.Regexp{
+		regexp.MustCompile(`^https://images.lxd.canonical.com:443$`),
+	}
+
 	reSimpleStreamsIndex    = regexp.MustCompile(`^/([\w-\/]+)/streams/v1/index.json$`)
 	reSimpleStreamsDownload = regexp.MustCompile(`^/([\w-\/]+)/streams/v1/([\w-\.\/:]+):download.json$`)
 	reProductItem           = regexp.MustCompile(`^/buildd/(daily|releases)/([\w-]+)/([\w-]+)/([\w+\.-]+\.tar.gz)$`)
+	reInstanceTypes         = regexp.MustCompile(`^/meta/instance-types/all.yaml$`)
 )
 
 // Simple streams index
@@ -117,9 +123,35 @@ func NewProductItemURLInfo(u *url.URL) (*ProductItemURLInfo, error) {
 	return info, nil
 }
 
+// LXD instance types
+
+type InstanceTypesURLInfo struct{}
+
+func newInstanceTypesURLInfo(u *url.URL) (*InstanceTypesURLInfo, error) {
+	if err := checkValidMetaOrigin(u); err != nil {
+		return nil, err
+	}
+
+	if !reInstanceTypes.MatchString(u.Path) {
+		return nil, fmt.Errorf("not a valid URL for LXD instance types")
+	}
+
+	return &InstanceTypesURLInfo{}, nil
+}
+
 func checkValidOrigin(u *url.URL) error {
 	origin := fmt.Sprintf("%s://%s", u.Scheme, u.Host)
 	for _, h := range validOrigins {
+		if h.MatchString(origin) {
+			return nil
+		}
+	}
+	return fmt.Errorf("invalid origin %s", origin)
+}
+
+func checkValidMetaOrigin(u *url.URL) error {
+	origin := fmt.Sprintf("%s://%s", u.Scheme, u.Host)
+	for _, h := range validMetaOrigins {
 		if h.MatchString(origin) {
 			return nil
 		}
