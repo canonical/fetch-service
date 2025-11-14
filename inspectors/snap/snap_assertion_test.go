@@ -179,6 +179,11 @@ var snapAssertionArtifactInspectorTests = []snapAssertionArtifactInspectorTest{{
 	reason:   "valid snap assertion",
 	filetype: "application/x.ubuntu.assertion.account-key",
 }, {
+	filename: "testdata/serial.assert",
+	approved: true,
+	reason:   "valid snap assertion",
+	filetype: "application/x.ubuntu.assertion.serial",
+}, {
 	filename: "testdata/bad-assertion.assert",
 	approved: false,
 	reason:   "error parsing assertion",
