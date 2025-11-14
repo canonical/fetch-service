@@ -154,7 +154,7 @@ func newSnapAuthSessionsURLInfo(u *url.URL) (*snapAuthSessionsURLInfo, error) {
 		return nil, fmt.Errorf("%s: not a valid auth sessions URL", u.Path)
 	}
 	info := &snapAuthSessionsURLInfo{}
-  return info, nil
+	return info, nil
 }
 
 type snapAuthNonceURLInfo struct {
@@ -177,7 +177,7 @@ func newSnapNamesURLInfo(u *url.URL) (*snapNamesURLInfo, error) {
 	}
 	info := &snapNamesURLInfo{}
 	return info, nil
-}  
+}
 
 type serialAssertionURLInfo struct {
 }
