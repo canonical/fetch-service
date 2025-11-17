@@ -74,6 +74,7 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		snap.NewSnapSectionsInspector(),
 		snap.NewSnapAuthSessionsInspector(),
 		snap.NewSnapAuthNonceInspector(),
+		snap.NewSnapAuthRequestIDInspector(),
 
 		// store API
 		store.NewStoreInfoAPIInspector(cfg.Store, cfg.BldBin),
