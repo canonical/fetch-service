@@ -52,10 +52,10 @@ var (
 	reAccountAssertion         = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/assertions/account/`)
 	reAccountKeyAssertion      = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/assertions/account-key/`)
 
-	reSnapSections     = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/sections$`)
-	reSnapNames        = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/names(?:\?.*)?$`)
-	reSnapAuthSessions = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/auth/sessions$`)
-	reSnapAuthNonce    = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/auth/nonces$`)
+	reSnapSections      = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/sections$`)
+	reSnapNames         = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/names(?:\?.*)?$`)
+	reSnapAuthSessions  = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/auth/sessions$`)
+	reSnapAuthNonce     = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/auth/nonces$`)
 	reSnapAuthRequestID = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/auth/request-id$`)
 	reSerialAssertion   = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/auth/devices$`)
 )
@@ -202,6 +202,8 @@ func newSnapNamesURLInfo(u *url.URL) (*snapNamesURLInfo, error) {
 		return nil, fmt.Errorf("%s: not a valid snap names URL", u.Path)
 	}
 	info := &snapNamesURLInfo{}
+	return info, nil
+}
 
 type serialAssertionURLInfo struct {
 }
