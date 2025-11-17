@@ -46,6 +46,7 @@ const (
 	SnapNames                  = "application/x.canonical.snap-names"	
 	SnapdAuthSessions          = "application/x.canonical.snapd-auth-sessions"
 	SnapAuthNonce              = "application/x.canonical.snapd-auth-nonce"
+	SnapAuthRequestID          = "application/x.canonical.snapd-auth-request-id"
 	Assertion                  = "application/x.ubuntu.assertion"
 	SnapRevisionAssertion      = "application/x.ubuntu.assertion.snap-revision"
 	SnapDeclarationAssertion   = "application/x.ubuntu.assertion.snap-declaration"
