@@ -96,6 +96,16 @@ var snapAssertionInspectRequestTests = []snapAssertionInspectRequestTest{{
 	pending:   true,
 	reason:    "valid URL for account-key assertion download",
 }, {
+	url:       "https://api.snapcraft.io:443/api/v1/snaps/auth/devices/",
+	hasAccept: true,
+	pending:   true,
+	reason:    "valid URL for serial assertion download",
+}, {
+	url:       "https://api.snapcraft.io:443/api/v1/snaps/auth/devices",
+	hasAccept: true,
+	pending:   true,
+	reason:    "valid URL for serial assertion download",
+}, {
 	url:       "https://api.snapcraft.io:443/v2/assertions/snap-revision/",
 	hasAccept: false,
 	pending:   false,
