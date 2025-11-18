@@ -51,7 +51,7 @@ var (
 	reSnapDeclarationAssertion = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/assertions/snap-declaration/`)
 	reAccountAssertion         = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/assertions/account/`)
 	reAccountKeyAssertion      = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/assertions/account-key/`)
-	reSerialAssertion          = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/auth/devices/`)
+	reSerialAssertion          = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/auth/devices/?$`)
 
 	reSnapSections      = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/sections$`)
 	reSnapNames         = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/names(?:\?.*)?$`)
