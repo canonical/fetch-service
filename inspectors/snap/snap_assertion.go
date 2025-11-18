@@ -68,10 +68,6 @@ func (SnapAssertionInspector) ID() string {
 
 // InspectRequest verifies if the request complies with policy.
 func (ins *SnapAssertionInspector) InspectRequest(a RequestArtifact) error {
-	if !a.RequestHeaderContains("Accept", "application/x.ubuntu.assertion") {
-		return nil
-	}
-
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
