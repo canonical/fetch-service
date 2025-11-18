@@ -55,6 +55,7 @@ func (t *urlUtilsSuite) TestNormalizedURL(c *C) {
 		normalized string
 	}{
 		{"Http://foo.org/bla", "http://foo.org/bla"},
+		{"http://foo.org/bla/", "http://foo.org/bla/"},
 		{"https://foo.org//bla", "https://foo.org/bla"},
 		{"https://foo.org:8888/a/b/../c", "https://foo.org:8888/a/c"},
 	} {
