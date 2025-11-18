@@ -2,6 +2,14 @@
 Changelog
 *********
 
+0.11.1 (2025-11-18)
+-------------------
+
+- fix: less restrictive assertion url inspection (#524)
+- fix: add appmedia entry to default configuration (#523)
+- fix(inspectors/snap): fix serial assertion endpoint (#522)
+- test(spread): add an improved snap inspector test (#521)
+
 0.11.0 (2025-11-17)
 -------------------
 
