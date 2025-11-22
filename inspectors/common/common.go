@@ -45,9 +45,9 @@ type ArtifactReader interface {
 // artifact metadata during the request inspection.
 type RequestArtifact interface {
 	// Inspector opinions
-	SetRequestPending(Inspector, string, ...any) *Inspection
-	SetRequestRejected(Inspector, string, ...any) *Inspection
-	SetRequestUnknown(Inspector, string, ...any) *Inspection
+	SetRequestPending(Inspector, string) *Inspection
+	SetRequestRejected(Inspector, string) *Inspection
+	SetRequestUnknown(Inspector, string) *Inspection
 	RequestPending() bool
 	RequestRejected() bool
 
@@ -73,9 +73,9 @@ type RequestArtifact interface {
 // artifact metadata during the response inspection.
 type ResponseArtifact interface {
 	// Inspector opinions
-	SetResponseApproved(Inspector, string, ...any) *Inspection
-	SetResponseRejected(Inspector, string, ...any) *Inspection
-	SetResponseUnknown(Inspector, string, ...any) *Inspection
+	SetResponseApproved(Inspector, string) *Inspection
+	SetResponseRejected(Inspector, string) *Inspection
+	SetResponseUnknown(Inspector, string) *Inspection
 	ResponseApproved() bool
 	ResponseRejected() bool
 	InspectorRequestOpinion(Inspector) opinions.OpinionKind
