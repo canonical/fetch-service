@@ -447,7 +447,9 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a Respons
 	if info.Digest != "" {
 		sha256, err := digests.NewSha256Digest(info.Digest)
 		if err != nil {
-			a.SetResponseRejected(ins, "invalid SHA256 digest")
+			a.SetResponseRejected(ins, "invalid SHA256 digest").Annotate(
+				Annotation{"invalid-sha256": info.Digest},
+			)
 			return nil
 		}
 		slog.Debugf("by-hash SHA256 digest: %s", info.Digest)
