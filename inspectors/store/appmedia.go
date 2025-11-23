@@ -26,7 +26,6 @@ import (
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/store/config"
-	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
 type StoreAppMediaInspector struct {
@@ -87,7 +86,7 @@ func (ins *StoreAppMediaInspector) inspectArtifactPNG(f ArtifactReader, a Respon
 
 	a.SetArtifactMetadata(md)
 
-	if a.InspectorRequestOpinion(ins) == opinions.Pending {
+	if a.InspectorRequestOpinionPending(ins) {
 		a.SetResponseApproved(ins, "store media file in PNG format").Annotate(notes)
 	} else {
 		a.SetResponseUnknown(ins, "unknown PNG image").Annotate(notes)

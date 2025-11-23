@@ -27,7 +27,6 @@ import (
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
-	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
 type InstanceTypesInspector struct {
@@ -68,7 +67,7 @@ func (ins *InstanceTypesInspector) InspectArtifact(f ArtifactReader, a ResponseA
 		return nil
 	}
 
-	if a.InspectorRequestOpinion(ins) != opinions.Pending {
+	if !a.InspectorRequestOpinionPending(ins) {
 		return nil // Not from LXD instance types URL, we don't recognize this artifact
 	}
 
