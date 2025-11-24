@@ -106,5 +106,6 @@ jobs:
           # GH_FETCH_SERVICE_TOKEN is used in some spread tests to clone the fetch-service
           # repository itself.
           GH_FETCH_SERVICE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STORE_MACAROON: ${{ secrets.STORE_MACAROON }}
         run: |
           snapcraft test --verbose

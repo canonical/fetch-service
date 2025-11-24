@@ -23,6 +23,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"net/http"
+	"slices"
 
 	"github.com/canonical/fetch-service/glob"
 )
@@ -30,20 +31,28 @@ import (
 type SecretType string
 
 type Secret struct {
-	Type       SecretType
-	URL        glob.Glob
-	BasicCreds string `json:"basic-credentials"`
+	Type          SecretType
+	URL           glob.Glob
+	BasicCreds    string `json:"basic-credentials"`
+	MacaroonCreds string `json:"macaroon-credentials"`
 }
 
-// BasicAuthType is the only currently supported secret type
+// Supported secret types
+
 const BasicAuthType SecretType = "basic-auth"
+const MacaroonType SecretType = "macaroon"
+
+func getSecretTypes() []SecretType {
+	return []SecretType{BasicAuthType, MacaroonType}
+}
 
 // Error constants
 var (
-	ErrMissingSecretType = errors.New("Invalid secret: missing type")
-	ErrInvalidSecretType = errors.New("Invalid secret: invalid type")
-	ErrMissingSecretURL  = errors.New("Invalid secret: missing url")
-	ErrMissingBasicCreds = errors.New("Invalid secret: missing credentials for 'basic-auth'")
+	ErrMissingSecretType    = errors.New("Invalid secret: missing type")
+	ErrInvalidSecretType    = errors.New("Invalid secret: invalid type")
+	ErrMissingSecretURL     = errors.New("Invalid secret: missing url")
+	ErrMissingBasicCreds    = errors.New("Invalid secret: missing credentials for 'basic-auth'")
+	ErrMissingMacaroonCreds = errors.New("Invalid secret: missing credentials for 'macaroon'")
 )
 
 func ValidateSecrets(sec []Secret) error {
@@ -51,7 +60,7 @@ func ValidateSecrets(sec []Secret) error {
 		if s.Type == "" {
 			return ErrMissingSecretType
 		}
-		if s.Type != BasicAuthType {
+		if !slices.Contains(getSecretTypes(), s.Type) {
 			return ErrInvalidSecretType
 		}
 		if s.URL.G == nil {
@@ -65,9 +74,14 @@ func ValidateSecrets(sec []Secret) error {
 }
 
 func validateCredentials(sec Secret) error {
-	if sec.Type == BasicAuthType {
+	switch sec.Type {
+	case BasicAuthType:
 		if sec.BasicCreds == "" {
 			return ErrMissingBasicCreds
+		}
+	case MacaroonType:
+		if sec.MacaroonCreds == "" {
+			return ErrMissingMacaroonCreds
 		}
 	}
 	return nil
@@ -84,8 +98,13 @@ func InjectSecrets(secrets []Secret, url string, req *http.Request) bool {
 }
 
 func injectSecret(s Secret, req *http.Request) {
-	if s.Type == BasicAuthType {
+	switch s.Type {
+	case BasicAuthType:
 		cred := base64.StdEncoding.EncodeToString([]byte(s.BasicCreds))
 		req.Header.Set("Authorization", "Basic "+cred)
+	case MacaroonType:
+		// Note that the macaroon is already base64-encoded, since it's possibly an
+		// arbitrary sequence of bytes
+		req.Header.Set("Authorization", "macaroon "+s.MacaroonCreds)
 	}
 }
