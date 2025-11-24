@@ -118,7 +118,7 @@ func (s *storeSuite) TestStoreAppMediaArtifactInspector(c *C) {
 			c.Check(insp.Reason, Equals, tc.reason)
 			c.Check(insp.Annotations["width"], Equals, 460)
 			c.Check(insp.Annotations["height"], Equals, 460)
-			c.Check(a.Metadata.Type, Equals, "image/png")
+			c.Check(a.Metadata.Type, Equals, "application/x.canonical.store.appmedia-png")
 			c.Check(a.Metadata.Name, Equals, "Image file")
 			c.Check(a.Metadata.Size, Equals, int64(1234))
 			c.Check(a.Metadata.Description, Equals, "Store media file in PNG format")
