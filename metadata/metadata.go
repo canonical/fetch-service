@@ -42,6 +42,8 @@ type Metadata struct {
 	Copyright     string       `json:"copyright,omitempty"`      // The copyright line, if available
 	SourcePackage string       `json:"source-package,omitempty"` // The name of the source package that generated this artifact.
 	StoreRevision string       `json:"store-revision,omitempty"` // The revision number assigned by the store to this artifact.
+	AptSuite      string       `json:"apt-suite,omitempty"`      // The apt repository series and pocket
+	ContentID     string       `json:"content-id,omitempty"`     // Content-specific identifier (value depends on artifact type)
 }
 
 // Download holds information about each artifact download.
@@ -64,7 +66,7 @@ type Download struct {
 type SessionMetadata struct {
 	Generator  string    `json:"generator"`         // The name of the generator of this metadata
 	Comment    string    `json:"comment,omitempty"` // Free-form comment text
-	SessionId  string    `json:"session-id"`        // The unique session ID
+	SessionID  string    `json:"session-id"`        // The unique session ID
 	StartTime  time.Time `json:"start-time"`        // When the session started (UTC)
 	EndTime    time.Time `json:"end-time"`          // When the session finished (UTC)
 	Inspectors []string  `json:"inspectors"`        // A list of registered inspector IDs
@@ -75,7 +77,7 @@ type SessionMetadata struct {
 
 // SessionInfo contains brief information to be listed in service status.
 type SessionInfo struct {
-	SessionId string `json:"session-id"` // session ID
+	SessionID string `json:"session-id"` // session ID
 	StartTime string `json:"start-time"` // session start timestamp
 	Policy    string `json:"policy"`     // session policy ("strict" or "permissive")
 	Age       uint64 `json:"age"`        // session age in seconds

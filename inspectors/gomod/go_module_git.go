@@ -73,7 +73,7 @@ func (ins *GoModuleGitInspector) InspectRequest(a RequestArtifact) error {
 		return nil // we don't recognize this request
 	}
 
-	_, err = newGoModuleGitUrlInfo(u)
+	_, err = newGoModuleGitURLInfo(u)
 	if err != nil {
 		return nil // we don't recognize this request
 	}
@@ -108,14 +108,12 @@ func (ins *GoModuleGitInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 
 	goModPath := filepath.Join(checkoutPath, "go.mod")
 	if _, err := os.Stat(goModPath); err != nil {
-		a.SetResponseUnknown(ins,
-			"git repository does not contain a go.mod file")
 		return nil
 	}
 
 	mod := goMod{}
 	if err := mod.parse(goModPath); err != nil {
-		a.SetResponseRejected(ins, "cannot parse go.mod file").Annotate(
+		a.SetResponseUnknown(ins, "cannot parse go.mod file").Annotate(
 			Annotation{"error-msg": err.Error()},
 		)
 	}
@@ -132,14 +130,14 @@ func (ins *GoModuleGitInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	}
 
 	// Read wants information from the git inspector annotation
-	w, has_wants := a.RequestAnnotation(GitUploadPackID, "wants")
-	if !has_wants {
+	w, hasWants := a.RequestAnnotation(GitUploadPackID, "wants")
+	if !hasWants {
 		// this must have been set by the git upload-pack inspector
 		return errors.New("cannot read request want annotation")
 	}
 
 	var wants []string
-	if has_wants {
+	if hasWants {
 		var ok bool
 		wants, ok = w.([]string)
 		if !ok || len(wants) < 1 {
@@ -150,6 +148,10 @@ func (ins *GoModuleGitInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	tags, ok := a.ResponseAnnotation(GitUploadPackID, "tags")
 	if ok {
 		md.Version = getVersionTag(tags.(map[string]string), wants[0])
+	} else {
+		// Cannot approve if version not found
+		a.SetResponseUnknown(ins, "cannot find go module version tag").Annotate(notes)
+		return nil
 	}
 
 	license, _ := utils.CheckLicenseFiles(
@@ -168,15 +170,8 @@ func (ins *GoModuleGitInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		notes.Add("go", mod.GoVersion)
 	}
 
-	a.SetArtifactMetadata(md)
-
-	// Reject if version not found
-	if md.Version == "" {
-		a.SetResponseRejected(ins, "cannot find go module version tag").Annotate(notes)
-		return nil
-	}
-
 	a.SetResponseApproved(ins, "go module found").Annotate(notes)
+	a.SetArtifactMetadata(md)
 
 	return nil
 }

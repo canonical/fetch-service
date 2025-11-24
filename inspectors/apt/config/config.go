@@ -32,17 +32,18 @@ import (
 )
 
 type AptInspectorConfigRepository struct {
-	Urls       []glob.Glob `yaml:"urls"`       // List of allowed URL glob patterns
-	Dists      []glob.Glob `yaml:"dists"`      // List of allowed dist glob patterns
-	Components []glob.Glob `yaml:"components"` // List of allowed component glob patterns
-	PublicKey  string      `yaml:"public-key"` // Repository public key
+	URLs         []glob.Glob `yaml:"urls"`           // List of allowed URL glob patterns
+	Suites       []glob.Glob `yaml:"suites"`         // List of allowed dist glob patterns
+	Components   []glob.Glob `yaml:"components"`     // List of allowed component glob patterns
+	PublicKey    string      `yaml:"public-key"`     // Repository public key
+	BaseURLAlias string      `yaml:"base-url-alias"` // Alias for URL scheme and hostname
 }
 
 type AptInspectorConfig struct {
 	Repositories map[string]AptInspectorConfigRepository
 }
 
-func checkRepositoryAndDist(cfg *AptInspectorConfig, u *url.URL, slog logger.Logger) (string, string, string, error) {
+func checkRepositoryAndSuite(cfg *AptInspectorConfig, u *url.URL, slog logger.Logger) (string, string, string, error) {
 	origin := utils.NormalizedOrigin(u)
 	parts := strings.Split(u.Path, "/")
 
@@ -50,7 +51,7 @@ func checkRepositoryAndDist(cfg *AptInspectorConfig, u *url.URL, slog logger.Log
 	if pos < 0 || len(parts) <= pos+2 {
 		return "", "", "", fmt.Errorf("invalid repository URL: %s", u.String())
 	}
-	dist := parts[pos+1]
+	suite := parts[pos+1]
 
 	repo := origin + strings.Join(parts[:pos], "/")
 	repoCfgName, ok := repositoryIsAllowed(cfg, repo, slog)
@@ -58,11 +59,11 @@ func checkRepositoryAndDist(cfg *AptInspectorConfig, u *url.URL, slog logger.Log
 		return "", "", "", fmt.Errorf("invalid repository: %s", repo)
 	}
 
-	if ok := distIsAllowed(cfg, repoCfgName, dist, slog); !ok {
-		return "", "", "", fmt.Errorf("invalid series: %s", dist)
+	if ok := suiteIsAllowed(cfg, repoCfgName, suite, slog); !ok {
+		return "", "", "", fmt.Errorf("invalid series: %s", suite)
 	}
 
-	return repoCfgName, repo, dist, nil
+	return repoCfgName, repo, suite, nil
 }
 
 func checkComponent(cfg *AptInspectorConfig, name string, u *url.URL, slog logger.Logger) (string, error) {
@@ -86,7 +87,7 @@ func repositoryIsAllowed(cfg *AptInspectorConfig, repo string, slog logger.Logge
 	slog.Debugf("apt inspector config: check if repository '%s' is allowed", repo)
 	for name, r := range cfg.Repositories {
 		slog.Debugf("apt inspector config: check repository entry '%s'", name)
-		for _, pattern := range r.Urls {
+		for _, pattern := range r.URLs {
 			if pattern.G.Match(repo) {
 				slog.Debugf("apt inspector config: found repository '%s'", repo)
 				return name, true
@@ -96,13 +97,13 @@ func repositoryIsAllowed(cfg *AptInspectorConfig, repo string, slog logger.Logge
 	return "", false
 }
 
-// distIsAllowed verifies if the given dist matches an allowed pattern.
-func distIsAllowed(cfg *AptInspectorConfig, name, dist string, slog logger.Logger) bool {
+// suiteIsAllowed verifies if the given suite matches an allowed pattern.
+func suiteIsAllowed(cfg *AptInspectorConfig, name, suite string, slog logger.Logger) bool {
 	r := cfg.Repositories[name]
-	slog.Debugf("apt inspector config: check if dist '%s' is allowed", dist)
-	for _, pattern := range r.Dists {
-		if pattern.G.Match(dist) {
-			slog.Debugf("apt inspector config: found dist '%s'", dist)
+	slog.Debugf("apt inspector config: check if suite '%s' is allowed", suite)
+	for _, pattern := range r.Suites {
+		if pattern.G.Match(suite) {
+			slog.Debugf("apt inspector config: found dist '%s'", suite)
 			return true
 		}
 	}
@@ -122,15 +123,15 @@ func componentIsAllowed(cfg *AptInspectorConfig, name, component string, slog lo
 	return false
 }
 
-type InReleaseUrlInfo struct {
+type InReleaseURLInfo struct {
 	CfgName    string // Configuration entry name
 	Origin     string // HTTP scheme and host
 	Repository string // Apt repository root
-	Dist       string // Repository dist name
+	Suite      string // Repository suite (<series>-<pocket>)
 }
 
-func NewInReleaseUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger) (*InReleaseUrlInfo, error) {
-	name, repo, dist, err := checkRepositoryAndDist(cfg, u, slog)
+func NewInReleaseURLInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger) (*InReleaseURLInfo, error) {
+	name, repo, suite, err := checkRepositoryAndSuite(cfg, u, slog)
 	if err != nil {
 		return nil, err
 	}
@@ -140,31 +141,31 @@ func NewInReleaseUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger
 		return nil, fmt.Errorf("invalid InRelease URL path: %s", u.Path)
 	}
 
-	info := &InReleaseUrlInfo{
+	info := &InReleaseURLInfo{
 		CfgName:    name,
 		Origin:     utils.NormalizedOrigin(u),
 		Repository: repo,
-		Dist:       dist,
+		Suite:      suite,
 	}
 	return info, nil
 }
 
-type PackagesUrlInfo struct {
+type PackagesURLInfo struct {
 	CfgName      string // Configuration entry name
 	Origin       string // HTTP scheme and host
 	Repository   string // Apt repository root
-	Dist         string // Repository dist name
+	Suite        string // Repository suite name (<series>-<pocket>)
 	Component    string // Repository component
 	Architecture string //
 	Digest       string // Digest from by-hash URL
 }
 
-func NewPackagesUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger) (*PackagesUrlInfo, error) {
-	name, repo, dist, err := checkRepositoryAndDist(cfg, u, slog)
+func NewPackagesURLInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger) (*PackagesURLInfo, error) {
+	name, repo, suite, err := checkRepositoryAndSuite(cfg, u, slog)
 	if err != nil {
 		return nil, err
 	}
-	slog.Debugf("packages file cfgname=%s, repo=%s, dist=%s", name, repo, dist)
+	slog.Debugf("packages file cfgname=%s, repo=%s, suite=%s", name, repo, suite)
 
 	component, err := checkComponent(cfg, name, u, slog)
 	if err != nil {
@@ -175,11 +176,11 @@ func NewPackagesUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger)
 	rePackages := regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/binary-(\w+)/by-hash/SHA256/([0-9a-f]{64})$`)
 	m := rePackages.FindStringSubmatch(u.Path)
 	if len(m) == 3 {
-		info := &PackagesUrlInfo{
+		info := &PackagesURLInfo{
 			CfgName:      name,
 			Origin:       utils.NormalizedOrigin(u),
 			Repository:   repo,
-			Dist:         dist,
+			Suite:        suite,
 			Component:    component,
 			Architecture: m[1],
 			Digest:       m[2],
@@ -192,11 +193,11 @@ func NewPackagesUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger)
 	rePackages = regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/binary-(\w+)/Packages.gz$`)
 	m = rePackages.FindStringSubmatch(u.Path)
 	if len(m) == 2 {
-		info := &PackagesUrlInfo{
+		info := &PackagesURLInfo{
 			CfgName:      name,
 			Origin:       utils.NormalizedOrigin(u),
 			Repository:   repo,
-			Dist:         dist,
+			Suite:        suite,
 			Component:    component,
 			Architecture: m[1],
 		}
@@ -206,17 +207,17 @@ func NewPackagesUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger)
 	return nil, fmt.Errorf("invalid Packages URL path: %s", u.Path)
 }
 
-type TranslationUrlInfo struct {
+type TranslationURLInfo struct {
 	CfgName    string // Configuration entry name
 	Origin     string // HTTP scheme and host
 	Repository string // Apt repository root
-	Dist       string // Repository dist name
+	Suite      string // Repository dist name
 	Component  string // Repository component
 	Digest     string // Digest from by-hash URL
 }
 
-func NewTranslationUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger) (*TranslationUrlInfo, error) {
-	name, repo, dist, err := checkRepositoryAndDist(cfg, u, slog)
+func NewTranslationURLInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger) (*TranslationURLInfo, error) {
+	name, repo, suite, err := checkRepositoryAndSuite(cfg, u, slog)
 	if err != nil {
 		return nil, err
 	}
@@ -231,28 +232,28 @@ func NewTranslationUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logg
 	if len(m) != 2 {
 		return nil, fmt.Errorf("invalid translation URL path: %s", u.Path)
 	}
-	info := &TranslationUrlInfo{
+	info := &TranslationURLInfo{
 		CfgName:    name,
 		Origin:     utils.NormalizedOrigin(u),
 		Repository: repo,
-		Dist:       dist,
+		Suite:      suite,
 		Component:  component,
 		Digest:     m[1],
 	}
 	return info, nil
 }
 
-type CommandsUrlInfo struct {
+type CommandsURLInfo struct {
 	CfgName    string // Configuration entry name
 	Origin     string // HTTP scheme and host
 	Repository string // Apt repository root
-	Dist       string // Repository dist name
+	Suite      string // Repository suite name
 	Component  string // Repository component
 	Digest     string // Digest from by-hash URL
 }
 
-func NewCommandsUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger) (*CommandsUrlInfo, error) {
-	name, repo, dist, err := checkRepositoryAndDist(cfg, u, slog)
+func NewCommandURLInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger) (*CommandsURLInfo, error) {
+	name, repo, suite, err := checkRepositoryAndSuite(cfg, u, slog)
 	if err != nil {
 		return nil, err
 	}
@@ -262,23 +263,29 @@ func NewCommandsUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger)
 		return nil, err
 	}
 
-	reCommands := regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/cnf/by-hash/SHA256/([0-9a-f]{64})$`)
-	m := reCommands.FindStringSubmatch(u.Path)
-	if len(m) != 2 {
-		return nil, fmt.Errorf("invalid commands URL path: %s", u.Path)
+	reCommands := regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/cnf/Commands-[\.\w-]+$`)
+	digest := ""
+
+	if !reCommands.MatchString(u.Path) {
+		reCommandsByHash := regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/cnf/by-hash/SHA256/([0-9a-f]{64})$`)
+		m := reCommandsByHash.FindStringSubmatch(u.Path)
+		if len(m) != 2 {
+			return nil, fmt.Errorf("invalid commands URL path: %s", u.Path)
+		}
+		digest = m[1]
 	}
-	info := &CommandsUrlInfo{
+	info := &CommandsURLInfo{
 		CfgName:    name,
 		Origin:     utils.NormalizedOrigin(u),
 		Repository: repo,
-		Dist:       dist,
+		Suite:      suite,
 		Component:  component,
-		Digest:     m[1],
+		Digest:     digest,
 	}
 	return info, nil
 }
 
-type DebPackageUrlInfo struct {
+type DebPackageURLInfo struct {
 	CfgName      string // Configuration entry name
 	Origin       string // HTTP scheme and host
 	Repository   string // Apt repository root
@@ -288,7 +295,7 @@ type DebPackageUrlInfo struct {
 	Architecture string // Package architecture
 }
 
-func NewDebPackageUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger) (*DebPackageUrlInfo, error) {
+func NewDebPackageURLInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger) (*DebPackageURLInfo, error) {
 	origin := utils.NormalizedOrigin(u)
 	parts := strings.Split(u.Path, "/")
 
@@ -308,7 +315,7 @@ func NewDebPackageUrlInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logge
 	if len(m) != 5 {
 		return nil, fmt.Errorf("%s: not a valid deb package URL path", u.Path)
 	}
-	info := &DebPackageUrlInfo{
+	info := &DebPackageURLInfo{
 		CfgName:      repoCfgName,
 		Origin:       origin,
 		Repository:   repo,

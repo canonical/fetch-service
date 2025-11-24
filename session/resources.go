@@ -28,19 +28,19 @@ import (
 	"github.com/canonical/fetch-service/metadata"
 )
 
-func SessionMetadataWritten(spoolDir, sessionId string) bool {
+func SessionMetadataWritten(spoolDir, sessionID string) bool {
 	// Check if metadata path exists
-	metadataPath := filepath.Join(spoolDir, sessionId, "session.json")
+	metadataPath := filepath.Join(spoolDir, sessionID, "session.json")
 	if _, err := os.Stat(metadataPath); err != nil {
 		return false
 	}
 	return true
 }
 
-func LoadSessionMetadata(spoolDir, sessionId string) (*metadata.SessionMetadata, error) {
-	logger.Infof("load session %s metadata", sessionId)
+func LoadSessionMetadata(spoolDir, sessionID string) (*metadata.SessionMetadata, error) {
+	logger.Infof("load session %s metadata", sessionID)
 
-	metadataPath := filepath.Join(spoolDir, sessionId, "session.json")
+	metadataPath := filepath.Join(spoolDir, sessionID, "session.json")
 
 	f, err := os.Open(metadataPath)
 	if err != nil {
@@ -58,9 +58,9 @@ func LoadSessionMetadata(spoolDir, sessionId string) (*metadata.SessionMetadata,
 	return &sm, nil
 }
 
-func RemoveResources(spoolDir, sessionId string) error {
-	sessionDir := filepath.Join(spoolDir, sessionId)
-	logger.Infof("removing session %s resources", sessionId)
+func RemoveResources(spoolDir, sessionID string) error {
+	sessionDir := filepath.Join(spoolDir, sessionID)
+	logger.Infof("removing session %s resources", sessionID)
 	if err := os.RemoveAll(sessionDir); err != nil {
 		return err
 	}

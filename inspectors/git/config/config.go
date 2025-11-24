@@ -37,27 +37,27 @@ var (
 )
 
 type GitInspectorConfig struct {
-	Urls []glob.Glob `yaml:"urls"` // List of allowed URL glob patterns
+	URLs []glob.Glob `yaml:"urls"` // List of allowed URL glob patterns
 }
 
-func checkRequestUrl(cfg *GitInspectorConfig, u *url.URL, slog logger.Logger) error {
-	reqUrl := utils.NormalizedOrigin(u) + u.Path
+func checkRequestURL(cfg *GitInspectorConfig, u *url.URL, slog logger.Logger) error {
+	reqURL := utils.NormalizedOrigin(u) + u.Path
 
-	for _, h := range cfg.Urls {
-		if h.Match(reqUrl) {
+	for _, h := range cfg.URLs {
+		if h.Match(reqURL) {
 			slog.Debugf("git url matches %v\n", h)
 			return nil
 		}
 	}
-	return fmt.Errorf("invalid url %s", reqUrl)
+	return fmt.Errorf("invalid url %s", reqURL)
 }
 
-type SmartQueryUrlInfo struct {
+type SmartQueryURLInfo struct {
 	Service string
 }
 
-func NewSmartQueryUrlInfo(u *url.URL, cfg *GitInspectorConfig, slog logger.Logger) (*SmartQueryUrlInfo, error) {
-	if err := checkRequestUrl(cfg, u, slog); err != nil {
+func NewSmartQueryURLInfo(u *url.URL, cfg *GitInspectorConfig, slog logger.Logger) (*SmartQueryURLInfo, error) {
+	if err := checkRequestURL(cfg, u, slog); err != nil {
 		return nil, err
 	}
 
@@ -70,18 +70,18 @@ func NewSmartQueryUrlInfo(u *url.URL, cfg *GitInspectorConfig, slog logger.Logge
 		return nil, fmt.Errorf("invalid service query %q", val)
 	}
 
-	info := &SmartQueryUrlInfo{
+	info := &SmartQueryURLInfo{
 		Service: q.Get("service"),
 	}
 	return info, nil
 }
 
-type UploadPackUrlInfo struct {
+type UploadPackURLInfo struct {
 	Project string
 }
 
-func NewUploadPackUrlInfo(u *url.URL, cfg *GitInspectorConfig, slog logger.Logger) (*UploadPackUrlInfo, error) {
-	if err := checkRequestUrl(cfg, u, slog); err != nil {
+func NewUploadPackURLInfo(u *url.URL, cfg *GitInspectorConfig, slog logger.Logger) (*UploadPackURLInfo, error) {
+	if err := checkRequestURL(cfg, u, slog); err != nil {
 		return nil, err
 	}
 
@@ -89,7 +89,7 @@ func NewUploadPackUrlInfo(u *url.URL, cfg *GitInspectorConfig, slog logger.Logge
 	if len(m) != 3 && len(m) != 2 {
 		return nil, errors.New("not a valid git upload-pack path")
 	}
-	info := &UploadPackUrlInfo{
+	info := &UploadPackURLInfo{
 		Project: m[len(m)-1], // assuming the project name is encoded in the URL
 	}
 	info.Project, _ = strings.CutSuffix(info.Project, ".git")

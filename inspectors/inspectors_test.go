@@ -32,6 +32,7 @@ import (
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/metadata/opinions"
+	"github.com/canonical/fetch-service/service/config"
 	"github.com/canonical/fetch-service/session"
 )
 
@@ -52,7 +53,7 @@ var _ = Suite(&inspectorsSuite{})
 func (t *inspectorsSuite) TestRunRequestInspectors(c *C) {
 	a := metadata.NewArtifact()
 
-	s := session.New(c.MkDir(), 0, false)
+	s := session.New(c.MkDir(), 0, false, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	err := s.Insps.RunRequestInspectors(a)
@@ -67,7 +68,7 @@ func (t *inspectorsSuite) TestRunRequestInspectors(c *C) {
 func (t *inspectorsSuite) TestRunRequestInspectorsPermissive(c *C) {
 	a := metadata.NewArtifact()
 
-	s := session.New(c.MkDir(), 0, true)
+	s := session.New(c.MkDir(), 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	err := s.Insps.RunRequestInspectors(a)
@@ -85,13 +86,14 @@ func (t *inspectorsSuite) TestRunArtifactInspectors(c *C) {
 	err := os.WriteFile(filepath.Join(dir, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.data"), data, 0644)
 	c.Assert(err, IsNil)
 
-	h, _ := digests.NewSha256Digest(MySha256)
+	h, err := digests.NewSha256Digest(MySha256)
+	c.Assert(err, IsNil)
 	a := metadata.NewArtifact()
 	a.CurrentDownload.ContentType = "text/plain"
 	a.CurrentDownload.Sha256 = h
 	a.Metadata.Sha256 = h
 
-	s := session.New(c.MkDir(), 0, false)
+	s := session.New(c.MkDir(), 0, false, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	err = s.Insps.RunArtifactInspectors(dir, a)
@@ -111,14 +113,15 @@ func (t *inspectorsSuite) TestRunArtifactInspectorsPermissive(c *C) {
 	err := os.WriteFile(filepath.Join(dir, "c1de7d7ad587318b4674ed029c7d22e33ce90268ca32c5b3dd1cff36511c7950.data"), data, 0644)
 	c.Assert(err, IsNil)
 
-	h, _ := digests.NewSha256Digest(MySha256)
+	h, err := digests.NewSha256Digest(MySha256)
+	c.Assert(err, IsNil)
 	a := metadata.NewArtifact()
 	a.CurrentDownload.ContentType = "text/plain"
 	a.CurrentDownload.Sha256 = h
 	a.CurrentDownload.URL = "http://some.url"
 	a.Metadata.Sha256 = h
 
-	s := session.New(dir, 0, true)
+	s := session.New(dir, 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	err = s.Insps.RunArtifactInspectors(dir, a)

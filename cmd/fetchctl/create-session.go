@@ -20,10 +20,12 @@
 package fetchctl
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 
 	"github.com/canonical/fetch-service/service/fetchctl"
+	"github.com/canonical/fetch-service/service/messages"
 )
 
 var createSessionCmd CreateSessionCmd
@@ -36,10 +38,13 @@ func init() {
 }
 
 type CreateSessionCmd struct {
-	SessionId  string `long:"session-id" description:"Session ID of the newly created session"`
+	SessionID  string `long:"session-id" description:"Session ID of the newly created session"`
 	Token      string `long:"token" description:"Session token of the newly created session"`
 	Timeout    int    `long:"timeout" description:"Session timeout in seconds"`
 	Permissive bool   `long:"permissive" description:"Create a permissive session"`
+	Args       struct {
+		Filename string `positional-arg-name:"filename"`
+	} `positional-args:"yes"`
 }
 
 func (cmd *CreateSessionCmd) Execute(args []string) error {
@@ -47,6 +52,16 @@ func (cmd *CreateSessionCmd) Execute(args []string) error {
 
 	if err := checkSocket(socket); err != nil {
 		return err
+	}
+
+	var content []byte
+	var err error
+
+	if len(cmd.Args.Filename) > 0 {
+		content, err = readContent(cmd.Args.Filename)
+		if err != nil {
+			return err
+		}
 	}
 
 	conn, err := net.Dial("unix", socket)
@@ -62,9 +77,22 @@ func (cmd *CreateSessionCmd) Execute(args []string) error {
 		mode = "strict"
 	}
 
+	createPayload := messages.CreateSessionPayload{
+		SessionID:        cmd.SessionID,
+		Token:            cmd.Token,
+		Timeout:          cmd.Timeout,
+		Mode:             mode,
+		InspectorsConfig: content,
+	}
+
+	p, err := json.Marshal(createPayload)
+	if err != nil {
+		return err
+	}
+
 	request := fetchctl.OperationRequest{
 		Operation: "create-session",
-		Payload:   fmt.Sprintf("%s:%s:%d:%s", cmd.SessionId, cmd.Token, cmd.Timeout, mode),
+		Payload:   string(p),
 	}
 	err = send(conn, request)
 	if err != nil {

@@ -167,7 +167,7 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 	<-testSync
 }
 
-func (t *fileSuite) TestGetSessionIdHeader(c *C) {
+func (t *fileSuite) TestGetSessionIDHeader(c *C) {
 	for _, tc := range []struct {
 		id    string
 		valid bool
@@ -181,7 +181,7 @@ func (t *fileSuite) TestGetSessionIdHeader(c *C) {
 	} {
 		r := &http.Request{}
 		r.Header = http.Header{"X-Fetch-Session-Id": []string{tc.id}}
-		id, err := proxy.GetSessionIdHeader(r)
+		id, err := proxy.GetSessionIDHeader(r)
 		if tc.valid {
 			c.Assert(err, IsNil)
 			c.Check(id, Equals, tc.id)

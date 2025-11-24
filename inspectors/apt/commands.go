@@ -35,7 +35,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 )
 
-// Check if the given raw data could be a valid commands file.
+// AptCommandsDetector checks if the given raw data could be a valid commands file.
 func AptCommandsDetector(raw []byte, limit uint32) bool {
 	r, err := xz.NewReader(bytes.NewReader(raw), 0)
 	if err != nil {
@@ -50,39 +50,18 @@ func AptCommandsDetector(raw []byte, limit uint32) bool {
 
 	buf = buf[:n]
 
-	sc := bufio.NewScanner(bytes.NewReader(buf))
-	sc.Split(bufio.ScanLines)
-
-	fields := map[string]struct{}{}
-
-	for sc.Scan() {
-		line := sc.Text()
-		if len(line) > 0 && line[0] == ' ' {
-			continue
-		}
-		if len(line) == 0 {
-			break
-		}
-
-		k, _, ok := strings.Cut(line, ":")
-		if !ok {
-			return false
-		}
-
-		fields[k] = struct{}{}
-	}
-
-	if len(fields) != 3 {
+	fields, ok := getTextFields(buf, 3)
+	if !ok {
 		return false
 	}
 
-	expected_fields := []string{
+	expectedFields := []string{
 		"suite",
 		"component",
 		"arch",
 	}
 
-	for _, k := range expected_fields {
+	for _, k := range expectedFields {
 		_, ok := fields[k]
 		if !ok {
 			logger.Debugf("apt commands detector: expected field %q not found", k)
@@ -113,11 +92,11 @@ func (ins *AptCommandsInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	if info, err := apt_cfg.NewCommandsUrlInfo(u, &ins.config, slog); err == nil {
+	if info, err := apt_cfg.NewCommandURLInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for Commands file").Annotate(
 			Annotation{
 				"repository": info.Repository,
-				"dist":       info.Dist,
+				"suite":      info.Suite,
 				"component":  info.Component,
 			},
 		)
@@ -148,10 +127,10 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	buf := make([]byte, 0, 64*1024)
 	sc.Buffer(buf, 1024*1024)
 
-	item_count := 0
-	state_name := false
-	state_version := false
-	state_commands := false
+	itemCount := 0
+	stateName := false
+	stateVersion := false
+	stateCommands := false
 	suite := ""
 	component := ""
 	arch := ""
@@ -193,59 +172,67 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		line := sc.Text()
 
 		if strings.HasPrefix(line, "name: ") {
-			if state_name {
+			if stateName {
 				a.SetResponseRejected(ins, "duplicate name field in commands file")
 				return nil
 			}
-			state_name = true
+			stateName = true
 			continue
 		} else if strings.HasPrefix(line, "version: ") {
-			if state_version {
+			if stateVersion {
 				a.SetResponseRejected(ins, "duplicate version field in commands file")
 				return nil
 			}
-			state_version = true
+			stateVersion = true
 			continue
 		} else if strings.HasPrefix(line, "commands: ") {
-			if state_commands {
+			if stateCommands {
 				a.SetResponseRejected(ins, "duplicate commands field in commands file")
 				return nil
 			}
-			state_commands = true
+			stateCommands = true
 			continue
 		} else if len(line) == 0 { // item ends
-			if !state_name || !state_version || !state_commands {
+			if !stateName || !stateVersion || !stateCommands {
 				a.SetResponseRejected(ins, "ill-formed entry in commands file")
 				return nil
 			}
-			item_count++
-			state_name = false
-			state_version = false
-			state_commands = false
+			itemCount++
+			stateName = false
+			stateVersion = false
+			stateCommands = false
 		}
 	}
 
 	md := ArtifactMetadata{
-		Type: mimetypes.AptCommands,
-		Name: "Commands",
+		Type:        mimetypes.AptCommands,
+		Name:        "Commands",
+		Description: "Commands list for command-not-found",
+		AptSuite:    suite,
 	}
 
 	// the file should be also annotated by the release inspector
-	vendor, ok := a.ResponseStringAnnotation("apt.release", "vendor")
+	vendor, ok := a.ResponseStringAnnotation(aptReleaseInspectorID, "vendor")
 	if ok {
 		md.Vendor = vendor
 		md.Author = vendor
 	}
 
 	a.SetArtifactMetadata(md)
-	a.SetResponseApproved(ins, "commands file successfully parsed").Annotate(
-		Annotation{
-			"suite":     suite,
-			"component": component,
-			"arch":      arch,
-			"count":     item_count,
-		},
-	)
+
+	notes := Annotation{
+		"suite":     suite,
+		"component": component,
+		"arch":      arch,
+		"count":     itemCount,
+	}
+
+	_, ok = a.ResponseStringAnnotation(aptReleaseInspectorID, "release-file")
+	if ok {
+		a.SetResponseApproved(ins, "commands file successfully parsed").Annotate(notes)
+	} else {
+		a.SetResponseRejected(ins, "commands file not verified against release file").Annotate(notes)
+	}
 
 	return nil
 }

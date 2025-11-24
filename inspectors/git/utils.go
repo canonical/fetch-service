@@ -15,6 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 package git
 
 import (
@@ -111,19 +112,28 @@ func readPack(f io.Reader, w io.Writer, slog logger.Logger) error {
 			return err
 		}
 
+		// From the git protocol documentation:
+		// "Each packet starting with the packet-line length of the amount of
+		// data that follows, followed by a single byte specifying the sideband
+		// the following data is coming in on."
+
 		var size int64
 		size, err = strconv.ParseInt(string(buf), 16, 32)
 		if err != nil {
 			return err
 		}
 
-		if size <= 5 {
+		// 0005x means 5 bytes total, 4 bytes containing the size (5) and one
+		// byte is the sideband.
+
+		if size < 5 {
+			slog.Debugf("pack size %04x", size)
 			break
 		}
 
-		git_sideband_byte := make([]byte, 1)
+		gitSidebandByte := make([]byte, 1)
 
-		if _, err := f.Read(git_sideband_byte); err != nil {
+		if _, err := f.Read(gitSidebandByte); err != nil {
 			return err
 		}
 
@@ -132,10 +142,17 @@ func readPack(f io.Reader, w io.Writer, slog logger.Logger) error {
 			return err
 		}
 
-		if GitPackfileSideband(git_sideband_byte[0]) != PackfileData {
+		// From the git protocol documentation:
+		// "The sideband byte will be a 1, 2 or a 3. Sideband 1 will contain packfile
+		// data, sideband 2 will be used for progress information that the client will
+		// generally print to stderr and sideband 3 is used for error information."
+
+		if GitPackfileSideband(gitSidebandByte[0]) != PackfileData {
 			slog.Debugf("Non-package data, skipping...")
 			continue
 		}
+
+		// Only sideband 1 is processed by the git inspector.
 
 		if _, err = w.Write(databuf); err != nil {
 			return err

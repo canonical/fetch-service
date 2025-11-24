@@ -53,7 +53,7 @@ func (ins *SdistInspector) InspectRequest(a RequestArtifact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	if checkSdistUrl(u) == nil {
+	if checkSdistURL(u) == nil {
 		// Request marked as Unknown because it comes from the default pypi origin
 		a.SetRequestUnknown(ins, "unsupported origin")
 	}

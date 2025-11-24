@@ -20,6 +20,7 @@
 package glob_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	. "gopkg.in/check.v1"
@@ -47,6 +48,19 @@ func (t *configSuite) TestGlobUnmarshal(c *C) {
 	c.Assert(y.Foo, DeepEquals, glob.MustCompile("*.txt"))
 }
 
+func (t *configSuite) TestGlobUnmarshalJSON(c *C) {
+	type testGlob struct {
+		Foo glob.Glob `json:"foo"`
+	}
+
+	data := []byte(`{"foo": "*.txt"}`)
+
+	var j testGlob
+	err := json.Unmarshal(data, &j)
+	c.Assert(err, IsNil)
+	c.Assert(j.Foo, DeepEquals, glob.MustCompile("*.txt"))
+}
+
 func (t *configSuite) TestGlobMatch(c *C) {
 	for _, tc := range []struct {
 		pattern string
@@ -54,8 +68,11 @@ func (t *configSuite) TestGlobMatch(c *C) {
 		matches bool
 	}{
 		{"b*n*a", "banana", true},
+		{"b*n*a", "bana/na", false},
+		{"b*n**a", "bana/na", true},
 		{"[Aa]p*le", "Apple", true},
 		{"[Aa]p*le", "Pineapple", false},
+		{"http://*.archive.ubuntu.com/ubuntu", "http://evilcorp.io/fake.archive.ubuntu.com/ubuntu", false},
 	} {
 		g := glob.MustCompile(tc.pattern)
 		c.Check(g.Match(tc.s), Equals, tc.matches)

@@ -35,6 +35,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/proxy"
+	"github.com/canonical/fetch-service/service/config"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
 	"github.com/canonical/fetch-service/testutils"
@@ -54,7 +55,7 @@ func (t *proxySuite) SetUpTest(c *C) {
 func (t *proxySuite) TestServerError(c *C) {
 	ch := make(chan interface{}, 1)
 	spool := c.MkDir()
-	p, err := proxy.NewHttpProxy(5566, spool, testutils.ProxyCert, testutils.ProxyKey, ch)
+	p, err := proxy.NewHTTPProxy(5566, spool, testutils.ProxyCert, testutils.ProxyKey, ch)
 	c.Assert(err, IsNil)
 
 	err = errors.New("an error")
@@ -67,7 +68,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 	// start the fetch service proxy
 	ch := make(chan interface{}, 1)
 	spool := c.MkDir()
-	p, err := proxy.NewHttpProxy(5566, spool, testutils.ProxyCert, testutils.ProxyKey, ch)
+	p, err := proxy.NewHTTPProxy(5566, spool, testutils.ProxyCert, testutils.ProxyKey, ch)
 	c.Assert(err, IsNil)
 
 	err = p.Start()
@@ -80,13 +81,13 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 	time.Sleep(1 * time.Second)
 
 	// create a new session
-	s := session.New(spool, 0, true)
+	s := session.New(spool, 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	// download a test file
 	proxyURL := url.URL{
 		Scheme: "http",
-		User:   url.UserPassword(s.Id, s.Token),
+		User:   url.UserPassword(s.ID, s.Token),
 		Host:   "localhost:5566",
 	}
 
@@ -114,7 +115,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 	// authorize download
 	msg := <-ch
 	auth := msg.(messages.ProxyAuth)
-	c.Assert(auth.Id, Equals, s.Id)
+	c.Assert(auth.ID, Equals, s.ID)
 	c.Assert(auth.Pw, Equals, s.Token)
 	auth.Rch <- true
 
@@ -136,7 +137,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 	os.Remove(u.A.Tempfile)
 
 	// check downloaded file information
-	c.Assert(v.A.MetadataVersion, Equals, "0.2")
+	c.Assert(v.A.MetadataVersion, Equals, "0.3")
 	c.Assert(u.A.Metadata.Sha1.String(), Equals, "d8c1f9634007b54c1e9aa3ba3b51395b643933c3")
 	c.Assert(u.A.Metadata.Sha256.String(), Equals, "750335248ccc68d07397e2b843d94fd1a164ddeca23892ca8398b5d528cd89eb")
 	c.Assert(u.A.Metadata.Size, Equals, int64(26600))
@@ -166,7 +167,7 @@ func (t *proxySuite) TestCopyHeader(c *C) {
 		{"key", []string{"a", "b", "c"}},
 	} {
 		data := map[string][]string{tc.key: tc.val}
-		newData := proxy.CopyHeader(data)
+		newData := proxy.CopyHTTPHeader(data)
 		delete(data, tc.key)
 		c.Assert(data[tc.key], IsNil)
 		c.Assert(newData, Not(Equals), data)

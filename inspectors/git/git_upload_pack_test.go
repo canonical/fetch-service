@@ -79,10 +79,12 @@ func (s *uploadPackSuite) TestInspectLsRefsRequest(c *C) {
 		ins := git.NewUploadPackInspector(getTestConfig())
 		a := fakeGitArtifact()
 		a.CurrentDownload.URL = tc.url
-		a.Request, _ = http.NewRequest("GET", tc.url, nil)
+		var err error
+		a.Request, err = http.NewRequest("GET", tc.url, nil)
+		c.Assert(err, IsNil)
 		a.Request.Body = io.NopCloser(strings.NewReader("0014command=ls-refs\n0000"))
 
-		err := ins.InspectRequest(a)
+		err = ins.InspectRequest(a)
 		c.Assert(err, IsNil)
 
 		insp := a.RequestInspection[ins.ID()]
@@ -124,7 +126,9 @@ func (s *uploadPackSuite) TestUploadPackInspectLsRefsArtifact(c *C) {
 		},
 	} {
 		a := fakeGitArtifact()
-		a.Request, _ = http.NewRequest("GET", "https://github.com:443/user/project.git/git-upload-pack", nil)
+		var err error
+		a.Request, err = http.NewRequest("GET", "https://github.com:443/user/project.git/git-upload-pack", nil)
+		c.Assert(err, IsNil)
 		a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
 		a.Request.Body = io.NopCloser(strings.NewReader("0014command=ls-refs\n0000"))
 		a.RequestInspection = metadata.InspectionMap{
@@ -161,7 +165,7 @@ func (s *uploadPackSuite) TestUploadPackInspectLsRefsArtifact(c *C) {
 		f := strings.NewReader(tc.data)
 
 		ins := git.NewUploadPackInspector(getTestConfig())
-		err := ins.InspectArtifact(f, a)
+		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
 		if tc.errmsg == "" {

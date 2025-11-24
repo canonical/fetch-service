@@ -34,6 +34,12 @@ import (
 // https://api.snapcraft.io:443/v2/assertions/snap-declaration/16/CSO04Jhav2yK0uz97cr0ipQRyqg0qQL6?...
 // https://api.snapcraft.io:443/v2/assertions/account/ekRMaarzOfN1Vu3sDY0Bt1aGnM8Cd4kG?..."
 // https://api.snapcraft.io:443/v2/assertions/account-key/BWDEoaqyr25nF5SNCvEv2v7QnM9QsfCc0PBMYD_i2NGSQ32EF2d4D0hqUel3m8ul?...
+// https://api.snapcraft.io:443/api/v1/snaps/sections
+// https://api.snapcraft.io:443/api/v1/snaps/auth/sessions
+// https://api.snapcraft.io:443/api/v1/snaps/auth/nonces
+// https://api.snapcraft.io:443/api/v1/snaps/names
+// https://api.snapcraft.io:443/api/v1/snaps/auth/request-id
+// https://api.snapcraft.io:443/api/v1/snaps/auth/devices/
 
 var (
 	reSnapPackage    = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/download/([A-Za-z0-9]+)_([0-9]+)\.snap`)
@@ -45,14 +51,21 @@ var (
 	reSnapDeclarationAssertion = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/assertions/snap-declaration/`)
 	reAccountAssertion         = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/assertions/account/`)
 	reAccountKeyAssertion      = regexp.MustCompile(`^https://api.snapcraft.io:443/v2/assertions/account-key/`)
+	reSerialAssertion          = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/auth/devices/?$`)
+
+	reSnapSections      = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/sections$`)
+	reSnapNames         = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/names(?:\?.*)?$`)
+	reSnapAuthSessions  = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/auth/sessions$`)
+	reSnapAuthNonce     = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/auth/nonces$`)
+	reSnapAuthRequestID = regexp.MustCompile(`^https://api.snapcraft.io:443/api/v1/snaps/auth/request-id$`)
 )
 
-type snapPackageUrlInfo struct {
-	snapId  string
+type snapPackageURLInfo struct {
+	snapID  string
 	release string
 }
 
-func newSnapPackageUrlInfo(u *url.URL) (*snapPackageUrlInfo, error) {
+func newSnapPackageURLInfo(u *url.URL) (*snapPackageURLInfo, error) {
 	m := reSnapPackage.FindStringSubmatch(u.String())
 	if len(m) != 3 {
 		m = reSnapPackageAlt.FindStringSubmatch(u.String())
@@ -60,79 +73,145 @@ func newSnapPackageUrlInfo(u *url.URL) (*snapPackageUrlInfo, error) {
 			return nil, fmt.Errorf("%s: not a valid snap package URL", u.Path)
 		}
 	}
-	info := &snapPackageUrlInfo{
-		snapId:  m[1],
+	info := &snapPackageURLInfo{
+		snapID:  m[1],
 		release: m[2],
 	}
 	return info, nil
 }
 
-type snapInfoUrlInfo struct {
+type snapInfoURLInfo struct {
 	name string
 }
 
-func newSnapInfoUrlInfo(u *url.URL) (*snapInfoUrlInfo, error) {
+func newSnapInfoURLInfo(u *url.URL) (*snapInfoURLInfo, error) {
 	m := reSnapInfo.FindStringSubmatch(u.String())
 	if len(m) != 2 {
 		return nil, fmt.Errorf("%s: not a valid snap info URL", u.Path)
 	}
-	info := &snapInfoUrlInfo{
+	info := &snapInfoURLInfo{
 		name: m[1],
 	}
 	return info, nil
 }
 
-type snapRefreshUrlInfo struct {
+type snapRefreshURLInfo struct {
 }
 
-func newSnapRefreshUrlInfo(u *url.URL) (*snapRefreshUrlInfo, error) {
+func newSnapRefreshURLInfo(u *url.URL) (*snapRefreshURLInfo, error) {
 	if !reSnapRefresh.MatchString(u.String()) {
 		return nil, fmt.Errorf("%s: not a valid snap refresh URL", u.String())
 	}
-	info := &snapRefreshUrlInfo{}
+	info := &snapRefreshURLInfo{}
 	return info, nil
 }
 
-type snapRevisionAssertionUrlInfo struct {
+type snapRevisionAssertionURLInfo struct {
 }
 
-func newSnapRevisionAssertionUrlInfo(u *url.URL) (*snapRevisionAssertionUrlInfo, error) {
+func newSnapRevisionAssertionURLInfo(u *url.URL) (*snapRevisionAssertionURLInfo, error) {
 	if !reSnapRevisionAssertion.MatchString(u.String()) {
 		return nil, fmt.Errorf("%s: not a valid snap-revision assertion URL", u.Path)
 	}
-	info := &snapRevisionAssertionUrlInfo{}
+	info := &snapRevisionAssertionURLInfo{}
 	return info, nil
 }
 
-type snapDeclarationAssertionUrlInfo struct {
+type snapDeclarationAssertionURLInfo struct {
 }
 
-func newSnapDeclarationAssertionUrlInfo(u *url.URL) (*snapDeclarationAssertionUrlInfo, error) {
+func newSnapDeclarationAssertionURLInfo(u *url.URL) (*snapDeclarationAssertionURLInfo, error) {
 	if !reSnapDeclarationAssertion.MatchString(u.String()) {
 		return nil, fmt.Errorf("%s: not a valid snap-declaration assertion URL", u.Path)
 	}
-	info := &snapDeclarationAssertionUrlInfo{}
+	info := &snapDeclarationAssertionURLInfo{}
 	return info, nil
 }
 
-type accountAssertionUrlInfo struct {
+type accountAssertionURLInfo struct {
 }
 
-func newAccountAssertionUrlInfo(u *url.URL) (*accountAssertionUrlInfo, error) {
+func newAccountAssertionURLInfo(u *url.URL) (*accountAssertionURLInfo, error) {
 	if !reAccountAssertion.MatchString(u.String()) {
 		return nil, fmt.Errorf("%s: not a valid account assertion URL", u.Path)
 	}
-	info := &accountAssertionUrlInfo{}
+	info := &accountAssertionURLInfo{}
 	return info, nil
 }
 
-type accountKeyAssertionUrlInfo struct {
+type accountKeyAssertionURLInfo struct {
 }
 
-func newAccountKeyAssertionUrlInfo(u *url.URL) (*accountKeyAssertionUrlInfo, error) {
+func newAccountKeyAssertionURLInfo(u *url.URL) (*accountKeyAssertionURLInfo, error) {
 	if !reAccountKeyAssertion.MatchString(u.String()) {
 		return nil, fmt.Errorf("%s: not a valid account-key assertion URL", u.Path)
 	}
-	info := &accountKeyAssertionUrlInfo{}
+	info := &accountKeyAssertionURLInfo{}
+	return info, nil
+}
+
+type snapSectionsURLInfo struct {
+}
+
+func newSnapSectionsURLInfo(u *url.URL) (*snapSectionsURLInfo, error) {
+	if !reSnapSections.MatchString(u.String()) {
+		return nil, fmt.Errorf("%s: not a valid snap sections URL", u.Path)
+	}
+	info := &snapSectionsURLInfo{}
+	return info, nil
+}
+
+type snapAuthSessionsURLInfo struct {
+}
+
+func newSnapAuthSessionsURLInfo(u *url.URL) (*snapAuthSessionsURLInfo, error) {
+	if !reSnapAuthSessions.MatchString(u.String()) {
+		return nil, fmt.Errorf("%s: not a valid auth sessions URL", u.Path)
+	}
+	info := &snapAuthSessionsURLInfo{}
+	return info, nil
+}
+
+type snapAuthNonceURLInfo struct {
+}
+
+func newSnapAuthNonceURLInfo(u *url.URL) (*snapAuthNonceURLInfo, error) {
+	if !reSnapAuthNonce.MatchString(u.String()) {
+		return nil, fmt.Errorf("%s: not a valid auth nonce URL", u.Path)
+	}
+	info := &snapAuthNonceURLInfo{}
+	return info, nil
+}
+
+type snapAuthRequestIDURLInfo struct {
+}
+
+func newSnapAuthRequestIDURLInfo(u *url.URL) (*snapAuthRequestIDURLInfo, error) {
+	if !reSnapAuthRequestID.MatchString(u.String()) {
+		return nil, fmt.Errorf("%s: not a valid device authentication request-id URL", u.Path)
+	}
+	info := &snapAuthRequestIDURLInfo{}
+	return info, nil
+}
+
+type snapNamesURLInfo struct {
+}
+
+func newSnapNamesURLInfo(u *url.URL) (*snapNamesURLInfo, error) {
+	if !reSnapNames.MatchString(u.String()) {
+		return nil, fmt.Errorf("%s: not a valid snap names URL", u.Path)
+	}
+	info := &snapNamesURLInfo{}
+	return info, nil
+}
+
+type serialAssertionURLInfo struct {
+}
+
+func newSerialAssertionURLInfo(u *url.URL) (*serialAssertionURLInfo, error) {
+	if !reSerialAssertion.MatchString(u.String()) {
+		return nil, fmt.Errorf("%s: not a valid serial assertion URL", u.Path)
+	}
+	info := &serialAssertionURLInfo{}
 	return info, nil
 }

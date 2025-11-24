@@ -24,6 +24,7 @@ import (
 
 	. "gopkg.in/check.v1"
 
+	"github.com/canonical/fetch-service/service/config"
 	"github.com/canonical/fetch-service/session"
 )
 
@@ -32,18 +33,18 @@ type sessionTimerSuite struct{}
 var _ = Suite(&sessionTimerSuite{})
 
 func (t *sessionTimerSuite) TestExpiredSessionTimer(c *C) {
-	s := session.New("", 500*time.Millisecond, true)
+	s := session.New("", 500*time.Millisecond, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	ch := make(chan string, 1)
 	_ = session.NewSessionTimer(s, ch)
 
 	expired := <-ch
-	c.Assert(expired, Equals, s.Id)
+	c.Assert(expired, Equals, s.ID)
 }
 
 func (t *sessionTimerSuite) TestCanceledSessionTimer(c *C) {
-	s := session.New("", 2*time.Second, true)
+	s := session.New("", 2*time.Second, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	ch := make(chan string, 1)

@@ -20,16 +20,17 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/service/config"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
 	"github.com/canonical/fetch-service/utils"
 	"github.com/canonical/fetch-service/version"
+	"gopkg.in/yaml.v3"
 )
 
 func handleFetchCtl(v messages.FetchCtl, svc *Service) messages.FetchCtlResult {
@@ -107,31 +108,36 @@ func fetchCtlUpdateCert(v messages.FetchCtl, certPath, keyPath string) messages.
 }
 
 func fetchCtlCreateSession(v messages.FetchCtl, svc *Service) messages.FetchCtlResult {
-	parms := strings.Split(string(v.Payload), ":")
-	if len(parms) != 4 {
-		return messages.FetchCtlResult{Status: "error", Message: "malformed payload"}
-	}
-	permissive := svc.opt.PermissiveMode && parms[3] == "permissive"
-
-	t, err := strconv.Atoi(parms[2])
+	var params messages.CreateSessionPayload
+	err := json.Unmarshal([]byte(v.Payload), &params)
 	if err != nil {
-		return messages.FetchCtlResult{Status: "error", Message: "cannot parse timeout"}
+		return messages.FetchCtlResult{Status: "error", Message: fmt.Sprintf("malformed payload: %s", err)}
 	}
 
-	timeout := time.Duration(t) * time.Second
-	s := sessionNewWithId(parms[0], parms[1], svc.opt.Spool, timeout, permissive)
+	permissive := svc.opt.PermissiveMode && params.Mode == "permissive"
+	timeout := time.Duration(params.Timeout) * time.Second
 
-	logger.Infof("service: session %s created", s.Id)
+	cfg := config.OverrideInspectorsConfig{}
+	if len(params.InspectorsConfig) > 0 {
+		err = yaml.Unmarshal(params.InspectorsConfig, &cfg)
+		if err != nil {
+			return messages.FetchCtlResult{Status: "error", Message: fmt.Sprintf("malformed payload: %s", err)}
+		}
+	}
+
+	s := sessionNewWithID(params.SessionID, params.Token, svc.opt.Spool, timeout, permissive, nil, cfg)
+
+	logger.Infof("service: session %s created", s.ID)
 	svc.totalSessions++
 	return messages.FetchCtlResult{
 		Status:  "ok",
-		Message: fmt.Sprintf("session %s:%s created (%s)", s.Id, s.Token, s.Metadata().Policy),
+		Message: fmt.Sprintf("session %s:%s created (%s)", s.ID, s.Token, s.Metadata().Policy),
 	}
 }
 
 func fetchCtlListArtifacts(v messages.FetchCtl) messages.FetchCtlResult {
-	sessionId := string(v.Payload)
-	s := session.GetSession(sessionId)
+	sessionID := string(v.Payload)
+	s := session.GetSession(sessionID)
 	if s == nil {
 		return messages.FetchCtlResult{Status: "error", Message: "session does not exist"}
 	}

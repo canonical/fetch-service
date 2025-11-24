@@ -1,0 +1,59 @@
+summary: Test the snap inspector
+
+# Run this test last just in case, as it modifies snapd and system files
+priority: -1000
+
+prepare: |
+  cp /etc/environment environment.bak
+  touch ./dont-snap-stop
+
+restore: |
+  cp ./environment.bak /etc/environment
+  rm environment.bak
+  systemctl restart snapd
+
+  rm -f ./*.json
+
+execute: |
+  # shellcheck disable=SC1091
+  . ../../utils.sh
+
+  # create a permissive session so that we get a full list of rejections
+  read -r session_id token < <(create_session permissive)
+
+  systemctl stop snapd.socket snapd.service
+
+  echo "Forcefully removing snapd data"
+  rm -rf /var/lib/snapd/device/*
+  rm -f /var/lib/snapd/state.json
+  rm -rf /var/cache/snapd/*
+
+  echo http_proxy="http://${session_id}:${token}@localhost:9988" > /etc/environment
+  echo https_proxy="http://${session_id}:${token}@localhost:9988" >> /etc/environment
+
+  systemctl start snapd.socket snapd.service
+  snap wait system seed.loaded
+
+  snap install snapcraft --classic --stable
+
+  revoke_token "$session_id" "$token"
+  get_session_report "$session_id" > session_report.json
+  python3 -mjson.tool session_report.json
+
+  delete_session "$session_id"
+  delete_resources "$session_id"
+
+  # Make sure the snapd calls we expect to see were actually made
+  # If one of these 'jq' calls fails, it's because there is no artifact with that url
+  echo "Checking for specific snap store urls"
+  jq -e -r '(.artifacts[] | select(.downloads[].url=="https://api.snapcraft.io:443/api/v1/snaps/sections")).metadata' session_report.json
+  # This is a no-op as a workaround for https://github.com/canonical/fetch-service/issues/533
+  jq -r '(.artifacts[] | select(.downloads[].url=="https://api.snapcraft.io:443/api/v1/snaps/names?confinement=strict%2Cclassic")).metadata' session_report.json
+  jq -e -r '(.artifacts[] | select(.downloads[].url=="https://api.snapcraft.io:443/api/v1/snaps/auth/request-id")).metadata' session_report.json
+  jq -e -r '(.artifacts[] | select(.downloads[].url=="https://api.snapcraft.io:443/api/v1/snaps/auth/devices")).metadata' session_report.json
+  jq -e -r '(.artifacts[] | select(.downloads[].url=="https://api.snapcraft.io:443/api/v1/snaps/auth/nonces")).metadata' session_report.json
+  jq -e -r '(.artifacts[] | select(.downloads[].url=="https://api.snapcraft.io:443/api/v1/snaps/auth/sessions")).metadata' session_report.json
+
+  # Fail if we have any rejections
+  echo "Checking for unexpected fetch-service rejections..."
+  ! jq -e -r '(.artifacts[] | select(.result=="Rejected")).downloads[].url' session_report.json

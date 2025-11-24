@@ -3,23 +3,23 @@ name: TICS
 on:
   push:
     branches:
-    - main
-    # to easy test changes to the workflow
-    - tiobe
+      - main
+      # to easy test changes to the workflow
+      - work/tiobe**
 
 jobs:
   CI:
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, reactive, amd64, tiobe, noble]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Install Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: 1.22
+          go-version: 1.24.7
 
       - name: Install dependencies
         run: |
@@ -27,12 +27,7 @@ jobs:
           sudo apt-get update
           echo "::endgroup::"
           echo "::group::apt-get install..."
-          sudo apt-get install -y  cpanminus gcc make
-          echo "::endgroup::"
-          echo "::group::cpanm"
-          sudo cpanm --notest https://cpan.metacpan.org/authors/id/J/JO/JONASS/Regexp-Pattern-License-v3.9.3.tar.gz  # 3.11.1 doesn't work!
-          sudo cpanm --notest https://cpan.metacpan.org/authors/id/P/PE/PEVANS/Syntax-Keyword-Try-0.27.tar.gz
-          sudo cpanm --notest https://cpan.metacpan.org/authors/id/J/JO/JONASS/App-Licensecheck-v3.3.9.tar.gz
+          sudo apt-get install -y licensecheck
           echo "::endgroup::"
           echo "::group::staticcheck"
           go install honnef.co/go/tools/cmd/staticcheck@latest
@@ -60,7 +55,7 @@ jobs:
         with:
           mode: qserver
           project: fetch-service
-          viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=default
+          viewerUrl: https://canonical.tiobe.com/tiobeweb/TICS/api/cfg?name=GoProjects
           branchdir: ${{ github.workspace }}
           ticsAuthToken: ${{ secrets.TICSAUTHTOKEN }}
           installTics: true

@@ -24,22 +24,27 @@ import (
 
 	"github.com/canonical/fetch-service/control"
 	"github.com/canonical/fetch-service/proxy"
+	"github.com/canonical/fetch-service/secrets"
+	"github.com/canonical/fetch-service/service/config"
 	"github.com/canonical/fetch-service/service/fetchctl"
 	"github.com/canonical/fetch-service/session"
 )
 
 var (
-	EvaluateRequestInspection     = evaluateRequestInspection
-	EvaluateResponseInspection    = evaluateResponseInspection
-	LoadHttpProxyRulesOrDefault   = loadHttpProxyRulesOrDefault
-	LoadInspectorsConfigOrDefault = loadInspectorsConfigOrDefault
+	EvaluateRequestInspection          = evaluateRequestInspection
+	EvaluateResponseInspection         = evaluateResponseInspection
+	LoadHTTPProxyRulesOrDefault        = loadHTTPProxyRulesOrDefault
+	LoadDefaultInspectorsConfigCombine = loadDefaultInspectorsConfigCombine
+
+	HandleResponseInspection = handleResponseInspection
+	HandleCompleteInspection = handleCompleteInspection
 )
 
-func MockNewHttpProxy(mock func(int, string, []byte, []byte, chan interface{}) (*proxy.HttpProxy, error)) (restorer func()) {
-	old := proxyNewHttpProxy
-	proxyNewHttpProxy = mock
+func MockNewHTTPProxy(mock func(int, string, []byte, []byte, chan interface{}) (*proxy.HTTPProxy, error)) (restorer func()) {
+	old := proxyNewHTTPProxy
+	proxyNewHTTPProxy = mock
 	return func() {
-		proxyNewHttpProxy = old
+		proxyNewHTTPProxy = old
 	}
 }
 
@@ -75,19 +80,19 @@ func MockProxyUpdateCert(mock func(bool, []byte, string, string) error) (restore
 	}
 }
 
-func MockSessionNewWithId(mock func(string, string, string, time.Duration, bool) *session.Session) (restorer func()) {
-	old := sessionNewWithId
-	sessionNewWithId = mock
+func MockSessionNewWithID(mock func(string, string, string, time.Duration, bool, []secrets.Secret, config.OverrideInspectorsConfig) *session.Session) (restorer func()) {
+	old := sessionNewWithID
+	sessionNewWithID = mock
 	return func() {
-		sessionNewWithId = old
+		sessionNewWithID = old
 	}
 }
 
-func MockConfigLoadProxyHttpRules(mock func(string) error) (restorer func()) {
-	old := configLoadHttpProxyRules
-	configLoadHttpProxyRules = mock
+func MockConfigLoadProxyHTTPRules(mock func(string) error) (restorer func()) {
+	old := configLoadHTTPProxyRules
+	configLoadHTTPProxyRules = mock
 	return func() {
-		configLoadHttpProxyRules = old
+		configLoadHTTPProxyRules = old
 	}
 }
 
@@ -96,5 +101,13 @@ func MockConfigLoadInspectorsConfig(mock func(string) error) (restorer func()) {
 	configLoadInspectorsConfig = mock
 	return func() {
 		configLoadInspectorsConfig = old
+	}
+}
+
+func MockConfigLoadOverrideInspectorsConfig(mock func(string) error) (restorer func()) {
+	old := configLoadOverrideInspectorsConfig
+	configLoadOverrideInspectorsConfig = mock
+	return func() {
+		configLoadOverrideInspectorsConfig = old
 	}
 }

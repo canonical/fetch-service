@@ -114,7 +114,7 @@ func AptPackagesDetector(raw []byte, limit uint32) bool {
 	}
 
 	// If not, having all these is also good
-	expected_fields := []string{
+	expectedFields := []string{
 		"Package",
 		"Architecture",
 		"Version",
@@ -123,7 +123,7 @@ func AptPackagesDetector(raw []byte, limit uint32) bool {
 		"Maintainer",
 	}
 
-	for _, k := range expected_fields {
+	for _, k := range expectedFields {
 		_, ok := fields[k]
 		if !ok {
 			logger.Debugf("apt packages detector: expected field %q not found", k)
@@ -165,7 +165,7 @@ type aptPackagesEntry struct {
 type aptPackages struct {
 	sha256       digests.Sha256Digest // packages file digest
 	origin       string               // URL origin of the archive
-	dist         string               // name of the distribution
+	suite        string               // name of the suite (<series>-<pocket>)
 	component    string               // name of the component
 	architecture string
 
@@ -173,10 +173,11 @@ type aptPackages struct {
 	entriesLock sync.Mutex
 }
 
-func newAptPackages(origin, dist, component, architecture string) *aptPackages {
+func newAptPackages(sha256 digests.Sha256Digest, origin, suite, component, architecture string) *aptPackages {
 	return &aptPackages{
+		sha256:       sha256,
 		origin:       origin,
-		dist:         dist,
+		suite:        suite,
 		component:    component,
 		architecture: architecture,
 
@@ -201,13 +202,17 @@ type AptPackagesInspector struct {
 	packages     map[string]map[string]*aptPackages // maps origin to Packages file data
 	packagesLock sync.Mutex
 
+	validated     map[digests.Sha256Digest]struct{} // set of validated Packages
+	validatedLock sync.Mutex
+
 	config apt_cfg.AptInspectorConfig
 }
 
 func NewAptPackagesInspector(cfg apt_cfg.AptInspectorConfig) *AptPackagesInspector {
 	return &AptPackagesInspector{
-		packages: make(map[string]map[string]*aptPackages),
-		config:   cfg,
+		packages:  make(map[string]map[string]*aptPackages),
+		validated: make(map[digests.Sha256Digest]struct{}),
+		config:    cfg,
 	}
 }
 
@@ -223,20 +228,20 @@ func (ins *AptPackagesInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	if info, err := apt_cfg.NewPackagesUrlInfo(u, &ins.config, slog); err == nil {
+	if info, err := apt_cfg.NewPackagesURLInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for Packages file").Annotate(
 			Annotation{
+				"cfg-name":     info.CfgName,
 				"repository":   info.Repository,
-				"dist":         info.Dist,
+				"suite":        info.Suite,
 				"component":    info.Component,
 				"architecture": info.Architecture,
 			},
 		)
-		packages := newAptPackages(info.Origin, info.Dist, info.Component, info.Architecture)
-		ins.addPackages(info.Origin, u.Path, packages, a.Logger())
-	} else if info, err := apt_cfg.NewDebPackageUrlInfo(u, &ins.config, slog); err == nil {
+	} else if info, err := apt_cfg.NewDebPackageURLInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for deb package").Annotate(
 			Annotation{
+				"cfg-name":     info.CfgName,
 				"repository":   info.Repository,
 				"component":    info.Component,
 				"name":         info.Name,
@@ -258,40 +263,68 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		return nil
 	}
 
+	slog := a.Logger()
+
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	origin := utils.NormalizedOrigin(u)
-	pkg, ok := ins.getPackages(origin, u.Path, a.Logger())
+	suite, ok := a.RequestStringAnnotation(ins.ID(), "suite")
 	if !ok {
-		return fmt.Errorf("inconsistent package state: '%s', '%s'", origin, u.Path)
+		a.SetResponseUnknown(ins, "suite not specified in request URL")
+		return nil
 	}
-	pkg.sha256 = a.Sha256()
+	component, ok := a.RequestStringAnnotation(ins.ID(), "component")
+	if !ok {
+		a.SetResponseUnknown(ins, "component not specified in request URL")
+		return nil
+	}
+	architecture, ok := a.RequestStringAnnotation(ins.ID(), "architecture")
+	if !ok {
+		a.SetResponseUnknown(ins, "architecture not specified in request URL")
+		return nil
+	}
 
-	// Add packages list to inspector state
-	r, err := compressedReader(f)
-	if err != nil {
-		return err
+	cfgName, ok := a.RequestStringAnnotation(ins.ID(), "cfg-name")
+	if !ok {
+		a.SetResponseRejected(ins, "Packages file downloaded from unknown repository")
+		return nil
 	}
+
+	origin, ok := ins.getOriginAlias(utils.NormalizedOrigin(u), cfgName, slog)
+	if !ok {
+		a.SetResponseRejected(ins, "Unknown repository configuration name").Annotate(
+			Annotation{"cfg-name": cfgName},
+		)
+		return nil
+	}
+
+	pkg := newAptPackages(a.Sha256(), origin, suite, component, architecture)
+	ins.addPackages(origin, u.Path, pkg, a.Logger())
 
 	md := ArtifactMetadata{
 		Type:         mimetypes.AptPackages,
 		Name:         "Packages",
-		Version:      pkg.dist,
-		Description:  fmt.Sprintf("%s %s Packages file", pkg.dist, pkg.component),
-		Architecture: pkg.architecture,
+		Description:  fmt.Sprintf("%s %s Packages file", suite, component),
+		Architecture: architecture,
+		AptSuite:     suite,
 	}
 
 	// the file should be also annotated by the release inspector
-	vendor, ok := a.ResponseStringAnnotation("apt.release", "vendor")
+	vendor, ok := a.ResponseStringAnnotation(aptReleaseInspectorID, "vendor")
 	if ok {
 		md.Author = vendor
 		md.Vendor = vendor
 	}
 
 	a.SetArtifactMetadata(md)
+
+	// Add packages list to inspector state
+	r, err := compressedReader(f)
+	if err != nil {
+		return err
+	}
 
 	var num int
 	entries := map[digests.Sha256Digest]aptPackagesEntry{}
@@ -306,11 +339,16 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		return nil
 	}
 
-	a.SetResponseApproved(ins, "packages file successfully parsed").Annotate(
-		Annotation{
-			"package-count": num,
-		},
-	)
+	notes := Annotation{"package-count": num}
+
+	releaseDigest, ok := a.ResponseStringAnnotation(aptReleaseInspectorID, "release-file")
+	if ok {
+		notes["release-file"] = releaseDigest
+		ins.validatePackages(a.Sha256())
+		a.SetResponseApproved(ins, "packages file successfully parsed").Annotate(notes)
+	} else {
+		a.SetResponseRejected(ins, "packages file not verified against release file").Annotate(notes)
+	}
 
 	pkg.entriesLock.Lock()
 	defer pkg.entriesLock.Unlock()
@@ -318,6 +356,19 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	pkg.entries = entries
 
 	return nil
+}
+
+func (ins *AptPackagesInspector) validatePackages(sha256 digests.Sha256Digest) {
+	ins.validatedLock.Lock()
+	defer ins.validatedLock.Unlock()
+	ins.validated[sha256] = struct{}{}
+}
+
+func (ins *AptPackagesInspector) isValidPackages(sha256 digests.Sha256Digest) bool {
+	ins.validatedLock.Lock()
+	defer ins.validatedLock.Unlock()
+	_, ok := ins.validated[sha256]
+	return ok
 }
 
 func parsePackages(r io.Reader, entries map[digests.Sha256Digest]aptPackagesEntry, slog logger.Logger) (int, error) {
@@ -358,6 +409,7 @@ func parsePackages(r io.Reader, entries map[digests.Sha256Digest]aptPackagesEntr
 			e.Version = v
 		case "Architecture":
 			e.Architecture = v
+
 		case "Size":
 			var err error
 			e.Size, err = strconv.ParseInt(v, 10, 64)
@@ -383,27 +435,26 @@ func (ins *AptPackagesInspector) addPackages(origin, packagesPath string, data *
 	if ins.packages[origin] == nil {
 		ins.packages[origin] = map[string]*aptPackages{}
 	}
+
 	slog.Debugf("adding packages origin %q, %q", origin, packagesPath)
 	ins.packages[origin][packagesPath] = data
 }
 
-func (ins *AptPackagesInspector) getPackages(origin, packagesPath string, slog logger.Logger) (*aptPackages, bool) {
-	ins.packagesLock.Lock()
-	defer ins.packagesLock.Unlock()
-
-	slog.Debugf("retrieving packages origin %q, %q", origin, packagesPath)
-	pkg, ok := ins.packages[origin]
+func (ins *AptPackagesInspector) getOriginAlias(origin, cfgName string, slog logger.Logger) (string, bool) {
+	repos, ok := ins.config.Repositories[cfgName]
 	if !ok {
-		slog.Warningf("package origin %q is unknown", origin)
-		return nil, false
-	}
-	data, ok := pkg[packagesPath]
-	if !ok {
-		slog.Warningf("package path %q is unknown", packagesPath)
-		return nil, false
+		slog.Debugf("%s: repository configuration not found", cfgName)
+		return "", false
 	}
 
-	return data, true
+	alias := repos.BaseURLAlias
+	if alias == "" {
+		slog.Debugf("origin not aliased: %s", origin)
+		return origin, true
+	}
+
+	slog.Debugf("packages origin alias: %s to %s", origin, alias)
+	return alias, true
 }
 
 // validateDebianPackage verifies if the deb package is listed in the
@@ -413,10 +464,23 @@ func (ins *AptPackagesInspector) validateDebianPackage(f ArtifactReader, a Respo
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
-	origin := utils.NormalizedOrigin(u)
+
 	slog := a.Logger()
 
-	info, err := apt_cfg.NewDebPackageUrlInfo(u, &ins.config, slog)
+	cfgName, ok := a.RequestStringAnnotation(ins.ID(), "cfg-name")
+	if !ok {
+		a.SetResponseRejected(ins, "deb file downloaded from unknown repository")
+		return nil
+	}
+	origin, ok := ins.getOriginAlias(utils.NormalizedOrigin(u), cfgName, slog)
+	if !ok {
+		a.SetResponseRejected(ins, "Unknown repository configuration name").Annotate(
+			Annotation{"cfg-name": cfgName},
+		)
+		return nil
+	}
+
+	info, err := apt_cfg.NewDebPackageURLInfo(u, &ins.config, slog)
 	if err != nil {
 		return fmt.Errorf("invalid deb package URL")
 	}
@@ -425,23 +489,30 @@ func (ins *AptPackagesInspector) validateDebianPackage(f ArtifactReader, a Respo
 	for _, pkg := range ins.packages[origin] {
 		entry, ok := pkg.getPackagesEntry(a.Sha256())
 		if ok {
+			packagesIsValid := ins.isValidPackages(pkg.sha256)
+
 			notes := Annotation{
 				"packages-name":         entry.Pkg,           // package name in the Packages file
 				"packages-version":      entry.Version,       // package version in the Packages file
 				"packages-architecture": entry.Architecture,  // package architecture in the Packages file
 				"packages-size":         entry.Size,          // package size in the Packages file
 				"packages-file":         pkg.sha256.String(), // digest of the validating Packages file
-				"dist":                  pkg.dist,            // dist from packages file
+				"packages-is-valid":     packagesIsValid,     // packages file validated against Release
+				"dist":                  pkg.suite,           // suite from packages file
 				"component":             info.Component,      // component from URL
 			}
 
-			if a.Size() != entry.Size {
+			// Check if the packages file listing this deb was validated
+			if !packagesIsValid {
+				a.SetResponseRejected(ins, "artifact listed in invalid Packages file").Annotate(notes)
+			} else if a.Size() != entry.Size {
 				a.SetResponseRejected(ins, "artifact size does not match Packages entry").Annotate(notes)
 			} else if info.Architecture != entry.Architecture {
 				a.SetResponseRejected(ins, "URL architecture does not match Packages entry").Annotate(notes)
 			} else {
-				a.SetResponseApproved(ins, "deb file matches packages entry").Annotate(notes)
+				a.SetResponseUnknown(ins, "deb file matches packages entry").Annotate(notes)
 			}
+
 			return nil
 		}
 	}

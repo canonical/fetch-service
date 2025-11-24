@@ -20,9 +20,9 @@ This can be done using the following ``openssl`` commands::
 Start the fetch service
 -----------------------
 
-You can run the fetch service itself with `go run`::
+You can run the fetch service itself with ``go run``::
 
-   go run ./cmd/fetch --permissive-mode --cert=./ca.pem --key=ca.key.pem --permissive-mode --spool=./spool --verbosity=debug
+   go run ./cmd/fetch --permissive-mode --cert=./ca.pem --key=ca.key.pem --spool=./spool --verbosity=debug
 
 This will create a ``spool`` directory where artefacts will be stored. Debug verbosity
 is especially useful when examining what the inspectors are doing.
@@ -38,6 +38,19 @@ it to ``fetch``, as it's simply a different entrypoint for the same file::
 
 This creates a permissive session in the running fetch service, which can then be used
 elsewhere.
+
+The inspectors configuration for the session is provided through an optional positional
+argument.
+Save the following file:
+
+.. literalinclude:: code/inspectors.yaml
+    :caption: inspectors.yaml
+    :language: yaml
+
+Then run::
+        
+   ./fetchctl create-session --session-id=abc --token=def --permissive inspectors.yaml
+
 
 Use the session
 ---------------

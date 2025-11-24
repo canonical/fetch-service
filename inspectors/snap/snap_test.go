@@ -162,6 +162,7 @@ func (s *snapSuite) TestSnapArtifactInspector(c *C) {
 	c.Check(a.Metadata.StoreRevision, Equals, "7")
 	c.Check(a.Metadata.Architecture, Equals, "amd64")
 	c.Check(a.Metadata.Description, Equals, "Word Salad - Password Generator")
+	c.Check(a.Metadata.ContentID, Equals, "UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7")
 	c.Check(a.ResponseInspection["snap"].Annotations, DeepEquals, Annotation{
 		"snap-revision-assertion-header": map[string]string{
 			"type":              "snap-revision",

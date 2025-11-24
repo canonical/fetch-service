@@ -24,6 +24,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	. "gopkg.in/check.v1"
@@ -31,6 +32,12 @@ import (
 
 	"github.com/canonical/fetch-service/glob"
 	apt_cfg "github.com/canonical/fetch-service/inspectors/apt/config"
+	bldbin_cfg "github.com/canonical/fetch-service/inspectors/bldbin/config"
+	chisel_cfg "github.com/canonical/fetch-service/inspectors/chisel/config"
+	crafts_cfg "github.com/canonical/fetch-service/inspectors/craft/config"
+	git_cfg "github.com/canonical/fetch-service/inspectors/git/config"
+	snap_cfg "github.com/canonical/fetch-service/inspectors/snap/config"
+	store_cfg "github.com/canonical/fetch-service/inspectors/store/config"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/logger/testlogger"
 	"github.com/canonical/fetch-service/service/config"
@@ -245,17 +252,17 @@ http-proxy:
       access: allow
 `
 
-func (t *configSuite) TestGetSetHttpProxyConfig(c *C) {
+func (t *configSuite) TestGetSetHTTPProxyConfig(c *C) {
 	dir := c.MkDir()
 	cfgFile := filepath.Join(dir, "acl.yaml")
 	err := os.WriteFile(cfgFile, []byte(proxyConfig), 0644)
 	c.Assert(err, IsNil)
 
 	// Load rules from file
-	err = config.LoadHttpProxyRules(dir)
+	err = config.LoadHTTPProxyRules(dir)
 	c.Assert(err, IsNil)
 
-	cfg := config.GetHttpProxyConfig()
+	cfg := config.GetHTTPProxyConfig()
 	c.Check(cfg.Policy, Equals, config.Deny)
 	c.Check(cfg.Rules, DeepEquals, []config.Rule{
 		config.Rule{
@@ -285,7 +292,7 @@ func (t *configSuite) TestGetSetHttpProxyConfig(c *C) {
 	cfg.Policy = config.Allow
 	cfg.Rules[1].Dst = []config.IPNet{}
 
-	cfg2 := config.GetHttpProxyConfig()
+	cfg2 := config.GetHTTPProxyConfig()
 	c.Check(cfg2.Policy, Equals, config.Deny)
 	c.Check(cfg2.Rules[1].Dst, DeepEquals, []config.IPNet{
 		ipNet("1.2.3.4/32"),
@@ -294,10 +301,10 @@ func (t *configSuite) TestGetSetHttpProxyConfig(c *C) {
 	})
 
 	// Store the modified configuration
-	config.SetHttpProxyConfig(cfg)
+	config.SetHTTPProxyConfig(cfg)
 
 	// Reload configuration
-	cfg3 := config.GetHttpProxyConfig()
+	cfg3 := config.GetHTTPProxyConfig()
 	c.Check(cfg3.Policy, Equals, config.Allow)
 	c.Check(cfg3.Rules[1].Dst, DeepEquals, []config.IPNet{})
 }
@@ -319,6 +326,10 @@ crafts:
   urls:
     - https://sourcecraft.test:443/**
 
+chisel:
+  urls:
+    - https://codeload.github.com:443/canonical/chisel-releases/**
+
 snap:
   snap-declaration:
     - name: publisher-id
@@ -330,7 +341,7 @@ apt:
       urls:
         - http://archive.ubuntu.com/ubuntu
         - http://*.archive.ubuntu.com/ubuntu
-      dists:
+      suites:
         - "*"
       components:
         - "*"
@@ -377,19 +388,23 @@ func (t *configSuite) TestGetSetInspectorsConfig(c *C) {
 	c.Assert(err, IsNil)
 
 	cfg := config.GetInspectorsConfig()
-	c.Check(cfg.Git.Urls, HasLen, 1)
-	c.Check(cfg.Git.Urls[0], DeepEquals, glob.MustCompile("https://git.test:443/**"))
+	c.Check(cfg.Git.URLs, HasLen, 1)
+	c.Check(cfg.Git.URLs[0], DeepEquals, glob.MustCompile("https://git.test:443/**"))
 
-	c.Check(cfg.Crafts.Urls, HasLen, 1)
-	c.Check(cfg.Crafts.Urls[0], DeepEquals, glob.MustCompile("https://sourcecraft.test:443/**"))
+	c.Check(cfg.Crafts.URLs, HasLen, 1)
+	c.Check(cfg.Crafts.URLs[0], DeepEquals, glob.MustCompile("https://sourcecraft.test:443/**"))
+
+	c.Check(cfg.Chisel.URLs, HasLen, 1)
+	c.Check(cfg.Chisel.URLs[0], DeepEquals,
+		glob.MustCompile("https://codeload.github.com:443/canonical/chisel-releases/**"))
 
 	c.Check(cfg.Apt.Repositories, DeepEquals, map[string]apt_cfg.AptInspectorConfigRepository{
 		"default": {
-			Urls: []glob.Glob{
+			URLs: []glob.Glob{
 				glob.MustCompile("http://archive.ubuntu.com/ubuntu"),
 				glob.MustCompile("http://*.archive.ubuntu.com/ubuntu"),
 			},
-			Dists: []glob.Glob{
+			Suites: []glob.Glob{
 				glob.MustCompile("*"),
 			},
 			Components: []glob.Glob{
@@ -429,11 +444,12 @@ uOgcXny1UlwtCUzlrSaP
 	})
 
 	// Verify that loaded config is a copy
-	cfg.Git.Urls = []glob.Glob{}
-	cfg.Crafts.Urls = []glob.Glob{}
+	cfg.Git.URLs = []glob.Glob{}
+	cfg.Crafts.URLs = []glob.Glob{}
+	cfg.Chisel.URLs = []glob.Glob{}
 	entry, ok := cfg.Apt.Repositories["default"]
 	c.Assert(ok, Equals, true)
-	entry.Urls = []glob.Glob{
+	entry.URLs = []glob.Glob{
 		glob.MustCompile("a"),
 		glob.MustCompile("b"),
 		glob.MustCompile("c"),
@@ -442,43 +458,45 @@ uOgcXny1UlwtCUzlrSaP
 	cfg.Apt.Repositories["extra"] = apt_cfg.AptInspectorConfigRepository{}
 
 	cfg2 := config.GetInspectorsConfig()
-	c.Check(cfg2.Git.Urls, HasLen, 1)
-	c.Check(cfg2.Crafts.Urls, HasLen, 1)
+	c.Check(cfg2.Git.URLs, HasLen, 1)
+	c.Check(cfg2.Crafts.URLs, HasLen, 1)
+	c.Check(cfg2.Chisel.URLs, HasLen, 1)
 	c.Check(cfg2.Apt.Repositories, HasLen, 1)
-	c.Check(cfg2.Apt.Repositories["default"].Urls, HasLen, 2)
+	c.Check(cfg2.Apt.Repositories["default"].URLs, HasLen, 2)
 
 	// Store the modified configuration
 	config.SetInspectorsConfig(cfg)
 
 	// Reload configuration
 	cfg3 := config.GetInspectorsConfig()
-	c.Check(cfg3.Git.Urls, HasLen, 0)
-	c.Check(cfg3.Crafts.Urls, HasLen, 0)
-	c.Check(cfg3.Apt.Repositories["default"].Urls, HasLen, 3)
-	c.Check(cfg3.Apt.Repositories["extra"].Urls, HasLen, 0)
+	c.Check(cfg3.Git.URLs, HasLen, 0)
+	c.Check(cfg3.Crafts.URLs, HasLen, 0)
+	c.Check(cfg3.Chisel.URLs, HasLen, 0)
+	c.Check(cfg3.Apt.Repositories["default"].URLs, HasLen, 3)
+	c.Check(cfg3.Apt.Repositories["extra"].URLs, HasLen, 0)
 
 }
 
 var proxyRulesContent = testutils.Reindent(`
 	http-proxy:
-	  policy: allow 
+	  policy: allow
 	  rules:
 	    - dst: [ 1.2.3.4/16 ]
 	      access: deny
 `)
 
-func (t *configSuite) TestLoadHttpProxyRules(c *C) {
+func (t *configSuite) TestLoadHTTPProxyRules(c *C) {
 	dir := c.MkDir()
 
-	emptyConfig := config.HttpProxyConfig{Policy: config.Deny, Rules: []config.Rule{}}
-	config.SetHttpProxyConfig(emptyConfig)
+	emptyConfig := config.HTTPProxyConfig{Policy: config.Deny, Rules: []config.Rule{}}
+	config.SetHTTPProxyConfig(emptyConfig)
 
 	err := os.WriteFile(filepath.Join(dir, "acl.yaml"), proxyRulesContent, 0644)
 	c.Assert(err, IsNil)
 
-	err = config.LoadHttpProxyRules(dir)
+	err = config.LoadHTTPProxyRules(dir)
 	c.Assert(err, IsNil)
-	cfg := config.GetHttpProxyConfig()
+	cfg := config.GetHTTPProxyConfig()
 	c.Assert(cfg.Policy, Equals, config.Allow)
 	c.Assert(cfg.Rules, DeepEquals, []config.Rule{{
 		Dst:    []config.IPNet{{net.IPNet{IP: net.IP{1, 2, 0, 0}, Mask: net.IPMask{255, 255, 0, 0}}}},
@@ -486,13 +504,13 @@ func (t *configSuite) TestLoadHttpProxyRules(c *C) {
 	}})
 }
 
-func (t *configSuite) TestLoadHttpProxyRulesMissing(c *C) {
+func (t *configSuite) TestLoadHTTPProxyRulesMissing(c *C) {
 	dir := c.MkDir()
 
-	emptyConfig := config.HttpProxyConfig{Policy: config.Deny, Rules: []config.Rule{}}
-	config.SetHttpProxyConfig(emptyConfig)
+	emptyConfig := config.HTTPProxyConfig{Policy: config.Deny, Rules: []config.Rule{}}
+	config.SetHTTPProxyConfig(emptyConfig)
 
-	err := config.LoadHttpProxyRules(dir)
+	err := config.LoadHTTPProxyRules(dir)
 	c.Assert(errors.Is(err, os.ErrNotExist), Equals, true)
 }
 
@@ -518,8 +536,49 @@ func (t *configSuite) TestLoadInspectorsConfig(c *C) {
 	cfg := config.GetInspectorsConfig()
 	c.Assert(cfg.Apt, DeepEquals, apt_cfg.AptInspectorConfig{
 		Repositories: map[string]apt_cfg.AptInspectorConfigRepository{"default": {
-			Urls: []glob.Glob{glob.MustCompile("http://archive.ubuntu.com/ubuntu")},
+			URLs: []glob.Glob{glob.MustCompile("http://archive.ubuntu.com/ubuntu")},
 		}},
+	})
+}
+
+var inspectorsConfigOverrideContent = testutils.Reindent(`
+	git:
+	  urls:
+	    - "https://github.com:443/**"
+	apt:
+	  repositories:
+	    default:
+	      urls:
+	        - http://another.ubuntu.com/ubuntu
+`)
+
+func (t *configSuite) TestLoadOverrideInspectorsConfig(c *C) {
+	defaultDir := c.MkDir()
+	overrideDir := c.MkDir()
+
+	emptyConfig := config.InspectorsConfig{}
+	config.SetInspectorsConfig(emptyConfig)
+
+	err := os.WriteFile(filepath.Join(defaultDir, "inspectors.yaml"), inspectorsConfigContent, 0644)
+	c.Assert(err, IsNil)
+
+	err = os.WriteFile(filepath.Join(overrideDir, "inspectors.yaml"), inspectorsConfigOverrideContent, 0644)
+	c.Assert(err, IsNil)
+
+	err = config.LoadInspectorsConfig(defaultDir)
+	c.Assert(err, IsNil)
+	err = config.LoadOverrideInspectorsConfig(overrideDir)
+	c.Assert(err, IsNil)
+	cfg := config.GetInspectorsConfig()
+	c.Assert(cfg.Apt, DeepEquals, apt_cfg.AptInspectorConfig{
+		Repositories: map[string]apt_cfg.AptInspectorConfigRepository{"default": {
+			URLs: []glob.Glob{glob.MustCompile("http://another.ubuntu.com/ubuntu")},
+		}},
+	})
+	c.Assert(cfg.Git, DeepEquals, git_cfg.GitInspectorConfig{
+		URLs: []glob.Glob{
+			glob.MustCompile("https://github.com:443/**"),
+		},
 	})
 }
 
@@ -531,4 +590,233 @@ func (t *configSuite) TestInspectorsConfigMissing(c *C) {
 
 	err := config.LoadInspectorsConfig(dir)
 	c.Assert(errors.Is(err, os.ErrNotExist), Equals, true)
+}
+
+type combineInspectorsConfigTest struct {
+	sessionInspectorsConfig config.OverrideInspectorsConfig
+	combined                config.InspectorsConfig
+}
+
+var combineInspectorsConfigTests = []combineInspectorsConfigTest{
+	{
+		sessionInspectorsConfig: config.OverrideInspectorsConfig{
+			Apt: &apt_cfg.AptInspectorConfig{
+				Repositories: map[string]apt_cfg.AptInspectorConfigRepository{
+					"another": {
+						URLs:       []glob.Glob{glob.MustCompile("http://test.com/ubuntu")},
+						Suites:     []glob.Glob{glob.MustCompile("*")},
+						Components: []glob.Glob{glob.MustCompile("*")},
+						PublicKey:  "",
+					},
+				},
+			},
+			Git: &git_cfg.GitInspectorConfig{
+				URLs: []glob.Glob{
+					glob.MustCompile("https://git.test2:443/**"),
+				},
+			},
+			Crafts: &crafts_cfg.CraftsInspectorConfig{
+				URLs: []glob.Glob{glob.MustCompile("https://git.launchpad.net:443/**")},
+			},
+			Chisel: &chisel_cfg.ChiselInspectorConfig{
+				URLs: []glob.Glob{
+					glob.MustCompile("https://codeload.another.com:443/canonical/chisel-releases/**"),
+				},
+			},
+			Snap: &snap_cfg.SnapInspectorConfig{
+				SnapDeclarationFilter: []snap_cfg.AssertionFilter{
+					{
+						Name:  "another-publisher-id",
+						Value: []string{"not-canonical"},
+					},
+				},
+			},
+			Store: &store_cfg.StoreInspectorConfig{
+				URLs: []glob.Glob{
+					glob.MustCompile("https://a-store.com:443"),
+				},
+			},
+			BldBin: &bldbin_cfg.BldBinInspectorConfig{
+				URLs: []glob.Glob{
+					glob.MustCompile("https://another.snapcraft.io:443/api/v1/bins/download/**"),
+				},
+			},
+		},
+		combined: config.InspectorsConfig{
+			Apt: apt_cfg.AptInspectorConfig{
+				Repositories: map[string]apt_cfg.AptInspectorConfigRepository{
+					"another": {
+						URLs:       []glob.Glob{glob.MustCompile("http://test.com/ubuntu")},
+						Suites:     []glob.Glob{glob.MustCompile("*")},
+						Components: []glob.Glob{glob.MustCompile("*")},
+						PublicKey:  "",
+					},
+				},
+			},
+			Git: git_cfg.GitInspectorConfig{
+				URLs: []glob.Glob{
+					glob.MustCompile("https://git.test2:443/**"),
+				},
+			},
+			Crafts: crafts_cfg.CraftsInspectorConfig{
+				URLs: []glob.Glob{
+					glob.MustCompile("https://git.launchpad.net:443/**"),
+				},
+			},
+			Chisel: chisel_cfg.ChiselInspectorConfig{
+				URLs: []glob.Glob{
+					glob.MustCompile("https://codeload.another.com:443/canonical/chisel-releases/**"),
+				},
+			},
+			Snap: snap_cfg.SnapInspectorConfig{
+				SnapDeclarationFilter: []snap_cfg.AssertionFilter{
+					{
+						Name:  "another-publisher-id",
+						Value: []string{"not-canonical"},
+					},
+				},
+			},
+			Store: store_cfg.StoreInspectorConfig{
+				URLs: []glob.Glob{
+					glob.MustCompile("https://a-store.com:443"),
+				},
+			},
+			BldBin: bldbin_cfg.BldBinInspectorConfig{
+				URLs: []glob.Glob{
+					glob.MustCompile("https://another.snapcraft.io:443/api/v1/bins/download/**"),
+				},
+			},
+		},
+	},
+	// override nothing when nothing is given
+	{
+		sessionInspectorsConfig: config.OverrideInspectorsConfig{},
+		combined: config.InspectorsConfig{
+			Apt: apt_cfg.AptInspectorConfig{
+				Repositories: map[string]apt_cfg.AptInspectorConfigRepository{
+					"default": {
+						URLs: []glob.Glob{
+							glob.MustCompile("http://archive.ubuntu.com/ubuntu"),
+							glob.MustCompile("http://*.archive.ubuntu.com/ubuntu"),
+						},
+						Suites: []glob.Glob{
+							glob.MustCompile("*"),
+						},
+						Components: []glob.Glob{
+							glob.MustCompile("*"),
+						},
+						PublicKey: `-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+mQINBFufwdoBEADv/Gxytx/LcSXYuM0MwKojbBye81s0G1nEx+lz6VAUpIUZnbkq
+dXBHC+dwrGS/CeeLuAjPRLU8AoxE/jjvZVp8xFGEWHYdklqXGZ/gJfP5d3fIUBtZ
+HZEJl8B8m9pMHf/AQQdsC+YzizSG5t5Mhnotw044LXtdEEkx2t6Jz0OGrh+5Ioxq
+X7pZiq6Cv19BohaUioKMdp7ES6RYfN7ol6HSLFlrMXtVfh/ijpN9j3ZhVGVeRC8k
+KHQsJ5PkIbmvxBiUh7SJmfZUx0IQhNMaDHXfdZAGNtnhzzNReb1FqNLSVkrS/Pns
+AQzMhG1BDm2VOSF64jebKXffFqM5LXRQTeqTLsjUbbrqR6s/GCO8UF7jfUj6I7ta
+LygmsHO/JD4jpKRC0gbpUBfaiJyLvuepx3kWoqL3sN0LhlMI80+fA7GTvoOx4tpq
+VlzlE6TajYu+jfW3QpOFS5ewEMdL26hzxsZg/geZvTbArcP+OsJKRmhv4kNo6Ayd
+yHQ/3ZV/f3X9mT3/SPLbJaumkgp3Yzd6t5PeBu+ZQk/mN5WNNuaihNEV7llb1Zhv
+Y0Fxu9BVd/BNl0rzuxp3rIinB2TX2SCg7wE5xXkwXuQ/2eTDE0v0HlGntkuZjGow
+DZkxHZQSxZVOzdZCRVaX/WEFLpKa2AQpw5RJrQ4oZ/OfifXyJzP27o03wQARAQAB
+tEJVYnVudHUgQXJjaGl2ZSBBdXRvbWF0aWMgU2lnbmluZyBLZXkgKDIwMTgpIDxm
+dHBtYXN0ZXJAdWJ1bnR1LmNvbT6JAjgEEwEKACIFAlufwdoCGwMGCwkIBwMCBhUI
+AgkKCwQWAgMBAh4BAheAAAoJEIcZINGZG8k8LHMQAKS2cnxz/5WaoCOWArf5g6UH
+beOCgc5DBm0hCuFDZWWv427aGei3CPuLw0DGLCXZdyc5dqE8mvjMlOmmAKKlj1uG
+g3TYCbQWjWPeMnBPZbkFgkZoXJ7/6CB7bWRht1sHzpt1LTZ+SYDwOwJ68QRp7DRa
+Zl9Y6QiUbeuhq2DUcTofVbBxbhrckN4ZteLvm+/nG9m/ciopc66LwRdkxqfJ32Cy
+q+1TS5VaIJDG7DWziG+Kbu6qCDM4QNlg3LH7p14CrRxAbc4lvohRgsV4eQqsIcdF
+kuVY5HPPj2K8TqpY6STe8Gh0aprG1RV8ZKay3KSMpnyV1fAKn4fM9byiLzQAovC0
+LZ9MMMsrAS/45AvC3IEKSShjLFn1X1dRCiO6/7jmZEoZtAp53hkf8SMBsi78hVNr
+BumZwfIdBA1v22+LY4xQK8q4XCoRcA9G+pvzU9YVW7cRnDZZGl0uwOw7z9PkQBF5
+KFKjWDz4fCk+K6+YtGpovGKekGBb8I7EA6UpvPgqA/QdI0t1IBP0N06RQcs1fUaA
+QEtz6DGy5zkRhR4pGSZn+dFET7PdAjEK84y7BdY4t+U1jcSIvBj0F2B7LwRL7xGp
+SpIKi/ekAXLs117bvFHaCvmUYN7JVp1GMmVFxhIdx6CFm3fxG8QjNb5tere/YqK+
+uOgcXny1UlwtCUzlrSaP
+=9AdM
+-----END PGP PUBLIC KEY BLOCK-----
+`,
+					},
+				},
+			},
+			Git: git_cfg.GitInspectorConfig{
+				URLs: []glob.Glob{
+					glob.MustCompile("https://git.test:443/**"),
+				},
+			},
+			Crafts: crafts_cfg.CraftsInspectorConfig{
+				URLs: []glob.Glob{
+					glob.MustCompile("https://sourcecraft.test:443/**"),
+				},
+			},
+			Chisel: chisel_cfg.ChiselInspectorConfig{
+				URLs: []glob.Glob{
+					glob.MustCompile("https://codeload.github.com:443/canonical/chisel-releases/**"),
+				},
+			},
+			Snap: snap_cfg.SnapInspectorConfig{
+				SnapDeclarationFilter: []snap_cfg.AssertionFilter{
+					{
+						Name:  "publisher-id",
+						Value: []string{"canonical"},
+					},
+				},
+			},
+			Store: store_cfg.StoreInspectorConfig{
+				URLs: []glob.Glob{},
+			},
+			BldBin: bldbin_cfg.BldBinInspectorConfig{
+				URLs: []glob.Glob{},
+			},
+		},
+	}}
+
+func (t *configSuite) TestCombineInspectorsConfig(c *C) {
+	dir := c.MkDir()
+	cfgFile := filepath.Join(dir, "inspectors.yaml")
+	err := os.WriteFile(cfgFile, []byte(inspectorsConfig), 0644)
+	c.Assert(err, IsNil)
+
+	// Load rules from file
+	err = config.LoadInspectorsConfig(dir)
+	c.Assert(err, IsNil)
+
+	for _, tc := range combineInspectorsConfigTests {
+		cfg := config.GetInspectorsConfig()
+		cfg.Combine(tc.sessionInspectorsConfig)
+		c.Check(cfg, DeepEquals, tc.combined)
+	}
+}
+
+// TestInspectorsConfigsInSync checks that all the fields from InspectorsConfig
+// have a corresponding one in OverrideInspectorsConfig with:
+// - the same name
+// - the type being a pointer to the corresponding field in InspectorsConfig
+func (t *configSuite) TestInspectorsConfigsInSync(c *C) {
+	inspConfigType := reflect.TypeOf(config.InspectorsConfig{})
+	overrideInspConfigType := reflect.TypeOf(config.OverrideInspectorsConfig{})
+
+	// Field names of both structs should also match
+	overrideInspConfigFields := make(map[string]reflect.Type)
+	for i := 0; i < overrideInspConfigType.NumField(); i++ {
+		overrideInspConfigFields[overrideInspConfigType.Field(i).Name] = overrideInspConfigType.Field(i).Type
+	}
+
+	// Check every field in InspectorsConfig
+	for i := 0; i < inspConfigType.NumField(); i++ {
+		inspConfigField := inspConfigType.Field(i)
+		inspConfigFieldName := inspConfigField.Name
+		inspConfigFieldType := inspConfigField.Type
+
+		// Check if the corresponding field exists in OverrideInspectorsConfig
+		fType, ok := overrideInspConfigFields[inspConfigFieldName]
+		c.Assert(ok, Equals, true,
+			Commentf("Structs out of sync: InspectorsConfig has field '%s' which is missing from OverrideInspectorsConfig", inspConfigFieldName),
+		)
+
+		// Check if the type of the field from OverrideInspectorsConfig is a pointer to the type of
+		// corresponding field in InspectorsConfig
+		c.Assert(reflect.PointerTo(inspConfigFieldType), Equals, fType,
+			Commentf("Structs out of sync: OverrideInspectorsConfig has field %s of type %s, which is not a pointer to %s from InspectorsConfig", inspConfigFieldName, fType, inspConfigFieldType),
+		)
+	}
 }

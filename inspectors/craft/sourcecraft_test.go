@@ -41,6 +41,56 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 )
 
+func createTestCraftArtifact(checkoutPath string) *metadata.Artifact {
+	a := metadata.NewArtifact()
+	a.Request, _ = http.NewRequest("GET", "https://example.com:443/test/git-upload-pack", nil)
+	a.CurrentDownload.ContentType = "application/x-git-upload-pack-result"
+	a.Request.Body = io.NopCloser(strings.NewReader("0014command=fetch\n0000"))
+	a.MimeType = mimetype.Lookup("application/octet-stream")
+	a.RequestInspection = metadata.InspectionMap{
+		"git.upload-pack": &Inspection{
+			Opinion: opinions.Pending,
+			Reason:  "valid URL for craft upload-pack",
+			Annotations: Annotation{
+				"client-request": []string{
+					"command=fetch",
+					"agent=git/2.45.2",
+					"object-format=sha1",
+					"",
+					"thin-pack",
+					"no-progress",
+					"include-tag",
+					"ofs-delta",
+					"deepen 1",
+					"want d9c2c0282d81a993c0011113996b541a1ef1ebc7",
+					"done",
+				},
+				"repository": "https://github.com:443/lengau/charmcraft-rocks",
+				"command":    "fetch",
+				"project":    "charmcraft-core22",
+				"protocol":   "version=2",
+				"wants": []string{
+					"d9c2c0282d81a993c0011113996b541a1ef1ebc7",
+				},
+				"is-shallow": true,
+			},
+		},
+	}
+
+	annot := Annotation{}
+	if len(checkoutPath) > 0 {
+		annot["git-checkout-path"] = checkoutPath
+	}
+	a.ResponseInspection = metadata.InspectionMap{
+		"git.upload-pack": &Inspection{
+			Opinion:     opinions.Unknown,
+			Reason:      "",
+			Annotations: annot,
+		},
+	}
+	return a
+}
+
 type sourcecraftSuite struct {
 	slog logger.Logger
 }
@@ -55,7 +105,7 @@ func Test(t *testing.T) { TestingT(t) }
 
 func getTestSourcecraftConfig() config.CraftsInspectorConfig {
 	return config.CraftsInspectorConfig{
-		Urls: []glob.Glob{
+		URLs: []glob.Glob{
 			glob.MustCompile("https://github.com:443/**"),
 			glob.MustCompile("https://git.launchpad.net:443/**"),
 		},
@@ -123,8 +173,8 @@ func createTestSourcecraftArtifact(checkoutPath string) *metadata.Artifact {
 }
 
 func loadTestSourcecraftArtifactData() (*files.ArtifactFile, error) {
-	sourcepkg_file := filepath.Join("testdata", "sourcepkg.raw")
-	file, err := files.OpenArtifactFile(sourcepkg_file)
+	sourcepkgFile := filepath.Join("testdata", "sourcepkg.raw")
+	file, err := files.OpenArtifactFile(sourcepkgFile)
 	return file, err
 }
 
@@ -188,7 +238,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifact(c *C) {
 		err = git.Checkout(checkoutPath, "10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad", s.slog)
 		c.Assert(err, IsNil)
 
-		a := createTestRockcraftArtifact(checkoutPath)
+		a := createTestCraftArtifact(checkoutPath)
 
 		f, err = loadTestSourcecraftArtifactData()
 		c.Assert(err, IsNil)
@@ -207,19 +257,12 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifact(c *C) {
 			c.Check(a.Metadata.Name, Equals, "autossh")
 			c.Check(a.Metadata.Version, Equals, "git")
 			c.Check(a.Metadata.Description, Equals, "A very short one-line summary of the package.")
-			// FIXME: add more fields to test data
+			c.Check(a.Metadata.ContentID, Equals, "d9c2c0282d81a993c0011113996b541a1ef1ebc7")
 		}
 	}
 }
 
 func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifactMissingSourcecraftYaml(c *C) {
-	tc := struct {
-		opinion opinions.OpinionKind
-		reason  string
-	}{
-		opinions.Unknown,
-		"git repository does not contain a sourcecraft.yaml file",
-	}
 	restorer := craft.MockOsStat(func(string) (os.FileInfo, error) {
 		return nil, os.ErrNotExist
 	})
@@ -235,9 +278,8 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifactMissingSourcecraftYa
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 
-	inspection := a.ResponseInspection["craft.sourcecraft"]
-	c.Assert(inspection.Opinion, Equals, tc.opinion)
-	c.Assert(inspection.Reason, Equals, tc.reason)
+	_, ok := a.ResponseInspection["craft.sourcecraft"]
+	c.Assert(ok, Equals, false)
 }
 
 func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifactUnreadableSourcecraftYaml(c *C) {
@@ -296,7 +338,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifactUnableToDecodeSource
 	_, err = os.Create(filepath.Join(checkoutPath, "sourcecraft.yaml"))
 	c.Assert(err, IsNil)
 
-	a := createTestRockcraftArtifact(checkoutPath)
+	a := createTestCraftArtifact(checkoutPath)
 
 	ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
 	err = ins.InspectArtifact(f, a)

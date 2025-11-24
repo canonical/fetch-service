@@ -39,7 +39,7 @@ type InspectionMap map[string]*Inspection
 
 const (
 	MetadataVersionMajor = 0 // Updated when incompatible changes are made
-	MetadataVersionMinor = 2 // Existing fields not changed, may contain additional fields
+	MetadataVersionMinor = 3 // Existing fields not changed, may contain additional fields
 )
 
 // Artifact holds information about each downloaded file during
@@ -54,7 +54,7 @@ type Artifact struct {
 	CurrentDownload    Download             `json:"-"`                         // Information about the current download
 	AssetDir           string               `json:"-"`                         // Location to store files and metadata
 	Tempfile           string               `json:"-"`                         // Path to temporary file containing downloaded data
-	SessionId          string               `json:"-"`                         // The current session ID
+	SessionID          string               `json:"-"`                         // The current session ID
 	SessionCacheDir    string               `json:"-"`                         // Location to store files and metadata
 	MimeType           *mimetype.MIME       `json:"-"`                         // The artifact MIME type
 	Request            *http.Request        `json:"-"`                         // request handle for body content inspection
@@ -120,6 +120,8 @@ func (a *Artifact) SetArtifactMetadata(m ArtifactMetadata) {
 	a.Metadata.Copyright = m.Copyright
 	a.Metadata.SourcePackage = m.SourcePackage
 	a.Metadata.StoreRevision = m.StoreRevision
+	a.Metadata.AptSuite = m.AptSuite
+	a.Metadata.ContentID = m.ContentID
 }
 
 func (a *Artifact) MimetypeIs(t string) bool {
@@ -139,11 +141,11 @@ func (a Artifact) Sha256() digests.Sha256Digest {
 
 // addInspection adds the inspector's opinion to the artifact's
 // inspection map.
-func (a *Artifact) addInspection(insp InspectionMap, inspName, id string, op opinions.OpinionKind, reason string, args ...any) *Inspection {
+func (a *Artifact) addInspection(insp InspectionMap, inspName, id string, op opinions.OpinionKind, reason string) *Inspection {
 	a.logger.Infof("%s: %s opinion set to %s (%s)", id, inspName, op.String(), reason)
 	in := &Inspection{
 		Opinion: op,
-		Reason:  fmt.Sprintf(reason, args...),
+		Reason:  reason,
 	}
 	insp[id] = in
 
@@ -152,38 +154,38 @@ func (a *Artifact) addInspection(insp InspectionMap, inspName, id string, op opi
 
 // SetRequestPending adds a request inspection and sets the inspector
 // ins opinion to Pending.
-func (a *Artifact) SetRequestPending(ins Inspector, reason string, args ...any) *Inspection {
-	return a.addInspection(a.RequestInspection, "request", ins.ID(), opinions.Pending, reason, args...)
+func (a *Artifact) SetRequestPending(ins Inspector, reason string) *Inspection {
+	return a.addInspection(a.RequestInspection, "request", ins.ID(), opinions.Pending, reason)
 }
 
 // SetRequestRejected adds a request inspection and sets the inspector
 // ins opinion to Rejected.
-func (a *Artifact) SetRequestRejected(ins Inspector, reason string, args ...any) *Inspection {
-	return a.addInspection(a.RequestInspection, "request", ins.ID(), opinions.Rejected, reason, args...)
+func (a *Artifact) SetRequestRejected(ins Inspector, reason string) *Inspection {
+	return a.addInspection(a.RequestInspection, "request", ins.ID(), opinions.Rejected, reason)
 }
 
 // SetRequestUnknown adds a request inspection and sets the inspector
 // ins opinion to Unknown.
-func (a *Artifact) SetRequestUnknown(ins Inspector, reason string, args ...any) *Inspection {
-	return a.addInspection(a.RequestInspection, "request", ins.ID(), opinions.Unknown, reason, args...)
+func (a *Artifact) SetRequestUnknown(ins Inspector, reason string) *Inspection {
+	return a.addInspection(a.RequestInspection, "request", ins.ID(), opinions.Unknown, reason)
 }
 
 // SetResponseApproved adds a response inspection and sets the inspector
 // ins opinion to Approved.
-func (a *Artifact) SetResponseApproved(ins Inspector, reason string, args ...any) *Inspection {
-	return a.addInspection(a.ResponseInspection, "response", ins.ID(), opinions.Approved, reason, args...)
+func (a *Artifact) SetResponseApproved(ins Inspector, reason string) *Inspection {
+	return a.addInspection(a.ResponseInspection, "response", ins.ID(), opinions.Approved, reason)
 }
 
 // SetResponseRejected adds a response inspection and sets the inspector
 // ins opinion to Rejected.
-func (a *Artifact) SetResponseRejected(ins Inspector, reason string, args ...any) *Inspection {
-	return a.addInspection(a.ResponseInspection, "response", ins.ID(), opinions.Rejected, reason, args...)
+func (a *Artifact) SetResponseRejected(ins Inspector, reason string) *Inspection {
+	return a.addInspection(a.ResponseInspection, "response", ins.ID(), opinions.Rejected, reason)
 }
 
 // SetResponseUnknown adds a response inspection and sets the inspector
 // ins opinion to Unknown.
-func (a *Artifact) SetResponseUnknown(ins Inspector, reason string, args ...any) *Inspection {
-	return a.addInspection(a.ResponseInspection, "response", ins.ID(), opinions.Unknown, reason, args...)
+func (a *Artifact) SetResponseUnknown(ins Inspector, reason string) *Inspection {
+	return a.addInspection(a.ResponseInspection, "response", ins.ID(), opinions.Unknown, reason)
 }
 
 // RequestRejected returns true when the artifact was rejected
@@ -238,6 +240,16 @@ func (a *Artifact) ResponseApproved() bool {
 	return res
 }
 
+// InspectorRequestOpinion returns the request opinion set by the inspector
+// with the given ID.
+func (a *Artifact) InspectorRequestOpinion(ins Inspector) opinions.OpinionKind {
+	in, ok := a.RequestInspection[ins.ID()]
+	if !ok {
+		return opinions.Unknown
+	}
+	return in.Opinion
+}
+
 // inspectAnnotation verifies whether the inspector has an inspection
 // opinion and returns its annotation or a default value.
 func inspectionAnnotation[T any](insp InspectionMap, id, key string, def T) (T, bool) {
@@ -269,7 +281,7 @@ func (a *Artifact) RequestAnnotation(id, key string) (any, bool) {
 // inspector and annotation key are valid and the annotation type is
 // correct ok returns true, otherwise it returns false.
 func (a *Artifact) RequestStringAnnotation(id, key string) (string, bool) {
-	var def string = ""
+	var def = ""
 	return inspectionAnnotation(a.RequestInspection, id, key, def)
 }
 
@@ -278,7 +290,7 @@ func (a *Artifact) RequestStringAnnotation(id, key string) (string, bool) {
 // and annotation key are valid and the annotation type is correct ok
 // returns true, otherwise it returns false.
 func (a *Artifact) RequestBoolAnnotation(id, key string) (bool, bool) {
-	var def bool = false
+	var def = false
 	return inspectionAnnotation(a.RequestInspection, id, key, def)
 }
 
@@ -295,7 +307,7 @@ func (a *Artifact) ResponseAnnotation(id, key string) (any, bool) {
 // and annotation key are valid and the annotation type is correct ok returns
 // true, otherwise it returns false.
 func (a *Artifact) ResponseStringAnnotation(id, key string) (string, bool) {
-	var def string = ""
+	var def = ""
 	return inspectionAnnotation(a.ResponseInspection, id, key, def)
 }
 
@@ -304,7 +316,7 @@ func (a *Artifact) ResponseStringAnnotation(id, key string) (string, bool) {
 // and annotation key are valid and the annotation type is correct ok
 // returns true, otherwise it returns false.
 func (a *Artifact) ResponseBoolAnnotation(id, key string) (bool, bool) {
-	var def bool = false
+	var def = false
 	return inspectionAnnotation(a.ResponseInspection, id, key, def)
 }
 

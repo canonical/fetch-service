@@ -29,12 +29,14 @@ import (
 	"github.com/canonical/fetch-service/inspectors/apt"
 	"github.com/canonical/fetch-service/inspectors/bldbin"
 	"github.com/canonical/fetch-service/inspectors/cargo"
+	"github.com/canonical/fetch-service/inspectors/chisel"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/craft"
 	"github.com/canonical/fetch-service/inspectors/deb"
 	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/git"
 	"github.com/canonical/fetch-service/inspectors/gomod"
+	"github.com/canonical/fetch-service/inspectors/lxd"
 	"github.com/canonical/fetch-service/inspectors/maven"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/inspectors/pip"
@@ -69,9 +71,17 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		snap.NewSnapAssertionInspector(),
 		snap.NewSnapInfoInspector(),
 		snap.NewSnapRefreshInspector(),
+		snap.NewSnapSectionsInspector(),
+		snap.NewSnapAuthSessionsInspector(),
+		snap.NewSnapAuthNonceInspector(),
+		snap.NewSnapAuthRequestIDInspector(),
+		snap.NewSnapNamesInspector(),
 
 		// store API
-		store.NewStoreApiInspector(cfg.Store),
+		store.NewStoreInfoAPIInspector(cfg.Store, cfg.BldBin),
+		store.NewStoreResolveAPIInspector(cfg.Store),
+		store.NewStoreTransformsAPIInspector(cfg.Store),
+		store.NewStoreAppMediaInspector(cfg.Store),
 
 		// bld bin
 		// must run after store API
@@ -83,26 +93,30 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		pip.NewSdistInspector(),
 		pip.NewMetadataInspector(),
 
-		// deb packages
-		deb.NewDebInspector(cfg.Apt),
+		// Apt and deb packages
 		apt.NewAptReleaseInspector(cfg.Apt),
 		apt.NewAptPackagesInspector(cfg.Apt),
 		apt.NewAptTranslationInspector(cfg.Apt),
 		apt.NewAptCommandsInspector(cfg.Apt),
+		deb.NewDebInspector(cfg.Apt),
+
+		// chisel release
+		chisel.NewChiselReleaseInspector(cfg.Chisel, cfg.Apt),
 
 		// git
 		git.NewSmartQueryInspector(cfg.Git),
 		git.NewUploadPackInspector(cfg.Git),
 
-		// craft
-		// must run after git
-		craft.NewSourcecraftInspector(cfg.Crafts),
-		craft.NewRockcraftInspector(cfg.Crafts),
-		craft.NewSnapcraftInspector(cfg.Crafts),
-
 		// go
 		// must run after git
 		gomod.NewGoModuleGitInspector(),
+
+		// craft
+		// must run after git
+		craft.NewRockcraftInspector(cfg.Crafts),
+		craft.NewCharmcraftInspector(cfg.Crafts),
+		craft.NewSnapcraftInspector(cfg.Crafts),
+		craft.NewSourcecraftInspector(cfg.Crafts),
 
 		// rust
 		cargo.NewIndexInspector(),
@@ -111,6 +125,12 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		// maven
 		maven.NewJarInspector(),
 		maven.NewPomInspector(),
+
+		// lxd
+		lxd.NewSimpleStreamsIndexInspector(),
+		lxd.NewSimpleStreamsDownloadInspector(),
+		lxd.NewRootfsInspector(),
+		lxd.NewInstanceTypesInspector(),
 
 		// default inspector
 		// must be the last inspector to run

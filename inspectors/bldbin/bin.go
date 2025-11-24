@@ -33,7 +33,7 @@ import (
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
 )
 
-// Fields in the bld bin metadata.yaml
+// BldBinMetadata represents fields in the bld bin metadata.yaml
 type BldBinMetadata struct {
 	Name         string `yaml:"name"`
 	Version      string `yaml:"version"`
@@ -66,7 +66,7 @@ func (ins *BldBinInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	_, err = config.NewBldBinUrlInfo(u, &ins.config, slog)
+	_, err = config.NewBldBinURLInfo(u, &ins.config, slog)
 	if err != nil {
 		return nil // We don't recognize the request
 	}
@@ -86,13 +86,16 @@ func (ins *BldBinInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 
 	tf := tar.NewReader(xr)
 
+	packageID, _ := a.RequestStringAnnotation("store.info-api", "package-id")
+	revision, _ := a.ResponseStringAnnotation("store.info-api", "revision")
+
 	for {
 		h, err := tf.Next()
 		if err != nil {
 			if err == io.EOF {
 				break
 			}
-			return err
+			return nil // We don't recognize this artifact
 		}
 
 		if h.Name == "./metadata.yaml" {
@@ -105,11 +108,6 @@ func (ins *BldBinInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 				return nil // Not our metadata, file format is something else
 			}
 
-			revision, ok := a.ResponseStringAnnotation("store.api", "revision")
-			if !ok {
-				revision = "0"
-			}
-
 			md := ArtifactMetadata{
 				Type:          mimetypes.BldBinPackage,
 				Name:          binmd.Name,
@@ -119,6 +117,7 @@ func (ins *BldBinInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 				License:       binmd.License,
 				Vendor:        binmd.Contact,
 				StoreRevision: revision,
+				ContentID:     packageID,
 			}
 
 			a.SetArtifactMetadata(md)

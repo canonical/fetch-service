@@ -1,0 +1,57 @@
+summary: Create session with inspectors configuration
+
+prepare: |
+  snap set fetch-service log.file=fetch.log
+  snap stop fetch-service
+  snap start fetch-service
+  sleep 5
+  fetch-service.fetchctl version
+
+execute: |
+  # shellcheck disable=SC1091
+  . ../../utils.sh
+
+  # create a session
+  inspectors_conf=$(< session-inspectors.json)
+  tmpfile=$(mktemp)
+  curl -s -X POST -d '{"policy": "strict","inspectors-configuration":'"$inspectors_conf"'}' http://craft:craft@localhost:9999/session | tee "${tmpfile}"
+  session_id=$(jq -r .id "${tmpfile}")
+  token=$(jq -r .token "${tmpfile}")
+  rm "${tmpfile}"
+  
+  # set up proxy
+  export http_proxy="http://${session_id}:${token}@localhost:9988"
+  export https_proxy="http://${session_id}:${token}@localhost:9988"
+  
+  # Successfully clone from a repo
+  git clone --single-branch --depth=1 https://github.com/canonical/imagecraft
+  
+  unset http_proxy
+  unset https_proxy
+  
+  # revoke token, get report, and end session
+  revoke_token "$session_id" "$token"
+  get_session_report "$session_id" > session_report.json
+
+  # check report
+  # artifact was rejected
+  jq -r '.artifacts[].result' session_report.json | MATCH "Approved"
+  
+  # remove session resources
+  delete_session "$session_id"
+  delete_resources "$session_id"
+
+restore: |
+  snap stop fetch-service
+
+debug: |
+  # Dump the fetch-service log, if it exists
+  # shellcheck disable=SC2016
+  snap_data=$(snap run --shell fetch-service -c 'echo $SNAP_DATA')
+  logfile=${snap_data}/fetch.log
+  if [ -f "${logfile}" ]; then
+    echo "fetch-service log output:"
+    cat "${logfile}"
+  else
+    echo "fetch-service logfile does not exist."
+  fi

@@ -1,0 +1,41 @@
+{
+    "transforms": [
+        {
+            "package": {
+                "id": "...",
+                "type": "bin",
+                "name": "starcraft-test"
+            },
+            "from": {
+                "channel": {
+                    "branch": null,
+                    "name": "latest/beta",
+                    "risk": "beta",
+                    "track": "latest"
+                }
+            },
+            "to": {
+                "channel": {
+                    "branch": null,
+                    "name": "latest/edge",
+                    "risk": "edge",
+                    "track": "latest"
+                },
+                "commit": {
+                    "remote-url": "https://git.staging.snapcraftcontent.com/ubuntu/public/sourcecraft/starcraft-test",
+                    "commit-hash": "e59c220ffcaef7548fc7a69367deaf8d1706c236"
+                },
+                "revisions": [
+                    {
+                        "platform": {
+                            "architecture": "arm64",
+                            "channel": "22.04",
+                            "name": "ubuntu"
+                        },
+                        "revision": 15
+                    }
+                ]
+            }
+        }
+    ]
+}

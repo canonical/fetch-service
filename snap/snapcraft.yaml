@@ -39,19 +39,24 @@ apps:
 
 environment:
   # PERLLIB needed for licensecheck
-  PERLLIB: $SNAP/lib/perl5:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/perl/5.34:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/perl5/5.34:$SNAP/usr/share/perl/5.34:$SNAP/usr/share/perl5:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/perl-base:$SNAP/usr/share/licensecheck
+  PERLLIB: $SNAP/lib/perl5:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/perl/5.38:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/perl5/5.38:$SNAP/usr/share/perl/5.38:$SNAP/usr/share/perl5:$SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/perl-base:$SNAP/usr/share/licensecheck
 
 parts:
   licensecheck:
     plugin: nil
     stage-packages:
+      - libregexp-pattern-license-perl
       - licensecheck
-      - git
+    override-build: |
+      craftctl default
+      sed -i '1c#!/snap/fetch-service/current/usr/bin/perl' $CRAFT_PART_INSTALL/usr/bin/licensecheck
   fetch:
     build-packages:
       - git
     build-snaps:
       - go
+    stage-packages:
+      - git
     plugin: go
     source: .
     override-build: |

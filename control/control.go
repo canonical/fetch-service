@@ -27,18 +27,22 @@ import (
 	"strings"
 	"time"
 
+	"github.com/canonical/fetch-service/secrets"
 	"github.com/gorilla/mux"
 	"gopkg.in/tomb.v2"
 
 	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/service/config"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/utils"
 )
 
 // Parameters for session creation
 type createSessionParameters struct {
-	Timeout uint64 `json:"timeout"` // Session timeout in seconds
-	Policy  string `json:"policy"`  // Session policy ("strict" or "permissive")
+	Timeout          uint64                         `json:"timeout"`                  // Session timeout in seconds
+	Policy           string                         `json:"policy"`                   // Session policy ("strict" or "permissive")
+	Secrets          []secrets.Secret               `json:"secrets"`                  // Session secrets
+	InspectorsConfig config.OverrideInspectorsConfig `json:"inspectors-configuration"` // Session inspectors configuration
 }
 
 // Parameters for token revocation
@@ -132,7 +136,7 @@ func (c *Server) getServiceStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	write_response(w, j)
+	writeResponse(w, j)
 }
 
 func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
@@ -146,9 +150,10 @@ func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Debugf("create session parameters: %+v\n", params)
+	// Don't log the actual secrets, just how many
+	logger.Debugf("create session parameters: timeout=%v policy=%v secrets=%v\n", params.Timeout, params.Policy, len(params.Secrets))
 
-	msg := messages.NewCreateSession(params.Policy, params.Timeout)
+	msg := messages.NewCreateSession(params.Policy, params.Timeout, params.Secrets, params.InspectorsConfig)
 	c.ch <- msg
 	cred := <-msg.Rch
 	if cred.Err != nil {
@@ -162,7 +167,7 @@ func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	write_response(w, j)
+	writeResponse(w, j)
 }
 
 func (c *Server) deleteSessionToken(w http.ResponseWriter, r *http.Request) {
@@ -185,11 +190,12 @@ func (c *Server) deleteSessionToken(w http.ResponseWriter, r *http.Request) {
 	res := <-msg.Rch
 
 	if res.Err != nil {
-		if res.Err == messages.ErrSessionNotFound {
+		switch res.Err {
+		case messages.ErrSessionNotFound:
 			notFound(w, r)
-		} else if res.Err == messages.ErrInvalidSessionToken {
+		case messages.ErrInvalidSessionToken:
 			badRequest(w, r, res.Err.Error())
-		} else {
+		default:
 			internalServerError(w, r)
 		}
 		return
@@ -201,7 +207,7 @@ func (c *Server) deleteSessionToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	write_response(w, j)
+	writeResponse(w, j)
 }
 
 func (c *Server) getSessionReport(w http.ResponseWriter, r *http.Request) {
@@ -223,11 +229,12 @@ func (c *Server) getSessionReport(w http.ResponseWriter, r *http.Request) {
 	res := <-msg.Rch
 
 	if res.Err != nil {
-		if res.Err == messages.ErrSessionNotFound {
+		switch res.Err {
+		case messages.ErrSessionNotFound:
 			notFound(w, r)
-		} else if res.Err == messages.ErrSessionActive {
+		case messages.ErrSessionActive:
 			badRequest(w, r, res.Err.Error())
-		} else {
+		default:
 			internalServerError(w, r)
 		}
 		return
@@ -239,7 +246,7 @@ func (c *Server) getSessionReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	write_response(w, j)
+	writeResponse(w, j)
 }
 
 func (c *Server) deleteSession(w http.ResponseWriter, r *http.Request) {
@@ -289,11 +296,12 @@ func (c *Server) deleteResources(w http.ResponseWriter, r *http.Request) {
 	err := <-msg.Rch
 
 	if err != nil {
-		if err == messages.ErrSessionNotFound {
+		switch err {
+		case messages.ErrSessionNotFound:
 			notFound(w, r)
-		} else if err == messages.ErrSessionActive {
+		case messages.ErrSessionActive:
 			badRequest(w, r, err.Error())
-		} else {
+		default:
 			internalServerError(w, r)
 		}
 	}
@@ -320,28 +328,28 @@ func (c *Server) checkAuth(w http.ResponseWriter, r *http.Request) bool {
 func badRequest(w http.ResponseWriter, r *http.Request, reason string) {
 	logger.Warningf("400 Bad Request HTTP error: %s", r.URL)
 	w.WriteHeader(http.StatusBadRequest)
-	write_response(w, []byte(reason))
+	writeResponse(w, []byte(reason))
 }
 
 func internalServerError(w http.ResponseWriter, r *http.Request) {
 	logger.Warningf("500 Internal Server Error HTTP error: %s", r.URL)
 	w.WriteHeader(http.StatusInternalServerError)
-	write_response(w, []byte("500 Internal Server Error"))
+	writeResponse(w, []byte("500 Internal Server Error"))
 }
 
 func notFound(w http.ResponseWriter, r *http.Request) {
 	logger.Warningf("404 Not Found HTTP error: %s", r.URL)
 	w.WriteHeader(http.StatusNotFound)
-	write_response(w, []byte("404 Not Found"))
+	writeResponse(w, []byte("404 Not Found"))
 }
 
 func unauthorized(w http.ResponseWriter, r *http.Request) {
 	logger.Warningf("401 unauthorized HTTP error: %s", r.URL)
 	w.WriteHeader(http.StatusUnauthorized)
-	write_response(w, []byte("401 Unauthorized"))
+	writeResponse(w, []byte("401 Unauthorized"))
 }
 
-func write_response(w http.ResponseWriter, b []byte) {
+func writeResponse(w http.ResponseWriter, b []byte) {
 	logger.Debugf("control API response: %s\n", b)
 	var err error
 	_, err = w.Write(b)

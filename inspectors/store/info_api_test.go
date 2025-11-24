@@ -27,6 +27,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/glob"
+	bconfig "github.com/canonical/fetch-service/inspectors/bldbin/config"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/store"
@@ -48,23 +49,34 @@ func Test(t *testing.T) { TestingT(t) }
 
 func getTestStoreInspectorConfig() config.StoreInspectorConfig {
 	return config.StoreInspectorConfig{
-		Urls: []glob.Glob{
+		URLs: []glob.Glob{
 			glob.MustCompile("https://api.snapcraft.io:443/v2/bins/info/**"),
+			glob.MustCompile("https://api.snapcraft.io:443/v2/revisions/resolve"),
+			glob.MustCompile("https://api.snapcraft.io:443/v1/craft/**"),
+			glob.MustCompile("https://dashboard.snapcraft.io:443/site_media/appmedia/**/*.png"),
 		},
 	}
 }
 
-func (s *storeSuite) TestStoreApiInspectorID(c *C) {
-	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig())
-	c.Assert(ins.ID(), Equals, "store.api")
+func getTestBldbinInspectorConfig() bconfig.BldBinInspectorConfig {
+	return bconfig.BldBinInspectorConfig{
+		URLs: []glob.Glob{
+			glob.MustCompile("https://api.snapcraft.io:443/api/v1/bins/download/**"),
+		},
+	}
 }
 
-type storeApiInspectRequestTest struct {
+func (s *storeSuite) TestStoreInfoAPIInspectorID(c *C) {
+	ins := store.NewStoreInfoAPIInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
+	c.Assert(ins.ID(), Equals, "store.info-api")
+}
+
+type storeInfoAPIInspectRequestTest struct {
 	url     string // The info request URL
 	pending bool   // Whether the inspection result should be pending
 }
 
-var storeApiInspectRequestTests = []storeApiInspectRequestTest{{
+var storeInfoAPIInspectRequestTests = []storeInfoAPIInspectRequestTest{{
 	url:     "https://api.snapcraft.io:443/v2/bins/info/package-name",
 	pending: true,
 }, {
@@ -82,11 +94,14 @@ var storeApiInspectRequestTests = []storeApiInspectRequestTest{{
 }, {
 	url:     "http://api.snapcraft.io/v2/snaps/info", // Wrong protocol
 	pending: false,
+}, {
+	url:     "https://api.snapcraft.io:443/api/v1/bins/download/w0VWGQnkqH0EDK7aOda6x9ZP5rHsAT4b_1.bin",
+	pending: true,
 }}
 
-func (s *storeSuite) TestStoreApiInspectRequest(c *C) {
-	for _, tc := range storeApiInspectRequestTests {
-		ins := store.NewStoreApiInspector(getTestStoreInspectorConfig())
+func (s *storeSuite) TestStoreInfoAPIInspectRequest(c *C) {
+	for _, tc := range storeInfoAPIInspectRequestTests {
+		ins := store.NewStoreInfoAPIInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
 
@@ -101,7 +116,7 @@ func (s *storeSuite) TestStoreApiInspectRequest(c *C) {
 	}
 }
 
-func (s *storeSuite) TestStoreApiArtifactInspector(c *C) {
+func (s *storeSuite) TestStoreInfoAPIArtifactInspector(c *C) {
 	a := metadata.NewArtifact()
 	a.Metadata.Type = "application/json"
 	a.Metadata.Size = 1743
@@ -110,16 +125,16 @@ func (s *storeSuite) TestStoreApiArtifactInspector(c *C) {
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig())
+	ins := store.NewStoreInfoAPIInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 	a.SetRequestPending(ins, "test").Annotate(Annotation{"type": "bins"})
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Check(a.Approved(), Equals, true)
-	c.Check(a.Metadata.Type, Equals, "application/x.canonical.store-api")
+	c.Check(a.Metadata.Type, Equals, "application/x.canonical.store.info-api")
 	c.Check(a.Metadata.Name, Equals, "Store protocol response")
 	c.Check(a.Metadata.Size, Equals, int64(1743))
 	c.Check(a.Metadata.Description, Equals, "Store response for info request")
-	c.Check(a.ResponseInspection["store.api"].Annotations, DeepEquals, Annotation{
+	c.Check(a.ResponseInspection["store.info-api"].Annotations, DeepEquals, Annotation{
 		"name":       "starcraft-patchelf",
 		"type":       "bins",
 		"publisher":  "Imani Pelton",
@@ -128,7 +143,7 @@ func (s *storeSuite) TestStoreApiArtifactInspector(c *C) {
 
 	// Check inspector state
 	const sha = "b162cad83a53c5190a249ed0fd3b80c5ff89454654541efe918bbe23883d47541b1bb0a572b994caa828c8982dcf0bdd"
-	ainfo, revision, channel := store.StoreApiInspectorFindStoreApiInfo(ins, sha)
+	ainfo, revision, channel := store.StoreInfoAPIInspectorFindInfo(ins, sha)
 	c.Check(ainfo.Type, Equals, "bins")
 	c.Check(ainfo.Publisher, Equals, "Imani Pelton")
 	c.Check(ainfo.ID, Equals, "w0VWGQnkqH0EDK7aOda6x9ZP5rHsAT4b")
@@ -141,7 +156,7 @@ func (s *storeSuite) TestStoreApiArtifactInspector(c *C) {
 	c.Check(channel, Equals, "latest/edge")
 }
 
-func (s *storeSuite) TestStoreApiArtifactBadType(c *C) {
+func (s *storeSuite) TestStoreInfoAPIArtifactBadType(c *C) {
 	a := metadata.NewArtifact()
 	a.Metadata.Type = "text/plain"
 	a.Metadata.Size = 1743
@@ -150,66 +165,86 @@ func (s *storeSuite) TestStoreApiArtifactBadType(c *C) {
 	c.Assert(err, IsNil)
 	defer f.Close()
 
-	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig())
+	ins := store.NewStoreInfoAPIInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Check(a.Approved(), Equals, false)
 }
 
-func (s *storeSuite) TestStoreApiArtifactBadContent(c *C) {
+func (s *storeSuite) TestStoreInfoAPIArtifactBadContent(c *C) {
 	a := metadata.NewArtifact()
-	a.Metadata.Type = "text/plain"
+	a.Metadata.Type = "application/json"
 	a.Metadata.Size = 1743
 
 	f := strings.NewReader(`{"content": "bad"}`)
 
-	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig())
+	ins := store.NewStoreInfoAPIInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 	err := ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Check(a.Approved(), Equals, false)
 }
 
+type validateBinTest struct {
+	infoType string               // The file type according to the info API
+	opinion  opinions.OpinionKind // The expected inspection opinion
+	reason   string               // The expected inspection reason
+}
+
+var validateBinTests = []validateBinTest{{
+	infoType: "bins",
+	opinion:  opinions.Unknown,
+	reason:   "file digest matches store info API bin request",
+}, {
+	infoType: "not-bins",
+	opinion:  opinions.Rejected,
+	reason:   "file digest matches a request for a different package type",
+}}
+
 func (s *storeSuite) TestValidateBin(c *C) {
-	a := metadata.NewArtifact()
-	a.Metadata.Type = "application/x-xz"
-	a.Metadata.Size = 2156
+	for _, tc := range validateBinTests {
+		a := metadata.NewArtifact()
+		a.Metadata.Type = "application/x-xz"
+		a.Metadata.Size = 2156
 
-	f, err := files.OpenArtifactFile("testdata/starcraft-test-2.0.0.tar.xz")
-	c.Assert(err, IsNil)
+		f, err := files.OpenArtifactFile("testdata/starcraft-test-2.0.0.tar.xz")
+		c.Assert(err, IsNil)
 
-	ainfo := &store.StoreApiInfo{
-		Type:      "bins",
-		ID:        "pkgid",
-		Publisher: "publisher",
-		RevInfo: map[string]store.StoreApiRevisionInfo{
-			testDigest: {
-				Sha3_384: testDigest,
-				Size:     2156,
-				Revision: "1",
-				Channel:  "latest/stable",
+		ainfo := &store.StoreInfoAPIInfo{
+			Type:      tc.infoType,
+			ID:        "pkgid",
+			Publisher: "publisher",
+			RevInfo: map[string]store.StoreInfoAPIRevisionInfo{
+				testDigest: {
+					Sha3_384: testDigest,
+					Size:     2156,
+					Revision: "1",
+					Channel:  "latest/stable",
+				},
 			},
-		},
+		}
+
+		ins := store.NewStoreInfoAPIInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
+		store.StoreInfoAPIInspectorSetInfo(ins, "pkgid", ainfo)
+
+		err = ins.InspectArtifact(f, a)
+		c.Assert(err, IsNil)
+		c.Check(a.Rejected(), Equals, true) // The store bin inspetor doesn't approve
+		c.Check(a.ResponseInspection["store.info-api"].Opinion, Equals, tc.opinion)
+		c.Check(a.ResponseInspection["store.info-api"].Reason, Equals, tc.reason)
 	}
-
-	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig())
-	store.StoreApiInspectorSetStoreApiInfo(ins, "pkgid", ainfo)
-
-	err = ins.InspectArtifact(f, a)
-	c.Assert(err, IsNil)
-	c.Check(a.Rejected(), Equals, true) // The store bin inspetor doesn't approve
-	c.Check(a.ResponseInspection["store.api"].Opinion, Equals, opinions.Unknown)
-	c.Check(a.ResponseInspection["store.api"].Reason, Equals, "file digest matches store API bin request")
 
 }
 
 type validateBinInvalidFormatTest struct {
-	filename string
+	filename string // The artifact file to be tested
 }
 
 var validateBinInvalidFormatTests = []validateBinInvalidFormatTest{{
 	filename: "testdata/info.json", // Invalid format
 }, {
 	filename: "testdata/invalid-bin.tar.xz", // Invalid metadata
+}, {
+	filename: "testdata/not-a-tarball.xz", // non-tarball xz archive
 }}
 
 func (s *storeSuite) TestValidateBinInvalid(c *C) {
@@ -222,11 +257,11 @@ func (s *storeSuite) TestValidateBinInvalid(c *C) {
 		c.Assert(err, IsNil)
 		defer f.Close()
 
-		ins := store.NewStoreApiInspector(getTestStoreInspectorConfig())
+		ins := store.NewStoreInfoAPIInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
-		c.Check(a.Rejected(), Equals, true)
+		c.Check(a.ResponseInspection, HasLen, 0)
 	}
 }
 
@@ -238,11 +273,11 @@ func (s *storeSuite) TestValidateBinNoRequest(c *C) {
 	f, err := files.OpenArtifactFile("testdata/starcraft-test-2.0.0.tar.xz")
 	c.Assert(err, IsNil)
 
-	ins := store.NewStoreApiInspector(getTestStoreInspectorConfig())
+	ins := store.NewStoreInfoAPIInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Check(a.Rejected(), Equals, true)
-	c.Check(a.ResponseInspection["store.api"].Reason, Equals, "file digest does not match any store API request")
+	c.Check(a.ResponseInspection["store.info-api"].Reason, Equals, "file digest does not match any store info API request")
 
 }
 

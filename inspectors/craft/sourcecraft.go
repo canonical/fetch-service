@@ -20,8 +20,6 @@
 package craft
 
 import (
-	"fmt"
-	"net/url"
 	"path/filepath"
 
 	"gopkg.in/yaml.v3"
@@ -53,39 +51,8 @@ type sourcecraftYaml struct {
 	Base    string `json:"base"`
 }
 
-// InspectRequest verifies whether this is a valid upload-pack request. For
-// it to succeed the following conditions must be satisfied:
-//
-//   - The "Git-Protocol" request header must be set to "version=2".
-//   - The Content-Type header must be set to "application/x-git-upload-pack-request".
-//   - The Accept header must be set to "application/x-git-upload-pack-result"
-//   - The request URL must match a valid upload-pack pattern.
-//   - The upload-pack command must be "fetch".
-//   - It must be a shallow fetch.
 func (ins *SourcecraftInspector) InspectRequest(a RequestArtifact) error {
-	u, err := url.Parse(a.DownloadURL())
-	if err != nil {
-		return fmt.Errorf("cannot parse URL: %s", err)
-	}
-
-	if !checkGitRequestHeaders(a) {
-		return nil // we don't recognize this request
-	}
-
-	slog := a.Logger()
-
-	_, err = config.NewCraftUrlInfo(u, &ins.config, slog)
-	if err != nil {
-		return nil // we don't recognize this request
-	}
-
-	command, ok := a.RequestStringAnnotation(GitUploadPackID, "command")
-	if !ok || command != "fetch" {
-		return nil // we don't recognize this request
-	}
-
-	a.SetRequestPending(ins, "valid URL for sourcecraft download")
-	return nil
+	return inspectCraftRequest(ins, a, &ins.config)
 }
 
 func (ins *SourcecraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
@@ -107,19 +74,17 @@ func (ins *SourcecraftInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 
 	sourcecraftYamlPath := filepath.Join(checkoutPath, "sourcecraft.yaml")
 	if _, err := osStat(sourcecraftYamlPath); err != nil {
-		a.SetResponseUnknown(ins,
-			"git repository does not contain a sourcecraft.yaml file")
 		return nil
 	}
-	yamldata_filereader, err := osOpen(sourcecraftYamlPath)
+	yamlDataFileReader, err := osOpen(sourcecraftYamlPath)
 	if err != nil {
 		a.SetResponseRejected(ins, "cannot open sourcecraft.yaml file")
 		return nil
 	}
-	defer yamldata_filereader.Close()
+	defer yamlDataFileReader.Close()
 
 	var data sourcecraftYaml
-	dec := yaml.NewDecoder(yamldata_filereader)
+	dec := yaml.NewDecoder(yamlDataFileReader)
 	if err := dec.Decode(&data); err != nil {
 		a.SetResponseRejected(ins, "cannot decode sourcecraft.yaml")
 		return nil
@@ -131,6 +96,7 @@ func (ins *SourcecraftInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		Version:     data.Version,
 		Description: data.Summary,
 		License:     data.License,
+		ContentID:   getSingleFetchedRef(a),
 	})
 	a.SetResponseApproved(ins, "sourcecraft repository found")
 	return nil

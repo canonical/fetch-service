@@ -45,9 +45,9 @@ type ArtifactReader interface {
 // artifact metadata during the request inspection.
 type RequestArtifact interface {
 	// Inspector opinions
-	SetRequestPending(Inspector, string, ...any) *Inspection
-	SetRequestRejected(Inspector, string, ...any) *Inspection
-	SetRequestUnknown(Inspector, string, ...any) *Inspection
+	SetRequestPending(Inspector, string) *Inspection
+	SetRequestRejected(Inspector, string) *Inspection
+	SetRequestUnknown(Inspector, string) *Inspection
 	RequestPending() bool
 	RequestRejected() bool
 
@@ -73,11 +73,12 @@ type RequestArtifact interface {
 // artifact metadata during the response inspection.
 type ResponseArtifact interface {
 	// Inspector opinions
-	SetResponseApproved(Inspector, string, ...any) *Inspection
-	SetResponseRejected(Inspector, string, ...any) *Inspection
-	SetResponseUnknown(Inspector, string, ...any) *Inspection
+	SetResponseApproved(Inspector, string) *Inspection
+	SetResponseRejected(Inspector, string) *Inspection
+	SetResponseUnknown(Inspector, string) *Inspection
 	ResponseApproved() bool
 	ResponseRejected() bool
+	InspectorRequestOpinion(Inspector) opinions.OpinionKind
 
 	// Get annotations
 	RequestAnnotation(string, string) (any, bool)
@@ -168,4 +169,6 @@ type ArtifactMetadata struct {
 	Copyright     string // The copyright line, if available
 	SourcePackage string // The name of the source package that generated this artifact, if available.
 	StoreRevision string // The revision of the artifact assigned by the store, if any.
+	AptSuite      string // The apt repository series and pocket
+	ContentID     string // Content-specific identifier (value depends on artifact type)
 }

@@ -40,13 +40,13 @@ func (t *fetchctlSuite) TestCreateSession(c *C) {
 		result     string
 		errmsg     string
 	}{
-		{"", "", 0, false, "::0:strict", "ok", ""},
-		{"session-id", "", 0, false, "session-id::0:strict", "ok", ""},
-		{"", "token", 0, false, ":token:0:strict", "ok", ""},
-		{"", "", 31415, false, "::31415:strict", "ok", ""},
-		{"", "", 0, true, "::0:permissive", "ok", ""},
-		{"session-id", "token", 31415, true, "session-id:token:31415:permissive", "ok", ""},
-		{"", "", 0, false, "::0:strict", "error", "something wrong happened"},
+		{"", "", 0, false, `{"session-id":"","token":"","timeout":0,"mode":"strict","inspectors-configuration":null}`, "ok", ""},
+		{"session-id", "", 0, false, `{"session-id":"session-id","token":"","timeout":0,"mode":"strict","inspectors-configuration":null}`, "ok", ""},
+		{"", "token", 0, false, `{"session-id":"","token":"token","timeout":0,"mode":"strict","inspectors-configuration":null}`, "ok", ""},
+		{"", "", 31415, false, `{"session-id":"","token":"","timeout":31415,"mode":"strict","inspectors-configuration":null}`, "ok", ""},
+		{"", "", 0, true, `{"session-id":"","token":"","timeout":0,"mode":"permissive","inspectors-configuration":null}`, "ok", ""},
+		{"session-id", "token", 31415, true, `{"session-id":"session-id","token":"token","timeout":31415,"mode":"permissive","inspectors-configuration":null}`, "ok", ""},
+		{"", "", 0, false, `{"session-id":"","token":"","timeout":0,"mode":"strict","inspectors-configuration":null}`, "error", "something wrong happened"},
 	} {
 		tmpdir := c.MkDir()
 		spath := filepath.Join(tmpdir, "test.socket")
@@ -67,7 +67,7 @@ func (t *fetchctlSuite) TestCreateSession(c *C) {
 			c.Assert(err, IsNil)
 			c.Check(string(data[:n]), Equals, fmt.Sprintf(`{"operation":"create-session","payload":%q}`, tc.payload))
 
-			_, err = f.Write([]byte(fmt.Sprintf(`{"result":%q,"message":%q}`, tc.result, tc.errmsg)))
+			_, err = fmt.Fprintf(f, `{"result":%q,"message":%q}`, tc.result, tc.errmsg)
 			c.Assert(err, IsNil)
 			f.Close()
 		}()
@@ -75,7 +75,7 @@ func (t *fetchctlSuite) TestCreateSession(c *C) {
 		time.Sleep(500 * time.Millisecond)
 
 		cmd := fetchctl.CreateSessionCmd{
-			SessionId:  tc.sid,
+			SessionID:  tc.sid,
 			Token:      tc.token,
 			Timeout:    tc.timeout,
 			Permissive: tc.permissive,

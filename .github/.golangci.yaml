@@ -1,0 +1,23 @@
+version: "2"
+linters:
+  default: none
+  enable:
+    - govet
+    - ineffassign
+    - nakedret
+    - staticcheck
+    - unused
+  settings:
+    staticcheck:
+      checks:
+        - all
+        - "-ST1005" # Accept capitalized error message
+        - "-ST1000" # Incorrect or missing package comment - No package comments throughout the project
+        - "-ST1016" # Consistent method receiver names - Many false positive with SetUpTest 
+        - "-ST1001" # Dot imports ignored
+    nakedret:
+      max-func-lines: 20
+issues:
+  # These values ensure that all issues will be surfaced
+  max-issues-per-linter: 0
+  max-same-issues: 0

@@ -35,28 +35,28 @@ var (
 	reSourcecraft = regexp.MustCompile(`^/(.+/)*([^/]+)/git-upload-pack$`)
 )
 
-func checkRequestUrl(cfg *CraftsInspectorConfig, u *url.URL, slog logger.Logger) error {
-	requestUrl := utils.NormalizedOrigin(u) + u.Path
+func checkRequestURL(cfg *CraftsInspectorConfig, u *url.URL, slog logger.Logger) error {
+	requestURL := utils.NormalizedOrigin(u) + u.Path
 
-	for _, h := range cfg.Urls {
-		if h.Match(requestUrl) {
+	for _, h := range cfg.URLs {
+		if h.Match(requestURL) {
 			slog.Debugf("url matches %v\n", h)
 			return nil
 		}
 	}
-	return fmt.Errorf("invalid url %s", requestUrl)
+	return fmt.Errorf("invalid url %s", requestURL)
 }
 
 type CraftsInspectorConfig struct {
-	Urls []glob.Glob `yaml:"urls"` // List of allowed URL glob patterns
+	URLs []glob.Glob `yaml:"urls"` // List of allowed URL glob patterns
 }
 
-type CraftUrlInfo struct {
+type CraftURLInfo struct {
 	Project string
 }
 
-func NewCraftUrlInfo(u *url.URL, cfg *CraftsInspectorConfig, slog logger.Logger) (*CraftUrlInfo, error) {
-	if err := checkRequestUrl(cfg, u, slog); err != nil {
+func NewCraftURLInfo(u *url.URL, cfg *CraftsInspectorConfig, slog logger.Logger) (*CraftURLInfo, error) {
+	if err := checkRequestURL(cfg, u, slog); err != nil {
 		return nil, err
 	}
 
@@ -64,7 +64,7 @@ func NewCraftUrlInfo(u *url.URL, cfg *CraftsInspectorConfig, slog logger.Logger)
 	if len(m) != 3 && len(m) != 2 {
 		return nil, errors.New("not a valid *craft upload-pack path")
 	}
-	info := &CraftUrlInfo{
+	info := &CraftURLInfo{
 		Project: m[len(m)-1], // assuming the project name is encoded in the URL
 	}
 	info.Project, _ = strings.CutSuffix(info.Project, ".git")

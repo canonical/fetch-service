@@ -11,11 +11,11 @@ jobs:
     runs-on: [self-hosted, Linux]  # Pretty much any self-hosted Linux runner, base independent
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: '1.22'
+          go-version: '1.24'
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           submodules: true
@@ -23,9 +23,10 @@ jobs:
         run: |
           go generate ./version
       - name: Run Linters
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v8
         with:
           version: latest
+          args: '--config=.github/.golangci.yaml --output.text.colors'
       - name: Run shellcheck
         run: |
           shellcheck spread/.extension
@@ -40,13 +41,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y licensecheck
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
-          go-version: '1.22'
+          go-version: '1.24'
       - name: Generate version
         run: |
           go generate ./version
@@ -61,7 +62,7 @@ jobs:
     runs-on: [noble, amd64]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Build snap
@@ -79,9 +80,12 @@ jobs:
         os:
           - [jammy, amd64]
           - [noble, amd64]
-    needs:
-      - snap-build
+    # needs:  # Re-enable this once we can test a prebuilt snap
+    #   - snap-build
     runs-on: ${{ matrix.os }}
+    permissions:
+      # Ensure GITHUB_TOKEN has enough permissions to clone the repo in spread tests.
+      contents: read
     steps:
       - name: Install dependencies
         run: |
@@ -89,13 +93,18 @@ jobs:
           sudo snap install lxd  # remove once we can test a pre-built snap
           lxd init --auto
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - name: Download snap artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: snap
+      # Uncomment this when we're testing a prebuilt snap.
+      # - name: Download snap artifact
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: snap
       - name: Run spread tests
+        env:
+          # GH_FETCH_SERVICE_TOKEN is used in some spread tests to clone the fetch-service
+          # repository itself.
+          GH_FETCH_SERVICE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           snapcraft test --verbose

@@ -40,14 +40,14 @@ func Test(t *testing.T) { TestingT(t) }
 
 func getTestGitConfig() config.GitInspectorConfig {
 	return config.GitInspectorConfig{
-		Urls: []glob.Glob{
+		URLs: []glob.Glob{
 			glob.MustCompile("https://github.com:443/**"),
 			glob.MustCompile("https://*.example.com:443/**"),
 		},
 	}
 }
 
-func (t *configSuite) TestSmartQueryUrlInfo(c *C) {
+func (t *configSuite) TestSmartQueryURLInfo(c *C) {
 	for _, tc := range []struct {
 		url string
 		msg string
@@ -64,11 +64,11 @@ func (t *configSuite) TestSmartQueryUrlInfo(c *C) {
 		c.Assert(err, IsNil)
 
 		cfg := getTestGitConfig()
-		info, err := config.NewSmartQueryUrlInfo(u, &cfg, t.slog)
+		info, err := config.NewSmartQueryURLInfo(u, &cfg, t.slog)
 
 		if tc.msg == "" {
 			c.Assert(err, IsNil)
-			c.Assert(info, DeepEquals, &config.SmartQueryUrlInfo{
+			c.Assert(info, DeepEquals, &config.SmartQueryURLInfo{
 				Service: "git-upload-pack",
 			})
 		} else {
@@ -77,7 +77,7 @@ func (t *configSuite) TestSmartQueryUrlInfo(c *C) {
 	}
 }
 
-func (t *configSuite) TestUploadPackUrlInfo(c *C) {
+func (t *configSuite) TestUploadPackURLInfo(c *C) {
 	for _, tc := range []struct {
 		url     string
 		project string
@@ -94,11 +94,11 @@ func (t *configSuite) TestUploadPackUrlInfo(c *C) {
 		c.Assert(err, IsNil)
 
 		cfg := getTestGitConfig()
-		info, err := config.NewUploadPackUrlInfo(u, &cfg, t.slog)
+		info, err := config.NewUploadPackURLInfo(u, &cfg, t.slog)
 
 		if tc.msg == "" {
 			c.Assert(err, IsNil)
-			c.Assert(info, DeepEquals, &config.UploadPackUrlInfo{
+			c.Assert(info, DeepEquals, &config.UploadPackURLInfo{
 				Project: tc.project,
 			})
 		} else {

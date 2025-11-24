@@ -31,42 +31,103 @@ import (
 )
 
 var (
-	reStoreApi = regexp.MustCompile(`^/v2/([a-z]+)/info/([a-zA-Z0-9-]+)$`)
+	reStoreInfoAPI       = regexp.MustCompile(`^/v2/([a-z]+)/info/([a-zA-Z0-9-]+)$`)
+	reStoreResolveAPI    = regexp.MustCompile(`^/v2/revisions/resolve$`)
+	reStoreTransformsAPI = regexp.MustCompile(`^/v1/craft/workspaces/([a-zA-Z0-9-]+)/transforms$`)
+	reStoreAppMedia      = regexp.MustCompile(`^/site_media/appmedia/([0-9]+)/([0-9]+)/([a-zA-Z0-9.-]+)$`)
 )
 
-func checkRequestUrl(cfg *StoreInspectorConfig, u *url.URL, slog logger.Logger) error {
-	requestUrl := utils.NormalizedOrigin(u) + u.Path
+func checkRequestURL(cfg *StoreInspectorConfig, u *url.URL, slog logger.Logger) error {
+	requestURL := utils.NormalizedOrigin(u) + u.Path
 
-	for _, h := range cfg.Urls {
-		if h.Match(requestUrl) {
+	for _, h := range cfg.URLs {
+		if h.Match(requestURL) {
 			slog.Debugf("url matches %v\n", h)
 			return nil
 		}
 	}
-	return fmt.Errorf("invalid url %s", requestUrl)
+	return fmt.Errorf("invalid url %s", requestURL)
 }
 
 type StoreInspectorConfig struct {
-	Urls []glob.Glob `yaml:"urls"` // List of allowed URL glob patterns
+	URLs []glob.Glob `yaml:"urls"` // List of allowed URL glob patterns
 }
 
-type StoreApiUrlInfo struct {
+type StoreInfoAPIURLInfo struct {
 	PackageType string
 	PackageName string
 }
 
-func NewStoreApiUrlInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreApiUrlInfo, error) {
-	if err := checkRequestUrl(cfg, u, slog); err != nil {
+func NewStoreInfoAPIURLInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreInfoAPIURLInfo, error) {
+	if err := checkRequestURL(cfg, u, slog); err != nil {
 		return nil, err
 	}
 
-	m := reStoreApi.FindStringSubmatch(u.Path)
+	m := reStoreInfoAPI.FindStringSubmatch(u.Path)
 	if len(m) != 3 {
-		return nil, errors.New("not a valid store API path")
+		return nil, errors.New("not a valid store info API path")
 	}
-	info := &StoreApiUrlInfo{
+	info := &StoreInfoAPIURLInfo{
 		PackageType: m[1],
 		PackageName: m[2],
+	}
+
+	return info, nil
+}
+
+type StoreResolveAPIURLInfo struct {
+}
+
+func NewStoreResolveAPIURLInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreResolveAPIURLInfo, error) {
+	if err := checkRequestURL(cfg, u, slog); err != nil {
+		return nil, err
+	}
+
+	if !reStoreResolveAPI.MatchString(u.Path) {
+		return nil, errors.New("not a valid store resolve_revisions API path")
+
+	}
+
+	return &StoreResolveAPIURLInfo{}, nil
+}
+
+type StoreTransformsAPIURLInfo struct {
+	WorkspaceID string
+}
+
+func NewStoreTransformsAPIURLInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreTransformsAPIURLInfo, error) {
+	if err := checkRequestURL(cfg, u, slog); err != nil {
+		return nil, err
+	}
+
+	m := reStoreTransformsAPI.FindStringSubmatch(u.Path)
+	if len(m) != 2 {
+		return nil, errors.New("not a valid store transforms API path")
+
+	}
+	info := &StoreTransformsAPIURLInfo{
+		WorkspaceID: m[1],
+	}
+
+	return info, nil
+}
+
+type StoreAppMediaURLInfo struct {
+	Filename string
+}
+
+func NewStoreAppMediaURLInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreAppMediaURLInfo, error) {
+	if err := checkRequestURL(cfg, u, slog); err != nil {
+		return nil, err
+	}
+
+	m := reStoreAppMedia.FindStringSubmatch(u.Path)
+	if len(m) != 4 {
+		return nil, errors.New("not a valid store appmedia API path")
+
+	}
+	info := &StoreAppMediaURLInfo{
+		Filename: m[3],
 	}
 
 	return info, nil

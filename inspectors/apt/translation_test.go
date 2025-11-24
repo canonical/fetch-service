@@ -21,12 +21,16 @@ package apt_test
 
 import (
 	"bytes"
+	"io"
 	"os"
+	"strings"
 
+	"github.com/gabriel-vasile/mimetype"
 	. "gopkg.in/check.v1"
 
 	"github.com/canonical/fetch-service/inspectors/apt"
-	"github.com/canonical/fetch-service/inspectors/common"
+	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/metadata/opinions"
@@ -99,12 +103,15 @@ func (s *aptSuite) TestAptTranslationInspector(c *C) {
 		ins := apt.NewAptTranslationInspector(getTestAptConfig())
 
 		a := metadata.NewArtifact()
-		a.SetRequestPending(ins, "test")
+		a.SetRequestPending(ins, "test").Annotate(Annotation{"suite": "jammy"})
 		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/devel/main/i18n/by-hash/SHA256/4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed"
 		a.Metadata.Type = "application/x.apt.translation"
 		a.Metadata.Sha256, _ = digests.NewSha256Digest("4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed")
 		a.Metadata.Size = 4242
-		a.ResponseInspection["apt.release"] = &common.Inspection{Annotations: common.Annotation{"vendor": "somevendor"}}
+		a.ResponseInspection["apt.release"] = &Inspection{Annotations: Annotation{
+			"release-file": "release-file-digest",
+			"vendor":       "somevendor",
+		}}
 
 		f := bytes.NewReader(translationArtifactData)
 		err = ins.InspectArtifact(f, a)
@@ -122,6 +129,110 @@ func (s *aptSuite) TestAptTranslationInspector(c *C) {
 			c.Assert(a.Metadata.Size, Equals, int64(4242))
 			c.Assert(a.Metadata.Vendor, Equals, "somevendor")
 			c.Assert(a.Metadata.Author, Equals, "somevendor")
+		}
+
+	}
+}
+
+type aptTranslationArtifactInspectorTest struct {
+	filename string // Test artifact filename
+	sha256   string // File digest
+	size     int64  // File size
+	result   bool   // expected result
+}
+
+var aptTranslationArtifactInspectorTests = []aptTranslationArtifactInspectorTest{{
+	filename: "testdata/Translation-zh_TW.xz",
+	sha256:   "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed",
+	size:     792,
+	result:   true,
+}, {
+	filename: "testdata/Translation-zh_TW.xz",
+	sha256:   "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed",
+	size:     600,
+	result:   false,
+}, {
+	filename: "testdata/Translation-zh_TW-bad.xz",
+	sha256:   "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5",
+	size:     792,
+	result:   false,
+}, {
+	filename: "testdata/Translation-zh_TW-bad.xz",
+	sha256:   "1b4001d827461c64c63e9b0cba4604e0f494171be2dd310018b456a03f8c6ca5",
+	size:     600,
+	result:   false,
+}}
+
+func (s *aptSuite) TestAptTranslationArtifactInspector(c *C) {
+	for _, tc := range aptTranslationArtifactInspectorTests {
+		restorer := apt.MockCheckSignature(func(f io.ReadSeeker, notes Annotation, pubkey string) (io.ReadSeeker, error) {
+			return f, nil
+		})
+		defer restorer()
+
+		var err error
+
+		// Load the release file first
+		rel := metadata.NewArtifact()
+		rel.RequestInspection = metadata.InspectionMap{
+			"apt.release": &Inspection{
+				Opinion: opinions.Pending,
+				Reason:  "",
+				Annotations: Annotation{
+					"cfg-name": "default",
+				},
+			},
+		}
+		rel.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/InRelease"
+		rel.MimeType = mimetype.Lookup("text/plain")
+		rel.Metadata.Sha256, err = digests.NewSha256Digest("98e8b22a45d8c663490fcc133384d07534e7c52b49d3f5004a2d87199d4fee5f")
+		c.Assert(err, IsNil)
+
+		relFile := strings.NewReader(inReleaseArtifactData)
+
+		// Inspect the InRelease file with the release inspector
+		ins := apt.NewAptReleaseInspector(getTestAptConfig())
+		err = ins.InspectArtifact(relFile, rel)
+		c.Assert(err, IsNil)
+
+		// Now load the translation file
+		a := metadata.NewArtifact()
+		a.SetRequestPending(ins, "test")
+		a.RequestInspection = metadata.InspectionMap{
+			"apt.release": &Inspection{
+				Opinion: opinions.Pending,
+				Reason:  "",
+				Annotations: Annotation{
+					"cfg-name": "default",
+				},
+			},
+		}
+		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/jammy/main/i18n/by-hash/SHA256/" + tc.sha256
+		a.Metadata.Type = "application/x.apt.translation"
+		a.Metadata.Size = tc.size
+		a.Metadata.Sha256, err = digests.NewSha256Digest(tc.sha256)
+		c.Assert(err, IsNil)
+
+		f, err := files.OpenArtifactFile(tc.filename)
+		c.Assert(err, IsNil)
+		defer f.Close()
+
+		err = ins.InspectArtifact(f, a)
+		c.Assert(err, IsNil)
+
+		c.Assert(a.Approved(), Equals, false)
+
+		if tc.result {
+			c.Assert(a.Metadata.Type, Equals, "application/x.apt.translation")
+			c.Assert(a.ResponseInspection["apt.release"], DeepEquals, &Inspection{
+				Opinion: opinions.Unknown,
+				Reason:  "Translation file listed in Release",
+				Annotations: Annotation{
+					"file-path":    "main/i18n/Translation-zh_TW.xz",
+					"release-file": "98e8b22a45d8c663490fcc133384d07534e7c52b49d3f5004a2d87199d4fee5f",
+					"vendor":       "Ubuntu",
+				},
+			})
 		}
 
 	}

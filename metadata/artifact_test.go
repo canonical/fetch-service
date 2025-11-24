@@ -114,7 +114,7 @@ func (ins testInspector2) ID() string {
 
 func (t *metadataSuite) TestNewArtifact(c *C) {
 	a := metadata.NewArtifact()
-	c.Check(a.MetadataVersion, Equals, "0.2")
+	c.Check(a.MetadataVersion, Equals, "0.3")
 	c.Check(a.RequestInspection, Not(IsNil))
 	c.Check(a.ResponseInspection, Not(IsNil))
 	c.Check(a.Metadata, Not(IsNil))
@@ -279,12 +279,12 @@ func (t *metadataSuite) TestSha256Digest(c *C) {
 func (t *metadataSuite) TestSetRequestPending(c *C) {
 	ins := &testInspector{}
 	a := metadata.NewArtifact()
-	a.SetRequestPending(ins, "testing %d", 1).Annotate(
+	a.SetRequestPending(ins, "testing").Annotate(
 		Annotation{"foo": "bar"},
 	)
 	c.Assert(*a.RequestInspection["test-inspector"], DeepEquals, Inspection{
 		Opinion:     opinions.Pending,
-		Reason:      "testing 1",
+		Reason:      "testing",
 		Annotations: Annotation{"foo": "bar"},
 	})
 }
@@ -292,12 +292,12 @@ func (t *metadataSuite) TestSetRequestPending(c *C) {
 func (t *metadataSuite) TestSetRequestRejected(c *C) {
 	ins := &testInspector{}
 	a := metadata.NewArtifact()
-	a.SetRequestRejected(ins, "testing %d", 1).Annotate(
+	a.SetRequestRejected(ins, "testing").Annotate(
 		Annotation{"foo": "bar"},
 	)
 	c.Assert(*a.RequestInspection["test-inspector"], DeepEquals, Inspection{
 		Opinion:     opinions.Rejected,
-		Reason:      "testing 1",
+		Reason:      "testing",
 		Annotations: Annotation{"foo": "bar"},
 	})
 }
@@ -305,12 +305,12 @@ func (t *metadataSuite) TestSetRequestRejected(c *C) {
 func (t *metadataSuite) TestSetRequestUnknown(c *C) {
 	ins := &testInspector{}
 	a := metadata.NewArtifact()
-	a.SetRequestUnknown(ins, "testing %d", 1).Annotate(
+	a.SetRequestUnknown(ins, "testing").Annotate(
 		Annotation{"foo": "bar"},
 	)
 	c.Assert(*a.RequestInspection["test-inspector"], DeepEquals, Inspection{
 		Opinion:     opinions.Unknown,
-		Reason:      "testing 1",
+		Reason:      "testing",
 		Annotations: Annotation{"foo": "bar"},
 	})
 }
@@ -335,12 +335,12 @@ func (t *metadataSuite) TestRequestRejected(c *C) {
 func (t *metadataSuite) TestSetResponseApproved(c *C) {
 	ins := &testInspector{}
 	a := metadata.NewArtifact()
-	a.SetResponseApproved(ins, "testing %d", 1).Annotate(
+	a.SetResponseApproved(ins, "testing").Annotate(
 		Annotation{"foo": "bar"},
 	)
 	c.Assert(*a.ResponseInspection["test-inspector"], DeepEquals, Inspection{
 		Opinion:     opinions.Approved,
-		Reason:      "testing 1",
+		Reason:      "testing",
 		Annotations: Annotation{"foo": "bar"},
 	})
 }
@@ -348,12 +348,12 @@ func (t *metadataSuite) TestSetResponseApproved(c *C) {
 func (t *metadataSuite) TestSetResponseRejected(c *C) {
 	ins := &testInspector{}
 	a := metadata.NewArtifact()
-	a.SetResponseRejected(ins, "testing %d", 1).Annotate(
+	a.SetResponseRejected(ins, "testing").Annotate(
 		Annotation{"foo": "bar"},
 	)
 	c.Assert(*a.ResponseInspection["test-inspector"], DeepEquals, Inspection{
 		Opinion:     opinions.Rejected,
-		Reason:      "testing 1",
+		Reason:      "testing",
 		Annotations: Annotation{"foo": "bar"},
 	})
 }
@@ -361,12 +361,12 @@ func (t *metadataSuite) TestSetResponseRejected(c *C) {
 func (t *metadataSuite) TestSetResponseUnknown(c *C) {
 	ins := &testInspector{}
 	a := metadata.NewArtifact()
-	a.SetResponseUnknown(ins, "testing %d", 1).Annotate(
+	a.SetResponseUnknown(ins, "testing").Annotate(
 		Annotation{"foo": "bar"},
 	)
 	c.Assert(*a.ResponseInspection["test-inspector"], DeepEquals, Inspection{
 		Opinion:     opinions.Unknown,
-		Reason:      "testing 1",
+		Reason:      "testing",
 		Annotations: Annotation{"foo": "bar"},
 	})
 }

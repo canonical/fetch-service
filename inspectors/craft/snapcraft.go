@@ -53,8 +53,8 @@ type snapcraftYaml struct {
 	Base    string `json:"base"`
 }
 
-// InspectRequest verifies whether this is a valid upload-pack request. For
-// it to succeed the following conditions must be satisfied:
+// inspectCraftRequest verifies whether this is a valid upload-pack request.
+// For it to succeed the following conditions must be satisfied:
 //
 //   - The "Git-Protocol" request header must be set to "version=2".
 //   - The Content-Type header must be set to "application/x-git-upload-pack-request".
@@ -62,7 +62,7 @@ type snapcraftYaml struct {
 //   - The request URL must match a valid upload-pack pattern.
 //   - The upload-pack command must be "fetch".
 //   - It must be a shallow fetch.
-func (ins *SnapcraftInspector) InspectRequest(a RequestArtifact) error {
+func inspectCraftRequest(ins Inspector, a RequestArtifact, cfg *config.CraftsInspectorConfig) error {
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -74,7 +74,7 @@ func (ins *SnapcraftInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	_, err = config.NewCraftUrlInfo(u, &ins.config, slog)
+	_, err = config.NewCraftURLInfo(u, cfg, slog)
 	if err != nil {
 		return nil // we don't recognize this request
 	}
@@ -84,8 +84,12 @@ func (ins *SnapcraftInspector) InspectRequest(a RequestArtifact) error {
 		return nil // we don't recognize this request
 	}
 
-	a.SetRequestPending(ins, "valid URL for snapcraft download")
+	a.SetRequestPending(ins, "valid URL for crafts download")
 	return nil
+}
+
+func (ins *SnapcraftInspector) InspectRequest(a RequestArtifact) error {
+	return inspectCraftRequest(ins, a, &ins.config)
 }
 
 func (ins *SnapcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
@@ -107,19 +111,17 @@ func (ins *SnapcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 
 	snapcraftYamlPath, found := getSnapcraftYamlPath(checkoutPath)
 	if !found {
-		a.SetResponseUnknown(ins,
-			"git repository does not contain a snapcraft.yaml file")
 		return nil
 	}
-	yamldata_filereader, err := osOpen(snapcraftYamlPath)
+	yamlDataFileReader, err := osOpen(snapcraftYamlPath)
 	if err != nil {
 		a.SetResponseRejected(ins, "cannot open snapcraft.yaml file")
 		return nil
 	}
-	defer yamldata_filereader.Close()
+	defer yamlDataFileReader.Close()
 
 	var data snapcraftYaml
-	dec := yaml.NewDecoder(yamldata_filereader)
+	dec := yaml.NewDecoder(yamlDataFileReader)
 	if err := dec.Decode(&data); err != nil {
 		a.SetResponseRejected(ins, "cannot decode snapcraft.yaml")
 		return nil
@@ -131,6 +133,7 @@ func (ins *SnapcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 		Version:     data.Version,
 		Description: data.Summary,
 		License:     data.License,
+		ContentID:   getSingleFetchedRef(a),
 	})
 	a.SetResponseApproved(ins, "snapcraft repository found")
 

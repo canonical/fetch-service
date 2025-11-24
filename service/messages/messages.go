@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -24,12 +24,14 @@ import (
 	"time"
 
 	"github.com/canonical/fetch-service/metadata"
+	"github.com/canonical/fetch-service/secrets"
+	"github.com/canonical/fetch-service/service/config"
 )
 
 // ProxyAuth contains credentials for basic authentication.
 type ProxyAuth struct {
 	Rch chan bool // return channel
-	Id  string    // user (session id)
+	ID  string    // user (session id)
 	Pw  string    // password
 }
 
@@ -86,25 +88,41 @@ func NewResponseInspection(a *metadata.Artifact) ResponseInspection {
 	}
 }
 
+type CompleteInspection struct {
+	Rch chan error         // Handler response channel
+	A   *metadata.Artifact // Artifact and download metadata
+}
+
+func NewCompleteInspection(a *metadata.Artifact) CompleteInspection {
+	return CompleteInspection{
+		Rch: make(chan error, 1),
+		A:   a,
+	}
+}
+
 // Session creation
 
 type SessionCredentials struct {
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Token string `json:"token"`
 	Err   error  `json:"-"`
 }
 
 type CreateSession struct {
-	Rch     chan SessionCredentials // Handler response channel
-	Timeout uint64                  // Session timeout in seconds
-	Policy  string                  // Session policy (strict or permissive)
+	Rch              chan SessionCredentials        // Handler response channel
+	Timeout          uint64                         // Session timeout in seconds
+	Policy           string                         // Session policy (strict or permissive)
+	Secrets          []secrets.Secret               // Secrets for the session
+	InspectorsConfig config.OverrideInspectorsConfig // Session inspectors configuration
 }
 
-func NewCreateSession(policy string, timeout uint64) CreateSession {
+func NewCreateSession(policy string, timeout uint64, secrets []secrets.Secret, inspectorsConfig config.OverrideInspectorsConfig) CreateSession {
 	return CreateSession{
-		Rch:     make(chan SessionCredentials, 1),
-		Policy:  policy,
-		Timeout: timeout,
+		Rch:              make(chan SessionCredentials, 1),
+		Policy:           policy,
+		Timeout:          timeout,
+		Secrets:          secrets,
+		InspectorsConfig: inspectorsConfig,
 	}
 }
 
@@ -112,20 +130,20 @@ func NewCreateSession(policy string, timeout uint64) CreateSession {
 
 type RevokeToken struct {
 	Rch   chan RevokeTokenResult // Handler response channel
-	Id    string                 // The session ID
+	ID    string                 // The session ID
 	Token string                 // The session token to revoke
 }
 
-func NewRevokeToken(sessionId, token string) RevokeToken {
+func NewRevokeToken(sessionID, token string) RevokeToken {
 	return RevokeToken{
 		Rch:   make(chan RevokeTokenResult, 1),
-		Id:    sessionId,
+		ID:    sessionID,
 		Token: token,
 	}
 }
 
 type RevokeTokenResult struct {
-	SessionId string `json:"session-id"`
+	SessionID string `json:"session-id"`
 	StartTime string `json:"start-time"`
 	EndTime   string `json:"end-time"`
 	SpoolPath string `json:"spool-path"`
@@ -136,13 +154,13 @@ type RevokeTokenResult struct {
 
 type SessionReport struct {
 	Rch chan SessionReportResult // Handler response channel
-	Id  string
+	ID  string
 }
 
-func NewSessionReport(sessionId string) SessionReport {
+func NewSessionReport(sessionID string) SessionReport {
 	return SessionReport{
 		Rch: make(chan SessionReportResult, 1),
-		Id:  sessionId,
+		ID:  sessionID,
 	}
 }
 
@@ -156,13 +174,13 @@ type SessionReportResult struct {
 
 type EndSession struct {
 	Rch chan error // Handler response channel
-	Id  string
+	ID  string
 }
 
-func NewEndSession(sessionId string) EndSession {
+func NewEndSession(sessionID string) EndSession {
 	return EndSession{
 		Rch: make(chan error, 1),
-		Id:  sessionId,
+		ID:  sessionID,
 	}
 }
 
@@ -170,13 +188,13 @@ func NewEndSession(sessionId string) EndSession {
 
 type DeleteResources struct {
 	Rch chan error // Handler response channel
-	Id  string
+	ID  string
 }
 
-func NewDeleteResources(sessionId string) DeleteResources {
+func NewDeleteResources(sessionID string) DeleteResources {
 	return DeleteResources{
 		Rch: make(chan error, 1),
-		Id:  sessionId,
+		ID:  sessionID,
 	}
 }
 
@@ -203,4 +221,12 @@ func NewFetchCtl(operation, optype string, validateOnly bool, payload []byte) Fe
 type FetchCtlResult struct {
 	Status  string
 	Message string
+}
+
+type CreateSessionPayload struct {
+	SessionID        string `json:"session-id"`
+	Token            string `json:"token"`
+	Timeout          int    `json:"timeout"`
+	Mode             string `json:"mode"`
+	InspectorsConfig []byte `json:"inspectors-configuration"`
 }

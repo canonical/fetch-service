@@ -1,0 +1,72 @@
+summary: Download and inspect in background
+
+systems:
+  - ubuntu-24.04
+
+environment:
+  POLICY/strict: strict
+  POLICY/permissive: permissive
+
+prepare: |
+  snap remove --purge go
+  rm -f ./*.json /var/lib/snapd/cache/*
+
+restore: |
+  snap unset system proxy.http
+  snap unset system proxy.https
+  snap remove --purge go
+  rm -f ./*.json /var/lib/snapd/cache/*
+
+execute: |
+  # shellcheck disable=SC1091
+  . ../../utils.sh
+
+  # create session
+  read -r session_id token < <(create_session "$POLICY")
+
+  # set up proxy
+  snap set system proxy.http="http://${session_id}:${token}@localhost:9988"
+  snap set system proxy.https="http://${session_id}:${token}@localhost:9988"
+
+  # limit bandwidth to force the download to happen in the background
+  modprobe ifb numifbs=1
+  ip link set dev ifb0 up
+  ip route
+  IFACE=$(ip route | awk '/^default/ {print $5; exit}')
+  tc qdisc show dev "$IFACE"
+  tc qdisc replace dev "$IFACE" handle ffff: ingress
+  tc filter add dev "$IFACE" parent ffff: protocol ip u32 match u32 0 0 action mirred egress redirect dev ifb0
+  tc qdisc add dev ifb0 root handle 1: htb default 10
+  tc class add dev ifb0 parent 1: classid 1:10 htb rate 10mbit
+
+  dmesg | tail -10
+
+  cleanup() {
+    tc qdisc del dev "$IFACE" ingress
+    tc qdisc del dev ifb0 root
+  }
+  trap cleanup EXIT
+
+  before=$(date +%s)
+  snap install go --classic
+  after=$(date +%s)
+  duration=$((after - before))
+
+  echo "Snap install completed in $duration seconds"
+
+  test -f /snap/go/current/meta/snap.yaml 
+
+  # make sure this was a slow download
+  if [ "$duration" -lt 40 ]; then
+      echo "Installation completed in less than 40s"
+      false
+  fi
+
+  revoke_token "$session_id" "$token"
+  get_session_report "$session_id" > session_report.json
+  python3 -mjson.tool session_report.json
+
+  jq -r '(.artifacts[].metadata | select(.name=="go")).type' session_report.json | MATCH "application/x.canonical.snap-package"
+
+  delete_session "$session_id"
+  delete_resources "$session_id"

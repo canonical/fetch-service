@@ -45,8 +45,8 @@ var pomurltests = []struct {
 	slug string
 
 	// expected output
-	group_id    string
-	artifact_id string
+	groupID    string
+	artifactID string
 	version     string
 }{
 	{"/joda-time/joda-time/2.2/joda-time-2.2.pom", "joda-time", "joda-time", "2.2"},
@@ -67,8 +67,8 @@ func (s *mavenSuite) TestPomInspectRequest(c *C) {
 		c.Assert(insp.Opinion, Equals, opinions.Unknown)
 		c.Assert(insp.Reason, Equals, "unsupported origin")
 
-		c.Check(a.RequestInspection[ins.ID()].Annotations["group-id"], Equals, pt.group_id)
-		c.Check(a.RequestInspection[ins.ID()].Annotations["artifact-id"], Equals, pt.artifact_id)
+		c.Check(a.RequestInspection[ins.ID()].Annotations["group-id"], Equals, pt.groupID)
+		c.Check(a.RequestInspection[ins.ID()].Annotations["artifact-id"], Equals, pt.artifactID)
 		c.Check(a.RequestInspection[ins.ID()].Annotations["version"], Equals, pt.version)
 	}
 }
@@ -76,8 +76,8 @@ func (s *mavenSuite) TestPomInspectRequest(c *C) {
 var pomtests = []struct {
 	filename    string
 	slug        string
-	group_id    string
-	artifact_id string
+	groupID    string
+	artifactID string
 	version     string
 
 	description string
@@ -107,7 +107,8 @@ func (s *mavenSuite) TestPomInspectArtifact(c *C) {
 		filename := filepath.Join("testdata", jt.filename)
 
 		ins := maven.NewPomInspector()
-		h, _ := digests.NewSha1Digest("a5f29a7acaddea3f4af307e8cf2d0cc82645fd7d")
+		h, err := digests.NewSha1Digest("a5f29a7acaddea3f4af307e8cf2d0cc82645fd7d")
+		c.Assert(err, IsNil)
 
 		a := metadata.NewArtifact()
 		a.Metadata.Type = "text/xml"
@@ -117,7 +118,7 @@ func (s *mavenSuite) TestPomInspectArtifact(c *C) {
 		a.RequestInspection[ins.ID()] = &Inspection{
 			Opinion:     opinions.Pending,
 			Reason:      "some reason",
-			Annotations: Annotation{"group-id": jt.group_id, "artifact-id": jt.artifact_id, "version": jt.version},
+			Annotations: Annotation{"group-id": jt.groupID, "artifact-id": jt.artifactID, "version": jt.version},
 		}
 
 		f, err := files.OpenArtifactFile(filename)
@@ -130,11 +131,11 @@ func (s *mavenSuite) TestPomInspectArtifact(c *C) {
 		c.Assert(a.Approved(), Equals, true)
 
 		c.Check(a.Metadata.Type, Equals, "text/xml")
-		c.Check(a.Metadata.Name, Equals, fmt.Sprintf(`Maven POM file for '%s'`, jt.artifact_id))
+		c.Check(a.Metadata.Name, Equals, fmt.Sprintf(`Maven POM file for '%s'`, jt.artifactID))
 		c.Check(a.Metadata.Version, Equals, jt.version)
 		c.Check(a.Metadata.Description, Equals, jt.description)
 		c.Check(a.Metadata.Author, Equals, jt.author)
 		c.Check(a.Metadata.License, Equals, jt.license)
-		c.Check(a.Metadata.Vendor, Equals, jt.group_id)
+		c.Check(a.Metadata.Vendor, Equals, jt.groupID)
 	}
 }

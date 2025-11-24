@@ -28,6 +28,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
+	"github.com/canonical/fetch-service/secrets"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
 )
@@ -46,7 +47,10 @@ func handleMessages(svc *Service, msg interface{}) {
 		handleRequestInspection(v)
 
 	case messages.ResponseInspection:
-		handleResponseInspection(v)
+		handleResponseInspection(v, svc.ch)
+
+	case messages.CompleteInspection:
+		handleCompleteInspection(v)
 
 	case messages.CreateSession:
 		handleCreateSession(v, svc.opt.Spool, svc.opt.PermissiveMode, svc)
@@ -64,7 +68,7 @@ func handleMessages(svc *Service, msg interface{}) {
 		handleDeleteResources(v, svc.opt.Spool)
 
 	case messages.ProxyAuth:
-		v.Rch <- session.CheckAuth(v.Id, v.Pw)
+		v.Rch <- session.CheckAuth(v.ID, v.Pw)
 
 	case messages.FetchCtl:
 		logger.Infof("service: fetchctl operation: %s", v.Operation)
@@ -77,11 +81,11 @@ func handleMessages(svc *Service, msg interface{}) {
 }
 
 func handleRequestInspection(v messages.RequestInspection) {
-	sessionId := v.A.SessionId
+	sessionID := v.A.SessionID
 
-	s := session.GetSession(sessionId)
+	s := session.GetSession(sessionID)
 	if s == nil {
-		v.Rch <- fmt.Errorf("cannot inspect request: session %s is not active", sessionId)
+		v.Rch <- fmt.Errorf("cannot inspect request: session %s is not active", sessionID)
 		return
 	}
 
@@ -91,14 +95,14 @@ func handleRequestInspection(v messages.RequestInspection) {
 	}(s, v.A)
 }
 
-func handleResponseInspection(v messages.ResponseInspection) {
-	sessionId := v.A.SessionId
+func handleResponseInspection(v messages.ResponseInspection, ch chan interface{}) {
+	sessionID := v.A.SessionID
 	digest := v.A.Metadata.Sha256
 	slog := v.A.Logger()
 
-	s := session.GetSession(sessionId)
+	s := session.GetSession(sessionID)
 	if s == nil {
-		v.Rch <- fmt.Errorf("cannot inspect response: session %s is not active", sessionId)
+		v.Rch <- fmt.Errorf("cannot inspect response: session %s is not active", sessionID)
 		slog.Debugf("remove stale temporary file: %s", v.A.Tempfile)
 		os.Remove(v.A.Tempfile)
 		return
@@ -110,6 +114,11 @@ func handleResponseInspection(v messages.ResponseInspection) {
 	dl := v.A.CurrentDownload
 	slog.Infof("%s %s: %s (%s)", dl.Method, dl.URL, dl.Status, dl.ContentType)
 
+	// Reuse the result of a previous inspection if the artifact is already added
+	// to the current session (meaning that there is a complete inspection of
+	// the same artifact). Otherwise save the temporary file to the file spool
+	// for inspection. Files are added to the spool only if they're not already
+	// there.
 	if s.HasArtifact(digest) {
 		slog.Infof("artifact %s already downloaded", digest)
 		s.AddDownload(v.A.CurrentDownload)
@@ -120,21 +129,50 @@ func handleResponseInspection(v messages.ResponseInspection) {
 			v.Rch <- nil
 		}
 		return
+	} else {
+		if err := s.SaveData(v.A); err != nil {
+			v.Rch <- err
+			return
+		}
 	}
 
-	// Add metadata to session
-	s.AddArtifact(v.A)
-	if err := s.SaveData(digest); err != nil {
+	// No previous inspection of this artifact is complete, so run the response
+	// inspectors on the artifact file saved to the spool. Inspectors run
+	// asynchronously and will add the artifact to the session on completion. If
+	// the artifact has already been added to the session, add a new download
+	// entry to the existing artifact.
+	go func(s *session.Session, a *metadata.Artifact, ch chan interface{}) {
+		err := runResponseInspection(s, a)
+
+		// Add artifact to session after inspection
+		cinsp := messages.NewCompleteInspection(v.A)
+		ch <- cinsp
+		errCompletion := <-cinsp.Rch
+		if errCompletion != nil {
+			v.Rch <- errCompletion
+			return
+		}
+
 		v.Rch <- err
+
+	}(s, v.A, ch)
+}
+
+func handleCompleteInspection(v messages.CompleteInspection) {
+	digest := v.A.Metadata.Sha256
+	s := session.GetSession(v.A.SessionID)
+	if s == nil {
+		v.Rch <- fmt.Errorf("cannot complete inspection: session %s is not active", v.A.SessionID)
 		return
 	}
-
+	if !s.HasArtifact(digest) {
+		s.AddArtifact(v.A)
+	}
 	s.AddDownload(v.A.CurrentDownload)
 
-	// Run response inspectors
-	go func(s *session.Session, a *metadata.Artifact) {
-		v.Rch <- runResponseInspection(s, a)
-	}(s, v.A)
+	slog := v.A.Logger()
+	slog.Infof("artifact %s inspection complete", digest)
+	v.Rch <- nil
 }
 
 func handleCreateSession(v messages.CreateSession, spoolDir string, permissiveMode bool, svc *Service) {
@@ -151,14 +189,21 @@ func handleCreateSession(v messages.CreateSession, spoolDir string, permissiveMo
 	}
 
 	timeout := time.Duration(v.Timeout * uint64(time.Second))
-	s := session.New(spoolDir, timeout, permissive)
+	sec := v.Secrets
+	if err := secrets.ValidateSecrets(sec); err != nil {
+		v.Rch <- messages.SessionCredentials{
+			Err: err,
+		}
+		return
+	}
+	s := session.New(spoolDir, timeout, permissive, sec, v.InspectorsConfig)
 	svc.totalSessions++
-	v.Rch <- messages.SessionCredentials{Id: s.Id, Token: s.Token}
+	v.Rch <- messages.SessionCredentials{ID: s.ID, Token: s.Token}
 }
 
 func handleRevokeToken(v messages.RevokeToken, spoolDir string) {
-	sessionId := v.Id
-	s := session.GetSession(sessionId)
+	sessionID := v.ID
+	s := session.GetSession(sessionID)
 	if s == nil {
 		v.Rch <- messages.RevokeTokenResult{
 			Err: messages.ErrSessionNotFound,
@@ -174,7 +219,7 @@ func handleRevokeToken(v messages.RevokeToken, spoolDir string) {
 	}
 
 	v.Rch <- messages.RevokeTokenResult{
-		SessionId: s.Id,
+		SessionID: s.ID,
 		StartTime: s.Start.String(),
 		EndTime:   s.End.String(),
 		SpoolPath: spoolDir,
@@ -182,8 +227,8 @@ func handleRevokeToken(v messages.RevokeToken, spoolDir string) {
 }
 
 func handleSessionReport(v messages.SessionReport) {
-	sessionId := v.Id
-	s := session.GetSession(sessionId)
+	sessionID := v.ID
+	s := session.GetSession(sessionID)
 	if s == nil {
 		v.Rch <- messages.SessionReportResult{
 			SessionMetadata: &metadata.SessionMetadata{Err: messages.ErrSessionNotFound},
@@ -194,7 +239,7 @@ func handleSessionReport(v messages.SessionReport) {
 	}
 
 	if !s.IsRevoked() {
-		err := fmt.Errorf("cannot get session report: session %s token was not revoked", sessionId)
+		err := fmt.Errorf("cannot get session report: session %s token was not revoked", sessionID)
 		v.Rch <- messages.SessionReportResult{
 			SessionMetadata: &metadata.SessionMetadata{Err: err},
 			Artifacts:       []*metadata.Artifact{},
@@ -210,8 +255,8 @@ func handleSessionReport(v messages.SessionReport) {
 }
 
 func handleEndSession(v messages.EndSession) {
-	sessionId := v.Id
-	s := session.GetSession(sessionId)
+	sessionID := v.ID
+	s := session.GetSession(sessionID)
 	if s == nil {
 		v.Rch <- messages.ErrSessionNotFound
 		return
@@ -221,17 +266,17 @@ func handleEndSession(v messages.EndSession) {
 }
 
 func handleDeleteResources(v messages.DeleteResources, spoolDir string) {
-	sessionId := v.Id
-	s := session.GetSession(sessionId)
+	sessionID := v.ID
+	s := session.GetSession(sessionID)
 	if s != nil {
 		v.Rch <- messages.ErrSessionNotFinished
 		return
 	}
 
 	// Delete session resources
-	go func(spoolDir, sessionId string) {
-		v.Rch <- session.RemoveResources(spoolDir, sessionId)
-	}(spoolDir, sessionId)
+	go func(spoolDir, sessionID string) {
+		v.Rch <- session.RemoveResources(spoolDir, sessionID)
+	}(spoolDir, sessionID)
 }
 
 func runRequestInspection(s *session.Session, a *metadata.Artifact) error {

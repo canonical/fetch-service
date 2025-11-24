@@ -138,7 +138,7 @@ func MoveFile(oldpath, newpath string) error {
 	// Move file content
 	if _, err := io.Copy(newfile, oldfile); err != nil {
 		newfile.Close()
-		os.Remove(newpath)
+		_ = os.Remove(newpath)
 		return err
 	}
 

@@ -63,7 +63,7 @@ func (ins *DebInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	if info, err := config.NewDebPackageUrlInfo(u, &ins.config, slog); err == nil {
+	if info, err := config.NewDebPackageURLInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for deb package").Annotate(
 			Annotation{
 				"repository":   info.Repository,
@@ -89,11 +89,21 @@ func (ins *DebInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) e
 	if err := ins.readDebMetadata(f, &md, slog); err != nil {
 		a.SetArtifactMetadata(md)
 		a.SetResponseRejected(ins, err.Error())
-	} else {
-		a.SetArtifactMetadata(md)
-		a.SetResponseApproved(ins, "deb package successfully parsed")
+		return nil
 	}
 
+	a.SetArtifactMetadata(md)
+	valid, ok := a.ResponseBoolAnnotation("apt.packages", "packages-is-valid")
+	if !ok {
+		a.SetResponseRejected(ins, "deb file not verified against Packages file")
+		return nil
+	}
+	if !valid {
+		a.SetResponseRejected(ins, "deb file listed in invalid Packages file")
+		return nil
+	}
+
+	a.SetResponseApproved(ins, "deb package successfully parsed and listed in valid Packages file")
 	return nil
 }
 
@@ -313,8 +323,14 @@ func (ins DebInspector) parseCopyright(tf io.Reader, md *ArtifactMetadata, slog 
 		}
 	}
 
-	t.Flush()
-	temp.Close()
+	err = t.Flush()
+	if err != nil {
+		return err
+	}
+	err = temp.Close()
+	if err != nil {
+		return err
+	}
 
 	md.License, err = utils.GetLicense(temp.Name(), slog)
 	if err != nil {

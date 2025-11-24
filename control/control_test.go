@@ -96,8 +96,9 @@ func (t *controlSuite) TestCreateSession(c *C) {
 		resCode int    // expected result code
 	}{
 		{`{"policy": "permissive"}`, "", 200},
+		{`{"policy": "permissive", "secrets": [{"type":"basic-auth", "url": "http://example.com"}]}`, "", 200},
 		{`{"policy": "permissive"}`, "oops", 400}, // session creation error
-		{"not json", "", 400},                     // bad parameters
+		{"not json", "", 400}, // bad parameters
 	} {
 		ch := make(chan any, 1)
 		server := control.NewServer(3333, ch, "foo:bar")
@@ -108,7 +109,7 @@ func (t *controlSuite) TestCreateSession(c *C) {
 
 		go func() {
 			msg := <-ch
-			cred := messages.SessionCredentials{Id: "A", Token: "B"}
+			cred := messages.SessionCredentials{ID: "A", Token: "B"}
 			if tc.errmsg != "" {
 				cred.Err = errors.New(tc.errmsg)
 			}
@@ -123,7 +124,7 @@ func (t *controlSuite) TestCreateSession(c *C) {
 			var cred messages.SessionCredentials
 			err = json.Unmarshal(w.Body.Bytes(), &cred)
 			c.Assert(err, IsNil)
-			c.Check(cred, DeepEquals, messages.SessionCredentials{Id: "A", Token: "B"})
+			c.Check(cred, DeepEquals, messages.SessionCredentials{ID: "A", Token: "B"})
 		}
 	}
 }
@@ -155,7 +156,7 @@ func (t *controlSuite) TestDeleteSessionToken(c *C) {
 		go func() {
 			msg := <-ch
 			msg.(messages.RevokeToken).Rch <- messages.RevokeTokenResult{
-				SessionId: tc.idvar,
+				SessionID: tc.idvar,
 				Err:       tc.err,
 			}
 		}()
@@ -169,7 +170,7 @@ func (t *controlSuite) TestDeleteSessionToken(c *C) {
 			err = json.Unmarshal(w.Body.Bytes(), &res)
 			c.Assert(err, IsNil)
 			c.Check(res.Err, IsNil)
-			c.Check(res.SessionId, Equals, tc.idvar)
+			c.Check(res.SessionID, Equals, tc.idvar)
 		}
 	}
 }

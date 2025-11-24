@@ -66,7 +66,8 @@ func (s *digestsSuite) TestSha1DigestMarshal(c *C) {
 		Bar digests.Sha1Digest `json:"bar"`
 	}
 
-	h, _ := digests.NewSha1Digest("290d07339dde2735121ab03e525ca6593c395a42")
+	h, err := digests.NewSha1Digest("290d07339dde2735121ab03e525ca6593c395a42")
+	c.Assert(err, IsNil)
 	j, err := json.Marshal(Foo{h})
 	c.Assert(err, IsNil)
 	c.Check(j, DeepEquals, []byte(`{"bar":"290d07339dde2735121ab03e525ca6593c395a42"}`))
@@ -129,7 +130,8 @@ func (s *digestsSuite) TestSha256DigestMarshal(c *C) {
 		Bar digests.Sha256Digest `json:"bar"`
 	}
 
-	h, _ := digests.NewSha256Digest("0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e")
+	h, err := digests.NewSha256Digest("0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e")
+	c.Assert(err, IsNil)
 	j, err := json.Marshal(Foo{h})
 	c.Assert(err, IsNil)
 	c.Check(j, DeepEquals, []byte(`{"bar":"0f9d4626df5afdf378004213b7f594cfb1ca0159ad00a4921fb40049dbcb292e"}`))

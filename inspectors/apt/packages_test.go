@@ -143,21 +143,31 @@ var packagesInspectArtifactTests = []packagesInspectArtifactTest{{
 func (s *aptSuite) TestPackagesInspectArtifact(c *C) {
 	for _, tc := range packagesInspectArtifactTests {
 		ins := apt.NewAptPackagesInspector(getAptInspectorConfig())
+		h2, _ := digests.NewSha256Digest(tc.digest)
 
 		// simulate InRelease entry
-		data := apt.NewAptPackages("http://myserver", "jammy", "main", "amd64")
+		data := apt.NewAptPackages(h2, "http://myserver", "jammy", "main", "amd64")
 		apt.AptPackagesInspectorAddPackages(ins, "http://myserver", "/path/Packages.xz", data, s.slog)
-
-		h2, _ := digests.NewSha256Digest(tc.digest)
 
 		a := metadata.NewArtifact()
 		a.CurrentDownload.URL = "http://myserver/path/Packages.xz"
 		a.Metadata.Sha256 = h2
 		a.Metadata.Type = "application/x.apt.packages"
 		a.MimeType = mimetype.Lookup("application/x.apt.packages")
-		a.RequestInspection[ins.ID()] = &Inspection{
-			Opinion: opinions.Pending,
+		a.SetRequestPending(ins, "some reason").Annotate(
+			Annotation{
+				"cfg-name":     "default",
+				"suite":        "jammy",
+				"component":    "main",
+				"architecture": "amd64",
+			},
+		)
+		a.ResponseInspection["apt.release"] = &Inspection{
+			Opinion: opinions.Unknown,
 			Reason:  "some reason",
+			Annotations: Annotation{
+				"release-file": "98e8b22a45d8c663490fcc133384d07534e7c52b49d3f5004a2d87199d4fee5f",
+			},
 		}
 
 		f, err := files.OpenArtifactFile(tc.filename)
@@ -171,12 +181,66 @@ func (s *aptSuite) TestPackagesInspectArtifact(c *C) {
 			c.Assert(a.Approved(), Equals, true)
 			c.Check(a.Metadata.Type, Equals, "application/x.apt.packages")
 			c.Check(a.Metadata.Name, Equals, "Packages")
-			c.Check(a.Metadata.Version, Equals, "jammy")
+			c.Check(a.Metadata.AptSuite, Equals, "jammy")
 			c.Check(a.Metadata.Description, Equals, "jammy main Packages file")
 		} else {
 			c.Assert(a.Approved(), Equals, false)
 			c.Check(a.ResponseInspection[ins.ID()].Reason, Equals, tc.rejectReason)
 		}
+	}
+}
+
+type packagesInspectArtifactMissingRequestFieldTest struct {
+	missingField string               // The missing request field
+	opinion      opinions.OpinionKind // The inspector's opinion
+	reason       string               // The reason for the opinion
+}
+
+var packagesInspectArtifactMissingRequestFieldTests = []packagesInspectArtifactMissingRequestFieldTest{{
+	missingField: "suite",
+	opinion:      opinions.Unknown,
+	reason:       "suite not specified in request URL",
+}, {
+	missingField: "component",
+	opinion:      opinions.Unknown,
+	reason:       "component not specified in request URL",
+}, {
+	missingField: "architecture",
+	opinion:      opinions.Unknown,
+	reason:       "architecture not specified in request URL",
+}, {
+	missingField: "cfg-name",
+	opinion:      opinions.Rejected,
+	reason:       "Packages file downloaded from unknown repository",
+}}
+
+func (s *aptSuite) TestPackagesInspectArtifactMissingRequestField(c *C) {
+	for _, tc := range packagesInspectArtifactMissingRequestFieldTests {
+		ins := apt.NewAptPackagesInspector(getAptInspectorConfig())
+
+		a := metadata.NewArtifact()
+		a.Metadata.Type = "application/x.apt.packages"
+
+		notes := Annotation{
+			"cfg-name":     "default",
+			"suite":        "jammy",
+			"component":    "main",
+			"architecture": "amd64",
+		}
+
+		delete(notes, tc.missingField)
+		a.SetRequestPending(ins, "some reason").Annotate(notes)
+
+		f, err := files.OpenArtifactFile("testdata/Packages.xz")
+		c.Assert(err, IsNil)
+		defer f.Close()
+
+		err = ins.InspectArtifact(f, a)
+		c.Assert(err, IsNil)
+
+		insp := a.ResponseInspection[ins.ID()]
+		c.Assert(insp.Opinion, Equals, tc.opinion)
+		c.Assert(insp.Reason, Equals, tc.reason)
 	}
 }
 
@@ -216,8 +280,8 @@ func (s *aptSuite) TestPackageParsing(c *C) {
 	for _, pt := range packageParsingTests {
 		filename := filepath.Join("testdata", pt.filename)
 		reader, err := os.Open(filename)
-
 		c.Assert(err, IsNil)
+		defer reader.Close()
 
 		entries := map[digests.Sha256Digest]apt.AptPackagesEntry{}
 
@@ -234,6 +298,136 @@ func (s *aptSuite) TestPackageParsing(c *C) {
 			c.Assert(entry.Architecture, Equals, pt.architecture)
 			c.Assert(entry.Version, Equals, pt.version)
 			c.Assert(entry.Size, Equals, pt.size)
+		}
+	}
+}
+
+type aptPackagesDebValidationTest struct {
+	pkgURL            string // Packages file URL
+	debURL            string // Deb file URL
+	cfgName           string // The repository name in configuration
+	filename          string // Test artifact file name
+	debInPackages     bool   // Whether the deb is listed in the Packages file
+	packagesInRelease bool   // Whether the Packages file is listed in InRelease
+	rejectReason      string // Rejection reason, if rejected
+}
+
+var aptPackagesDebValidationTests = []aptPackagesDebValidationTest{{
+	pkgURL:            "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/5bf8bcda46d2d2bd81840ea5808f2b2122598bd68cc4889e3e32055ecc43b513",
+	debURL:            "http://archive.ubuntu.com/ubuntu/pool/universe/2/2048/2048_0.20210105.1243-1_amd64.deb",
+	cfgName:           "default",
+	filename:          "testdata/2048_0.20210105.1243-1_amd64.deb",
+	debInPackages:     true,
+	packagesInRelease: true,
+	rejectReason:      "",
+}, {
+	pkgURL:            "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/5bf8bcda46d2d2bd81840ea5808f2b2122598bd68cc4889e3e32055ecc43b513",
+	debURL:            "http://archive.ubuntu.com/ubuntu/pool/universe/2/2048/2048_0.20210105.1243-1_amd64.deb",
+	cfgName:           "default",
+	filename:          "testdata/2048_0.20210105.1243-1_amd64.deb",
+	debInPackages:     true,
+	packagesInRelease: false,
+	rejectReason:      "artifact listed in invalid Packages file",
+}, {
+	pkgURL:            "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/5bf8bcda46d2d2bd81840ea5808f2b2122598bd68cc4889e3e32055ecc43b513",
+	debURL:            "http://archive.ubuntu.com/ubuntu/pool/universe/2/2048/2048_0.20210105.1243-1_amd64.deb",
+	cfgName:           "default",
+	filename:          "testdata/2048_0.20210105.1243-1_amd64.deb",
+	debInPackages:     false,
+	packagesInRelease: true,
+	rejectReason:      "deb file digest not listed in packages file",
+}, {
+	pkgURL:            "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/5bf8bcda46d2d2bd81840ea5808f2b2122598bd68cc4889e3e32055ecc43b513",
+	debURL:            "http://archive.ubuntu.com/ubuntu/pool/universe/2/2048/2048_0.20210105.1243-1_amd64.deb",
+	cfgName:           "", // missing cfg-name
+	filename:          "testdata/2048_0.20210105.1243-1_amd64.deb",
+	debInPackages:     true,
+	packagesInRelease: true,
+	rejectReason:      "deb file downloaded from unknown repository",
+}, {
+	pkgURL:            "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/5bf8bcda46d2d2bd81840ea5808f2b2122598bd68cc4889e3e32055ecc43b513",
+	debURL:            "http://archive.ubuntu.com/ubuntu/pool/universe/2/2048/2048_0.20210105.1243-1_amd64.deb",
+	cfgName:           "invalid", // invalid cfg-name
+	filename:          "testdata/2048_0.20210105.1243-1_amd64.deb",
+	debInPackages:     true,
+	packagesInRelease: true,
+	rejectReason:      "Unknown repository configuration name",
+}}
+
+func (s *aptSuite) TestAptPackagesDebValidation(c *C) {
+	for _, tc := range aptPackagesDebValidationTests {
+		f, err := files.OpenArtifactFile(tc.filename)
+		c.Assert(err, IsNil)
+
+		ins := apt.NewAptPackagesInspector(getTestAptConfig())
+
+		// Inspect the packages file
+		if tc.debInPackages {
+			a2 := metadata.NewArtifact()
+			a2.CurrentDownload.URL = tc.pkgURL
+			err := ins.InspectRequest(a2)
+			c.Assert(err, IsNil)
+			c.Assert(a2.RequestInspection[ins.ID()].Opinion, Equals, opinions.Pending)
+
+			a2.Metadata.Sha256, _ = digests.NewSha256Digest("5bf8bcda46d2d2bd81840ea5808f2b2122598bd68cc4889e3e32055ecc43b513")
+			a2.Metadata.Type = "application/x.apt.packages"
+			a2.MimeType = mimetype.Lookup("application/x.apt.packages")
+
+			if tc.packagesInRelease {
+				a2.ResponseInspection["apt.release"] = &Inspection{
+					Opinion: opinions.Unknown,
+					Reason:  "some reason",
+					Annotations: Annotation{
+						"release-file": "98e8b22a45d8c663490fcc133384d07534e7c52b49d3f5004a2d87199d4fee5f",
+					},
+				}
+			}
+
+			pkgf, err := files.OpenArtifactFile("testdata/Packages-2048.xz")
+			c.Assert(err, IsNil)
+			err = ins.InspectArtifact(pkgf, a2)
+			c.Assert(err, IsNil)
+
+		}
+		a := metadata.NewArtifact()
+		a.Metadata.Type = "application/vnd.debian.binary-package"
+		a.MimeType = mimetype.Lookup("application/vnd.debian.binary-package")
+		a.CurrentDownload = metadata.Download{URL: tc.debURL}
+		a.Metadata.Sha256, _ = digests.NewSha256Digest("defa3a9b60849dc9f1bd3549381683d9fd245a0bebb900dc84f306c133a05a17")
+		a.Metadata.Size = 14744
+		notes := Annotation{}
+		if tc.cfgName != "" {
+			notes["cfg-name"] = tc.cfgName
+		}
+		a.SetRequestPending(ins, "some reason").Annotate(notes)
+
+		pkgreader, err := os.Open(tc.filename)
+		c.Assert(err, IsNil)
+		defer pkgreader.Close()
+
+		err = ins.InspectArtifact(f, a)
+		c.Assert(err, IsNil)
+
+		c.Assert(a.Approved(), Equals, false)
+
+		if tc.rejectReason == "" {
+			c.Assert(a.ResponseInspection["apt.packages"], DeepEquals, &Inspection{
+				Opinion: opinions.Unknown,
+				Reason:  "deb file matches packages entry",
+				Annotations: Annotation{
+					"packages-name":         "2048",
+					"packages-version":      "0.20210105.1243-1",
+					"packages-architecture": "amd64",
+					"packages-size":         int64(14744),
+					"packages-file":         "5bf8bcda46d2d2bd81840ea5808f2b2122598bd68cc4889e3e32055ecc43b513",
+					"packages-is-valid":     true,
+					"dist":                  "jammy",
+					"component":             "universe",
+				},
+			})
+		} else {
+			c.Assert(a.ResponseInspection["apt.packages"].Opinion, Equals, opinions.Rejected)
+			c.Assert(a.ResponseInspection["apt.packages"].Reason, Equals, tc.rejectReason)
 		}
 	}
 }

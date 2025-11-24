@@ -16,6 +16,58 @@ suites:
       snap install "$CRAFT_ARTIFACT" --dangerous
       snap set fetch-service permissive=true
       snap set fetch-service control.auth=craft:craft
+      snap set fetch-service log.file=fetch.log
+      mkdir -p /usr/local/share/ca-certificates
+      cp /var/snap/fetch-service/current/local-ca.crt /usr/local/share/ca-certificates
+      update-ca-certificates
+      systemctl restart snapd
+
+  spread/inspectors/:
+    summary: Inspector smoke tests
+    prepare: |
+      snap install "$CRAFT_ARTIFACT" --dangerous
+      snap set fetch-service permissive=true
+      snap set fetch-service control.auth=craft:craft
+      snap set fetch-service log.file=fetch.log
+      mkdir -p /usr/local/share/ca-certicates
+      cp /var/snap/fetch-service/current/local-ca.crt /usr/local/share/ca-certificates
+      update-ca-certificates
+      systemctl restart snapd
+    prepare-each: |
+      snap stop fetch-service
+      rm -f ./dont-snap-stop
+
+      # Clear the fetch-service log, so that it only contains output from the test
+      # shellcheck disable=SC2016
+      snap_data=$(snap run --shell fetch-service -c 'echo $SNAP_DATA')
+      logfile=${snap_data}/fetch.log
+      rm -f "${logfile}"
+
+      snap start fetch-service
+      sleep 5
+      fetch-service.fetchctl version
+    restore-each: |
+      if [ ! -f ./dont-snap-stop ]; then
+        snap stop fetch-service
+      fi
+      
+      # Clear the fetch-service log, so that it only contains output from the test
+      # shellcheck disable=SC2016
+      snap_data=$(snap run --shell fetch-service -c 'echo $SNAP_DATA')
+      logfile=${snap_data}/fetch.log
+      rm -f "${logfile}"
+
+    debug-each: |
+      # Dump the fetch-service log, if it exists
+      # shellcheck disable=SC2016
+      snap_data=$(snap run --shell fetch-service -c 'echo $SNAP_DATA')
+      logfile=${snap_data}/fetch.log
+      if [ -f "${logfile}" ]; then
+        echo "fetch-service log output:"
+        cat "${logfile}"
+      else
+        echo "fetch-service logfile does not exist."
+      fi
 
   spread/install/:
     summary: Snap install and upgrade tests
@@ -26,9 +78,9 @@ suites:
     prepare: |
       snap install yq
     restore: |
-      snap remove fetch-service --purge
+      snap remove fetch-service --purge --terminate
     prepare-each: |
-      snap remove fetch-service --purge
+      snap remove fetch-service --purge --terminate
     
 exclude:
   - .git

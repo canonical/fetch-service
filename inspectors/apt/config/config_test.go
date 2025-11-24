@@ -44,14 +44,14 @@ func getTestAptConfig() config.AptInspectorConfig {
 	return config.AptInspectorConfig{
 		Repositories: map[string]config.AptInspectorConfigRepository{
 			"default": {
-				Urls:       []glob.Glob{glob.MustCompile("http://*.ubuntu.com/ubuntu")},
-				Dists:      []glob.Glob{glob.MustCompile("focal")},
+				URLs:       []glob.Glob{glob.MustCompile("http://*.ubuntu.com/ubuntu")},
+				Suites:     []glob.Glob{glob.MustCompile("focal")},
 				Components: []glob.Glob{glob.MustCompile("main")},
 				PublicKey:  "",
 			},
 			"esm": {
-				Urls:       []glob.Glob{glob.MustCompile("https://esm.ubuntu.com:443/fips*/ubuntu")},
-				Dists:      []glob.Glob{glob.MustCompile("noble")},
+				URLs:       []glob.Glob{glob.MustCompile("https://esm.ubuntu.com:443/fips*/ubuntu")},
+				Suites:     []glob.Glob{glob.MustCompile("noble")},
 				Components: []glob.Glob{glob.MustCompile("main")},
 				PublicKey:  "",
 			},
@@ -59,73 +59,73 @@ func getTestAptConfig() config.AptInspectorConfig {
 	}
 }
 
-type inReleaseUrlInfoTest struct {
+type inReleaseURLInfoTest struct {
 	url      string // The request URL
 	conf     string // The repository configuration entry
 	repo     string // The repository name (URL scheme and origin)
-	series   string // The distribution series
+	suite    string // The distribution series
 	errorMsg string // The error message, if any
 }
 
-var inReleaseUrlInfoTests = []inReleaseUrlInfoTest{{
+var inReleaseURLInfoTests = []inReleaseURLInfoTest{{
 	url:      "http://archive.ubuntu.com/ubuntu/dists/focal/InRelease",
 	conf:     "default",
 	repo:     "http://archive.ubuntu.com/ubuntu",
-	series:   "focal",
+	suite:    "focal",
 	errorMsg: "",
 }, {
 	url:      "http://us.archive.ubuntu.com/ubuntu/dists/focal/InRelease",
 	conf:     "default",
 	repo:     "http://us.archive.ubuntu.com/ubuntu",
-	series:   "focal",
+	suite:    "focal",
 	errorMsg: "",
 }, {
 	url:      "http://archive.ubuntu.com/ubuntu/dists/jammy/InRelease",
 	conf:     "none",
 	repo:     "http://archive.ubuntu.com/ubuntu",
-	series:   "jammy",
+	suite:    "jammy",
 	errorMsg: "invalid series: jammy",
 }, {
 	url:      "http://archive.ubuntu.com/ubuntu/dists/focal/NotInRelease",
 	conf:     "none",
 	repo:     "http://archive.ubuntu.com/ubuntu",
-	series:   "focal",
+	suite:    "focal",
 	errorMsg: "invalid InRelease URL path: .*",
 }, {
 	url:      "http://archive.ubuntu.com/ubuntu/focal/InRelease",
 	conf:     "none",
 	repo:     "none",
-	series:   "http://archive.ubuntu.com/ubuntu",
+	suite:    "http://archive.ubuntu.com/ubuntu",
 	errorMsg: "invalid repository URL: http://.*",
 }, {
 	url:      "https://esm.ubuntu.com:443/fips-preview/ubuntu/dists/noble/InRelease",
 	conf:     "esm",
 	repo:     "https://esm.ubuntu.com:443/fips-preview/ubuntu",
-	series:   "noble",
+	suite:    "noble",
 	errorMsg: "",
 }, {
 	url:      "https://esm.ubuntu.com:443/other-repo/ubuntu/dists/noble/InRelease",
 	conf:     "none",
 	repo:     "https://esm.ubuntu.com:443/other-repo/ubuntu",
-	series:   "noble",
+	suite:    "noble",
 	errorMsg: "invalid repository: https://esm.ubuntu.com:443/other-repo/ubuntu",
 }}
 
-func (t *configSuite) TestInReleaseUrlInfo(c *C) {
-	for _, tc := range inReleaseUrlInfoTests {
+func (t *configSuite) TestInReleaseURLInfo(c *C) {
+	for _, tc := range inReleaseURLInfoTests {
 		u, err := url.Parse(tc.url)
 		c.Assert(err, IsNil)
 
 		cfg := getTestAptConfig()
-		info, err := config.NewInReleaseUrlInfo(u, &cfg, t.slog)
+		info, err := config.NewInReleaseURLInfo(u, &cfg, t.slog)
 
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
-			c.Assert(info, DeepEquals, &config.InReleaseUrlInfo{
+			c.Assert(info, DeepEquals, &config.InReleaseURLInfo{
 				CfgName:    tc.conf,
 				Origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 				Repository: tc.repo,
-				Dist:       tc.series,
+				Suite:      tc.suite,
 			})
 		} else {
 			c.Assert(err, ErrorMatches, tc.errorMsg)
@@ -133,7 +133,7 @@ func (t *configSuite) TestInReleaseUrlInfo(c *C) {
 	}
 }
 
-type packageUrlInfoTest struct {
+type packageURLInfoTest struct {
 	url      string // The request URL
 	conf     string // The repository configuration name
 	repo     string // The repository name
@@ -141,7 +141,7 @@ type packageUrlInfoTest struct {
 	errorMsg string // The error message
 }
 
-var packageUrlInfoTests = []packageUrlInfoTest{{
+var packageURLInfoTests = []packageURLInfoTest{{
 	url:      "http://archive.ubuntu.com/ubuntu/dists/focal/main/binary-amd64/by-hash/SHA256/5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
 	conf:     "default",
 	repo:     "http://archive.ubuntu.com/ubuntu",
@@ -191,32 +191,32 @@ var packageUrlInfoTests = []packageUrlInfoTest{{
 	errorMsg: "invalid repository: https://esm.ubuntu.com:443/other-repo/ubuntu",
 }}
 
-func (t *configSuite) TestPackagesUrlInfo(c *C) {
-	for _, tc := range packageUrlInfoTests {
+func (t *configSuite) TestPackagesURLInfo(c *C) {
+	for _, tc := range packageURLInfoTests {
 		u, err := url.Parse(tc.url)
 		c.Assert(err, IsNil)
 
 		cfg := getTestAptConfig()
-		info, err := config.NewPackagesUrlInfo(u, &cfg, t.slog)
+		info, err := config.NewPackagesURLInfo(u, &cfg, t.slog)
 
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
 			if strings.Contains(tc.url, "/by-hash/") {
-				c.Assert(info, DeepEquals, &config.PackagesUrlInfo{
+				c.Assert(info, DeepEquals, &config.PackagesURLInfo{
 					CfgName:      tc.conf,
 					Origin:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 					Repository:   tc.repo,
-					Dist:         tc.series,
+					Suite:        tc.series,
 					Component:    "main",
 					Architecture: "amd64",
 					Digest:       "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
 				})
 			} else {
-				c.Assert(info, DeepEquals, &config.PackagesUrlInfo{
+				c.Assert(info, DeepEquals, &config.PackagesURLInfo{
 					CfgName:      tc.conf,
 					Origin:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 					Repository:   tc.repo,
-					Dist:         tc.series,
+					Suite:        tc.series,
 					Component:    "main",
 					Architecture: "amd64",
 					Digest:       "",
@@ -228,7 +228,7 @@ func (t *configSuite) TestPackagesUrlInfo(c *C) {
 	}
 }
 
-type translationUrlInfoTest struct {
+type translationURLInfoTest struct {
 	url      string // The request URL
 	conf     string // The repository configuration entry
 	repo     string // The repository name (URL scheme and origin)
@@ -236,7 +236,7 @@ type translationUrlInfoTest struct {
 	errorMsg string // The error message, if any
 }
 
-var translationUrlInfoTests = []translationUrlInfoTest{{
+var translationURLInfoTests = []translationURLInfoTest{{
 	url:      "http://archive.ubuntu.com/ubuntu/dists/focal/main/i18n/by-hash/SHA256/5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
 	conf:     "default",
 	repo:     "http://archive.ubuntu.com/ubuntu",
@@ -280,21 +280,21 @@ var translationUrlInfoTests = []translationUrlInfoTest{{
 	errorMsg: "invalid repository: https://esm.ubuntu.com:443/other-repo/ubuntu",
 }}
 
-func (t *configSuite) TestTranslationUrlInfo(c *C) {
-	for _, tc := range translationUrlInfoTests {
+func (t *configSuite) TestTranslationURLInfo(c *C) {
+	for _, tc := range translationURLInfoTests {
 		u, err := url.Parse(tc.url)
 		c.Assert(err, IsNil)
 
 		cfg := getTestAptConfig()
-		info, err := config.NewTranslationUrlInfo(u, &cfg, t.slog)
+		info, err := config.NewTranslationURLInfo(u, &cfg, t.slog)
 
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
-			c.Assert(info, DeepEquals, &config.TranslationUrlInfo{
+			c.Assert(info, DeepEquals, &config.TranslationURLInfo{
 				CfgName:    tc.conf,
 				Origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 				Repository: tc.repo,
-				Dist:       tc.series,
+				Suite:      tc.series,
 				Component:  "main",
 				Digest:     "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
 			})
@@ -304,7 +304,7 @@ func (t *configSuite) TestTranslationUrlInfo(c *C) {
 	}
 }
 
-type commandsUrlInfoTest struct {
+type commandsURLInfoTest struct {
 	url      string // The request URL
 	conf     string // The repository configuration entry
 	repo     string // The repository name (URL scheme and origin)
@@ -312,7 +312,7 @@ type commandsUrlInfoTest struct {
 	errorMsg string // The error message, if any
 }
 
-var commandsUrlInfoTests = []commandsUrlInfoTest{{
+var commandsURLInfoTests = []commandsURLInfoTest{{
 	url:      "http://archive.ubuntu.com/ubuntu/dists/focal/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
 	conf:     "default",
 	repo:     "http://archive.ubuntu.com/ubuntu",
@@ -356,21 +356,21 @@ var commandsUrlInfoTests = []commandsUrlInfoTest{{
 	errorMsg: "invalid repository: https://esm.ubuntu.com:443/other-repo/ubuntu",
 }}
 
-func (t *configSuite) TestCommandsUrlInfo(c *C) {
-	for _, tc := range commandsUrlInfoTests {
+func (t *configSuite) TestCommandsURLInfo(c *C) {
+	for _, tc := range commandsURLInfoTests {
 		u, err := url.Parse(tc.url)
 		c.Assert(err, IsNil)
 
 		cfg := getTestAptConfig()
-		info, err := config.NewCommandsUrlInfo(u, &cfg, t.slog)
+		info, err := config.NewCommandURLInfo(u, &cfg, t.slog)
 
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
-			c.Assert(info, DeepEquals, &config.CommandsUrlInfo{
+			c.Assert(info, DeepEquals, &config.CommandsURLInfo{
 				CfgName:    tc.conf,
 				Origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 				Repository: tc.repo,
-				Dist:       tc.series,
+				Suite:      tc.series,
 				Component:  "main",
 				Digest:     "6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
 			})
@@ -380,14 +380,32 @@ func (t *configSuite) TestCommandsUrlInfo(c *C) {
 	}
 }
 
-type debPackageUrlInfoTest struct {
+func (t *configSuite) TestCommandsURLInfoByName(c *C) {
+	u, err := url.Parse("http://archive.ubuntu.com/ubuntu/dists/focal/main/cnf/Commands-amd64.xz")
+	c.Assert(err, IsNil)
+
+	cfg := getTestAptConfig()
+	info, err := config.NewCommandURLInfo(u, &cfg, t.slog)
+
+	c.Assert(err, IsNil)
+	c.Assert(info, DeepEquals, &config.CommandsURLInfo{
+		CfgName:    "default",
+		Origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
+		Repository: "http://archive.ubuntu.com/ubuntu",
+		Suite:      "focal",
+		Component:  "main",
+		Digest:     "",
+	})
+}
+
+type debPackageURLInfoTest struct {
 	url      string // The request URL
 	conf     string // The repository configuration entry
 	repo     string // The repository URL scheme and origin
 	errorMsg string // The error message if any
 }
 
-var debPackageUrlInfoTests = []debPackageUrlInfoTest{{
+var debPackageURLInfoTests = []debPackageURLInfoTest{{
 	url:      "http://archive.ubuntu.com/ubuntu/pool/main/c/curl/libcurl3-gnutls_7.81.0-1ubuntu1.16_amd64.deb",
 	conf:     "default",
 	repo:     "http://archive.ubuntu.com/ubuntu",
@@ -419,17 +437,17 @@ var debPackageUrlInfoTests = []debPackageUrlInfoTest{{
 	errorMsg: "invalid repository: https://esm.ubuntu.com:443/other-repo/ubuntu",
 }}
 
-func (t *configSuite) TestDebPackageUrlInfo(c *C) {
-	for _, tc := range debPackageUrlInfoTests {
+func (t *configSuite) TestDebPackageURLInfo(c *C) {
+	for _, tc := range debPackageURLInfoTests {
 		u, err := url.Parse(tc.url)
 		c.Assert(err, IsNil)
 
 		cfg := getTestAptConfig()
-		info, err := config.NewDebPackageUrlInfo(u, &cfg, t.slog)
+		info, err := config.NewDebPackageURLInfo(u, &cfg, t.slog)
 
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil, Commentf("%+v", tc))
-			c.Assert(info, DeepEquals, &config.DebPackageUrlInfo{
+			c.Assert(info, DeepEquals, &config.DebPackageURLInfo{
 				CfgName:      tc.conf,
 				Origin:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 				Repository:   tc.repo,

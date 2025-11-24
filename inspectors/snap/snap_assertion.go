@@ -39,7 +39,15 @@ func AssertionDetector(raw []byte, limit uint32) bool {
 		return false
 	}
 
-	return strings.HasPrefix(lines[0], "type:") && strings.HasPrefix(lines[1], "authority-id:")
+	hasAuthID := false
+	for i := range lines {
+		if strings.HasPrefix(lines[i], "authority-id:") {
+			hasAuthID = true
+			break
+		}
+	}
+
+	return strings.HasPrefix(lines[0], "type:") && hasAuthID
 }
 
 // SnapAssertionInspector examines assertion requests and files.
@@ -60,10 +68,6 @@ func (SnapAssertionInspector) ID() string {
 
 // InspectRequest verifies if the request complies with policy.
 func (ins *SnapAssertionInspector) InspectRequest(a RequestArtifact) error {
-	if !a.RequestHeaderContains("Accept", "application/x.ubuntu.assertion") {
-		return nil
-	}
-
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
@@ -81,14 +85,16 @@ func (ins *SnapAssertionInspector) InspectRequest(a RequestArtifact) error {
 	// its identifier, and the account-key assertion holds the public
 	// part of a key belonging to the account.
 	var reason string
-	if _, err := newSnapRevisionAssertionUrlInfo(u); err == nil {
+	if _, err := newSnapRevisionAssertionURLInfo(u); err == nil {
 		reason = "valid URL for snap-revision assertion download"
-	} else if _, err := newSnapDeclarationAssertionUrlInfo(u); err == nil {
+	} else if _, err := newSnapDeclarationAssertionURLInfo(u); err == nil {
 		reason = "valid URL for snap-declaration assertion download"
-	} else if _, err := newAccountAssertionUrlInfo(u); err == nil {
+	} else if _, err := newAccountAssertionURLInfo(u); err == nil {
 		reason = "valid URL for account-key assertion download"
-	} else if _, err := newAccountKeyAssertionUrlInfo(u); err == nil {
+	} else if _, err := newAccountKeyAssertionURLInfo(u); err == nil {
 		reason = "valid URL for account-key assertion download"
+	} else if _, err := newSerialAssertionURLInfo(u); err == nil {
+		reason = "valid URL for serial assertion download"
 	} else {
 		return nil // we don't recognize this request
 	}
@@ -142,6 +148,8 @@ func (ins *SnapAssertionInspector) InspectArtifact(f ArtifactReader, a ResponseA
 		mtype = mimetypes.AccountAssertion
 	case "account-key":
 		mtype = mimetypes.AccountKeyAssertion
+	case "serial":
+		mtype = mimetypes.SerialAssertion
 	}
 
 	a.SetArtifactMetadata(ArtifactMetadata{

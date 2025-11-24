@@ -30,6 +30,8 @@ import (
 	"github.com/canonical/fetch-service/inspectors/bldbin/config"
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/files"
+	"github.com/canonical/fetch-service/inspectors/store"
+	storeConfig "github.com/canonical/fetch-service/inspectors/store/config"
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
@@ -43,7 +45,15 @@ func Test(t *testing.T) { TestingT(t) }
 
 func getTestBldBinConfig() config.BldBinInspectorConfig {
 	return config.BldBinInspectorConfig{
-		Urls: []glob.Glob{glob.MustCompile("https://api.snapcraft.io:443/api/v1/bins/download/**")},
+		URLs: []glob.Glob{glob.MustCompile("https://api.snapcraft.io:443/api/v1/bins/download/**")},
+	}
+}
+
+func getTestStoreConfig() storeConfig.StoreInspectorConfig {
+	return storeConfig.StoreInspectorConfig{
+		URLs: []glob.Glob{
+			glob.MustCompile("https://api.snapcraft.io:443/v2/bins/info/**"),
+		},
 	}
 }
 
@@ -106,6 +116,9 @@ var bldbinArtifactInspectorTests = []bldbinArtifactInspectorTest{{
 }, {
 	filename: "testdata/invalid-bin.tar.xz",
 	approved: false,
+}, {
+	filename: "testdata/Packages.xz",
+	approved: false,
 }}
 
 func (s *bldbinSuite) TestBldBinArtifactInspector(c *C) {
@@ -118,13 +131,17 @@ func (s *bldbinSuite) TestBldBinArtifactInspector(c *C) {
 		c.Assert(err, IsNil)
 		defer f.Close()
 
+		storeIns := store.NewStoreInfoAPIInspector(getTestStoreConfig(), getTestBldBinConfig())
 		ins := bldbin.NewBldBinInspector(getTestBldBinConfig())
+		a.SetRequestPending(storeIns, "test").Annotate(Annotation{"package-id": "package-id"})
+		a.SetResponseUnknown(storeIns, "test").Annotate(Annotation{"revision": "1234"})
 		a.SetRequestPending(ins, "test")
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 		c.Assert(a.Approved(), Equals, tc.approved)
 
 		if tc.approved {
+			c.Check(a.ResponseApproved(), Equals, true)
 			c.Check(a.Metadata.Name, Equals, "starcraft-test")
 			c.Check(a.Metadata.Version, Equals, "2.0.0")
 			c.Check(a.Metadata.Description, Equals, "Package used in Starcraft tests")
@@ -132,6 +149,12 @@ func (s *bldbinSuite) TestBldBinArtifactInspector(c *C) {
 			c.Check(a.Metadata.Author, Equals, "")
 			c.Check(a.Metadata.License, Equals, "GPL-3.0-or-later")
 			c.Check(a.Metadata.Architecture, Equals, "amd64")
+			c.Check(a.Metadata.StoreRevision, Equals, "1234")
+			c.Check(a.Metadata.ContentID, Equals, "package-id")
+		} else {
+			// We don't recognize this artifact
+			c.Check(a.ResponseApproved(), Equals, false)
+			c.Check(a.ResponseRejected(), Equals, false)
 		}
 	}
 }

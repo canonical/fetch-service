@@ -22,9 +22,9 @@ package store
 var (
 	Sha3_384Digest = sha3_384Digest
 
-	StoreApiInspectorSetStoreApiInfo  = (*StoreApiInspector).setStoreApiInfo
-	StoreApiInspectorFindStoreApiInfo = (*StoreApiInspector).findStoreApiInfo
+	StoreInfoAPIInspectorSetInfo  = (*StoreInfoAPIInspector).setInfo
+	StoreInfoAPIInspectorFindInfo = (*StoreInfoAPIInspector).findInfo
 )
 
-type StoreApiInfo = storeApiInfo
-type StoreApiRevisionInfo = storeApiRevisionInfo
+type StoreInfoAPIInfo = storeInfoAPIInfo
+type StoreInfoAPIRevisionInfo = storeInfoAPIRevisionInfo

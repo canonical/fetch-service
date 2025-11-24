@@ -34,7 +34,7 @@ import (
 	"github.com/canonical/fetch-service/logger"
 )
 
-// Check if the given data could be a valid translation file.
+// AptTranslationDetector checks if the given data could be a valid translation file.
 // The translation file should contain the following fields:
 // - Package
 // - Description-md5
@@ -53,6 +53,29 @@ func AptTranslationDetector(raw []byte, limit uint32) bool {
 
 	buf = buf[:n]
 
+	fields, ok := getTextFields(buf, 3)
+	if !ok {
+		return false
+	}
+
+	expectedFields := []string{
+		"Package",
+		"Description-md5",
+	}
+
+	for _, k := range expectedFields {
+		_, ok := fields[k]
+		if !ok {
+			logger.Debugf("apt translation detector: expected field %q not found", k)
+			return false // we don't recognize this file
+		}
+	}
+
+	return true
+}
+
+// getTextFields looks for n key: value lines in buf.
+func getTextFields(buf []byte, n int) (map[string]struct{}, bool) {
 	sc := bufio.NewScanner(bytes.NewReader(buf))
 	sc.Split(bufio.ScanLines)
 
@@ -69,30 +92,17 @@ func AptTranslationDetector(raw []byte, limit uint32) bool {
 
 		k, _, ok := strings.Cut(line, ":")
 		if !ok {
-			return false
+			return fields, false
 		}
 
 		fields[k] = struct{}{}
 	}
 
-	if len(fields) != 3 {
-		return false
+	if len(fields) != n {
+		return fields, false
 	}
 
-	expected_fields := []string{
-		"Package",
-		"Description-md5",
-	}
-
-	for _, k := range expected_fields {
-		_, ok := fields[k]
-		if !ok {
-			logger.Debugf("apt translation detector: expected field %q not found", k)
-			return false // we don't recognize this file
-		}
-	}
-
-	return true
+	return fields, true
 }
 
 // AptTranslationInspector contains inspector-specific contextual data for stateful
@@ -117,11 +127,11 @@ func (ins *AptTranslationInspector) InspectRequest(a RequestArtifact) error {
 
 	slog := a.Logger()
 
-	if info, err := apt_cfg.NewTranslationUrlInfo(u, &ins.config, slog); err == nil {
+	if info, err := apt_cfg.NewTranslationURLInfo(u, &ins.config, slog); err == nil {
 		a.SetRequestPending(ins, "valid URL for Translation file").Annotate(
 			Annotation{
 				"repository": info.Repository,
-				"dist":       info.Dist,
+				"suite":      info.Suite,
 				"component":  info.Component,
 			},
 		)
@@ -142,7 +152,7 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 
 	r, err := xz.NewReader(f, 0)
 	if err != nil {
-		a.SetResponseRejected(ins, "cannot read xz file")
+		a.SetResponseUnknown(ins, "cannot read xz file")
 		return nil
 	}
 
@@ -153,10 +163,10 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 	buf := make([]byte, 0, 64*1024)
 	sc.Buffer(buf, 1024*1024)
 
-	item_count := 0
-	state_package := false
-	state_md5sum := false
-	state_description := false
+	itemCount := 0
+	statePackage := false
+	stateMD5sum := false
+	stateDescription := false
 	lang := ""
 
 	// Check if the Translation file is well-formed
@@ -164,25 +174,25 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 		line := sc.Text()
 
 		if strings.HasPrefix(line, "Package: ") {
-			if state_package {
+			if statePackage {
 				a.SetResponseRejected(ins, "misplaced package fields in translation file")
 				return nil
 			}
-			state_package = true
+			statePackage = true
 			continue
 		} else if strings.HasPrefix(line, "Description-md5: ") {
-			if !state_package {
+			if !statePackage {
 				a.SetResponseRejected(ins, "description-md5 field without Package field")
 				return nil
 			}
-			state_md5sum = true
+			stateMD5sum = true
 			continue
 		} else if strings.HasPrefix(line, "Description-") {
-			if !state_md5sum || !state_package {
+			if !stateMD5sum || !statePackage {
 				a.SetResponseRejected(ins, "description field without Package or Description-md5 field")
 				return nil
 			}
-			state_description = true
+			stateDescription = true
 			if lang == "" { // get the language code
 				descLang, _, langFound := strings.Cut(line, ":")
 				if langFound {
@@ -191,29 +201,29 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 			}
 			continue
 		} else if strings.HasPrefix(line, " ") { // Description field continuation with leading space
-			if !state_description {
+			if !stateDescription {
 				a.SetResponseRejected(ins, "description field without Package or Description-md5 field")
 				return nil
 			}
 			continue
 		} else if len(line) == 0 { // item ends
-			if state_description {
-				item_count++
+			if stateDescription {
+				itemCount++
 			}
-			state_package = false
-			state_md5sum = false
-			state_description = false
+			statePackage = false
+			stateMD5sum = false
+			stateDescription = false
 		}
 	}
 
 	// Handle the last item if not followed by an empty line
-	if item_count > 0 {
-		if state_package {
-			if !state_md5sum {
+	if itemCount > 0 {
+		if statePackage {
+			if !stateMD5sum {
 				a.SetResponseRejected(ins, "description-md5 field missing for the last Package")
 				return nil
 			}
-			if !state_description {
+			if !stateDescription {
 				a.SetResponseRejected(ins, "description field missing for the last Package")
 				return nil
 			}
@@ -223,25 +233,38 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 		return nil
 	}
 
-	md := ArtifactMetadata{
-		Type: mimetypes.AptTranslation,
-		Name: "Translation",
+	suite, ok := a.RequestStringAnnotation(ins.ID(), "suite")
+	if !ok {
+		a.SetResponseUnknown(ins, "suite not specified in request URL")
+		return nil
 	}
 
-	// the file should be also annotated by the release inspector
-	vendor, ok := a.ResponseStringAnnotation("apt.release", "vendor")
+	md := ArtifactMetadata{
+		Type:     mimetypes.AptTranslation,
+		Name:     "Translation",
+		AptSuite: suite,
+	}
+
+	// The file should be also annotated by the release inspector.
+	vendor, ok := a.ResponseStringAnnotation(aptReleaseInspectorID, "vendor")
 	if ok {
 		md.Vendor = vendor
 		md.Author = vendor
 	}
 
 	a.SetArtifactMetadata(md)
-	a.SetResponseApproved(ins, "translation file successfully parsed").Annotate(
-		Annotation{
-			"translation-language": lang,
-			"translation-count":    item_count,
-		},
-	)
+
+	notes := Annotation{
+		"translation-language": lang,
+		"translation-count":    itemCount,
+	}
+
+	_, ok = a.ResponseStringAnnotation(aptReleaseInspectorID, "release-file")
+	if ok {
+		a.SetResponseApproved(ins, "translation file successfully parsed").Annotate(notes)
+	} else {
+		a.SetResponseRejected(ins, "translation file not verified against release file").Annotate(notes)
+	}
 
 	return nil
 }

@@ -69,7 +69,7 @@ type aptCommandsInspectRequestTest struct {
 }
 
 var aptCommandsInspectRequestTests = []aptCommandsInspectRequestTest{{
-	// Correct commands file URL
+	// Correct Commands file URL
 	url:     "http://archive.ubuntu.com/ubuntu/dists/focal/main/cnf/by-hash/SHA256/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf",
 	pending: true,
 }, {
@@ -147,12 +147,15 @@ func (s *aptSuite) TestAptCommandsInspector(c *C) {
 		ins := apt.NewAptCommandsInspector(getTestAptConfig())
 
 		a := metadata.NewArtifact()
-		a.SetRequestPending(ins, "test")
+		a.SetRequestPending(ins, "test").Annotate(common.Annotation{"suite": "jammy-security"})
 		a.CurrentDownload.URL = "http://archive.ubuntu.com/ubuntu/dists/devel/main/cnf/by-hash/6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf"
 		a.Metadata.Type = "application/x.apt.commands"
 		a.Metadata.Sha256, _ = digests.NewSha256Digest("6a94aa4e84721d193ff9e233a18293cc79a7659f903fcf2d7ba79fadc0877dbf")
 		a.Metadata.Size = 4343
-		a.ResponseInspection["apt.release"] = &common.Inspection{Annotations: common.Annotation{"vendor": "somevendor"}}
+		a.ResponseInspection["apt.release"] = &common.Inspection{Annotations: common.Annotation{
+			"release-file": "release-file-digest",
+			"vendor":       "somevendor",
+		}}
 
 		f := bytes.NewReader(commandsArtifactData)
 		err = ins.InspectArtifact(f, a)

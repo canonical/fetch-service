@@ -46,8 +46,8 @@ func getAptInspectorConfig() config.AptInspectorConfig {
 	return config.AptInspectorConfig{
 		Repositories: map[string]config.AptInspectorConfigRepository{
 			"default": {
-				Urls:       []glob.Glob{glob.MustCompile("http://*.ubuntu.com/ubuntu")},
-				Dists:      []glob.Glob{glob.MustCompile("*")},
+				URLs:       []glob.Glob{glob.MustCompile("http://*.ubuntu.com/ubuntu")},
+				Suites:     []glob.Glob{glob.MustCompile("*")},
 				Components: []glob.Glob{glob.MustCompile("*")},
 				PublicKey:  "",
 			},

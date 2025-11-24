@@ -30,6 +30,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/canonical/fetch-service/secrets"
 	"github.com/google/uuid"
 
 	"github.com/canonical/fetch-service/inspectors"
@@ -47,14 +48,15 @@ const (
 )
 
 var (
-	ErrInvalidSessionPolicy = errors.New("Invalid session policy")
+	ErrInvalidSessionPolicy                  = errors.New("Invalid session policy")
+	ErrInvalidSessionInspectorsConfiguration = errors.New("Invalid inspectors configuration")
 
-	ExpiredSessionId = make(chan string, 1)
+	ExpiredSessionID = make(chan string, 1)
 )
 
 // Session has information about each authorized client.
 type Session struct {
-	Id            string    // the session ID
+	ID            string    // the session ID
 	Token         string    // the session token
 	Start         time.Time // session start time
 	End           time.Time // session end time
@@ -65,33 +67,34 @@ type Session struct {
 	CacheDir      string        // location of session-specific cache
 	Timeout       time.Duration // maximum time allowed for a session
 	InspectorsCfg config.InspectorsConfig
-	Logger        logger.Logger // Session-aware log helper
+	Logger        logger.Logger    // Session-aware log helper
+	Secrets       []secrets.Secret // Per-session secrets
 
 	timer   *sessionTimer // timeout to auto-finish an idle session
 	revoked bool          // session token has been revoked
 }
 
 var (
-	makeSessionId = makeSessionIdImpl
+	makeSessionID = makeSessionIDImpl
 	randomString  = randomStringImpl
 )
 
 // New creates a session that stores artifact data and metadata under
 // spoolDir. The session is automatically finished if it times out.
-func New(spoolDir string, timeout time.Duration, permissive bool) *Session {
-	sessionId := makeSessionId()
+func New(spoolDir string, timeout time.Duration, permissive bool, secrets []secrets.Secret, inspectorsConfig config.OverrideInspectorsConfig) *Session {
+	sessionID := makeSessionID()
 	token := randomString(20)
 
-	return NewWithId(sessionId, token, spoolDir, timeout, permissive)
+	return NewWithID(sessionID, token, spoolDir, timeout, permissive, secrets, inspectorsConfig)
 }
 
-// NewWithId creates a session using the specified sessionId and token.
-func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permissive bool) *Session {
-	_, ok := sessions.Load(sessionId)
+// NewWithID creates a session using the specified sessionID and token.
+func NewWithID(sessionID, token, spoolDir string, timeout time.Duration, permissive bool, secrets []secrets.Secret, inspectorsConfig config.OverrideInspectorsConfig) *Session {
+	_, ok := sessions.Load(sessionID)
 	if ok {
-		id := makeSessionId()
-		logger.Warningf("cannot recreate existing session ID %s, use %s instead", sessionId, id)
-		sessionId = id
+		id := makeSessionID()
+		logger.Warningf("cannot recreate existing session ID %s, use %s instead", sessionID, id)
+		sessionID = id
 	}
 
 	if timeout == 0 {
@@ -99,19 +102,21 @@ func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permiss
 	}
 
 	s := &Session{
-		Id:            sessionId,
+		ID:            sessionID,
 		Token:         token,
 		Start:         time.Now().UTC(),
 		A:             map[digests.Sha256Digest]*metadata.Artifact{},
 		Permissive:    permissive,
-		SessionDir:    filepath.Join(spoolDir, sessionId),
-		CacheDir:      filepath.Join(spoolDir, sessionId, "cache"),
+		SessionDir:    filepath.Join(spoolDir, sessionID),
+		CacheDir:      filepath.Join(spoolDir, sessionID, "cache"),
 		Timeout:       timeout,
 		InspectorsCfg: config.GetInspectorsConfig(),
-		Logger:        logger.NewSessionLogger(sessionId),
+		Logger:        logger.NewSessionLogger(sessionID),
+		Secrets:       secrets,
 	}
 
 	cfg := config.GetInspectorsConfig()
+	cfg.Combine(inspectorsConfig)
 	s.Insps = inspectors.New(permissive, cfg)
 
 	var sType = "strict"
@@ -120,8 +125,8 @@ func NewWithId(sessionId, token, spoolDir string, timeout time.Duration, permiss
 	}
 	s.Logger.Infof("create %s session, timeout = %s", sType, timeout)
 
-	sessions.Store(s.Id, s)
-	s.timer = newSessionTimer(s, ExpiredSessionId)
+	sessions.Store(s.ID, s)
+	s.timer = newSessionTimer(s, ExpiredSessionID)
 
 	return s
 }
@@ -138,7 +143,7 @@ func (s *Session) Metadata() *metadata.SessionMetadata {
 		Generator:  fmt.Sprintf("fetch-service %s", version.Version),
 		Policy:     policy,
 		Comment:    "Metadata format is unstable and may change without prior notice.",
-		SessionId:  s.Id,
+		SessionID:  s.ID,
 		StartTime:  s.Start,
 		EndTime:    s.End,
 		Inspectors: s.Insps.List(),
@@ -214,13 +219,13 @@ func (s *Session) SaveSessionMetadata(sm *metadata.SessionMetadata) error {
 
 // Discard deletes this session.
 func (s *Session) Discard() {
-	_, ok := sessions.Load(s.Id)
+	_, ok := sessions.Load(s.ID)
 	if !ok {
 		s.Logger.Warning("cannot discard non-existing session")
 		return
 	}
 	s.Logger.Info("discarding session")
-	sessions.Delete(s.Id)
+	sessions.Delete(s.ID)
 	s.timer.Cancel() // end session timer
 	s.Logger.Info("session discarded")
 }
@@ -246,15 +251,15 @@ func (s *Session) AddArtifact(a *metadata.Artifact) {
 
 // HasArtifact verifies whether the given digest corresponds
 // to an artifact downloaded in this session.
-func (s *Session) HasArtifact(sha1 digests.Sha256Digest) bool {
-	_, ok := s.A[sha1]
+func (s *Session) HasArtifact(sha256 digests.Sha256Digest) bool {
+	_, ok := s.A[sha256]
 	return ok
 }
 
 // ArtifactResult obtains the result from a previous HasArtifact
 // inspection, or Rejected if it was not previously inspected.
-func (s *Session) ArtifactResult(sha1 digests.Sha256Digest) opinions.OpinionKind {
-	a, ok := s.A[sha1]
+func (s *Session) ArtifactResult(sha256 digests.Sha256Digest) opinions.OpinionKind {
+	a, ok := s.A[sha256]
 	if !ok {
 		return opinions.Rejected
 	}
@@ -271,35 +276,25 @@ func (s *Session) AddDownload(di metadata.Download) {
 
 var osMkdirAll = os.MkdirAll
 
-// SaveData writes the artifact data corresponding to the given
-// digest to the asset spool.
-func (s *Session) SaveData(digest digests.Sha256Digest) error {
-	a, ok := s.A[digest]
-	if !ok {
-		return fmt.Errorf("metadata for artifact %s not available", digest)
-	}
+// SaveData moves the artifact file to the asset spool.
+func (s *Session) SaveData(a *metadata.Artifact) error {
+	defer s.removeTempFile(a.Tempfile)
 
 	dest := filepath.Join(a.AssetDir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
 	if err := osMkdirAll(filepath.Dir(dest), 0755); err != nil {
-		s.removeTempFile(a.Tempfile)
 		return err
 	}
 
 	// Save file data only if it doesn't exist already
 	if _, err := os.Stat(dest); err != nil {
-		if os.IsNotExist(err) {
-			// Move temporary file to spool
-			if err := utils.MoveFile(a.Tempfile, dest); err != nil {
-				s.removeTempFile(a.Tempfile)
-				return err
-			}
-		} else {
-			s.removeTempFile(a.Tempfile)
+		if !os.IsNotExist(err) {
 			return err
 		}
-	} else {
-		// Remove temporary file if it already exists
-		s.removeTempFile(a.Tempfile)
+
+		// Move temporary file to spool
+		if err := utils.MoveFile(a.Tempfile, dest); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -328,12 +323,14 @@ func (s *Session) SaveMetadata(digest digests.Sha256Digest) error {
 
 func (s *Session) removeTempFile(name string) {
 	if err := os.Remove(name); err != nil {
-		s.Logger.Warningf("cannot remove temporary file %s: %s", name, err)
+		if !os.IsNotExist(err) {
+			s.Logger.Warningf("cannot remove temporary file %s: %s", name, err)
+		}
 	}
 }
 
 // Generate a unique session ID
-func makeSessionIdImpl() string {
+func makeSessionIDImpl() string {
 	id := [16]byte(uuid.New())
 	return hex.EncodeToString(id[:])
 }
@@ -393,6 +390,16 @@ func GetSessionImpl(id string) *Session {
 	return sessions.Get(id)
 }
 
+// GetSessionSecrets returns the secrets corresponding to the given session ID.
+func GetSessionSecrets(id string) []secrets.Secret {
+	session := sessions.Get(id)
+	if session == nil {
+		return nil
+	}
+
+	return session.Secrets
+}
+
 // FinishAll gracefully finishes all active sessions.
 func FinishAll() {
 	sessions.Range(func(key, value any) bool {
@@ -426,7 +433,7 @@ func SessionInfos() []metadata.SessionInfo {
 		}
 
 		res = append(res, metadata.SessionInfo{
-			SessionId: id,
+			SessionID: id,
 			StartTime: s.Start.String(),
 			Policy:    policy,
 			Age:       uint64(time.Since(s.Start).Seconds()),
