@@ -25,6 +25,7 @@ import (
 	"net/url"
 
 	. "github.com/canonical/fetch-service/inspectors/common"
+	"github.com/canonical/fetch-service/inspectors/mimetypes"
 	"github.com/canonical/fetch-service/inspectors/store/config"
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
@@ -81,6 +82,7 @@ func (ins *StoreAppMediaInspector) inspectArtifactPNG(f ArtifactReader, a Respon
 	}
 
 	md := ArtifactMetadata{
+		Type:        mimetypes.StoreAppmediaPNG,
 		Name:        "Image file",
 		Description: "Store media file in PNG format",
 	}
