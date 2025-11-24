@@ -113,10 +113,10 @@ type CreateSession struct {
 	Timeout          uint64                         // Session timeout in seconds
 	Policy           string                         // Session policy (strict or permissive)
 	Secrets          []secrets.Secret               // Secrets for the session
-	InspectorsConfig config.SessionInspectorsConfig // Session inspectors configuration
+	InspectorsConfig config.OverrideInspectorsConfig // Session inspectors configuration
 }
 
-func NewCreateSession(policy string, timeout uint64, secrets []secrets.Secret, inspectorsConfig config.SessionInspectorsConfig) CreateSession {
+func NewCreateSession(policy string, timeout uint64, secrets []secrets.Secret, inspectorsConfig config.OverrideInspectorsConfig) CreateSession {
 	return CreateSession{
 		Rch:              make(chan SessionCredentials, 1),
 		Policy:           policy,

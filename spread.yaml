@@ -35,6 +35,7 @@ suites:
       systemctl restart snapd
     prepare-each: |
       snap stop fetch-service
+      rm -f ./dont-snap-stop
 
       # Clear the fetch-service log, so that it only contains output from the test
       # shellcheck disable=SC2016
@@ -46,7 +47,9 @@ suites:
       sleep 5
       fetch-service.fetchctl version
     restore-each: |
-      snap stop fetch-service
+      if [ ! -f ./dont-snap-stop ]; then
+        snap stop fetch-service
+      fi
       
       # Clear the fetch-service log, so that it only contains output from the test
       # shellcheck disable=SC2016

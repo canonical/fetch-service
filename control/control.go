@@ -42,7 +42,7 @@ type createSessionParameters struct {
 	Timeout          uint64                         `json:"timeout"`                  // Session timeout in seconds
 	Policy           string                         `json:"policy"`                   // Session policy ("strict" or "permissive")
 	Secrets          []secrets.Secret               `json:"secrets"`                  // Session secrets
-	InspectorsConfig config.SessionInspectorsConfig `json:"inspectors-configuration"` // Session inspectors configuration
+	InspectorsConfig config.OverrideInspectorsConfig `json:"inspectors-configuration"` // Session inspectors configuration
 }
 
 // Parameters for token revocation

@@ -65,7 +65,7 @@ func (t *messagesSuite) TestCompleteInspection(c *C) {
 }
 
 func (t *messagesSuite) TestCreateSession(c *C) {
-	var m = messages.NewCreateSession("policy", 42, nil, config.SessionInspectorsConfig{})
+	var m = messages.NewCreateSession("policy", 42, nil, config.OverrideInspectorsConfig{})
 	c.Check(cap(m.Rch), Equals, 1)
 	c.Check(m.Policy, Equals, "policy")
 	c.Check(m.Timeout, Equals, uint64(42))
@@ -77,7 +77,7 @@ func (t *messagesSuite) TestCreateSessionWithSecrets(c *C) {
 		{Type: secrets.BasicAuthType, URL: glob.MustCompile("http://example.com")},
 		{Type: secrets.BasicAuthType, URL: glob.MustCompile("http://another-example.com/*")},
 	}
-	var m = messages.NewCreateSession("policy", 42, s, config.SessionInspectorsConfig{})
+	var m = messages.NewCreateSession("policy", 42, s, config.OverrideInspectorsConfig{})
 	c.Check(cap(m.Rch), Equals, 1)
 	c.Check(m.Policy, Equals, "policy")
 	c.Check(m.Timeout, Equals, uint64(42))

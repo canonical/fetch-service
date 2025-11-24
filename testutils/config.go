@@ -1,4 +1,26 @@
-git:
+// -*- Mode: Go; indent-tabs-mode: t -*-
+
+/*
+ * Copyright 2025 Canonical Ltd.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 3 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+package testutils
+
+var DefaultInspectorsConf = []byte(
+	`git:
   urls:
     - https://git.pkg.store:443/**
     - https://git.staging.snapcraftcontent.com:443/**
@@ -20,7 +42,6 @@ store:
     - https://api.staging.snapcraft.io:443/v2/bins/info/**
     - https://api.staging.snapcraft.io:443/v2/revisions/resolve
     - https://api.staging.snapcraft.io:443/v1/craft/**
-    - https://dashboard.snapcraft.io:443/site_media/appmedia/**/*.png
 
 bldbin:
   urls:
@@ -180,3 +201,4 @@ apt:
         gW1RgFwq9IQ21MOzB9P6bUCyfF3cBYjgVT4=
         =tskY
         -----END PGP PUBLIC KEY BLOCK-----
+`)

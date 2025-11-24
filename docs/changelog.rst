@@ -2,7 +2,34 @@
 Changelog
 *********
 
-0.10.1 (2025-17-02)
+0.11.1 (2025-11-18)
+-------------------
+
+- fix: less restrictive assertion url inspection (#524)
+- fix: add appmedia entry to default configuration (#523)
+- fix(inspectors/snap): fix serial assertion endpoint (#522)
+- test(spread): add an improved snap inspector test (#521)
+
+0.11.0 (2025-11-17)
+-------------------
+
+- feat: add inspector for lxd instance types (#504)
+- feat: add inspector for device authentication request-id (#519)
+- feat: add inspector for snap package names (#517)
+- feat: add support for serial assertion inspection (#516)
+- feat: add snap sections inspector (#508)
+- feat: add inspector for snapd session authentication (#507)
+- feat: add inspector for snapd authentication nonce (#503)
+- feat: add inspector for store media (#482)
+- feat: add format-specific id to metadata (#492)
+- feat: add optional apt-suite to artifact metadata (#476)
+- feat: support per-session inspector conf (#480)
+- feat(secrets): support for 'basic' secrets (#483)
+- feat(config): override bundled config with custom one (#497)
+- fix: check if session exists before completing inspection (#489)
+- fix: exclude slash from glob star matching (#484)
+
+0.10.1 (2025-10-17)
 -------------------
 
 - feat: add inspector for the store transforms api (#470)
