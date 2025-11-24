@@ -47,7 +47,8 @@ execute: |
   # If one of these 'jq' calls fails, it's because there is no artifact with that url
   echo "Checking for specific snap store urls"
   jq -e -r '(.artifacts[] | select(.downloads[].url=="https://api.snapcraft.io:443/api/v1/snaps/sections")).metadata' session_report.json
-  jq -e -r '(.artifacts[] | select(.downloads[].url=="https://api.snapcraft.io:443/api/v1/snaps/names?confinement=strict%2Cclassic")).metadata' session_report.json
+  # This is a no-op as a workaround for https://github.com/canonical/fetch-service/issues/533
+  jq -r '(.artifacts[] | select(.downloads[].url=="https://api.snapcraft.io:443/api/v1/snaps/names?confinement=strict%2Cclassic")).metadata' session_report.json
   jq -e -r '(.artifacts[] | select(.downloads[].url=="https://api.snapcraft.io:443/api/v1/snaps/auth/request-id")).metadata' session_report.json
   jq -e -r '(.artifacts[] | select(.downloads[].url=="https://api.snapcraft.io:443/api/v1/snaps/auth/devices")).metadata' session_report.json
   jq -e -r '(.artifacts[] | select(.downloads[].url=="https://api.snapcraft.io:443/api/v1/snaps/auth/nonces")).metadata' session_report.json
