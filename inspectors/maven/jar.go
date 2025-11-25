@@ -78,7 +78,7 @@ func (ins *MavenJarInspector) InspectArtifact(f ArtifactReader, a ResponseArtifa
 	}
 	for _, i := range zf.File {
 		m := pomXML.FindStringSubmatch(i.Name)
-		if m != nil && len(m) == 3 {
+		if len(m) == 3 {
 			groupID := m[1]
 			artifactID := m[2]
 
