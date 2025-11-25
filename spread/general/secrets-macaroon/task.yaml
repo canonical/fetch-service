@@ -1,0 +1,55 @@
+summary: Test 'macaroon' secret support
+
+environment:
+  MACAROON: '$(HOST: echo "${STORE_MACAROON}")'
+
+prepare: |
+  snap stop fetch-service
+
+  # shellcheck disable=SC2016
+  snap_data=$(snap run --shell fetch-service -c 'echo $SNAP_DATA')
+  logfile=${snap_data}/fetch.log
+  if [ -f "${logfile}" ]; then
+    rm -f "${logfile}"
+  fi
+
+  snap start fetch-service
+  sleep 5
+  fetch-service.fetchctl version   
+
+execute: |
+  if [ -z "${MACAROON}" ]; then
+    echo "Credentials not found; is 'STORE_MACAROON' set?"
+    exit 1
+  fi
+
+  # create permissive session with secrets.
+  creds="${MACAROON}"
+  secrets='[{"type": "macaroon", "url": "https://api.staging.pkg.store:443/**", "macaroon-credentials": "'$creds'"}]'
+  
+  tmpfile=$(mktemp)
+  curl -s -X POST -d '{"policy": "permissive", "secrets": '"$secrets"'}' http://craft:craft@localhost:9999/session | tee "${tmpfile}"
+  session_id=$(jq -r .id "${tmpfile}")
+  token=$(jq -r .token "${tmpfile}")
+  rm "${tmpfile}"
+  
+  # set up proxy
+  export http_proxy="http://${session_id}:${token}@localhost:9988"
+  export https_proxy="http://${session_id}:${token}@localhost:9988"
+  
+  curl -L https://api.staging.pkg.store/api/v1/bins/download/jfIaIzjm1HrrorlTJT5WS8mtjwFvQEGV_2.bin --output out.bin
+
+  file out.bin | MATCH "XZ compressed data"
+
+  unset http_proxy
+  unset https_proxy
+  
+  # revoke token, get report, and end session
+  curl -sf -X DELETE -d "{\"token\": \"${token}\"}" "http://localhost:9999/session/${session_id}/token"
+  curl -sf "http://craft:craft@localhost:9999/session/${session_id}" | tee session_report.json  
+  curl -sf -X DELETE "http://craft:craft@localhost:9999/session/${session_id}"
+  curl -sf -X DELETE "http://craft:craft@localhost:9999/resources/${session_id}"
+
+restore: |
+  snap stop fetch-service
+

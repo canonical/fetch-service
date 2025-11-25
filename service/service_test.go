@@ -699,6 +699,8 @@ func (t *serviceSuite) TestCreateSession(c *C) {
 		{true, "permissive", []secrets.Secret{{Type: "invalid-type"}}, secrets.ErrInvalidSecretType.Error()},
 		// Missing basic creds
 		{true, "permissive", []secrets.Secret{{Type: secrets.BasicAuthType, URL: glob.MustCompile("www.example.com")}}, secrets.ErrMissingBasicCreds.Error()},
+		// Missing macaroon
+		{true, "permissive", []secrets.Secret{{Type: secrets.MacaroonType, URL: glob.MustCompile("www.example.com")}}, secrets.ErrMissingMacaroonCreds.Error()},
 	} {
 		opt := service.Options{
 			ProxyPort:      1337,
