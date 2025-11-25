@@ -52,14 +52,13 @@ type FileDownloadHandler struct {
 	body io.ReadCloser      // response body
 }
 
-func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool string, ch chan interface{}) (*FileDownloadHandler, error) {
+func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool string, ch chan interface{}, timeout time.Duration) (*FileDownloadHandler, error) {
 	r := resp.Request
 	sessionID, err := getSessionIDHeader(r)
 	if err != nil {
 		return nil, err
 	}
 
-	insTimeout := 60 * time.Second // XXX: make this a configurable parameter
 	assetDir := filepath.Join(spool, sessionID, "assets")
 	cacheDir := filepath.Join(spool, sessionID, "cache")
 
@@ -117,7 +116,7 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool str
 				}
 				return
 			}
-		case <-time.After(insTimeout): // Inspection took too long, something wrong happened.
+		case <-time.After(timeout): // Inspection took too long, something wrong happened.
 			slog.Warning("inspection request timeout")
 			dch <- fmt.Errorf("inspection of artifact %s timed out", a.Metadata.Sha256)
 			if bgDownload.Load() {
