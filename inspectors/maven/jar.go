@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -21,7 +21,6 @@ package maven
 
 import (
 	"archive/zip"
-	"fmt"
 	"regexp"
 
 	. "github.com/canonical/fetch-service/inspectors/common"
@@ -32,6 +31,8 @@ var (
 	jarRequestOrigin = regexp.MustCompile(`^https://repo.maven.apache.org:443`)
 	// Download urls have the form /maven2/<org components separated by />/<artifact-id>/<version>/<jar file>
 	jarRequestSlug = regexp.MustCompile(`/maven2/((?:\w|\-|/)+).*/((?:\w|\-)+)/(.*)/.*.jar$`)
+	// Path to pom.xml inside the jar file.
+	pomXML = regexp.MustCompile(`^META-INF/maven/([^/]+)/([^/]+)/pom.xml$`)
 )
 
 // MavenJarInspector inspects Jar downloaded from a Maven registry.
@@ -71,30 +72,16 @@ func (ins *MavenJarInspector) InspectArtifact(f ArtifactReader, a ResponseArtifa
 		return nil
 	}
 
-	groupID, ok := a.RequestStringAnnotation(ins.ID(), "group-id")
-	if !ok {
-		// following SimpleIndexInspector here
-		return nil
-	}
-
-	artifactID, ok := a.RequestStringAnnotation(ins.ID(), "artifact-id")
-	if !ok {
-		return nil
-	}
-
-	version, ok := a.RequestStringAnnotation(ins.ID(), "version")
-	if !ok {
-		return nil
-	}
-
-	pomXML := fmt.Sprintf(`META-INF/maven/%s/%s/pom.xml`, groupID, artifactID)
-
 	zf, err := zip.NewReader(f, int64(f.Len()))
 	if err != nil {
 		return err
 	}
 	for _, i := range zf.File {
-		if i.Name == pomXML {
+		m := pomXML.FindStringSubmatch(i.Name)
+		if m != nil && len(m) == 3 {
+			groupID := m[1]
+			artifactID := m[2]
+
 			zf, err := i.Open()
 			if err != nil {
 				return err
@@ -106,9 +93,14 @@ func (ins *MavenJarInspector) InspectArtifact(f ArtifactReader, a ResponseArtifa
 				return err
 			}
 
-			if md.Name == artifactID && md.Version == version {
+			if md.Name == artifactID {
 				a.SetArtifactMetadata(*md)
-				a.SetResponseApproved(ins, "Maven pom successfully parsed and validated")
+				a.SetResponseApproved(ins, "Maven pom successfully parsed and validated").Annotate(
+					Annotation{
+						"group-id":    groupID,
+						"artifact-id": artifactID,
+					},
+				)
 			}
 			break
 		}

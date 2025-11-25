@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2025 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -25,7 +25,6 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 	. "gopkg.in/check.v1"
 
-	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/files"
 	"github.com/canonical/fetch-service/inspectors/maven"
 	"github.com/canonical/fetch-service/metadata"
@@ -45,7 +44,7 @@ var urltests = []struct {
 	// expected output
 	groupID    string
 	artifactID string
-	version     string
+	version    string
 }{
 	{"/joda-time/joda-time/2.2/joda-time-2.2.jar", "joda-time", "joda-time", "2.2"},
 	{"/org/apache/maven/maven-artifact/2.0.9/maven-artifact-2.0.9.jar", "org.apache.maven", "maven-artifact", "2.0.9"},
@@ -72,11 +71,11 @@ func (s *mavenSuite) TestJarInspectRequest(c *C) {
 }
 
 var jartests = []struct {
-	filename    string
-	slug        string
+	filename   string
+	slug       string
 	groupID    string
 	artifactID string
-	version     string
+	version    string
 
 	description string
 	author      string
@@ -113,11 +112,7 @@ func (s *mavenSuite) TestJarInspectArtifact(c *C) {
 		a.Metadata.Sha1 = h
 		a.MimeType = mimetype.Lookup("application/jar")
 		a.CurrentDownload.URL = "https://repo.maven.apache.org:443/maven2" + jt.slug
-		a.RequestInspection[ins.ID()] = &Inspection{
-			Opinion:     opinions.Pending,
-			Reason:      "some reason",
-			Annotations: Annotation{"group-id": jt.groupID, "artifact-id": jt.artifactID, "version": jt.version},
-		}
+		a.SetRequestPending(ins, "some reason")
 
 		f, err := files.OpenArtifactFile(filename)
 		c.Assert(err, IsNil)
