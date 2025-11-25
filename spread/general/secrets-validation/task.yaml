@@ -3,7 +3,11 @@ summary: Validate 'secrets' when creating session
 environment:
   # Valid secret data for basic auth
   SECRETS_FILE/basic: basic_secrets.txt
-  EXPECTED_FILE/basic: basic_expected.txt
+  EXPECTED_FILE/basic: success_expected.txt
+
+  # Valid secret data for macaroon auth
+  SECRETS_FILE/macaroon: macaroon_secrets.txt
+  EXPECTED_FILE/macaroon: success_expected.txt
 
   # Missing 'type' key
   SECRETS_FILE/missing_type: missing_type_secrets.txt
@@ -20,6 +24,10 @@ environment:
   # Missing credentials for 'basic' auth
   SECRETS_FILE/missing_basic: missing_basic_secrets.txt
   EXPECTED_FILE/missing_basic: missing_basic_expected.txt
+
+  # Missing credentials for 'macaroon' auth
+  SECRETS_FILE/missing_macaroon: missing_macaroon_secrets.txt
+  EXPECTED_FILE/missing_macaroon: missing_macaroon_expected.txt
 
 prepare: |
   snap stop fetch-service

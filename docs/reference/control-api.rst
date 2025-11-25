@@ -87,8 +87,11 @@ Endpoints
     }
 
   ``type`` specifies the authentication scheme for the secret. Currently, the only
-  supported value for ``type`` is ``basic-auth``, which refers to the `Basic HTTP
-  Authentication Scheme`_.
+  supported values for ``type`` are:
+
+  * ``basic-auth``, which refers to the `Basic HTTP Authentication Scheme`_;
+  * ``macaroon``, which refers to the Macaroon-based authentication scheme used by the
+    Snap Store.
 
   ``url`` defines the web address that this secret should be applied to. This key
   supports globbing. If multiple secrets refer to the same ``url``, only the first
@@ -97,6 +100,10 @@ Endpoints
   ``basic-credentials`` contains the credentials for the ``basic-auth`` secret type.
   These credentials are commonly formatted as ``user:password`` and must *not* be
   encoded in base64.
+
+  ``macaroon-credentials`` contains the credentials for the ``macaroon`` secret type.
+  These credentials must be in the form that the remote server expects, as the Fetch
+  Service will not do any transformation on the value.
   
   ``inspectors-configuration`` specifies an optional configuration for the
   session's inspectors. If set, this overrides the default configuration loaded by the
