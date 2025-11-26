@@ -240,14 +240,14 @@ func (a *Artifact) ResponseApproved() bool {
 	return res
 }
 
-// InspectorRequestOpinion returns the request opinion set by the inspector
-// with the given ID.
-func (a *Artifact) InspectorRequestOpinion(ins Inspector) opinions.OpinionKind {
+// InspectorRequestOpinionPending returns true when the request opinion
+// set by the given inspector is set to pending.
+func (a *Artifact) InspectorRequestOpinionPending(ins Inspector) bool {
 	in, ok := a.RequestInspection[ins.ID()]
 	if !ok {
-		return opinions.Unknown
+		return false
 	}
-	return in.Opinion
+	return in.Opinion == opinions.Pending
 }
 
 // inspectAnnotation verifies whether the inspector has an inspection

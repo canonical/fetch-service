@@ -26,7 +26,6 @@ import (
 
 	. "github.com/canonical/fetch-service/inspectors/common"
 	"github.com/canonical/fetch-service/inspectors/mimetypes"
-	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
 type SnapAuthSessionsInspector struct {
@@ -64,7 +63,7 @@ func (ins *SnapAuthSessionsInspector) InspectArtifact(f ArtifactReader, a Respon
 		return nil
 	}
 
-	if a.InspectorRequestOpinion(ins) != opinions.Pending {
+	if !a.InspectorRequestOpinionPending(ins) {
 		return nil // Not from the snap store, we don't recognize this artifact
 	}
 
