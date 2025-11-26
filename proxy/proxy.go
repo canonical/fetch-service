@@ -47,6 +47,8 @@ import (
 const (
 	sessionIDHeader = "X-Fetch-Session-Id"
 	authRealm       = "fetch-service"
+
+	defaultInspectionTimeout = 300 * time.Second
 )
 
 // proxyData contains contextual information for request and response handlers.
@@ -56,12 +58,13 @@ type proxyData struct {
 
 // HTTPProxy implements a proxy that inspects downloaded contents.
 type HTTPProxy struct {
-	port  int                      // tcp port the proxy is listening on
-	ch    chan interface{}         // channel to service dispatcher
-	spool string                   // path to file spool
-	proxy *goproxy.ProxyHttpServer // proxy handler
-	srv   http.Server              // server instance
-	tomb  tomb.Tomb                // proxy service reaper
+	port    int                      // tcp port the proxy is listening on
+	ch      chan interface{}         // channel to service dispatcher
+	spool   string                   // path to file spool
+	proxy   *goproxy.ProxyHttpServer // proxy handler
+	srv     http.Server              // server instance
+	timeout time.Duration            // inspection timeout
+	tomb    tomb.Tomb                // proxy service reaper
 }
 
 func NewHTTPProxy(port int, spool string, cert, key []byte, ch chan interface{}) (*HTTPProxy, error) {
@@ -80,7 +83,12 @@ func NewHTTPProxy(port int, spool string, cert, key []byte, ch chan interface{})
 		return <-rch
 	}
 
-	p := HTTPProxy{port: port, ch: ch, spool: spool}
+	p := HTTPProxy{
+		port:    port,
+		ch:      ch,
+		spool:   spool,
+		timeout: defaultInspectionTimeout, // XXX: make this configurable
+	}
 
 	proxy := goproxy.NewProxyHttpServer()
 	//proxy.Verbose = true
@@ -244,7 +252,7 @@ func (p *HTTPProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) 
 	slog := a.Logger()
 
 	var err error
-	body, err := NewFileDownloadHandler(resp, a, p.spool, p.ch)
+	body, err := NewFileDownloadHandler(resp, a, p.spool, p.ch, p.timeout)
 	if err != nil {
 		if a.Tempfile != "" {
 			os.Remove(a.Tempfile)
