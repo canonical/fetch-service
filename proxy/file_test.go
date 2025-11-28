@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	. "gopkg.in/check.v1"
 
@@ -81,7 +82,7 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 			testSync <- struct{}{}
 		}()
 		var err error
-		_, err = proxy.NewFileDownloadHandler(resp, a, spoolDir, ch)
+		_, err = proxy.NewFileDownloadHandler(resp, a, spoolDir, ch, 60*time.Second)
 		c.Assert(err, IsNil)
 	}()
 
@@ -145,7 +146,7 @@ func (t *fileSuite) TestNewFileDownloadHandler(c *C) {
 			testSync <- struct{}{}
 		}()
 		var err error
-		_, err = proxy.NewFileDownloadHandler(resp, a, spoolDir, ch)
+		_, err = proxy.NewFileDownloadHandler(resp, a, spoolDir, ch, 60*time.Second)
 		c.Assert(err, IsNil)
 	}()
 
