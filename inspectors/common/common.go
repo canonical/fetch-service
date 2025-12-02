@@ -78,7 +78,7 @@ type ResponseArtifact interface {
 	SetResponseUnknown(Inspector, string) *Inspection
 	ResponseApproved() bool
 	ResponseRejected() bool
-	InspectorRequestOpinion(Inspector) opinions.OpinionKind
+	InspectorRequestOpinionPending(Inspector) bool
 
 	// Get annotations
 	RequestAnnotation(string, string) (any, bool)

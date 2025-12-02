@@ -2,6 +2,18 @@
 Changelog
 *********
 
+0.12.0 (2025-12-01)
+-------------------
+
+- feat: add 'macaroon' secret type (#532)
+- fix: add artifact type for snap store icon (#530)
+- fix(i/maven): parse jar file regardless of url (#535)
+
+0.11.2 (2025-11-25)
+-------------------
+
+- fix: increase inspection timeout to 5 minutes (#536)
+
 0.11.1 (2025-11-18)
 -------------------
 
