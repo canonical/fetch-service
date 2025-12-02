@@ -67,7 +67,7 @@ jobs:
         uses: canonical/action-build@v1
         id: snap
       - name: Upload snap artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: snap
           path: ${{ steps.snap.outputs.snap }}
@@ -104,5 +104,6 @@ jobs:
           # GH_FETCH_SERVICE_TOKEN is used in some spread tests to clone the fetch-service
           # repository itself.
           GH_FETCH_SERVICE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STORE_MACAROON: ${{ secrets.STORE_MACAROON }}
         run: |
           snapcraft test --verbose

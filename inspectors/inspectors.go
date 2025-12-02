@@ -71,6 +71,11 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		snap.NewSnapAssertionInspector(),
 		snap.NewSnapInfoInspector(),
 		snap.NewSnapRefreshInspector(),
+		snap.NewSnapSectionsInspector(),
+		snap.NewSnapAuthSessionsInspector(),
+		snap.NewSnapAuthNonceInspector(),
+		snap.NewSnapAuthRequestIDInspector(),
+		snap.NewSnapNamesInspector(),
 
 		// store API
 		store.NewStoreInfoAPIInspector(cfg.Store, cfg.BldBin),
@@ -125,6 +130,7 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		lxd.NewSimpleStreamsIndexInspector(),
 		lxd.NewSimpleStreamsDownloadInspector(),
 		lxd.NewRootfsInspector(),
+		lxd.NewInstanceTypesInspector(),
 
 		// default inspector
 		// must be the last inspector to run

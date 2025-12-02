@@ -129,7 +129,7 @@ func (ins *RootfsInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 	}
 
 	a.SetArtifactMetadata(ArtifactMetadata{
-		Type:         mimetypes.LxdRootfs,
+		Type:         mimetypes.LXDRootFS,
 		Name:         "LXD rootfs image",
 		Version:      strconv.FormatInt(rmd.CreationDate, 10),
 		Description:  rmd.Properties.Description,

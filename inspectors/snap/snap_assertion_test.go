@@ -69,60 +69,50 @@ func (s *snapSuite) TestSnapAssertionDetector(c *C) {
 }
 
 type snapAssertionInspectRequestTest struct {
-	url       string // The request URL
-	hasAccept bool   // Whether the request has an Accept header
-	pending   bool   // The expected inspection result
-	reason    string // The reason for the inspection result
+	url     string // The request URL
+	pending bool   // The expected inspection result
+	reason  string // The reason for the inspection result
 }
 
 var snapAssertionInspectRequestTests = []snapAssertionInspectRequestTest{{
-	url:       "https://api.snapcraft.io:443/v2/assertions/snap-revision/",
-	hasAccept: true,
-	pending:   true,
-	reason:    "valid URL for snap-revision assertion download",
+	url:     "https://api.snapcraft.io:443/v2/assertions/snap-revision/",
+	pending: true,
+	reason:  "valid URL for snap-revision assertion download",
 }, {
-	url:       "https://api.snapcraft.io:443/v2/assertions/snap-declaration/",
-	hasAccept: true,
-	pending:   true,
-	reason:    "valid URL for snap-declaration assertion download",
+	url:     "https://api.snapcraft.io:443/v2/assertions/snap-declaration/",
+	pending: true,
+	reason:  "valid URL for snap-declaration assertion download",
 }, {
-	url:       "https://api.snapcraft.io:443/v2/assertions/account/",
-	hasAccept: true,
-	pending:   true,
-	reason:    "valid URL for account-key assertion download",
+	url:     "https://api.snapcraft.io:443/v2/assertions/account/",
+	pending: true,
+	reason:  "valid URL for account-key assertion download",
 }, {
-	url:       "https://api.snapcraft.io:443/v2/assertions/account-key/",
-	hasAccept: true,
-	pending:   true,
-	reason:    "valid URL for account-key assertion download",
+	url:     "https://api.snapcraft.io:443/v2/assertions/account-key/",
+	pending: true,
+	reason:  "valid URL for account-key assertion download",
 }, {
-	url:       "https://api.snapcraft.io:443/v2/assertions/snap-revision/",
-	hasAccept: false,
-	pending:   false,
+	url:     "https://api.snapcraft.io:443/api/v1/snaps/auth/devices/",
+	pending: true,
+	reason:  "valid URL for serial assertion download",
 }, {
-	url:       "https://api.snapcraft.io:443/v1/assertions/snap-revision/",
-	hasAccept: true,
-	pending:   false,
+	url:     "https://api.snapcraft.io:443/api/v1/snaps/auth/devices",
+	pending: true,
+	reason:  "valid URL for serial assertion download",
 }, {
-	url:       "https://api.snapcraft.io:443/v3/assertions/snap-revision/",
-	hasAccept: true,
-	pending:   false,
+	url:     "https://api.snapcraft.io:443/v2/assertions/snap-revision",
+	pending: false,
 }, {
-	url:       "https://api.snapcraft.io:443/v2/assertions/snap-revision",
-	hasAccept: true,
-	pending:   false,
+	url:     "https://api.snapcraft.io:443/v1/assertions/snap-revision/",
+	pending: false,
 }, {
-	url:       "https://api.snapcraft.io:443/v2/assertions/something-else/",
-	hasAccept: true,
-	pending:   false,
+	url:     "https://api.snapcraft.io:443/v2/assertions/something-else/",
+	pending: false,
 }, {
-	url:       "https://api.snapcraft.io:443/v2/assertions/",
-	hasAccept: true,
-	pending:   false,
+	url:     "https://api.snapcraft.io:443/v2/assertions/",
+	pending: false,
 }, {
-	url:       "http://api.snapcraft.io/v2/assertions/snap-revision/",
-	hasAccept: true,
-	pending:   false,
+	url:     "http://api.snapcraft.io/v2/assertions/snap-revision/",
+	pending: false,
 }}
 
 func (s *snapSuite) TestSnapAssertionInspectRequest(c *C) {
@@ -130,9 +120,6 @@ func (s *snapSuite) TestSnapAssertionInspectRequest(c *C) {
 		ins := snap.NewSnapAssertionInspector()
 		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
-		if tc.hasAccept {
-			a.CurrentDownload.RequestHeader = map[string][]string{"Accept": []string{"application/x.ubuntu.assertion"}}
-		}
 
 		err := ins.InspectRequest(a)
 		c.Assert(err, IsNil)
@@ -178,6 +165,11 @@ var snapAssertionArtifactInspectorTests = []snapAssertionArtifactInspectorTest{{
 	approved: true,
 	reason:   "valid snap assertion",
 	filetype: "application/x.ubuntu.assertion.account-key",
+}, {
+	filename: "testdata/serial.assert",
+	approved: true,
+	reason:   "valid snap assertion",
+	filetype: "application/x.ubuntu.assertion.serial",
 }, {
 	filename: "testdata/bad-assertion.assert",
 	approved: false,

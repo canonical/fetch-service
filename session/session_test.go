@@ -64,7 +64,7 @@ func (t *sessionSuite) TestNewSession(c *C) {
 
 	before := time.Now()
 	tmp := c.MkDir()
-	s := session.New(tmp, 0, true, nil, config.SessionInspectorsConfig{})
+	s := session.New(tmp, 0, true, nil, config.OverrideInspectorsConfig{})
 	after := time.Now()
 
 	defer s.Discard()
@@ -85,14 +85,14 @@ func (t *sessionSuite) TestNewWithID(c *C) {
 	defer restorer()
 
 	tmp := c.MkDir()
-	s := session.NewWithID("known-session-id", "known-token", tmp, 0, true, nil, config.SessionInspectorsConfig{})
+	s := session.NewWithID("known-session-id", "known-token", tmp, 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 	c.Assert(s.ID, Equals, "known-session-id")
 	c.Assert(s.Token, Equals, "known-token")
 	c.Assert(len(s.Secrets), Equals, 0)
 
 	// Re-create session with same ID
-	s = session.NewWithID("known-session-id", "known-token", tmp, 0, true, nil, config.SessionInspectorsConfig{})
+	s = session.NewWithID("known-session-id", "known-token", tmp, 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 	c.Assert(s.ID, Equals, "6ba7b8109dad11d180b400c04fd430c8")
 	c.Assert(s.Token, Equals, "known-token")
@@ -104,7 +104,7 @@ func (t *sessionSuite) TestNewWithSecrets(c *C) {
 	sec := []secrets.Secret{
 		{Type: secrets.BasicAuthType, URL: glob.MustCompile("http://www.example.com/*")},
 	}
-	s := session.NewWithID("known-session-id", "known-token", tmp, 0, true, sec, config.SessionInspectorsConfig{})
+	s := session.NewWithID("known-session-id", "known-token", tmp, 0, true, sec, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 	c.Assert(s.ID, Equals, "known-session-id")
 	c.Assert(s.Token, Equals, "known-token")
@@ -122,7 +122,7 @@ func (t *sessionSuite) TestRandomString(c *C) {
 }
 
 func (t *sessionSuite) TestDiscardSession(c *C) {
-	s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
+	s := session.New("", 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	c.Assert(s, Equals, session.GetSession(s.ID))
@@ -134,12 +134,12 @@ func (t *sessionSuite) TestDiscardSession(c *C) {
 }
 
 func (t *sessionSuite) TestSessionTimeout(c *C) {
-	s1 := session.New("", 1*time.Second, true, nil, config.SessionInspectorsConfig{})
+	s1 := session.New("", 1*time.Second, true, nil, config.OverrideInspectorsConfig{})
 	defer s1.Discard()
 
 	time.Sleep(500 * time.Millisecond)
 
-	s2 := session.New("", 1*time.Second, true, nil, config.SessionInspectorsConfig{})
+	s2 := session.New("", 1*time.Second, true, nil, config.OverrideInspectorsConfig{})
 	defer s2.Discard()
 
 	time.Sleep(2 * time.Second)
@@ -150,7 +150,7 @@ func (t *sessionSuite) TestSessionTimeout(c *C) {
 }
 
 func (t *sessionSuite) TestSessionTimeoutCancel(c *C) {
-	s := session.New("", 2*time.Second, true, nil, config.SessionInspectorsConfig{})
+	s := session.New("", 2*time.Second, true, nil, config.OverrideInspectorsConfig{})
 	time.Sleep(1 * time.Second)
 	s.Discard()
 	s = session.GetSession(s.ID)
@@ -164,7 +164,7 @@ func (t *sessionSuite) TestHasArtifact(c *C) {
 		{true},
 		{false},
 	} {
-		s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
+		s := session.New("", 0, true, nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		digest, err := digests.NewSha256Digest(MySha256)
@@ -191,7 +191,7 @@ func (t *sessionSuite) TestArtifactResult(c *C) {
 		{true, opinions.Rejected},
 		{false, opinions.Rejected},
 	} {
-		s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
+		s := session.New("", 0, true, nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		digest, err := digests.NewSha256Digest(MySha256)
@@ -209,7 +209,7 @@ func (t *sessionSuite) TestArtifactResult(c *C) {
 }
 
 func (t *sessionSuite) TestCheckAuth(c *C) {
-	s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
+	s := session.New("", 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	c.Assert(session.CheckAuth("foo", "bar"), Equals, false)
@@ -217,7 +217,7 @@ func (t *sessionSuite) TestCheckAuth(c *C) {
 }
 
 func (t *sessionSuite) TestAddMetadata(c *C) {
-	s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
+	s := session.New("", 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	h, err := digests.NewSha256Digest(MySha256)
@@ -236,7 +236,7 @@ func (t *sessionSuite) TestAddMetadata(c *C) {
 }
 
 func (t *sessionSuite) TestAddDownload(c *C) {
-	s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
+	s := session.New("", 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	h, err := digests.NewSha256Digest(MySha256)
@@ -258,7 +258,7 @@ func (t *sessionSuite) TestAddDownload(c *C) {
 }
 
 func (t *sessionSuite) TestAddInvalidDownload(c *C) {
-	s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
+	s := session.New("", 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	h, err := digests.NewSha256Digest(MySha256)
@@ -303,7 +303,7 @@ func (t *sessionSuite) TestSaveData(c *C) {
 			return os.MkdirAll(path, perm)
 		})
 
-		s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
+		s := session.New("", 0, true, nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		tmp := c.MkDir()
@@ -346,7 +346,7 @@ func (t *sessionSuite) TestSaveData(c *C) {
 }
 
 func (t *sessionSuite) TestSaveMetadata(c *C) {
-	s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
+	s := session.New("", 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	tmp := c.MkDir()
@@ -376,7 +376,7 @@ func (t *sessionSuite) TestGetSession(c *C) {
 	m := session.GetSession("invalid-session-id")
 	c.Assert(m, IsNil)
 
-	s := session.New("", 0, true, nil, config.SessionInspectorsConfig{})
+	s := session.New("", 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	m = session.GetSession(s.ID)
@@ -391,7 +391,7 @@ func (t *sessionSuite) TestSessionMetadata(c *C) {
 		{true, "permissive"},
 		{false, "strict"},
 	} {
-		s := session.New("", 0, tc.permissive, nil, config.SessionInspectorsConfig{})
+		s := session.New("", 0, tc.permissive, nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		m := s.Metadata()
@@ -407,7 +407,7 @@ func (t *sessionSuite) TestSessionMetadata(c *C) {
 
 func (t *sessionSuite) TestFinish(c *C) {
 	spool := c.MkDir()
-	s := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
+	s := session.New(spool, 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	sessionDir := filepath.Join(spool, s.ID)
@@ -482,7 +482,7 @@ func (t *sessionSuite) TestRevokeToken(c *C) {
 		{"wrong-token", false},
 	} {
 		spool := c.MkDir()
-		s := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
+		s := session.New(spool, 0, true, nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		s.Token = "right-token"
@@ -501,7 +501,7 @@ func (t *sessionSuite) TestIsRevoked(c *C) {
 		{false, false},
 	} {
 		spool := c.MkDir()
-		s := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
+		s := session.New(spool, 0, true, nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		s.Token = "token"
@@ -516,7 +516,7 @@ func (t *sessionSuite) TestIsRevoked(c *C) {
 
 func (t *sessionSuite) TestArtifacts(c *C) {
 	spool := c.MkDir()
-	s := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
+	s := session.New(spool, 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	d0, err := digests.NewSha256Digest("1234567890123456789012345678901234567890123456789012345678901234")
@@ -537,10 +537,10 @@ func (t *sessionSuite) TestArtifacts(c *C) {
 
 func (t *sessionSuite) TestSize(c *C) {
 	spool := c.MkDir()
-	s1 := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
+	s1 := session.New(spool, 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s1.Discard()
 
-	s2 := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
+	s2 := session.New(spool, 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s2.Discard()
 
 	n := session.Sessions.Size()
@@ -549,10 +549,10 @@ func (t *sessionSuite) TestSize(c *C) {
 
 func (t *sessionSuite) TestFinishAll(c *C) {
 	spool := c.MkDir()
-	s1 := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
+	s1 := session.New(spool, 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s1.Discard()
 
-	s2 := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
+	s2 := session.New(spool, 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s2.Discard()
 
 	n := session.Sessions.Size()
@@ -566,10 +566,10 @@ func (t *sessionSuite) TestFinishAll(c *C) {
 
 func (t *sessionSuite) TestNumSessions(c *C) {
 	spool := c.MkDir()
-	s1 := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
+	s1 := session.New(spool, 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s1.Discard()
 
-	s2 := session.New(spool, 0, false, nil, config.SessionInspectorsConfig{})
+	s2 := session.New(spool, 0, false, nil, config.OverrideInspectorsConfig{})
 	defer s2.Discard()
 
 	n := session.NumSessions()
@@ -578,10 +578,10 @@ func (t *sessionSuite) TestNumSessions(c *C) {
 
 func (t *sessionSuite) TestSessionInfos(c *C) {
 	spool := c.MkDir()
-	s1 := session.New(spool, 0, true, nil, config.SessionInspectorsConfig{})
+	s1 := session.New(spool, 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s1.Discard()
 
-	s2 := session.New(spool, 0, false, nil, config.SessionInspectorsConfig{})
+	s2 := session.New(spool, 0, false, nil, config.OverrideInspectorsConfig{})
 	defer s2.Discard()
 
 	all := session.SessionInfos()

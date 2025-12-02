@@ -81,7 +81,7 @@ var (
 
 // New creates a session that stores artifact data and metadata under
 // spoolDir. The session is automatically finished if it times out.
-func New(spoolDir string, timeout time.Duration, permissive bool, secrets []secrets.Secret, inspectorsConfig config.SessionInspectorsConfig) *Session {
+func New(spoolDir string, timeout time.Duration, permissive bool, secrets []secrets.Secret, inspectorsConfig config.OverrideInspectorsConfig) *Session {
 	sessionID := makeSessionID()
 	token := randomString(20)
 
@@ -89,7 +89,7 @@ func New(spoolDir string, timeout time.Duration, permissive bool, secrets []secr
 }
 
 // NewWithID creates a session using the specified sessionID and token.
-func NewWithID(sessionID, token, spoolDir string, timeout time.Duration, permissive bool, secrets []secrets.Secret, inspectorsConfig config.SessionInspectorsConfig) *Session {
+func NewWithID(sessionID, token, spoolDir string, timeout time.Duration, permissive bool, secrets []secrets.Secret, inspectorsConfig config.OverrideInspectorsConfig) *Session {
 	_, ok := sessions.Load(sessionID)
 	if ok {
 		id := makeSessionID()

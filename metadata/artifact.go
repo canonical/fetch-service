@@ -141,11 +141,11 @@ func (a Artifact) Sha256() digests.Sha256Digest {
 
 // addInspection adds the inspector's opinion to the artifact's
 // inspection map.
-func (a *Artifact) addInspection(insp InspectionMap, inspName, id string, op opinions.OpinionKind, reason string, args ...any) *Inspection {
+func (a *Artifact) addInspection(insp InspectionMap, inspName, id string, op opinions.OpinionKind, reason string) *Inspection {
 	a.logger.Infof("%s: %s opinion set to %s (%s)", id, inspName, op.String(), reason)
 	in := &Inspection{
 		Opinion: op,
-		Reason:  fmt.Sprintf(reason, args...),
+		Reason:  reason,
 	}
 	insp[id] = in
 
@@ -154,38 +154,38 @@ func (a *Artifact) addInspection(insp InspectionMap, inspName, id string, op opi
 
 // SetRequestPending adds a request inspection and sets the inspector
 // ins opinion to Pending.
-func (a *Artifact) SetRequestPending(ins Inspector, reason string, args ...any) *Inspection {
-	return a.addInspection(a.RequestInspection, "request", ins.ID(), opinions.Pending, reason, args...)
+func (a *Artifact) SetRequestPending(ins Inspector, reason string) *Inspection {
+	return a.addInspection(a.RequestInspection, "request", ins.ID(), opinions.Pending, reason)
 }
 
 // SetRequestRejected adds a request inspection and sets the inspector
 // ins opinion to Rejected.
-func (a *Artifact) SetRequestRejected(ins Inspector, reason string, args ...any) *Inspection {
-	return a.addInspection(a.RequestInspection, "request", ins.ID(), opinions.Rejected, reason, args...)
+func (a *Artifact) SetRequestRejected(ins Inspector, reason string) *Inspection {
+	return a.addInspection(a.RequestInspection, "request", ins.ID(), opinions.Rejected, reason)
 }
 
 // SetRequestUnknown adds a request inspection and sets the inspector
 // ins opinion to Unknown.
-func (a *Artifact) SetRequestUnknown(ins Inspector, reason string, args ...any) *Inspection {
-	return a.addInspection(a.RequestInspection, "request", ins.ID(), opinions.Unknown, reason, args...)
+func (a *Artifact) SetRequestUnknown(ins Inspector, reason string) *Inspection {
+	return a.addInspection(a.RequestInspection, "request", ins.ID(), opinions.Unknown, reason)
 }
 
 // SetResponseApproved adds a response inspection and sets the inspector
 // ins opinion to Approved.
-func (a *Artifact) SetResponseApproved(ins Inspector, reason string, args ...any) *Inspection {
-	return a.addInspection(a.ResponseInspection, "response", ins.ID(), opinions.Approved, reason, args...)
+func (a *Artifact) SetResponseApproved(ins Inspector, reason string) *Inspection {
+	return a.addInspection(a.ResponseInspection, "response", ins.ID(), opinions.Approved, reason)
 }
 
 // SetResponseRejected adds a response inspection and sets the inspector
 // ins opinion to Rejected.
-func (a *Artifact) SetResponseRejected(ins Inspector, reason string, args ...any) *Inspection {
-	return a.addInspection(a.ResponseInspection, "response", ins.ID(), opinions.Rejected, reason, args...)
+func (a *Artifact) SetResponseRejected(ins Inspector, reason string) *Inspection {
+	return a.addInspection(a.ResponseInspection, "response", ins.ID(), opinions.Rejected, reason)
 }
 
 // SetResponseUnknown adds a response inspection and sets the inspector
 // ins opinion to Unknown.
-func (a *Artifact) SetResponseUnknown(ins Inspector, reason string, args ...any) *Inspection {
-	return a.addInspection(a.ResponseInspection, "response", ins.ID(), opinions.Unknown, reason, args...)
+func (a *Artifact) SetResponseUnknown(ins Inspector, reason string) *Inspection {
+	return a.addInspection(a.ResponseInspection, "response", ins.ID(), opinions.Unknown, reason)
 }
 
 // RequestRejected returns true when the artifact was rejected
@@ -240,14 +240,14 @@ func (a *Artifact) ResponseApproved() bool {
 	return res
 }
 
-// InspectorRequestOpinion returns the request opinion set by the inspector
-// with the given ID.
-func (a *Artifact) InspectorRequestOpinion(ins Inspector) opinions.OpinionKind {
+// InspectorRequestOpinionPending returns true when the request opinion
+// set by the given inspector is set to pending.
+func (a *Artifact) InspectorRequestOpinionPending(ins Inspector) bool {
 	in, ok := a.RequestInspection[ins.ID()]
 	if !ok {
-		return opinions.Unknown
+		return false
 	}
-	return in.Opinion
+	return in.Opinion == opinions.Pending
 }
 
 // inspectAnnotation verifies whether the inspector has an inspection

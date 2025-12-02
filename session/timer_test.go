@@ -33,7 +33,7 @@ type sessionTimerSuite struct{}
 var _ = Suite(&sessionTimerSuite{})
 
 func (t *sessionTimerSuite) TestExpiredSessionTimer(c *C) {
-	s := session.New("", 500*time.Millisecond, true, nil, config.SessionInspectorsConfig{})
+	s := session.New("", 500*time.Millisecond, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	ch := make(chan string, 1)
@@ -44,7 +44,7 @@ func (t *sessionTimerSuite) TestExpiredSessionTimer(c *C) {
 }
 
 func (t *sessionTimerSuite) TestCanceledSessionTimer(c *C) {
-	s := session.New("", 2*time.Second, true, nil, config.SessionInspectorsConfig{})
+	s := session.New("", 2*time.Second, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
 	ch := make(chan string, 1)
