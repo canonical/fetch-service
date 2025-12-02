@@ -22,6 +22,7 @@ package apt
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -163,73 +164,9 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 	buf := make([]byte, 0, 64*1024)
 	sc.Buffer(buf, 1024*1024)
 
-	itemCount := 0
-	statePackage := false
-	stateMD5sum := false
-	stateDescription := false
-	lang := ""
-
-	// Check if the Translation file is well-formed
-	for sc.Scan() {
-		line := sc.Text()
-
-		if strings.HasPrefix(line, "Package: ") {
-			if statePackage {
-				a.SetResponseRejected(ins, "misplaced package fields in translation file")
-				return nil
-			}
-			statePackage = true
-			continue
-		} else if strings.HasPrefix(line, "Description-md5: ") {
-			if !statePackage {
-				a.SetResponseRejected(ins, "description-md5 field without Package field")
-				return nil
-			}
-			stateMD5sum = true
-			continue
-		} else if strings.HasPrefix(line, "Description-") {
-			if !stateMD5sum || !statePackage {
-				a.SetResponseRejected(ins, "description field without Package or Description-md5 field")
-				return nil
-			}
-			stateDescription = true
-			if lang == "" { // get the language code
-				descLang, _, langFound := strings.Cut(line, ":")
-				if langFound {
-					lang = strings.TrimPrefix(descLang, "Description-")
-				}
-			}
-			continue
-		} else if strings.HasPrefix(line, " ") { // Description field continuation with leading space
-			if !stateDescription {
-				a.SetResponseRejected(ins, "description field without Package or Description-md5 field")
-				return nil
-			}
-			continue
-		} else if len(line) == 0 { // item ends
-			if stateDescription {
-				itemCount++
-			}
-			statePackage = false
-			stateMD5sum = false
-			stateDescription = false
-		}
-	}
-
-	// Handle the last item if not followed by an empty line
-	if itemCount > 0 {
-		if statePackage {
-			if !stateMD5sum {
-				a.SetResponseRejected(ins, "description-md5 field missing for the last Package")
-				return nil
-			}
-			if !stateDescription {
-				a.SetResponseRejected(ins, "description field missing for the last Package")
-				return nil
-			}
-		}
-	} else {
-		a.SetResponseRejected(ins, "not a valid translation file")
+	lang, itemCount, err := parseTranslationFile(sc)
+	if err != nil {
+		a.SetResponseRejected(ins, err.Error())
 		return nil
 	}
 
@@ -267,4 +204,71 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 	}
 
 	return nil
+}
+
+func parseTranslationFile(sc *bufio.Scanner) (string, int, error) {
+	itemCount := 0
+	statePackage := false
+	stateMD5sum := false
+	stateDescription := false
+	lang := ""
+
+	// Check if the Translation file is well-formed
+	for sc.Scan() {
+		line := sc.Text()
+
+		if strings.HasPrefix(line, "Package: ") {
+			if statePackage {
+				return "", itemCount, errors.New("misplaced package fields in translation file")
+			}
+			statePackage = true
+			continue
+		} else if strings.HasPrefix(line, "Description-md5: ") {
+			if !statePackage {
+				return "", itemCount, errors.New("description-md5 field without Package field")
+			}
+			stateMD5sum = true
+			continue
+		} else if strings.HasPrefix(line, "Description-") {
+			if !stateMD5sum || !statePackage {
+				return "", itemCount, errors.New("description field without Package or Description-md5 field")
+			}
+			stateDescription = true
+			if lang == "" { // get the language code
+				descLang, _, langFound := strings.Cut(line, ":")
+				if langFound {
+					lang = strings.TrimPrefix(descLang, "Description-")
+				}
+			}
+			continue
+		} else if strings.HasPrefix(line, " ") { // Description field continuation with leading space
+			if !stateDescription {
+				return "", itemCount, errors.New("description field without Package or Description-md5 field")
+			}
+			continue
+		} else if len(line) == 0 { // item ends
+			if stateDescription {
+				itemCount++
+			}
+			statePackage = false
+			stateMD5sum = false
+			stateDescription = false
+		}
+	}
+
+	// Handle the last item if not followed by an empty line
+	if itemCount > 0 {
+		if statePackage {
+			if !stateMD5sum {
+				return "", itemCount, errors.New("description-md5 field missing for the last Package")
+			}
+			if !stateDescription {
+				return "", itemCount, errors.New("description field missing for the last Package")
+			}
+		}
+	} else {
+		return "", itemCount, errors.New("not a valid translation file")
+	}
+
+	return lang, itemCount, nil
 }
