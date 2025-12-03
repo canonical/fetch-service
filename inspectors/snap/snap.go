@@ -262,6 +262,10 @@ func downloadAssertion(url string, slog logger.Logger) (*assertion, error) {
 	}
 	defer res.Body.Close()
 
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("cannot download assertion: %s", res.Status)
+	}
+
 	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
