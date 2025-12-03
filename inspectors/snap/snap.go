@@ -109,7 +109,7 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 	}
 
 	// Retrieve snap-revision assertion
-	// It's cheaper to check the assertion existance first than look for snap
+	// It's cheaper to check the assertion existence first than look for snap
 	// metadata inside a potentially large squashfs file that's not a snap.
 	snapRevisionAssertion, err := downloadSnapRevisionAssertion(snapSha3_384, slog)
 	if err != nil {
@@ -126,7 +126,7 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 	// Retrieve the snap-declaration assertion
 	snapDeclarationAssertion, err := downloadSnapDeclarationAssertion(snapID, slog)
 	if err != nil {
-		return fmt.Errorf("cannot retrieve snap-declaration assertion: %w", err)
+		return fmt.Errorf("cannot retrieve snap-declaration assertion: %s", err)
 	}
 
 	publisherID := snapDeclarationAssertion.PublisherID()
