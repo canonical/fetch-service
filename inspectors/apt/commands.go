@@ -116,9 +116,15 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
+	md := ArtifactMetadata{
+		Type:        mimetypes.AptCommands,
+		Name:        "Commands",
+		Description: "Commands list for command-not-found",
+	}
+
 	r, err := xz.NewReader(f, 0)
 	if err != nil {
-		a.SetResponseRejected(ins, "cannot read xz file")
+		a.SetResponseRejected(ins, "cannot read xz file", md)
 		return nil
 	}
 
@@ -130,23 +136,18 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 
 	suite, component, arch, err := parseHeader(sc)
 	if err != nil {
-		a.SetResponseRejected(ins, err.Error())
+		a.SetResponseRejected(ins, err.Error(), md)
 		return nil
 	}
+
+	md.AptSuite = suite
 
 	sc.Scan() // Skip empty line
 
 	itemCount, err := parsePkgList(sc)
 	if err != nil {
-		a.SetResponseRejected(ins, err.Error())
+		a.SetResponseRejected(ins, err.Error(), md)
 		return nil
-	}
-
-	md := ArtifactMetadata{
-		Type:        mimetypes.AptCommands,
-		Name:        "Commands",
-		Description: "Commands list for command-not-found",
-		AptSuite:    suite,
 	}
 
 	// the file should be also annotated by the release inspector
@@ -155,8 +156,6 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		md.Vendor = vendor
 		md.Author = vendor
 	}
-
-	a.SetArtifactMetadata(md)
 
 	notes := Annotation{
 		"suite":     suite,
@@ -167,9 +166,9 @@ func (ins *AptCommandsInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 
 	_, ok = a.ResponseStringAnnotation(aptReleaseInspectorID, "release-file")
 	if ok {
-		a.SetResponseApproved(ins, "commands file successfully parsed").Annotate(notes)
+		a.SetResponseApproved(ins, "commands file successfully parsed", md).Annotate(notes)
 	} else {
-		a.SetResponseRejected(ins, "commands file not verified against release file").Annotate(notes)
+		a.SetResponseRejected(ins, "commands file not verified against release file", md).Annotate(notes)
 	}
 
 	return nil

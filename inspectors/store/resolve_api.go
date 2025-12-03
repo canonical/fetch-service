@@ -102,11 +102,11 @@ func (ins *StoreResolveAPIInspector) InspectArtifact(f ArtifactReader, a Respons
 		return nil // we don't recognize this artifact
 	}
 
-	a.SetArtifactMetadata(ArtifactMetadata{
+	md := ArtifactMetadata{
 		Type:        mimetypes.StoreResolveAPI,
 		Name:        "Store protocol response",
 		Description: "Store response for resolve_revisions request",
-	})
+	}
 
 	listedCrafts := make([]string, len(data.CraftResults))
 	for i, item := range data.CraftResults {
@@ -127,11 +127,11 @@ func (ins *StoreResolveAPIInspector) InspectArtifact(f ArtifactReader, a Respons
 	validNamespaces := []string{"bin", "charm", "rock", "snap"}
 	if !slices.Contains(validNamespaces, result.Namespace) {
 		notes["namespace"] = result.Namespace
-		a.SetResponseRejected(ins, "invalid namespace").Annotate(notes)
+		a.SetResponseRejected(ins, "invalid namespace", md).Annotate(notes)
 		return nil
 	}
 
-	a.SetResponseApproved(ins, "valid store resolve_revisions API response").Annotate(notes)
+	a.SetResponseApproved(ins, "valid store resolve_revisions API response", md).Annotate(notes)
 
 	return nil
 }

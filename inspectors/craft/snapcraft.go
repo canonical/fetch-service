@@ -103,7 +103,7 @@ func (ins *SnapcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
 		// this must have been set by the git upload-pack inspector
-		a.SetResponseUnknown(ins, "no git checkout found")
+		a.SetResponseUnknown(ins, "no git checkout found", NoMetadata)
 		return nil
 	}
 
@@ -113,9 +113,15 @@ func (ins *SnapcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 	if !found {
 		return nil
 	}
+
+	md := ArtifactMetadata{
+		Type:      mimetypes.Snapcraft,
+		ContentID: getSingleFetchedRef(a),
+	}
+
 	yamlDataFileReader, err := osOpen(snapcraftYamlPath)
 	if err != nil {
-		a.SetResponseRejected(ins, "cannot open snapcraft.yaml file")
+		a.SetResponseRejected(ins, "cannot open snapcraft.yaml file", md)
 		return nil
 	}
 	defer yamlDataFileReader.Close()
@@ -123,19 +129,16 @@ func (ins *SnapcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 	var data snapcraftYaml
 	dec := yaml.NewDecoder(yamlDataFileReader)
 	if err := dec.Decode(&data); err != nil {
-		a.SetResponseRejected(ins, "cannot decode snapcraft.yaml")
+		a.SetResponseRejected(ins, "cannot decode snapcraft.yaml", md)
 		return nil
 	}
 
-	a.SetArtifactMetadata(ArtifactMetadata{
-		Type:        mimetypes.Snapcraft,
-		Name:        data.Name,
-		Version:     data.Version,
-		Description: data.Summary,
-		License:     data.License,
-		ContentID:   getSingleFetchedRef(a),
-	})
-	a.SetResponseApproved(ins, "snapcraft repository found")
+	md.Name = data.Name
+	md.Version = data.Version
+	md.Description = data.Summary
+	md.License = data.License
+
+	a.SetResponseApproved(ins, "snapcraft repository found", md)
 
 	return nil
 }

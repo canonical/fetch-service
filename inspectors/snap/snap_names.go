@@ -101,13 +101,11 @@ func (ins *SnapNamesInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 		return nil // we don't recognize this artifact
 	}
 
-	a.SetArtifactMetadata(ArtifactMetadata{
+	a.SetResponseApproved(ins, "valid Snap package names list", ArtifactMetadata{
 		Type:        mimetypes.SnapNames,
 		Name:        "Snap names list",
 		Description: "List of Snap package names",
-	})
-
-	a.SetResponseApproved(ins, "valid Snap package names list").Annotate(
+	}).Annotate(
 		Annotation{"entries": num},
 	)
 

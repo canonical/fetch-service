@@ -105,7 +105,10 @@ func (a *Artifact) SetRequestBody(r io.ReadCloser) {
 	a.Request.Body = r
 }
 
-func (a *Artifact) SetArtifactMetadata(m ArtifactMetadata) {
+// setArtifactMetadata replaces the artifact metadata with m. All fields are
+// overwritten; Type is only updated when non-empty, so a pre-existing type
+// (e.g. from MIME detection) is preserved when m.Type is unset.
+func (a *Artifact) setArtifactMetadata(m ArtifactMetadata) {
 	if m.Type != "" {
 		a.Metadata.Type = m.Type
 	}
@@ -172,19 +175,45 @@ func (a *Artifact) SetRequestUnknown(ins Inspector, reason string) *Inspection {
 
 // SetResponseApproved adds a response inspection and sets the inspector
 // ins opinion to Approved.
-func (a *Artifact) SetResponseApproved(ins Inspector, reason string) *Inspection {
+func (a *Artifact) SetResponseApproved(ins Inspector, reason string, m ArtifactMetadata) *Inspection {
+	if m != (ArtifactMetadata{}) {
+		a.setArtifactMetadata(m)
+	}
 	return a.addInspection(a.ResponseInspection, "response", ins.ID(), opinions.Approved, reason)
 }
 
 // SetResponseRejected adds a response inspection and sets the inspector
 // ins opinion to Rejected.
-func (a *Artifact) SetResponseRejected(ins Inspector, reason string) *Inspection {
+func (a *Artifact) SetResponseRejected(ins Inspector, reason string, m ArtifactMetadata) *Inspection {
+	approved := false
+	for _, insp := range a.ResponseInspection {
+		if insp.Opinion == opinions.Approved {
+			approved = true
+			break
+		}
+	}
+	if !approved && m != (ArtifactMetadata{}) {
+		// Record whatever partial metadata the rejecting inspector has determined,
+		// so the report is as informative as possible. Approval metadata takes
+		// priority: once an approval has been recorded its metadata is not replaced.
+		a.setArtifactMetadata(m)
+	}
 	return a.addInspection(a.ResponseInspection, "response", ins.ID(), opinions.Rejected, reason)
 }
 
 // SetResponseUnknown adds a response inspection and sets the inspector
 // ins opinion to Unknown.
-func (a *Artifact) SetResponseUnknown(ins Inspector, reason string) *Inspection {
+func (a *Artifact) SetResponseUnknown(ins Inspector, reason string, m ArtifactMetadata) *Inspection {
+	approved := false
+	for _, insp := range a.ResponseInspection {
+		if insp.Opinion == opinions.Approved {
+			approved = true
+			break
+		}
+	}
+	if !approved && m != (ArtifactMetadata{}) {
+		a.setArtifactMetadata(m)
+	}
 	return a.addInspection(a.ResponseInspection, "response", ins.ID(), opinions.Unknown, reason)
 }
 

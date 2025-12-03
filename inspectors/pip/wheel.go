@@ -92,8 +92,12 @@ func (ins *WheelInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact)
 	size := int64(f.Len())
 	notes := newWheelNotes()
 
-	if err := readWheelMetadata(ins, f, size, a, notes, sl); err != nil {
+	md, err := readWheelMetadata(ins, f, size, a, notes, sl)
+	if err != nil {
 		return err
+	}
+	if md.Type != mimetypes.PythonWheel {
+		return nil
 	}
 
 	fileList, err := listWheelFiles(ins, f, size, a, notes)
@@ -105,17 +109,17 @@ func (ins *WheelInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact)
 		return err
 	}
 
-	processOpinion(ins, a, notes)
+	processOpinion(ins, a, md, notes)
 
 	return nil
 }
 
-func processOpinion(ins *WheelInspector, a ResponseArtifact, notes *wheelNotes) {
+func processOpinion(ins *WheelInspector, a ResponseArtifact, md ArtifactMetadata, notes *wheelNotes) {
 	// Reject if required files not found
 	if len(notes.requirementFaults) > 0 {
 		notes.Add("faults", notes.requirementFaults)
 		a.SetResponseRejected(ins,
-			"wheel file requirements not met").Annotate(notes.Annotation)
+			"wheel file requirements not met", md).Annotate(notes.Annotation)
 		return
 	}
 
@@ -131,18 +135,18 @@ func processOpinion(ins *WheelInspector, a ResponseArtifact, notes *wheelNotes) 
 			notes.Add("extra-files", notes.extraFiles)
 		}
 		a.SetResponseRejected(ins,
-			"wheel file parsed but failed integrity verification").Annotate(notes.Annotation)
+			"wheel file parsed but failed integrity verification", md).Annotate(notes.Annotation)
 		return
 	}
 
-	a.SetResponseApproved(ins, "wheel file successfully parsed").Annotate(notes.Annotation)
+	a.SetResponseApproved(ins, "wheel file successfully parsed", md).Annotate(notes.Annotation)
 }
 
 // readWheelMetadata reads the wheel's METADATA file.
-func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a ResponseArtifact, notes *wheelNotes, sl logger.Logger) error {
+func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a ResponseArtifact, notes *wheelNotes, sl logger.Logger) (ArtifactMetadata, error) {
 	z, err := zip.NewReader(f, size)
 	if err != nil {
-		return err
+		return ArtifactMetadata{}, err
 	}
 
 	mre := regexp.MustCompile(`^\w+-[^/]+\.dist-info/METADATA$`)
@@ -151,13 +155,13 @@ func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a Respons
 		if m := mre.MatchString(f.Name); m {
 			zf, err := f.Open()
 			if err != nil {
-				return err
+				return ArtifactMetadata{}, err
 			}
 			defer zf.Close()
 
 			md, ver, err := scanWheelMetadata(zf, sl)
 			if err != nil {
-				return err
+				return md, err
 			}
 			if md.Name == "" {
 				notes.requirementFault("wheel name not found")
@@ -167,18 +171,17 @@ func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a Respons
 			}
 			if ver == "" {
 				notes.requirementFault("wheel metadata version not found")
-				return nil
+				return md, nil
 			}
 
-			a.SetArtifactMetadata(md)
 			notes.Add("metadata-version", ver)
-			return nil
+			return md, nil
 		}
 	}
 
 	notes.requirementFault("METADATA file not found")
 
-	return nil
+	return ArtifactMetadata{}, nil
 }
 
 // scanWheelMetadata parses metadata entries from the given file.

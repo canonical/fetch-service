@@ -272,36 +272,19 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 
 	suite, ok := a.RequestStringAnnotation(ins.ID(), "suite")
 	if !ok {
-		a.SetResponseUnknown(ins, "suite not specified in request URL")
+		a.SetResponseUnknown(ins, "suite not specified in request URL", NoMetadata)
 		return nil
 	}
 	component, ok := a.RequestStringAnnotation(ins.ID(), "component")
 	if !ok {
-		a.SetResponseUnknown(ins, "component not specified in request URL")
+		a.SetResponseUnknown(ins, "component not specified in request URL", NoMetadata)
 		return nil
 	}
 	architecture, ok := a.RequestStringAnnotation(ins.ID(), "architecture")
 	if !ok {
-		a.SetResponseUnknown(ins, "architecture not specified in request URL")
+		a.SetResponseUnknown(ins, "architecture not specified in request URL", NoMetadata)
 		return nil
 	}
-
-	cfgName, ok := a.RequestStringAnnotation(ins.ID(), "cfg-name")
-	if !ok {
-		a.SetResponseRejected(ins, "Packages file downloaded from unknown repository")
-		return nil
-	}
-
-	origin, ok := ins.getOriginAlias(utils.NormalizedOrigin(u), cfgName, sl)
-	if !ok {
-		a.SetResponseRejected(ins, "Unknown repository configuration name").Annotate(
-			Annotation{"cfg-name": cfgName},
-		)
-		return nil
-	}
-
-	pkg := newAptPackages(a.Sha256(), origin, suite, component, architecture)
-	ins.addPackages(origin, u.Path, pkg, a.Logger())
 
 	md := ArtifactMetadata{
 		Type:         mimetypes.AptPackages,
@@ -311,14 +294,29 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		AptSuite:     suite,
 	}
 
+	cfgName, ok := a.RequestStringAnnotation(ins.ID(), "cfg-name")
+	if !ok {
+		a.SetResponseRejected(ins, "Packages file downloaded from unknown repository", md)
+		return nil
+	}
+
+	origin, ok := ins.getOriginAlias(utils.NormalizedOrigin(u), cfgName, sl)
+	if !ok {
+		a.SetResponseRejected(ins, "Unknown repository configuration name", md).Annotate(
+			Annotation{"cfg-name": cfgName},
+		)
+		return nil
+	}
+
+	pkg := newAptPackages(a.Sha256(), origin, suite, component, architecture)
+	ins.addPackages(origin, u.Path, pkg, a.Logger())
+
 	// the file should be also annotated by the release inspector
 	vendor, ok := a.ResponseStringAnnotation(aptReleaseInspectorID, "vendor")
 	if ok {
 		md.Author = vendor
 		md.Vendor = vendor
 	}
-
-	a.SetArtifactMetadata(md)
 
 	// Add packages list to inspector state
 	r, err := compressedReader(f)
@@ -330,7 +328,7 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	entries := map[digests.Sha256Digest]aptPackagesEntry{}
 	num, err = parsePackages(r, entries, a.Logger())
 	if err != nil {
-		a.SetResponseRejected(ins, "error parsing packages file").Annotate(
+		a.SetResponseRejected(ins, "error parsing packages file", md).Annotate(
 			Annotation{
 				"error-msg":     err.Error(),
 				"package-count": num,
@@ -345,9 +343,9 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	if ok {
 		notes["release-file"] = releaseDigest
 		ins.validatePackages(a.Sha256())
-		a.SetResponseApproved(ins, "packages file successfully parsed").Annotate(notes)
+		a.SetResponseApproved(ins, "packages file successfully parsed", md).Annotate(notes)
 	} else {
-		a.SetResponseRejected(ins, "packages file not verified against release file").Annotate(notes)
+		a.SetResponseRejected(ins, "packages file not verified against release file", md).Annotate(notes)
 	}
 
 	pkg.entriesLock.Lock()
@@ -467,14 +465,16 @@ func (ins *AptPackagesInspector) validateDebianPackage(f ArtifactReader, a Respo
 
 	sl := a.Logger()
 
+	md := ArtifactMetadata{Type: mimetypes.DebianBinaryPackage}
+
 	cfgName, ok := a.RequestStringAnnotation(ins.ID(), "cfg-name")
 	if !ok {
-		a.SetResponseRejected(ins, "deb file downloaded from unknown repository")
+		a.SetResponseRejected(ins, "deb file downloaded from unknown repository", md)
 		return nil
 	}
 	origin, ok := ins.getOriginAlias(utils.NormalizedOrigin(u), cfgName, sl)
 	if !ok {
-		a.SetResponseRejected(ins, "Unknown repository configuration name").Annotate(
+		a.SetResponseRejected(ins, "Unknown repository configuration name", md).Annotate(
 			Annotation{"cfg-name": cfgName},
 		)
 		return nil
@@ -503,20 +503,24 @@ func (ins *AptPackagesInspector) validateDebianPackage(f ArtifactReader, a Respo
 			}
 
 			// Check if the packages file listing this deb was validated
+			md.Name = entry.Pkg
+			md.Version = entry.Version
+			md.Architecture = entry.Architecture
+			md.AptSuite = pkg.suite
 			if !packagesIsValid {
-				a.SetResponseRejected(ins, "artifact listed in invalid Packages file").Annotate(notes)
+				a.SetResponseRejected(ins, "artifact listed in invalid Packages file", md).Annotate(notes)
 			} else if a.Size() != entry.Size {
-				a.SetResponseRejected(ins, "artifact size does not match Packages entry").Annotate(notes)
+				a.SetResponseRejected(ins, "artifact size does not match Packages entry", md).Annotate(notes)
 			} else if info.Architecture != entry.Architecture {
-				a.SetResponseRejected(ins, "URL architecture does not match Packages entry").Annotate(notes)
+				a.SetResponseRejected(ins, "URL architecture does not match Packages entry", md).Annotate(notes)
 			} else {
-				a.SetResponseUnknown(ins, "deb file matches packages entry").Annotate(notes)
+				a.SetResponseUnknown(ins, "deb file matches packages entry", md).Annotate(notes)
 			}
 
 			return nil
 		}
 	}
 
-	a.SetResponseRejected(ins, "deb file digest not listed in packages file")
+	a.SetResponseRejected(ins, "deb file digest not listed in packages file", ArtifactMetadata{Type: mimetypes.DebianBinaryPackage})
 	return nil
 }

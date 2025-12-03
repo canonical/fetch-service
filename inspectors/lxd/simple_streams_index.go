@@ -102,26 +102,27 @@ func (ins *SimpleStreamsIndexInspector) InspectArtifact(f ArtifactReader, a Resp
 		sl.Debugf("unsupported format when parsing index.json %s", b.Format)
 		return nil
 	}
-	a.SetArtifactMetadata(ArtifactMetadata{
+
+	md := ArtifactMetadata{
 		Type:        mimetypes.SimpleStreamsIndex,
 		Name:        "Simple Streams Index",
 		Description: fmt.Sprintf("Simple Streams Index for %s", stream),
-	})
+	}
 
 	var downloadPaths = make([]string, 0, len(b.Index))
 	for _, v := range b.Index {
 		if v.Format != productFormat {
-			a.SetResponseRejected(ins, "invalid index file").Annotate(Annotation{"index.format": v.Format})
+			a.SetResponseRejected(ins, "invalid index file", md).Annotate(Annotation{"index.format": v.Format})
 			return nil
 		}
 		if v.Datatype != dataType {
-			a.SetResponseRejected(ins, "invalid index file").Annotate(Annotation{"index.datatype": v.Datatype})
+			a.SetResponseRejected(ins, "invalid index file", md).Annotate(Annotation{"index.datatype": v.Datatype})
 			return nil
 		}
 		downloadPaths = append(downloadPaths, v.Path)
 	}
 
-	a.SetResponseApproved(ins, "valid Simple Streams index file").Annotate(
+	a.SetResponseApproved(ins, "valid Simple Streams index file", md).Annotate(
 		Annotation{
 			"download-paths": downloadPaths,
 		})

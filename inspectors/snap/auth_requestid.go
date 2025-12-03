@@ -79,13 +79,11 @@ func (ins *SnapAuthRequestIDInspector) InspectArtifact(f ArtifactReader, a Respo
 		return nil // we don't recognize this artifact
 	}
 
-	a.SetArtifactMetadata(ArtifactMetadata{
+	a.SetResponseApproved(ins, "valid format for snapd device authentication request ID", ArtifactMetadata{
 		Type:        mimetypes.SnapAuthRequestID,
 		Name:        "Device authentication request ID",
 		Description: "Snapd device authentication request ID",
 	})
-
-	a.SetResponseApproved(ins, "valid format for snapd device authentication request ID")
 
 	return nil
 }

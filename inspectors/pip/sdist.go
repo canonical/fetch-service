@@ -171,7 +171,7 @@ func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a ResponseArtifact) error 
 		vendor = maintainer
 	}
 
-	a.SetArtifactMetadata(ArtifactMetadata{
+	md := ArtifactMetadata{
 		Type:        mimetypes.PythonSdist,
 		Name:        name,
 		Version:     version,
@@ -180,9 +180,9 @@ func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a ResponseArtifact) error 
 		AuthorEmail: email,
 		License:     license,
 		Vendor:      vendor,
-	})
+	}
 
-	a.SetResponseApproved(ins, "sdist file successfully parsed").Annotate(
+	a.SetResponseApproved(ins, "sdist file successfully parsed", md).Annotate(
 		Annotation{
 			"metadata-version": mver,
 		},

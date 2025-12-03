@@ -152,9 +152,14 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
+	md := ArtifactMetadata{
+		Type: mimetypes.AptTranslation,
+		Name: "Translation",
+	}
+
 	r, err := xz.NewReader(f, 0)
 	if err != nil {
-		a.SetResponseUnknown(ins, "cannot read xz file")
+		a.SetResponseUnknown(ins, "cannot read xz file", md)
 		return nil
 	}
 
@@ -167,20 +172,16 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 
 	lang, itemCount, err := parseTranslationFile(sc)
 	if err != nil {
-		a.SetResponseRejected(ins, err.Error())
+		a.SetResponseRejected(ins, err.Error(), md)
 		return nil
 	}
 	suite, ok := a.RequestStringAnnotation(ins.ID(), "suite")
 	if !ok {
-		a.SetResponseUnknown(ins, "suite not specified in request URL")
+		a.SetResponseUnknown(ins, "suite not specified in request URL", md)
 		return nil
 	}
 
-	md := ArtifactMetadata{
-		Type:     mimetypes.AptTranslation,
-		Name:     "Translation",
-		AptSuite: suite,
-	}
+	md.AptSuite = suite
 
 	// The file should be also annotated by the release inspector.
 	vendor, ok := a.ResponseStringAnnotation(aptReleaseInspectorID, "vendor")
@@ -189,8 +190,6 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 		md.Author = vendor
 	}
 
-	a.SetArtifactMetadata(md)
-
 	notes := Annotation{
 		"translation-language": lang,
 		"translation-count":    itemCount,
@@ -198,9 +197,9 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 
 	_, ok = a.ResponseStringAnnotation(aptReleaseInspectorID, "release-file")
 	if ok {
-		a.SetResponseApproved(ins, "translation file successfully parsed").Annotate(notes)
+		a.SetResponseApproved(ins, "translation file successfully parsed", md).Annotate(notes)
 	} else {
-		a.SetResponseRejected(ins, "translation file not verified against release file").Annotate(notes)
+		a.SetResponseRejected(ins, "translation file not verified against release file", md).Annotate(notes)
 	}
 
 	return nil

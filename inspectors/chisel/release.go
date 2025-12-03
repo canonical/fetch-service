@@ -104,24 +104,29 @@ func (ins *ChiselReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseA
 	release, data, err := inspectTarball(tr)
 	if err != nil {
 		if err != errUnrecognized {
-			a.SetResponseRejected(ins, fmt.Sprintf("invalid tarball: %s", err))
+			a.SetResponseRejected(ins, fmt.Sprintf("invalid tarball: %s", err), ArtifactMetadata{Type: mimetypes.ChiselRelease})
 		}
 		return nil
 	}
 
 	if err := validPubKeys(ins.aptCfg, data); err != nil {
-		a.SetResponseRejected(ins, fmt.Sprintf("invalid public-keys: %s", err))
+		a.SetResponseRejected(ins, fmt.Sprintf("invalid public-keys: %s", err), ArtifactMetadata{
+			Type:        mimetypes.ChiselRelease,
+			Name:        "chisel-release",
+			Version:     data.Format,
+			Description: fmt.Sprintf("Chisel release file for %s", release),
+			Vendor:      "Canonical",
+		})
 		return nil
 	}
 
-	a.SetArtifactMetadata(ArtifactMetadata{
+	a.SetResponseApproved(ins, "artifact successfully parsed", ArtifactMetadata{
 		Type:        mimetypes.ChiselRelease,
 		Name:        "chisel-release",
 		Version:     data.Format,
 		Description: fmt.Sprintf("Chisel release file for %s", release),
 		Vendor:      "Canonical",
 	})
-	a.SetResponseApproved(ins, "artifact successfully parsed")
 	return nil
 }
 
