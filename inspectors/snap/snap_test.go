@@ -230,7 +230,7 @@ var snapArtifactInspectorErrorTests = []snapArtifactInspectorErrorTest{{
 	errorMsg:  "cannot encode digest: encode digest error",
 }, {
 	errorCase: "revision-assertion-download",
-	errorMsg:  "cannot retrieve snap-revision assertion: assertion download error",
+	errorMsg:  "",
 }, {
 	errorCase: "declaration-assertion-download",
 	errorMsg:  "cannot retrieve snap-declaration assertion: assertion download error",
@@ -295,8 +295,13 @@ func (s *snapSuite) TestSnapArtifactInspectorError(c *C) {
 		ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
 		a.SetRequestPending(ins, "test")
 		err = ins.InspectArtifact(f, a)
-		c.Assert(err, Not(IsNil))
-		c.Check(err.Error(), Equals, tc.errorMsg)
+		if tc.errorMsg == "" {
+			c.Assert(err, IsNil)
+			c.Assert(a.ResponseInspection, HasLen, 0)
+		} else {
+			c.Assert(err, Not(IsNil))
+			c.Check(err.Error(), Equals, tc.errorMsg)
+		}
 	}
 }
 
