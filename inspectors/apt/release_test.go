@@ -514,7 +514,7 @@ func (s *aptSuite) TestAptReleaseSignature(c *C) {
 
 	f, err := os.Open("testdata/InRelease.xz")
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// Read compressed file
 	z, err := xz.NewReader(f, 0)

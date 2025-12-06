@@ -64,7 +64,7 @@ func (t *fileUtilsSuite) TestCreateZip(c *C) {
 	for _, zf := range zr.File {
 		f, err := zf.Open()
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		buf := make([]byte, 15)
 		n, err := f.Read(buf)

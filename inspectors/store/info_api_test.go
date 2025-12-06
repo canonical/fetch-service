@@ -123,7 +123,7 @@ func (s *storeSuite) TestStoreInfoAPIArtifactInspector(c *C) {
 
 	f, err := files.OpenArtifactFile("testdata/info.json")
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ins := store.NewStoreInfoAPIInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 	a.SetRequestPending(ins, "test").Annotate(Annotation{"type": "bins"})
@@ -163,7 +163,7 @@ func (s *storeSuite) TestStoreInfoAPIArtifactBadType(c *C) {
 
 	f, err := files.OpenArtifactFile("testdata/info.json")
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ins := store.NewStoreInfoAPIInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 	err = ins.InspectArtifact(f, a)
@@ -255,7 +255,7 @@ func (s *storeSuite) TestValidateBinInvalid(c *C) {
 
 		f, err := files.OpenArtifactFile(tc.filename)
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		ins := store.NewStoreInfoAPIInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 
@@ -284,7 +284,7 @@ func (s *storeSuite) TestValidateBinNoRequest(c *C) {
 func (s *storeSuite) TestSha3_384Digest(c *C) {
 	f, err := os.Open("testdata/starcraft-test-2.0.0.tar.xz")
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	d, err := store.Sha3_384Digest(f)
 	c.Assert(err, IsNil)

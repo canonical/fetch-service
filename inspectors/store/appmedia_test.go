@@ -101,7 +101,7 @@ func (s *storeSuite) TestStoreAppMediaArtifactInspector(c *C) {
 
 		f, err := files.OpenArtifactFile(tc.filename)
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		ins := store.NewStoreAppMediaInspector(getTestStoreInspectorConfig())
 		if tc.pending {
@@ -133,7 +133,7 @@ func (s *storeSuite) TestStoreAppMediaArtifactBadType(c *C) {
 
 	f, err := files.OpenArtifactFile("testdata/snapd.png")
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ins := store.NewStoreInfoAPIInspector(getTestStoreInspectorConfig(), getTestBldbinInspectorConfig())
 	err = ins.InspectArtifact(f, a)

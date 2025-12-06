@@ -124,7 +124,7 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectArtifact(c
 
 	f, err := files.OpenArtifactFile("testdata/download.json")
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
@@ -184,7 +184,7 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectArtifactNo
 
 	f, err := files.OpenArtifactFile("testdata/download.json")
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
@@ -220,7 +220,7 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectArtifactMi
 
 		f, err := files.OpenArtifactFile(tc.filename)
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
@@ -238,7 +238,7 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectArtifactMi
 	// Don't set up request inspection, so no stream annotation exists
 	f, err := files.OpenArtifactFile("testdata/download.json")
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, ErrorMatches, "missing stream in request annotations")
@@ -296,7 +296,7 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectImageMissi
 
 	f, err := files.OpenArtifactFile("testdata/download.json")
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
@@ -341,7 +341,7 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectImageSha25
 
 	f, err := files.OpenArtifactFile("testdata/download.json")
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)

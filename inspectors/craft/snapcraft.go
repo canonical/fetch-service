@@ -118,7 +118,7 @@ func (ins *SnapcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 		a.SetResponseRejected(ins, "cannot open snapcraft.yaml file")
 		return nil
 	}
-	defer yamlDataFileReader.Close()
+	defer func() { _ = yamlDataFileReader.Close() }()
 
 	var data snapcraftYaml
 	dec := yaml.NewDecoder(yamlDataFileReader)

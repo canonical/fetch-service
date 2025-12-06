@@ -248,11 +248,11 @@ func (s *chiselSuite) TestChiselReleaseInspectArtifact(c *C) {
 			filename, err = createPhonyGz()
 		}
 		c.Assert(err, IsNil)
-		defer os.Remove(filename)
+		defer func() { _ = os.Remove(filename) }()
 
 		f, err := files.OpenArtifactFile(filename)
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		err = ins.InspectArtifact(f, a)
 
@@ -277,10 +277,10 @@ func createPhonyGz() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	gw := gzip.NewWriter(f)
-	defer gw.Close()
+	defer func() { _ = gw.Close() }()
 
 	if _, err = gw.Write([]byte{1, 2, 3}); err != nil {
 		return "", err
@@ -307,7 +307,7 @@ func createTarGz(files map[string]string, roots []string) (string, error) {
 		if err != nil {
 			return err
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		stat, err := f.Stat()
 		if err != nil {
@@ -330,13 +330,13 @@ func createTarGz(files map[string]string, roots []string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	gw := gzip.NewWriter(f)
-	defer gw.Close()
+	defer func() { _ = gw.Close() }()
 
 	tw := tar.NewWriter(gw)
-	defer tw.Close()
+	defer func() { _ = tw.Close() }()
 
 	for _, root := range roots {
 		if err := writeDir(tw, root); err != nil {

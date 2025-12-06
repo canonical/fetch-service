@@ -78,7 +78,7 @@ func (ins *CharmcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		a.SetResponseRejected(ins, "cannot open charmcraft.yaml file")
 		return nil
 	}
-	defer yamlFile.Close()
+	defer func() { _ = yamlFile.Close() }()
 
 	var data charmcraftYaml
 	dec := yaml.NewDecoder(yamlFile)

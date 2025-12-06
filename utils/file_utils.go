@@ -119,7 +119,7 @@ func MoveFile(oldpath, newpath string) error {
 	if err != nil {
 		return err
 	}
-	defer oldfile.Close()
+	defer func() { _ = oldfile.Close() }()
 
 	// Open old file
 	fi, err := oldfile.Stat()
@@ -133,11 +133,11 @@ func MoveFile(oldpath, newpath string) error {
 	if err != nil {
 		return err
 	}
-	defer newfile.Close()
+	defer func() { _ = newfile.Close() }()
 
 	// Move file content
 	if _, err := io.Copy(newfile, oldfile); err != nil {
-		newfile.Close()
+		_ = newfile.Close()
 		_ = os.Remove(newpath)
 		return err
 	}

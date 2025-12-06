@@ -132,7 +132,7 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtifact(c *C) {
 	} {
 		f, err := loadTestRockcraftArtifactData()
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		checkoutPath := c.MkDir()
 		err = git.UnpackObjects(f, checkoutPath, s.slog)
@@ -144,7 +144,7 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtifact(c *C) {
 
 		f, err = loadTestRockcraftArtifactData()
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
 		err = ins.InspectArtifact(f, a)
@@ -168,7 +168,7 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtifactMissingRockcraftYaml(c *
 	a := createTestCraftArtifact(c.MkDir())
 	f, err := loadTestRockcraftArtifactData()
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ins := craft.NewRockcraftInspector(getTestRockcraftConfig())
 
@@ -190,7 +190,7 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtifactUnreadableRockcraftYaml(
 
 	f, err := loadTestRockcraftArtifactData()
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	restorer := craft.MockOsOpen(func(string) (*os.File, error) {
 		return nil, os.ErrNotExist
@@ -221,12 +221,12 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtifactUnableToDecodeRockcraftY
 	}
 	f, err := loadTestRockcraftArtifactData()
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	restorer := craft.MockOsOpen(func(string) (*os.File, error) {
 		temp, _ := os.CreateTemp("", "rockcraft-empty.yaml")
-		defer temp.Close()
-		defer os.Remove(temp.Name())
+		defer func() { _ = temp.Close() }()
+		defer func() { _ = os.Remove(temp.Name()) }()
 		return os.Open(temp.Name())
 	})
 	defer restorer()

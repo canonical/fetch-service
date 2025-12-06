@@ -174,7 +174,7 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 		a.SetResponseRejected(ins, "image has no meta/snap.yaml file")
 		return nil // it's not a snap package
 	}
-	defer sf.Close()
+	defer func() { _ = sf.Close() }()
 
 	var data snapYaml
 	dec := yaml.NewDecoder(sf)
@@ -260,7 +260,7 @@ func downloadAssertion(url string, slog logger.Logger) (*assertion, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("cannot download assertion: %s", res.Status)

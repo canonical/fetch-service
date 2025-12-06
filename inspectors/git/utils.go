@@ -88,7 +88,7 @@ func UnpackObjects(f io.ReadSeeker, dir string, slog logger.Logger) error {
 	// running on a RAM-backed filesystem
 	time.Sleep(200 * time.Millisecond)
 
-	pipe.Close()
+	_ = pipe.Close()
 
 	return cmd.Wait()
 }

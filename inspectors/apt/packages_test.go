@@ -172,7 +172,7 @@ func (s *aptSuite) TestPackagesInspectArtifact(c *C) {
 
 		f, err := files.OpenArtifactFile(tc.filename)
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
@@ -233,7 +233,7 @@ func (s *aptSuite) TestPackagesInspectArtifactMissingRequestField(c *C) {
 
 		f, err := files.OpenArtifactFile("testdata/Packages.xz")
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
@@ -281,7 +281,7 @@ func (s *aptSuite) TestPackageParsing(c *C) {
 		filename := filepath.Join("testdata", pt.filename)
 		reader, err := os.Open(filename)
 		c.Assert(err, IsNil)
-		defer reader.Close()
+		defer func() { _ = reader.Close() }()
 
 		entries := map[digests.Sha256Digest]apt.AptPackagesEntry{}
 
@@ -403,7 +403,7 @@ func (s *aptSuite) TestAptPackagesDebValidation(c *C) {
 
 		pkgreader, err := os.Open(tc.filename)
 		c.Assert(err, IsNil)
-		defer pkgreader.Close()
+		defer func() { _ = pkgreader.Close() }()
 
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)

@@ -81,7 +81,7 @@ func (ins *RockcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 		a.SetResponseRejected(ins, "cannot open rockcraft.yaml file")
 		return nil
 	}
-	defer yamlDataFileReader.Close()
+	defer func() { _ = yamlDataFileReader.Close() }()
 
 	var data rockcraftYaml
 	dec := yaml.NewDecoder(yamlDataFileReader)

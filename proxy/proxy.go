@@ -256,7 +256,7 @@ func (p *HTTPProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) 
 	body, err := NewFileDownloadHandler(resp, a, p.spool, p.ch, p.timeout)
 	if err != nil {
 		if a.Tempfile != "" {
-			os.Remove(a.Tempfile)
+			_ = os.Remove(a.Tempfile)
 		}
 		if err == common.ErrRejectedArtifact {
 			slog.Infof("proxy: file download not authorized: %s", err)

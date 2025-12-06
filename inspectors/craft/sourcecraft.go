@@ -81,7 +81,7 @@ func (ins *SourcecraftInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		a.SetResponseRejected(ins, "cannot open sourcecraft.yaml file")
 		return nil
 	}
-	defer yamlDataFileReader.Close()
+	defer func() { _ = yamlDataFileReader.Close() }()
 
 	var data sourcecraftYaml
 	dec := yaml.NewDecoder(yamlDataFileReader)

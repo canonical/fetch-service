@@ -51,7 +51,7 @@ func (t *filesSuite) TestArtifactFile(c *C) {
 
 	f, err := files.OpenArtifactFile(testFile)
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	c.Check(f.Len(), Equals, 12)
 

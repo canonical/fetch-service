@@ -462,7 +462,7 @@ func newUploadPackRequestHandler(id string, req *http.Request, clientMsgs *[]str
 
 	// Copy input buffer for decoding
 	buf, err := io.ReadAll(req.Body)
-	req.Body.Close()
+	_ = req.Body.Close()
 	if err != nil {
 		return nil, fmt.Errorf("cannot read upload pack request body: %w", err)
 	}

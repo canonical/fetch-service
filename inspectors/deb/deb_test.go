@@ -170,7 +170,7 @@ func (s *debSuite) TestDebArtifactInspector(c *C) {
 
 		f, err := files.OpenArtifactFile(tc.filename)
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		ins := deb.NewDebInspector(getTestAptConfig())
 		a.SetRequestPending(ins, "test")

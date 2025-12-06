@@ -132,7 +132,7 @@ func (s *metadataSuite) TestMetadataInspectArtifactReadMetadata(c *C) {
 	// Inspect test metadata
 	f, err := files.OpenArtifactFile(testfile)
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ins := pip.NewMetadataInspector()
 	a := metadata.NewArtifact()
@@ -178,7 +178,7 @@ func (s *metadataSuite) TestMetadataInspectArtifactBadFormat(c *C) {
 		// Inspect test metadata
 		f, err := files.OpenArtifactFile(testfile)
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		ins := pip.NewMetadataInspector()
 		a := metadata.NewArtifact()

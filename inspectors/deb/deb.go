@@ -294,8 +294,8 @@ func (ins DebInspector) parseCopyright(tf io.Reader, md *ArtifactMetadata, slog 
 	if err != nil {
 		return err
 	}
-	defer temp.Close()
-	defer os.Remove(temp.Name())
+	defer func() { _ = temp.Close() }()
+	defer func() { _ = os.Remove(temp.Name()) }()
 
 	// create a temporary copy for license verification
 	t := bufio.NewWriter(temp)

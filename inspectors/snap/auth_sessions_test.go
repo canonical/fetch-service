@@ -107,7 +107,7 @@ func (s *snapSuite) TestSnapAuthSessionsArtifactInspector(c *C) {
 
 		f, err := files.OpenArtifactFile(tc.filename)
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		ins := snap.NewSnapAuthSessionsInspector()
 		if tc.pending {
@@ -137,7 +137,7 @@ func (s *snapSuite) TestSnapAuthSessionsArtifactBadType(c *C) {
 
 	f, err := files.OpenArtifactFile("testdata/sessions.json")
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ins := snap.NewSnapAuthSessionsInspector()
 	err = ins.InspectArtifact(f, a)

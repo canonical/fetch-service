@@ -170,7 +170,7 @@ func (t *fileutilsSuite) TestCheckLicenseFiles(c *C) {
 
 func createZip(src string, dest io.Writer) error {
 	z := zip.NewWriter(dest)
-	defer z.Close()
+	defer func() { _ = z.Close() }()
 
 	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -184,7 +184,7 @@ func createZip(src string, dest io.Writer) error {
 		if err != nil {
 			return err
 		}
-		defer inf.Close()
+		defer func() { _ = inf.Close() }()
 
 		outf, err := z.Create(path)
 		if err != nil {

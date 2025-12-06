@@ -63,7 +63,7 @@ func (t *fetchctlSuite) TestUpdateConfig(c *C) {
 
 			_, err = fmt.Fprintf(f, `{"result":%q,"message":%q}`, tc.result, tc.message)
 			c.Assert(err, IsNil)
-			f.Close()
+			_ = f.Close()
 		}()
 
 		time.Sleep(500 * time.Millisecond)

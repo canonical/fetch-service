@@ -182,7 +182,7 @@ func LoadHTTPProxyRules(cfgdir string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	cfg, err := decodeHTTPProxyRules(f)
 	if err != nil {
@@ -291,7 +291,7 @@ func LoadInspectorsConfig(cfgdir string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	cfg, err := decodeInspectorsConfig(f)
 	if err != nil {
@@ -396,7 +396,7 @@ func LoadOverrideInspectorsConfig(cfgdir string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	overrideCfg, err := decodeOverrideInspectorsConfig(f)
 	if err != nil {

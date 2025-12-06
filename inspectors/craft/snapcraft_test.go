@@ -180,7 +180,7 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtifact(c *C) {
 	} {
 		f, err := loadTestSnapcraftArtifactData()
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		checkoutPath := c.MkDir()
 		err = git.UnpackObjects(f, checkoutPath, s.slog)
@@ -193,7 +193,7 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtifact(c *C) {
 
 		f, err = loadTestSnapcraftArtifactData()
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		ins := craft.NewSnapcraftInspector(getTestSnapcraftConfig())
 		err = ins.InspectArtifact(f, a)
@@ -217,7 +217,7 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtifactMissingSnapcraftYaml(c *
 	a := createTestSnapcraftArtifact(c.MkDir())
 	f, err := loadTestSnapcraftArtifactData()
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ins := craft.NewSnapcraftInspector(getTestSnapcraftConfig())
 
@@ -239,7 +239,7 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtifactUnreadableSnapcraftYaml(
 
 	f, err := loadTestSnapcraftArtifactData()
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	restorer := craft.MockOsOpen(func(string) (*os.File, error) {
 		return nil, os.ErrNotExist
@@ -270,12 +270,12 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtifactUnableToDecodeSnapcraftY
 	}
 	f, err := loadTestSnapcraftArtifactData()
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	restorer := craft.MockOsOpen(func(string) (*os.File, error) {
 		temp, _ := os.CreateTemp("", "snapcraft-empty.yaml")
-		defer temp.Close()
-		defer os.Remove(temp.Name())
+		defer func() { _ = temp.Close() }()
+		defer func() { _ = os.Remove(temp.Name()) }()
 		return os.Open(temp.Name())
 	})
 	defer restorer()
@@ -309,7 +309,7 @@ func (s *snapcraftSuite) TestGetSnapcraftYaml(c *C) {
 		if err != nil {
 			c.Fatal(err)
 		}
-		defer os.RemoveAll(dir)
+		defer func() { _ = os.RemoveAll(dir) }()
 
 		full := filepath.Join(dir, tc.path)
 		dirs, _ := filepath.Split(full)
@@ -321,7 +321,7 @@ func (s *snapcraftSuite) TestGetSnapcraftYaml(c *C) {
 		if err != nil {
 			c.Fatal(err)
 		}
-		defer fo.Close()
+		defer func() { _ = fo.Close() }()
 		if _, err := fo.WriteString("name: my-project"); err != nil {
 			c.Fatal(err)
 		}

@@ -129,7 +129,7 @@ func (s *bldbinSuite) TestBldBinArtifactInspector(c *C) {
 
 		f, err := files.OpenArtifactFile(tc.filename)
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		storeIns := store.NewStoreInfoAPIInspector(getTestStoreConfig(), getTestBldBinConfig())
 		ins := bldbin.NewBldBinInspector(getTestBldBinConfig())

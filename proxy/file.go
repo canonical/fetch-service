@@ -92,13 +92,13 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool str
 		// immediately. Otherwise return 200 OK and send the data when it's
 		// downloaded and passed inspection, or close the reader if it was
 		// rejected.
-		defer pw.Close()
+		defer func() { _ = pw.Close() }()
 
 		if err = localDownload(resp, a, tempfile); err != nil {
 			slog.Warningf("local download error: %s", err)
 			dch <- err
 			if bgDownload.Load() {
-				pr.Close()
+				_ = pr.Close()
 			}
 			return
 		}
@@ -112,7 +112,7 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool str
 			if err != nil {
 				dch <- err
 				if bgDownload.Load() {
-					pr.Close()
+					_ = pr.Close()
 				}
 				return
 			}
@@ -120,7 +120,7 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool str
 			slog.Warning("inspection request timeout")
 			dch <- fmt.Errorf("inspection of artifact %s timed out", a.Metadata.Sha256)
 			if bgDownload.Load() {
-				pr.Close()
+				_ = pr.Close()
 			}
 			return
 		}
@@ -132,11 +132,11 @@ func NewFileDownloadHandler(resp *http.Response, a *metadata.Artifact, spool str
 		if err != nil {
 			dch <- fmt.Errorf("cannot open asset file: %w", err)
 			if bgDownload.Load() {
-				pr.Close()
+				_ = pr.Close()
 			}
 			return
 		}
-		defer buffer.Close()
+		defer func() { _ = buffer.Close() }()
 
 		dch <- nil // Download completed successfully.
 		_, err = io.Copy(pw, buffer)

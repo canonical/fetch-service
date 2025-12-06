@@ -54,8 +54,8 @@ func (t *mainSuite) TestVersion(c *C) {
 }
 
 func (t *mainSuite) TestOptionsNotSnapDefault(c *C) {
-	os.Unsetenv("SNAP_NAME")
-	os.Unsetenv("SNAP")
+	_ = os.Unsetenv("SNAP_NAME")
+	_ = os.Unsetenv("SNAP")
 
 	opt := main.GetServiceOptions(main.CmdlineOptions{})
 
@@ -65,10 +65,10 @@ func (t *mainSuite) TestOptionsNotSnapDefault(c *C) {
 }
 
 func (t *mainSuite) TestOptionsSnapDefault(c *C) {
-	os.Setenv("SNAP_NAME", "fetch-service")
-	os.Setenv("SNAP", "/snap/fetch-service/x1")
-	os.Setenv("SNAP_DATA", "/var/snap/fetch-service/x1")
-	os.Setenv("SNAP_COMMON", "/var/snap/fetch-service/common")
+	_ = os.Setenv("SNAP_NAME", "fetch-service")
+	_ = os.Setenv("SNAP", "/snap/fetch-service/x1")
+	_ = os.Setenv("SNAP_DATA", "/var/snap/fetch-service/x1")
+	_ = os.Setenv("SNAP_COMMON", "/var/snap/fetch-service/common")
 
 	opt := main.GetServiceOptions(main.CmdlineOptions{})
 

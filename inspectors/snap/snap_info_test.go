@@ -82,7 +82,7 @@ func (s *snapSuite) TestSnapInfoArtifactInspector(c *C) {
 
 	f, err := files.OpenArtifactFile("testdata/info.json")
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ins := snap.NewSnapInfoInspector()
 	a.SetRequestPending(ins, "test")
@@ -107,7 +107,7 @@ func (s *snapSuite) TestSnapInfoArtifactBadType(c *C) {
 
 	f, err := files.OpenArtifactFile("testdata/refresh.json")
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ins := snap.NewSnapInfoInspector()
 	err = ins.InspectArtifact(f, a)

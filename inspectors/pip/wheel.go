@@ -153,7 +153,7 @@ func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a Respons
 			if err != nil {
 				return err
 			}
-			defer zf.Close()
+			defer func() { _ = zf.Close() }()
 
 			md, ver, err := scanWheelMetadata(zf, slog)
 			if err != nil {
@@ -190,8 +190,8 @@ func scanWheelMetadata(zf io.ReadCloser, slog logger.Logger) (ArtifactMetadata, 
 	if err != nil {
 		return ArtifactMetadata{}, "", err
 	}
-	defer temp.Close()
-	defer os.Remove(temp.Name())
+	defer func() { _ = temp.Close() }()
+	defer func() { _ = os.Remove(temp.Name()) }()
 
 	// create a temporary copy of the manifest for license verification
 	t := bufio.NewWriter(temp)
@@ -234,8 +234,8 @@ func scanWheelMetadata(zf io.ReadCloser, slog logger.Logger) (ArtifactMetadata, 
 		}
 	}
 
-	t.Flush()
-	temp.Close()
+	_ = t.Flush()
+	_ = temp.Close()
 
 	license, err = utils.GetLicense(temp.Name(), slog)
 	if err != nil {
@@ -282,7 +282,7 @@ func listWheelFiles(ins *WheelInspector, f io.ReaderAt, size int64, a ResponseAr
 		if err != nil {
 			return res, err
 		}
-		defer zf.Close()
+		defer func() { _ = zf.Close() }()
 
 		if f.FileInfo().IsDir() {
 			continue
@@ -324,7 +324,7 @@ func readWheelRecord(ins *WheelInspector, f io.ReaderAt, size int64, a ResponseA
 			if err != nil {
 				return err
 			}
-			defer zf.Close()
+			defer func() { _ = zf.Close() }()
 
 			if err := checkRecord(ins, zf, f.Name, a, files, notes); err != nil {
 				return err

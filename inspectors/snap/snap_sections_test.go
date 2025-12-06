@@ -98,7 +98,7 @@ func (s *snapSuite) TestSnapSectionsArtifactInspector(c *C) {
 
 		f, err := files.OpenArtifactFile(tc.filename)
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		ins := snap.NewSnapSectionsInspector()
 		if tc.pending {
@@ -129,7 +129,7 @@ func (s *snapSuite) TestSnapSectionsArtifactBadType(c *C) {
 
 	f, err := files.OpenArtifactFile("testdata/sections.json")
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ins := snap.NewSnapSectionsInspector()
 	err = ins.InspectArtifact(f, a)

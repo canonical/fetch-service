@@ -116,7 +116,7 @@ func (s *mavenSuite) TestJarInspectArtifact(c *C) {
 
 		f, err := files.OpenArtifactFile(filename)
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)

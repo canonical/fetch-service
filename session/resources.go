@@ -46,7 +46,7 @@ func LoadSessionMetadata(spoolDir, sessionID string) (*metadata.SessionMetadata,
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	decoder := json.NewDecoder(f)
 	var sm metadata.SessionMetadata

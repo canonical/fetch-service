@@ -55,7 +55,7 @@ func (s *utilsSuite) TestUnpackObjects(c *C) {
 		dir := c.MkDir()
 		f, err := os.Open(tc.testfile)
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		err = git.UnpackObjects(f, dir, s.slog)
 		if tc.errorMsg == "" {
@@ -87,7 +87,7 @@ func (s *utilsSuite) TestCheckout(c *C) {
 		dir := c.MkDir()
 		f, err := os.Open("testdata/sourcepkg.raw")
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		err = git.UnpackObjects(f, dir, s.slog)
 		c.Assert(err, IsNil)

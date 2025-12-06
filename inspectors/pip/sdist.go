@@ -104,8 +104,8 @@ func (ins *SdistInspector) parsePkgInfo(tf io.Reader, a ResponseArtifact) error 
 	if err != nil {
 		return err
 	}
-	defer temp.Close()
-	defer os.Remove(temp.Name())
+	defer func() { _ = temp.Close() }()
+	defer func() { _ = os.Remove(temp.Name()) }()
 
 	// create a temporary copy of the PKG-INFO for license verification
 	t := bufio.NewWriter(temp)

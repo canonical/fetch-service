@@ -108,7 +108,7 @@ func (s *lxdInstanceTypesSuite) TestInstanceTypesArtifactInspector(c *C) {
 
 		f, err := files.OpenArtifactFile(tc.filename)
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		ins := lxd.NewInstanceTypesInspector()
 		if tc.pending {
@@ -138,7 +138,7 @@ func (s *lxdInstanceTypesSuite) TestInstanceTypesArtifactBadType(c *C) {
 
 	f, err := files.OpenArtifactFile("testdata/instance-types-all.yaml")
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ins := lxd.NewInstanceTypesInspector()
 	err = ins.InspectArtifact(f, a)

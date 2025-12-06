@@ -197,7 +197,7 @@ func TestWithBrowser(t *testing.T) {
 	signal.Notify(ch, os.Interrupt)
 	go func() {
 		<-ch
-		l.Close()
+		_ = l.Close()
 	}()
 	err = http.Serve(l, proxy)
 	if err != nil {

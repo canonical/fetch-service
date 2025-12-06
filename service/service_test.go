@@ -548,7 +548,7 @@ func fakeArtifact(sha digests.Sha256Digest, s *session.Session, c *C) *metadata.
 
 	tmpfile, err := os.CreateTemp("", "tempfile-*")
 	c.Assert(err, IsNil)
-	defer tmpfile.Close()
+	defer func() { _ = tmpfile.Close() }()
 
 	_, err = tmpfile.Write([]byte("content"))
 	c.Assert(err, IsNil)
@@ -1015,7 +1015,7 @@ func (t *serviceSuite) TestControlAuthentication(c *C) {
 	})
 	defer restorer()
 
-	os.Setenv("FETCH_SERVICE_AUTH", "suzy:shalamacookie")
+	_ = os.Setenv("FETCH_SERVICE_AUTH", "suzy:shalamacookie")
 	_, err := service.New(serviceOptionsFixture(c))
 	c.Assert(err, IsNil)
 	c.Assert(t.controlAuth, Equals, "suzy:shalamacookie")
@@ -1267,11 +1267,11 @@ func (t *serviceSuite) TestLoadHTTPProxyRulesOrDefault(c *C) {
 		defer restorer()
 
 		if tc.isSnap {
-			os.Setenv("SNAP", "/snap/fetch-service/x1")
-			defer os.Unsetenv("SNAP")
+			_ = os.Setenv("SNAP", "/snap/fetch-service/x1")
+			defer func() { _ = os.Unsetenv("SNAP") }()
 
-			os.Setenv("SNAP_NAME", "fetch-service")
-			defer os.Unsetenv("SNAP_NAME")
+			_ = os.Setenv("SNAP_NAME", "fetch-service")
+			defer func() { _ = os.Unsetenv("SNAP_NAME") }()
 		}
 
 		aclConfigDir = ""
@@ -1346,15 +1346,15 @@ func (t *serviceSuite) TestInspectorsConfigOrDefault(c *C) {
 		defer restorerConfigLoadOverrideInspectorsConfig()
 
 		if tc.isSnap {
-			os.Setenv("SNAP", "/snap/fetch-service/x1")
-			os.Setenv("SNAP_NAME", "fetch-service")
+			_ = os.Setenv("SNAP", "/snap/fetch-service/x1")
+			_ = os.Setenv("SNAP_NAME", "fetch-service")
 		}
 
 		err := service.LoadDefaultInspectorsConfigCombine("/user/config")
 		c.Assert(err, Equals, tc.err)
 
-		os.Unsetenv("SNAP")
-		os.Unsetenv("SNAP_NAME")
+		_ = os.Unsetenv("SNAP")
+		_ = os.Unsetenv("SNAP_NAME")
 	}
 }
 

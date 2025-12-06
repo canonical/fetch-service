@@ -86,7 +86,7 @@ func (ins *MavenJarInspector) InspectArtifact(f ArtifactReader, a ResponseArtifa
 			if err != nil {
 				return err
 			}
-			defer zf.Close()
+			defer func() { _ = zf.Close() }()
 
 			md, err := parsePom(zf)
 			if err != nil {

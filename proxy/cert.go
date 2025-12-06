@@ -128,7 +128,7 @@ func UpdateCertFiles(certPath, keyPath string, cert, key []byte) error {
 		return err
 	}
 	if err := os.WriteFile(tmpKeyPath, key, 0644); err != nil {
-		os.Remove(tmpCertPath)
+		_ = os.Remove(tmpCertPath)
 		return err
 	}
 

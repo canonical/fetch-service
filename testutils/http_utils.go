@@ -51,13 +51,13 @@ func HTTPDownload(url, filename string) error {
 		return fmt.Errorf("http status code %d", resp.StatusCode)
 	}
 
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	dest, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
-	defer dest.Close()
+	defer func() { _ = dest.Close() }()
 
 	_, err = io.Copy(dest, resp.Body)
 

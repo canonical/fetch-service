@@ -183,7 +183,7 @@ func (insps Inspectors) RunArtifactInspectors(dir string, a *metadata.Artifact) 
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	mtype, err := mimetype.DetectReader(f)
 	if err != nil {

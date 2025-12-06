@@ -50,7 +50,7 @@ func (cmd *ListArtifactsCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	request := fetchctl.OperationRequest{
 		Operation: "list-artifacts",

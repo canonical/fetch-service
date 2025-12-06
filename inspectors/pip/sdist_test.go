@@ -130,7 +130,7 @@ func (s *sdistSuite) TestSdistInspectArtifactReadMetadata(c *C) {
 	// Create test sdist
 	sf, err := os.Create(testfile)
 	c.Assert(err, IsNil)
-	defer sf.Close()
+	defer func() { _ = sf.Close() }()
 
 	zf := gzip.NewWriter(sf)
 	tf := tar.NewWriter(zf)
@@ -162,7 +162,7 @@ func (s *sdistSuite) TestSdistInspectArtifactReadMetadata(c *C) {
 	// Inspect test sdist
 	f, err := files.OpenArtifactFile(testfile)
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ins := pip.NewSdistInspector()
 	a := metadata.NewArtifact()
@@ -206,7 +206,7 @@ func (s *sdistSuite) TestSdistInspectArtifactBadFormat(c *C) {
 		// Create test sdist
 		sf, err := os.Create(testfile)
 		c.Assert(err, IsNil)
-		defer sf.Close()
+		defer func() { _ = sf.Close() }()
 
 		zf := gzip.NewWriter(sf)
 		tf := tar.NewWriter(zf)
@@ -238,7 +238,7 @@ func (s *sdistSuite) TestSdistInspectArtifactBadFormat(c *C) {
 		// Inspect test sdist
 		f, err := files.OpenArtifactFile(testfile)
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		ins := pip.NewSdistInspector()
 		a := metadata.NewArtifact()

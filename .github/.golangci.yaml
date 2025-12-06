@@ -7,6 +7,9 @@ linters:
     - nakedret
     - staticcheck
     - unused
+    - gocyclo
+    - errcheck
+    - gosec
   settings:
     staticcheck:
       checks:
@@ -17,6 +20,32 @@ linters:
         - "-ST1001" # Dot imports ignored
     nakedret:
       max-func-lines: 20
+    gocyclo:
+      min-complexity: 30
+    errcheck:
+      check-type-assertions: false
+      check-blank: false
+      exclude-functions:
+        - io.Copy
+        - (*io.Closer).Close
+        - (*io.ReadCloser).Close
+        - (*io.WriteCloser).Close
+    gosec:
+      excludes:
+        - G101 # Potential hardcoded credentials (many false positives)
+        - G104 # Errors unhandled (covered by errcheck)
+        - G110 # Decompression bomb (false positive for legitimate operations)
+        - G112 # Potential Slowloris attack (ReadHeaderTimeout not always needed)
+        - G114 # Use of net/http serve function (acceptable for internal services)
+        - G204 # Subprocess with variable (needed for exec.Command)
+        - G302 # File permissions (0644 is reasonable for log files)
+        - G304 # File path provided as taint input (needed for file operations)
+        - G306 # Poor file permissions (0644 is reasonable for non-sensitive files)
+        - G301 # Poor directory permissions (0755 is standard)
+        - G401 # Use of weak cryptographic primitive (SHA1 needed for compatibility)
+        - G402 # TLS InsecureSkipVerify (used in tests)
+        - G404 # Use of weak random (math/rand is acceptable for non-crypto)
+        - G505 # Blocklisted import crypto/sha1 (needed for compatibility)
 issues:
   # These values ensure that all issues will be surfaced
   max-issues-per-linter: 0

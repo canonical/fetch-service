@@ -69,7 +69,7 @@ func (t *fetchctlSuite) TestCreateSession(c *C) {
 
 			_, err = fmt.Fprintf(f, `{"result":%q,"message":%q}`, tc.result, tc.errmsg)
 			c.Assert(err, IsNil)
-			f.Close()
+			_ = f.Close()
 		}()
 
 		time.Sleep(500 * time.Millisecond)

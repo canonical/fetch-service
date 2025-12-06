@@ -122,7 +122,7 @@ func (s *cargoSuite) TestCargoInspectArtifact(c *C) {
 
 	f, err := files.OpenArtifactFile(filename)
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
@@ -153,7 +153,7 @@ func (s *cargoSuite) TestCargoInspectArtifactNoCargoToml(c *C) {
 
 	f, err := files.OpenArtifactFile(filename)
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
@@ -176,7 +176,7 @@ func (s *cargoSuite) TestCargoInspectArtifactBadCargoToml(c *C) {
 
 	f, err := files.OpenArtifactFile(filename)
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
@@ -188,12 +188,12 @@ func createTarball(filename, subdir, contents string) error {
 	if err != nil {
 		panic(err)
 	}
-	defer archive.Close()
+	defer func() { _ = archive.Close() }()
 
 	zipWriter := gzip.NewWriter(archive)
-	defer zipWriter.Close()
+	defer func() { _ = zipWriter.Close() }()
 	tarWriter := tar.NewWriter(zipWriter)
-	defer tarWriter.Close()
+	defer func() { _ = tarWriter.Close() }()
 
 	// Create a tarball with a "Cargo.toml" file inside the libc-0.2.155/ dir
 	header := &tar.Header{

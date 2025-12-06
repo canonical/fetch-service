@@ -31,10 +31,10 @@ func CreateZip(output, input string) error {
 	if err != nil {
 		return err
 	}
-	defer z.Close()
+	defer func() { _ = z.Close() }()
 
 	zw := zip.NewWriter(z)
-	defer zw.Close()
+	defer func() { _ = zw.Close() }()
 
 	return filepath.Walk(input, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -55,7 +55,7 @@ func CreateZip(output, input string) error {
 		if err != nil {
 			return err
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		zf, err := zw.Create(zpath)
 		if err != nil {

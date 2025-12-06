@@ -146,7 +146,7 @@ func (s *snapSuite) TestSnapArtifactInspector(c *C) {
 
 	f, err := files.OpenArtifactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
 	a.SetRequestPending(ins, "test")
@@ -206,7 +206,7 @@ func (s *snapSuite) TestSnapArtifactInspectorSkip(c *C) {
 
 	f, err := files.OpenArtifactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
 	a.SetRequestPending(ins, "test")
@@ -290,7 +290,7 @@ func (s *snapSuite) TestSnapArtifactInspectorError(c *C) {
 
 		f, err := files.OpenArtifactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
 		a.SetRequestPending(ins, "test")
@@ -433,7 +433,7 @@ func (s *snapSuite) TestSnapArtifactInspectorReject(c *C) {
 
 		f, err := files.OpenArtifactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
 		a.SetRequestPending(ins, "test")
@@ -624,7 +624,7 @@ func (s *snapSuite) TestSnapDeclarationFilter(c *C) {
 
 		f, err := files.OpenArtifactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		ins := snap.NewSnapInspector(cfg)
 		a.SetRequestPending(ins, "test")

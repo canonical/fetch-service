@@ -230,7 +230,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifact(c *C) {
 
 		f, err := loadTestSourcecraftArtifactData()
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		checkoutPath := c.MkDir()
 		err = git.UnpackObjects(f, checkoutPath, s.slog)
@@ -242,7 +242,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifact(c *C) {
 
 		f, err = loadTestSourcecraftArtifactData()
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
 		err = ins.InspectArtifact(f, a)
@@ -271,7 +271,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifactMissingSourcecraftYa
 	a := createTestSourcecraftArtifact(c.MkDir())
 	f, err := loadTestSourcecraftArtifactData()
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ins := craft.NewSourcecraftInspector(getTestSourcecraftConfig())
 
@@ -293,7 +293,7 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifactUnreadableSourcecraf
 
 	f, err := loadTestSourcecraftArtifactData()
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	restorer := craft.MockOsOpen(func(string) (*os.File, error) {
 		return nil, os.ErrNotExist
@@ -324,12 +324,12 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifactUnableToDecodeSource
 	}
 	f, err := loadTestSourcecraftArtifactData()
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	restorer := craft.MockOsOpen(func(string) (*os.File, error) {
 		temp, _ := os.CreateTemp("", "sourcecraft-empty.yaml")
-		defer temp.Close()
-		defer os.Remove(temp.Name())
+		defer func() { _ = temp.Close() }()
+		defer func() { _ = os.Remove(temp.Name()) }()
 		return os.Open(temp.Name())
 	})
 	defer restorer()

@@ -131,7 +131,7 @@ func (s *simpleStreamIndexSuite) TestSimpleStreamsIndexInspectorInspectArtifact(
 
 	f, err := files.OpenArtifactFile("testdata/index.json")
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
@@ -173,7 +173,7 @@ func (s *simpleStreamIndexSuite) TestSimpleStreamsIndexInspectorInspectArtifactN
 
 	f, err := files.OpenArtifactFile("testdata/index.json")
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	c.Assert(a.RequestPending(), Equals, false)
 
 	err = ins.InspectArtifact(f, a)

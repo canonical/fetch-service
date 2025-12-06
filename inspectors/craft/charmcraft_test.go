@@ -245,8 +245,8 @@ func (s *charmcraftSuite) TestCharmcraftGitInspectArtifactUnreadableCharmcraftYa
 func (s *charmcraftSuite) TestCharmcraftGitInspectArtifactUnableToDecodeCharmcraftYaml(c *C) {
 	restorer := craft.MockOsOpen(func(string) (*os.File, error) {
 		temp, _ := os.CreateTemp("", "charmcraft-empty.yaml")
-		defer temp.Close()
-		defer os.Remove(temp.Name())
+		defer func() { _ = temp.Close() }()
+		defer func() { _ = os.Remove(temp.Name()) }()
 		return os.Open(temp.Name())
 	})
 	defer restorer()

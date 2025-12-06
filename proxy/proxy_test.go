@@ -134,7 +134,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 
 	err = utils.MoveFile(u.A.Tempfile, dest)
 	c.Assert(err, IsNil)
-	os.Remove(u.A.Tempfile)
+	_ = os.Remove(u.A.Tempfile)
 
 	// check downloaded file information
 	c.Assert(v.A.MetadataVersion, Equals, "0.3")

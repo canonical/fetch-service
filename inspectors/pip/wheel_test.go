@@ -129,7 +129,7 @@ func (s *wheelSuite) TestWheelInspectArtifactBadContent(c *C) {
 
 	f, err := files.OpenArtifactFile(zipfile)
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ins := pip.NewWheelInspector()
 	a := metadata.NewArtifact()
@@ -178,7 +178,7 @@ func (s *wheelSuite) TestWheelReadMetadata(c *C) {
 
 	f, err := files.OpenArtifactFile(zipfile)
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ins := pip.NewWheelInspector()
 	a := metadata.NewArtifact()
@@ -328,7 +328,7 @@ func (s *wheelSuite) TestReadWheelRecord(c *C) {
 
 		f, err := files.OpenArtifactFile(zipfile)
 		c.Assert(err, IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		ins := pip.NewWheelInspector()
 		a := metadata.NewArtifact()
@@ -362,7 +362,7 @@ func (s *wheelSuite) TestWheelInspectArtifact(c *C) {
 
 	f, err := files.OpenArtifactFile(filename)
 	c.Assert(err, IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ins := pip.NewWheelInspector()
 	a.SetRequestPending(ins, "test")

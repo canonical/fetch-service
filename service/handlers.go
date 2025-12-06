@@ -104,7 +104,7 @@ func handleResponseInspection(v messages.ResponseInspection, ch chan interface{}
 	if s == nil {
 		v.Rch <- fmt.Errorf("cannot inspect response: session %s is not active", sessionID)
 		slog.Debugf("remove stale temporary file: %s", v.A.Tempfile)
-		os.Remove(v.A.Tempfile)
+		_ = os.Remove(v.A.Tempfile)
 		return
 	}
 
@@ -122,7 +122,7 @@ func handleResponseInspection(v messages.ResponseInspection, ch chan interface{}
 	if s.HasArtifact(digest) {
 		slog.Infof("artifact %s already downloaded", digest)
 		s.AddDownload(v.A.CurrentDownload)
-		os.Remove(v.A.Tempfile)
+		_ = os.Remove(v.A.Tempfile)
 		if !s.Permissive && s.ArtifactResult(digest) == opinions.Rejected {
 			v.Rch <- ErrRejectedArtifact
 		} else {

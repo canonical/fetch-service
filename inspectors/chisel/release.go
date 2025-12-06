@@ -97,7 +97,7 @@ func (ins *ChiselReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseA
 	if err != nil {
 		return nil // We do not recognize this artifact.
 	}
-	defer zf.Close()
+	defer func() { _ = zf.Close() }()
 
 	// Parse the tarball.
 	tr := tar.NewReader(zf)
