@@ -6,7 +6,7 @@ warning:
 setup-lint: install-golangci-lint install-shellcheck
 
 .PHONY: lint
-lint: lint-golangci-lint lint-shellcheck
+lint: lint-golangci-lint lint-gocyclo lint-errcheck lint-gosec lint-shellcheck
 
 .PHONY:	lint-golangci-lint
 lint-golangci-lint: install-golangci-lint
