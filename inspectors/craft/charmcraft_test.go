@@ -248,8 +248,7 @@ func (s *charmcraftSuite) TestCharmcraftGitInspectArtifactUnableToDecodeCharmcra
 		if err != nil {
 			return nil, err
 		}
-		defer func() { _ = temp.Close() }()
-		defer func() { _ = os.Remove(temp.Name()) }()
+		_ = temp.Close()
 		return os.Open(temp.Name())
 	})
 	defer restorer()
