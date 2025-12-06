@@ -224,7 +224,10 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtifactUnableToDecodeRockcraftY
 	defer func() { _ = f.Close() }()
 
 	restorer := craft.MockOsOpen(func(string) (*os.File, error) {
-		temp, _ := os.CreateTemp("", "rockcraft-empty.yaml")
+		temp, err := os.CreateTemp("", "rockcraft-empty.yaml")
+		if err != nil {
+			return nil, err
+		}
 		defer func() { _ = temp.Close() }()
 		defer func() { _ = os.Remove(temp.Name()) }()
 		return os.Open(temp.Name())

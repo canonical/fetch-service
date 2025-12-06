@@ -327,7 +327,10 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifactUnableToDecodeSource
 	defer func() { _ = f.Close() }()
 
 	restorer := craft.MockOsOpen(func(string) (*os.File, error) {
-		temp, _ := os.CreateTemp("", "sourcecraft-empty.yaml")
+		temp, err := os.CreateTemp("", "sourcecraft-empty.yaml")
+		if err != nil {
+			return nil, err
+		}
 		defer func() { _ = temp.Close() }()
 		defer func() { _ = os.Remove(temp.Name()) }()
 		return os.Open(temp.Name())
