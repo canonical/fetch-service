@@ -12,6 +12,18 @@ lint: lint-golangci-lint lint-shellcheck
 lint-golangci-lint: install-golangci-lint
 	golangci-lint run -c .github/.golangci.yaml
 
+.PHONY: lint-gocyclo
+lint-gocyclo: install-golangci-lint
+	golangci-lint run -c .github/.golangci.yaml --enable-only=gocyclo
+
+.PHONY: lint-errcheck
+lint-errcheck: install-golangci-lint
+	golangci-lint run -c .github/.golangci.yaml --enable-only=errcheck
+
+.PHONY: lint-gosec
+lint-gosec: install-golangci-lint
+	golangci-lint run -c .github/.golangci.yaml --enable-only=gosec
+
 .PHONY: lint-shellcheck
 lint-shellcheck: install-shellcheck lint-shellcheck-spread
 	git ls-files | file --mime-type -Nnf- | grep shellscript | cut -f1 -d: | xargs -r shellcheck
