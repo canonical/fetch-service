@@ -30,7 +30,6 @@ linters:
         - (*io.Closer).Close
         - (*io.ReadCloser).Close
         - (*io.WriteCloser).Close
-        - (net.Conn).Close
     gosec:
       excludes:
         - G101 # Potential hardcoded credentials (many false positives)

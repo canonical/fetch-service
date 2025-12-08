@@ -51,7 +51,7 @@ func (cmd *VersionCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	request := fetchctl.OperationRequest{Operation: "version"}
 	err = send(conn, request)
