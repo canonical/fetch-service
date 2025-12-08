@@ -66,7 +66,11 @@ func (s *aptSuite) TestPackagesDetector(c *C) {
 		data, err := os.ReadFile(tc.filename)
 		c.Assert(err, IsNil)
 
-		res := apt.AptPackagesDetector(data, uint32(len(data)))
+		dataLen := len(data)
+		if dataLen > 0x7FFFFFFF { // Max value for int32
+			dataLen = 0x7FFFFFFF
+		}
+		res := apt.AptPackagesDetector(data, uint32(dataLen)) //#nosec G115 -- bounds checked above
 		c.Assert(res, Equals, tc.detected, Commentf("test case: %+v", tc))
 	}
 }

@@ -469,7 +469,11 @@ var squashFsDetectorTests = []squashFsDetectorTest{{
 
 func (s *snapSuite) TestSquashFsDetector(c *C) {
 	for _, tc := range squashFsDetectorTests {
-		res := snap.SquashFsDetector(tc.buffer, uint32(len(tc.buffer)))
+		bufLen := len(tc.buffer)
+		if bufLen > 0x7FFFFFFF { // Max value for int32
+			bufLen = 0x7FFFFFFF
+		}
+		res := snap.SquashFsDetector(tc.buffer, uint32(bufLen)) //#nosec G115 -- bounds checked above
 		c.Assert(res, Equals, tc.detected)
 	}
 }

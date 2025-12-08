@@ -38,7 +38,6 @@ linters:
         - G110 # Decompression bomb (false positive for legitimate operations)
         - G112 # Potential Slowloris attack (ReadHeaderTimeout not always needed)
         - G114 # Use of net/http serve function (acceptable for internal services)
-        - G115 # Integer overflow conversion (many false positives for safe conversions)
         - G204 # Subprocess with variable (needed for exec.Command)
         - G302 # File permissions (0644 is reasonable for log files)
         - G304 # File path provided as taint input (needed for file operations)

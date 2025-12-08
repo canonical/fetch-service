@@ -188,7 +188,15 @@ func handleCreateSession(v messages.CreateSession, spoolDir string, permissiveMo
 		}
 	}
 
-	timeout := time.Duration(v.Timeout * uint64(time.Second))
+	// Check for overflow when converting timeout to time.Duration
+	// time.Duration is int64, so we need to check if v.Timeout * time.Second would overflow
+	const maxTimeout = 0x7FFFFFFFFFFFFFFF / uint64(time.Second)
+	timeout := time.Duration(0)
+	if v.Timeout <= maxTimeout {
+		timeout = time.Duration(v.Timeout * uint64(time.Second)) //#nosec G115 -- overflow checked above
+	} else {
+		timeout = time.Duration(0x7FFFFFFFFFFFFFFF) // Max int64 value
+	}
 	sec := v.Secrets
 	if err := secrets.ValidateSecrets(sec); err != nil {
 		v.Rch <- messages.SessionCredentials{

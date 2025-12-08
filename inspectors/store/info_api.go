@@ -222,9 +222,14 @@ func (ins *StoreInfoAPIInspector) InspectArtifact(f ArtifactReader, a ResponseAr
 
 	for _, cinfo := range info.ChannelMap {
 		sha3_384 := cinfo.Revision.Download.Sha3_384
+		// Check for negative size values
+		size := uint64(0)
+		if cinfo.Revision.Download.Size >= 0 {
+			size = uint64(cinfo.Revision.Download.Size) //#nosec G115 -- negative values checked above
+		}
 		ainfo.RevInfo[sha3_384] = storeInfoAPIRevisionInfo{
 			Sha3_384: sha3_384,
-			Size:     uint64(cinfo.Revision.Download.Size),
+			Size:     size,
 			Revision: strconv.Itoa(cinfo.Revision.Revision),
 			Channel:  cinfo.Channel.Name,
 		}

@@ -578,6 +578,15 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ArtifactReader, a Resp
 	}
 	slog.Debugf("release entry: %+v", entry)
 
+	// Check for overflow when converting uint64 to int64
+	if entry.Size > 0x7FFFFFFFFFFFFFFF {
+		a.SetResponseRejected(ins, "Translation file size too large").Annotate(
+			Annotation{
+				"size": entry.Size,
+			},
+		)
+		return nil
+	}
 	if int64(entry.Size) != a.Size() {
 		a.SetResponseRejected(ins, "Translation file size mismatch").Annotate(
 			Annotation{
@@ -643,6 +652,15 @@ func (ins *AptReleaseInspector) validateCommandsFile(f ArtifactReader, a Respons
 	}
 	slog.Debugf("release entry: %+v", entry)
 
+	// Check for overflow when converting uint64 to int64
+	if entry.Size > 0x7FFFFFFFFFFFFFFF {
+		a.SetResponseRejected(ins, "Commands file size too large").Annotate(
+			Annotation{
+				"size": entry.Size,
+			},
+		)
+		return nil
+	}
 	if int64(entry.Size) != a.Size() {
 		a.SetResponseRejected(ins, "Commands file size mismatch").Annotate(
 			Annotation{
