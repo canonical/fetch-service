@@ -59,7 +59,7 @@ func (cmd *UpdateConfigCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = conn.Close() }()
+	defer conn.Close()
 
 	request := fetchctl.OperationRequest{
 		Operation:    "update-config",

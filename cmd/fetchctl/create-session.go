@@ -68,7 +68,7 @@ func (cmd *CreateSessionCmd) Execute(args []string) error {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = conn.Close() }()
+	defer conn.Close()
 
 	var mode string
 	if cmd.Permissive {
