@@ -103,7 +103,7 @@ func suiteIsAllowed(cfg *AptInspectorConfig, name, suite string, slog logger.Log
 	slog.Debugf("apt inspector config: check if suite '%s' is allowed", suite)
 	for _, pattern := range r.Suites {
 		if pattern.G.Match(suite) {
-			slog.Debugf("apt inspector config: found dist '%s'", suite)
+			slog.Debugf("apt inspector config: found suite '%s'", suite)
 			return true
 		}
 	}
@@ -227,18 +227,25 @@ func NewTranslationURLInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logg
 		return nil, err
 	}
 
-	reTranslation := regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/i18n/by-hash/SHA256/([0-9a-f]{64})$`)
-	m := reTranslation.FindStringSubmatch(u.Path)
-	if len(m) != 2 {
-		return nil, fmt.Errorf("invalid translation URL path: %s", u.Path)
+	reTranslation := regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/i18n/Translation-[\w-]+$`)
+	digest := ""
+
+	if !reTranslation.MatchString(u.Path) {
+		reTranslationByHash := regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/i18n/by-hash/SHA256/([0-9a-f]{64})$`)
+		m := reTranslationByHash.FindStringSubmatch(u.Path)
+		if len(m) != 2 {
+			return nil, fmt.Errorf("invalid translation URL path: %s", u.Path)
+		}
+		digest = m[1]
 	}
+
 	info := &TranslationURLInfo{
 		CfgName:    name,
 		Origin:     utils.NormalizedOrigin(u),
 		Repository: repo,
 		Suite:      suite,
 		Component:  component,
-		Digest:     m[1],
+		Digest:     digest,
 	}
 	return info, nil
 }
