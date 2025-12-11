@@ -304,6 +304,24 @@ func (t *configSuite) TestTranslationURLInfo(c *C) {
 	}
 }
 
+func (t *configSuite) TestTranslationURLInfoByName(c *C) {
+	u, err := url.Parse("http://archive.ubuntu.com/ubuntu/dists/focal/main/i18n/Translation-en")
+	c.Assert(err, IsNil)
+
+	cfg := getTestAptConfig()
+	info, err := config.NewTranslationURLInfo(u, &cfg, t.slog)
+
+	c.Assert(err, IsNil)
+	c.Assert(info, DeepEquals, &config.TranslationURLInfo{
+		CfgName:    "default",
+		Origin:     "http://archive.ubuntu.com",
+		Repository: "http://archive.ubuntu.com/ubuntu",
+		Suite:      "focal",
+		Component:  "main",
+		Digest:     "",
+	})
+}
+
 type commandsURLInfoTest struct {
 	url      string // The request URL
 	conf     string // The repository configuration entry
@@ -390,7 +408,7 @@ func (t *configSuite) TestCommandsURLInfoByName(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(info, DeepEquals, &config.CommandsURLInfo{
 		CfgName:    "default",
-		Origin:     fmt.Sprintf("%s://%s", u.Scheme, u.Host),
+		Origin:     "http://archive.ubuntu.com",
 		Repository: "http://archive.ubuntu.com/ubuntu",
 		Suite:      "focal",
 		Component:  "main",

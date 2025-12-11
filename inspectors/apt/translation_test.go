@@ -60,6 +60,7 @@ func (s *aptSuite) TestAptTranslationInspectRequest(c *C) {
 	}{
 		{"http://archive.ubuntu.com/ubuntu/dists/focal/main/i18n/by-hash/SHA256/4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", true},
 		{"http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/6213291a10046e8188510a0ca41a75daedfb2922940f88888ee815694ab3e7b7", false},
+		{"http://security.ubuntu.com/ubuntu/dists/noble-security/main/i18n/Translation-en", true},
 		{"http://some.other.location/Translation-zh_TW.xz", false},
 	} {
 		ins := apt.NewAptTranslationInspector(getAptInspectorConfig())
