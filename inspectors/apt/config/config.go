@@ -227,7 +227,7 @@ func NewTranslationURLInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logg
 		return nil, err
 	}
 
-	reTranslation := regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/i18n/Translation-[\w-]+$`)
+	reTranslation := regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/i18n/Translation-[\w.-]+$`)
 	digest := ""
 
 	if !reTranslation.MatchString(u.Path) {
