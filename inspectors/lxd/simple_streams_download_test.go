@@ -138,16 +138,16 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectArtifact(c
 	c.Assert(insp.Opinion, Equals, opinions.Approved)
 	images := insp.Annotations["product-items"].(map[string]string)
 	// Check for 1 value in images
-	sha256, ok := images["jammy/20250621/jammy-server-cloudimg-amd64-lxd_combined.tar.gz"]
+	sha256, ok := images["resolute/20251213/resolute-server-cloudimg-amd64-lxd_combined.tar.gz"]
 	c.Assert(ok, Equals, true)
-	c.Assert(sha256, Equals, "b30a183187a391e87c7752a4e52724f6cc66ddcc875f8e842d1937680f243d8c")
+	c.Assert(sha256, Equals, "01d9b5053642e57e0ae374ebfe52dcf3cc3b814d6be98c5025ef43dbfb4a498a")
 
 	// The image
 	ad := metadata.NewArtifact()
 	ad.CurrentDownload = metadata.Download{
-		URL: "https://cloud-images.ubuntu.com:443/buildd/daily/jammy/20250621/jammy-server-cloudimg-amd64-lxd_combined.tar.gz",
+		URL: "https://cloud-images.ubuntu.com:443/buildd/daily/resolute/20251213/resolute-server-cloudimg-amd64-lxd_combined.tar.gz",
 	}
-	expectedSha256, err := digests.NewSha256Digest("b30a183187a391e87c7752a4e52724f6cc66ddcc875f8e842d1937680f243d8c")
+	expectedSha256, err := digests.NewSha256Digest("01d9b5053642e57e0ae374ebfe52dcf3cc3b814d6be98c5025ef43dbfb4a498a")
 	c.Assert(err, IsNil)
 	ad.Metadata.Sha256 = expectedSha256
 	ad.MimeType = mimetype.Lookup("application/gzip")
@@ -166,8 +166,8 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectArtifact(c
 	c.Check(adInsp.Opinion, Equals, opinions.Unknown)
 	c.Check(adInsp.Reason, Equals, "simple streams product item matches digest")
 	c.Check(adInsp.Annotations, DeepEquals, Annotation{
-		"product-item-path": "jammy/20250621/jammy-server-cloudimg-amd64-lxd_combined.tar.gz",
-		"sha256":            "b30a183187a391e87c7752a4e52724f6cc66ddcc875f8e842d1937680f243d8c",
+		"product-item-path": "resolute/20251213/resolute-server-cloudimg-amd64-lxd_combined.tar.gz",
+		"sha256":            "01d9b5053642e57e0ae374ebfe52dcf3cc3b814d6be98c5025ef43dbfb4a498a",
 	})
 }
 

@@ -238,6 +238,7 @@ func (ins *SimpleStreamsDownloadInspector) inspectProductItem(a ResponseArtifact
 func (ins *SimpleStreamsDownloadInspector) extractSupportedUbuntuImages(products map[string]simpleStreamProductEntries) map[string]string {
 	result := make(map[string]string)
 	supportedVersions := map[string]struct{}{
+		"26.04": {},
 		"24.04": {},
 		"22.04": {},
 		"20.04": {},
