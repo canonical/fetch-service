@@ -192,7 +192,44 @@ func (s *logSuite) TestLogToFile(c *C) {
 
 func (s *logSuite) TestLogToFileError(c *C) {
 	err := logger.Init(logger.DebugLevel, "/invalid/path/log.txt")
-	c.Assert(err, ErrorMatches, "set log file:.* /invalid/path/log.txt: no such file or directory.*")
+	c.Assert(err, ErrorMatches, "open /invalid/path/log.txt: no such file or directory.*")
+}
+
+func (s *logSuite) TestReopenLogFile(c *C) {
+	logDir := c.MkDir()
+	logPath := filepath.Join(logDir, "testfile.log")
+
+	err := logger.Init(logger.DebugLevel, logPath)
+	c.Assert(err, IsNil)
+
+	logger.Info("Test message 1")
+	logger.Reopen()
+	logger.Info("Test message 2")
+
+	oldLogPath := filepath.Join(logDir, "oldfile.log")
+	err = os.Rename(logPath, oldLogPath)
+	c.Assert(err, IsNil)
+	logger.Reopen()
+	logger.Info("Test message 3")
+
+	// Read log file
+	buf, err := os.ReadFile(logPath)
+	c.Assert(err, IsNil)
+
+	contents := string(buf)
+	lines := strings.Split(contents, "\n")
+	c.Assert(strings.Contains(lines[0], "INFO : Test message 3"), Equals, true)
+
+	// Read renamed log file
+	buf, err = os.ReadFile(oldLogPath)
+	c.Assert(err, IsNil)
+
+	contents = string(buf)
+	lines = strings.Split(contents, "\n")
+	c.Assert(strings.Contains(lines[0], "INFO : Test message 1"), Equals, true)
+	c.Assert(strings.Contains(lines[1], "WARN : reopening log file"), Equals, true)
+	c.Assert(strings.Contains(lines[2], "INFO : Test message 2"), Equals, true)
+	c.Assert(strings.Contains(lines[3], "WARN : reopening log file"), Equals, true)
 }
 
 func (s *logSuite) TestSessionLoggerInfo(c *C) {
