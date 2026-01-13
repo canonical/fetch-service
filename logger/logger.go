@@ -44,31 +44,108 @@ const (
 type Level int
 
 var (
-	logLevel Level
-	logFile  *os.File
-	logLock  sync.RWMutex
+	logLevel  Level
+	logWriter *LogWriter
+	logLock   sync.RWMutex
 )
+
+// LogWriter handles log file reopening
+type LogWriter struct {
+	path string
+	file *os.File
+	lock sync.RWMutex
+}
+
+// Write writes to the log file.
+func (w *LogWriter) Write(p []byte) (n int, err error) {
+	w.lock.RLock()
+	defer w.lock.RUnlock()
+
+	if w.file == nil {
+		return 0, fmt.Errorf("cannot write to nil log file")
+	}
+	return w.file.Write(p)
+}
+
+// Reopen closes the existing log file and reopens it.
+func (w *LogWriter) Reopen() error {
+	w.lock.Lock()
+	defer w.lock.Unlock()
+
+	if w.path == "" {
+		return nil
+	}
+
+	newFile, err := os.OpenFile(w.path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	if w.file != nil {
+		if err := w.file.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "cannot close existing logfile: %s\n", err)
+		}
+	}
+
+	w.file = newFile
+	return nil
+}
+
+func (w *LogWriter) Close() error {
+	w.lock.Lock()
+	defer w.lock.Unlock()
+
+	if w.path == "" {
+		log.SetOutput(io.Discard)
+		return nil
+	}
+
+	if w.file == nil {
+		return nil
+	}
+
+	return w.file.Close()
+}
 
 // Init sets up the logging system.
 // If "logFilepath" is empty, logging is done to standard out.
 func Init(lv Level, logFilepath string) error {
 	SetLevel(lv)
 	log.SetFlags(log.Ldate | log.Lmicroseconds)
+
 	if logFilepath != "" {
-		return SetLogFile(logFilepath)
+		logWriter = &LogWriter{path: logFilepath}
+		if err := logWriter.Reopen(); err != nil {
+			fmt.Fprintf(os.Stderr, "cannot open log file: %s\n", err)
+			return err
+		}
+		log.SetOutput(logWriter)
+	} else {
+		logWriter = &LogWriter{file: os.Stdout}
+		log.SetOutput(logWriter)
 	}
-	log.SetOutput(os.Stdout)
+
 	return nil
 }
 
 // Close finalizes the logging system.
 func Close() {
-	if logFile != nil {
-		if err := logFile.Close(); err != nil {
+	if logWriter != nil {
+		if err := logWriter.Close(); err != nil {
 			fmt.Fprintf(os.Stderr, "cannot close logfile: %s\n", err)
 		}
-	} else {
-		log.SetOutput(io.Discard)
+	}
+}
+
+func Reopen() {
+	if logWriter != nil {
+		if logWriter.path != "" {
+			Warningf("reopening log file %s", logWriter.path)
+		}
+
+		if err := logWriter.Reopen(); err != nil {
+			fmt.Fprintf(os.Stderr, "cannot reopen logfile: %s\n", err)
+		}
 	}
 }
 
@@ -78,16 +155,6 @@ func SetLevel(lv Level) {
 	defer logLock.Unlock()
 
 	logLevel = lv
-}
-
-func SetLogFile(logPath string) error {
-	var err error
-	logFile, err = os.OpenFile(logPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		return fmt.Errorf("set log file: %w", err)
-	}
-	log.SetOutput(logFile)
-	return nil
 }
 
 type Logger interface {
