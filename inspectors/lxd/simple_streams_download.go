@@ -234,10 +234,11 @@ func (ins *SimpleStreamsDownloadInspector) inspectProductItem(a ResponseArtifact
 }
 
 // extractSupportedUbuntuImages creates a map of image paths to SHA256 values
-// for supported Ubuntu versions (24.04, 22.04, 20.04) from product entries
+// for supported Ubuntu versions from product entries.
 func (ins *SimpleStreamsDownloadInspector) extractSupportedUbuntuImages(products map[string]simpleStreamProductEntries) map[string]string {
 	result := make(map[string]string)
 	supportedVersions := map[string]struct{}{
+		"26.04": {},
 		"24.04": {},
 		"22.04": {},
 		"20.04": {},
