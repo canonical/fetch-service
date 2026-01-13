@@ -2,6 +2,14 @@
 Changelog
 *********
 
+0.13.0 (2026-01-13)
+-------------------
+
+- feat: reopen log file if SIGUSR1 received (#553)
+- fix: prevent race when copying http response (#541)
+- fix(inspectors/snap): don't reject non-snap squashfs files (#544)
+- fix(inspectors/apt): allow translation file request by name (#548)
+
 0.12.0 (2025-12-01)
 -------------------
 
