@@ -1,0 +1,56 @@
+summary: Upstream proxy
+
+prepare: |
+  snap stop fetch-service
+  rm -f ./*.json ./*.deb
+  apt install -y tinyproxy
+
+restore: |
+  snap stop fetch-service
+  snap unset fetch-service upstream-proxy
+  rm -f ./*.json
+  systemctl stop tinyproxy
+  apt remove --purge -y tinyproxy
+
+execute: |
+  # shellcheck disable=SC1091
+  . ../../utils.sh
+
+  snap set fetch-service upstream-proxy.http="http://localhost:8888"
+  snap set fetch-service upstream-proxy.https="http://localhost:8888"
+  snap start fetch-service
+  sleep 5  # give some time for the service to start
+  fetch-service.fetchctl version
+
+  # start upstream proxy
+  rm -f /var/log/tinyproxy/tinyproxy.log
+  chown tinyproxy /var/log/tinyproxy
+  systemctl restart tinyproxy
+
+  # create session
+  read -r session_id token < <(create_session permissive)
+
+  # set up proxy and download a file
+  export http_proxy="http://${session_id}:${token}@localhost:9988"
+  export https_proxy="http://${session_id}:${token}@localhost:9988"
+
+  wget --no-check-certificate https://canonical.com
+  wget http://archive.ubuntu.com/ubuntu/pool/main/h/hello/hello_2.10-3build2_amd64.deb
+
+  unset http_proxy
+  unset https_proxy
+
+  # revoke token, get report, and end session
+  revoke_token "$session_id" "$token"                                                                                                                                     
+  get_session_report "$session_id" > raw_session_report.json                                                                                                                  
+  python3 -mjson.tool raw_session_report.json | tee session_report.json
+
+  delete_session "$session_id"
+  delete_resources "$session_id"
+
+  grep "url.*http://archive.ubuntu.com" session_report.json
+  grep "url.*https://canonical.com:443" session_report.json
+
+  cat /var/log/tinyproxy/tinyproxy.log
+  grep "GET http://archive.ubuntu.com" /var/log/tinyproxy/tinyproxy.log
+  grep "CONNECT canonical.com" /var/log/tinyproxy/tinyproxy.log

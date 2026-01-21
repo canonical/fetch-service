@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023 Canonical Ltd.
+ * Copyright 2023-2026 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -27,6 +27,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -158,14 +159,21 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 	u.Rch <- nil // no errors
 }
 
+type copyHeaderTest struct {
+	key string   // The header entry key
+	val []string // The header entry value
+}
+
+var copyHeaderTests = []copyHeaderTest{{
+	key: "key",
+	val: []string{},
+}, {
+	key: "key",
+	val: []string{"a", "b", "c"},
+}}
+
 func (t *proxySuite) TestCopyHeader(c *C) {
-	for _, tc := range []struct {
-		key string
-		val []string
-	}{
-		{"key", []string{}},
-		{"key", []string{"a", "b", "c"}},
-	} {
+	for _, tc := range copyHeaderTests {
 		data := map[string][]string{tc.key: tc.val}
 		newData := proxy.CopyHTTPHeader(data)
 		delete(data, tc.key)
@@ -174,4 +182,160 @@ func (t *proxySuite) TestCopyHeader(c *C) {
 		c.Assert(newData[tc.key], DeepEquals, tc.val)
 		c.Assert(newData[tc.key], Not(Equals), tc.val)
 	}
+}
+
+type proxyFromEnvironmentTest struct {
+	url   string            // The request URL
+	env   map[string]string // Proxy-related environment variables
+	proxy string            // The expected proxy to use
+}
+
+var proxyFromEnvironmentTests = []proxyFromEnvironmentTest{{
+	// No proxy variable set
+	url:   "http://example.com",
+	env:   map[string]string{},
+	proxy: "",
+}, {
+	// Protocols in URL and proxy variable are both HTTP
+	url:   "http://example.com",
+	env:   map[string]string{"http_proxy": "http://localhost:1234"},
+	proxy: "http://localhost:1234",
+}, {
+	// Protocol in request is HTTP, proxy variable is HTTPS
+	url:   "http://example.com",
+	env:   map[string]string{"https_proxy": "http://localhost:1234"},
+	proxy: "",
+}, {
+	// Protocol in URL is HTTP, proxy variable is ALL
+	url:   "http://example.com",
+	env:   map[string]string{"all_proxy": "http://localhost:1234"},
+	proxy: "http://localhost:1234",
+}, {
+	// Protocols in URL and proxy variable are both HTTPS
+	url:   "https://example.com",
+	env:   map[string]string{"https_proxy": "http://localhost:1234"},
+	proxy: "http://localhost:1234",
+}, {
+	// Protocol in request is HTTPS, proxy variable is HTTP
+	url:   "https://example.com",
+	env:   map[string]string{"http_proxy": "http://localhost:1234"},
+	proxy: "",
+}, {
+	// Protocol in URL is HTTPS, proxy variable is ALL
+	url:   "https://example.com",
+	env:   map[string]string{"all_proxy": "http://localhost:1234"},
+	proxy: "http://localhost:1234",
+}, {
+	// Pick the right protocol based on URL
+	url:   "https://example.com",
+	env:   map[string]string{"http_proxy": "http://localhost:1234", "https_proxy": "http://otherhost:5678"},
+	proxy: "http://otherhost:5678",
+}}
+
+func (p *proxySuite) TestProxyFromEnvironment(c *C) {
+	for _, tc := range proxyFromEnvironmentTests {
+		req, err := http.NewRequest("GET", tc.url, nil)
+		c.Assert(err, IsNil)
+
+		for _, k := range []string{"HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy", "ALL_PROXY", "all_proxy"} {
+			os.Unsetenv(k)
+		}
+
+		for _, uppercase := range []bool{false, true} {
+			for k, v := range tc.env {
+				if uppercase {
+					os.Setenv(strings.ToUpper(k), v)
+				} else {
+					os.Setenv(k, v)
+				}
+			}
+
+			px, err := proxy.ProxyFromEnvironment(req)
+			c.Assert(err, IsNil)
+			if tc.proxy == "" {
+				c.Assert(px, IsNil)
+			} else {
+				c.Assert(px.String(), Equals, tc.proxy)
+			}
+		}
+	}
+}
+
+type shouldBypassProxyTest struct {
+	env    string // The value of the NO_PROXY or no_proxy environment variable
+	host   string // The host being verified
+	bypass bool   // The expected result
+}
+
+var shouldBypassProxyTests = []shouldBypassProxyTest{{
+	env:    "",
+	host:   "myhost",
+	bypass: false,
+}, {
+	env:    "myhost",
+	host:   "myhost",
+	bypass: true,
+}, {
+	env:    "myhost",
+	host:   "MyHost",
+	bypass: true,
+}, {
+	env:    "myhost",
+	host:   "myhost.example.com",
+	bypass: false,
+}, {
+	env:    "*.example.com",
+	host:   "myhost.example.com",
+	bypass: true,
+}, {
+	env:    "cat.com, dog.com",
+	host:   "corndog.com",
+	bypass: false,
+}, {
+	env:    "cat.com, *dog.com",
+	host:   "corndog.com",
+	bypass: true,
+}, {
+	env:    "cat.com, *.d[oi]g.com",
+	host:   "myhost.dig.com",
+	bypass: true,
+}, {
+	env:    "cat.com, *.d[oig.com",
+	host:   "myhost.dig.com",
+	bypass: false,
+}}
+
+func (t *proxySuite) TestShouldBypassProxy(c *C) {
+	for _, tc := range shouldBypassProxyTests {
+		for _, noProxyVar := range []string{"no_proxy", "NO_PROXY"} {
+			os.Unsetenv("no_proxy")
+			os.Unsetenv("NO_PROXY")
+
+			if tc.env != "" {
+				os.Setenv(noProxyVar, tc.env)
+			}
+
+			res := proxy.ShouldBypassProxy(tc.host)
+			c.Check(res, Equals, tc.bypass, Commentf("var: %s, test case: %+v", noProxyVar, tc))
+		}
+	}
+
+	os.Unsetenv("no_proxy")
+	os.Unsetenv("NO_PROXY")
+}
+
+func (t *proxySuite) TestGetEnvAny(c *C) {
+	os.Setenv("VAR1", "")
+	os.Setenv("VAR2", "value2")
+	os.Setenv("VAR3", "value2")
+
+	value := proxy.GetenvAny("VAR1", "VAR2", "VAR3")
+	c.Assert(value, Equals, "value2")
+
+	os.Unsetenv("VAR1")
+	os.Unsetenv("VAR2")
+	os.Unsetenv("VAR3")
+
+	value = proxy.GetenvAny("VAR1", "VAR2", "VAR3")
+	c.Assert(value, Equals, "")
 }
