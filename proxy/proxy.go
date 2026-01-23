@@ -310,9 +310,18 @@ func proxyFromEnvironment(req *http.Request) (*url.URL, error) {
 		return nil, nil
 	}
 
-	logger.Infof("proxy: using upstream %s proxy: %s", req.URL.Scheme, proxy)
+	parsedProxy, err := url.Parse(proxy)
+	if err != nil {
+		return nil, err
+	}
+	redactedProxy := *parsedProxy
+	if redactedProxy.User != nil {
+		redactedProxy.User = url.UserPassword("****", "****")
+	}
 
-	return url.Parse(proxy)
+	logger.Infof("proxy: using upstream %s proxy: %s", req.URL.Scheme, redactedProxy.String())
+
+	return parsedProxy, nil
 }
 
 // shouldBypassProxy checks if the given host can do requests directly
