@@ -8,7 +8,7 @@ prepare: |
 restore: |
   snap stop fetch-service
   snap unset fetch-service upstream-proxy
-  rm -f ./*.json
+  rm -f ./*.json ./*.deb
   systemctl stop tinyproxy
   apt remove --purge -y tinyproxy
 
