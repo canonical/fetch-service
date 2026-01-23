@@ -21,7 +21,9 @@ package lxd
 
 import (
 	"fmt"
+	"io"
 	"net/url"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 
@@ -60,7 +62,9 @@ type instanceInfo struct {
 	Mem string `yaml:"mem"`
 }
 
-type instanceTypes map[string]map[string]instanceInfo
+type instanceIndexes map[string]string
+type instanceInfos map[string]instanceInfo
+type instanceTypes map[string]instanceInfos
 
 func (ins *InstanceTypesInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if !a.MimetypeIs("text/plain") {
@@ -73,17 +77,62 @@ func (ins *InstanceTypesInspector) InspectArtifact(f ArtifactReader, a ResponseA
 
 	var data instanceTypes
 
+	recognized := false
 	decoder := yaml.NewDecoder(f)
-	if err := decoder.Decode(&data); err != nil {
-		return nil // Not a YAML file
-	}
-
-	for _, t := range data {
-		for _, inst := range t {
-			if inst.CPU == "" {
-				return nil // Not an instance types file
+	if err := decoder.Decode(&data); err == nil {
+		// Handle consolidated instance types file
+		for _, t := range data {
+			for _, inst := range t {
+				if inst.CPU == "" {
+					return nil // Not an instance types file
+				}
 			}
 		}
+
+		recognized = true
+	}
+
+	if !recognized {
+		// Check if separate instance infos
+		_, err := f.Seek(0, io.SeekStart)
+		if err != nil {
+			return err
+		}
+
+		var data instanceInfos
+		decoder := yaml.NewDecoder(f)
+		if err := decoder.Decode(&data); err == nil {
+			for _, inst := range data {
+				if inst.CPU == "" {
+					return nil // Not an instance types file
+				}
+			}
+			recognized = true
+		}
+	}
+
+	if !recognized {
+		// Handle index file in name: filename.yaml format.
+		_, err := f.Seek(0, io.SeekStart)
+		if err != nil {
+			return err
+		}
+
+		var data instanceIndexes
+		decoder := yaml.NewDecoder(f)
+		if err := decoder.Decode(&data); err == nil {
+			for _, v := range data {
+				if !strings.HasSuffix(v, ".yaml") {
+					return nil // Not an instance types index file
+				}
+			}
+			recognized = true
+		}
+
+	}
+
+	if !recognized {
+		return nil
 	}
 
 	a.SetArtifactMetadata(ArtifactMetadata{

@@ -46,11 +46,11 @@ type lxdInstanceTypesInspectRequestTest struct {
 }
 
 var lxdInstanceTypesInspectRequestTests = []lxdInstanceTypesInspectRequestTest{{
-	url:     "https://images.lxd.canonical.com:443/meta/instance-types/all.yaml",
+	url:     "https://images.lxd.canonical.com:443/meta/instance-types/name.yaml",
 	pending: true,
 }, {
-	url:     "https://images.lxd.canonical.com:443/meta/instance-types/not-all.yaml",
-	pending: false,
+	url:     "https://images.lxd.canonical.com:443/meta/instance-types/.yaml",
+	pending: true,
 }, {
 	url:     "http://images.lxd.canonical.com/meta/instance-types/all.yaml",
 	pending: false,
@@ -88,6 +88,31 @@ var lxdInstanceTypesArtifactInspectorTests = []lxdInstanceTypesArtifactInspector
 	pending:  true,
 	approved: true,
 	reason:   "valid LXD instance types metadata",
+}, {
+	filename: "testdata/instance-types-aws.yaml",
+	pending:  true,
+	approved: true,
+	reason:   "valid LXD instance types metadata",
+}, {
+	filename: "testdata/instance-types-index.yaml",
+	pending:  true,
+	approved: true,
+	reason:   "valid LXD instance types metadata",
+}, {
+	filename: "testdata/instance-types-aws-bad.yaml",
+	pending:  true,
+	approved: false,
+	reason:   "", // unrecognized artifact
+}, {
+	filename: "testdata/instance-types-index-bad.yaml",
+	pending:  true,
+	approved: false,
+	reason:   "", // unrecognized artifact
+}, {
+	filename: "testdata/empty.txt",
+	pending:  true,
+	approved: false,
+	reason:   "", // unrecognized artifact
 }, {
 	filename: "testdata/index.json",
 	pending:  false,
