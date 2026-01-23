@@ -122,6 +122,7 @@ func (ins *InstanceTypesInspector) InspectArtifact(f ArtifactReader, a ResponseA
 		decoder := yaml.NewDecoder(f)
 		if err := decoder.Decode(&data); err == nil {
 			for _, v := range data {
+				v = strings.TrimSpace(v)
 				if !strings.HasSuffix(v, ".yaml") {
 					return nil // Not an instance types index file
 				}
