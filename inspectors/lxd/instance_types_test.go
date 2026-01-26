@@ -99,16 +99,19 @@ var lxdInstanceTypesArtifactInspectorTests = []lxdInstanceTypesArtifactInspector
 	approved: true,
 	reason:   "valid LXD instance types metadata",
 }, {
+	// Missing cpu entry
 	filename: "testdata/instance-types-aws-bad.yaml",
 	pending:  true,
 	approved: false,
 	reason:   "", // unrecognized artifact
 }, {
+	// Entry not ends in .yaml
 	filename: "testdata/instance-types-index-bad.yaml",
 	pending:  true,
 	approved: false,
 	reason:   "", // unrecognized artifact
 }, {
+	// Empty file
 	filename: "testdata/empty.txt",
 	pending:  true,
 	approved: false,
