@@ -21,7 +21,9 @@ package lxd
 
 import (
 	"fmt"
+	"io"
 	"net/url"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 
@@ -60,7 +62,9 @@ type instanceInfo struct {
 	Mem string `yaml:"mem"`
 }
 
-type instanceTypes map[string]map[string]instanceInfo
+type instanceIndexes map[string]string
+type instanceInfos map[string]instanceInfo
+type instanceTypes map[string]instanceInfos
 
 func (ins *InstanceTypesInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if !a.MimetypeIs("text/plain") {
@@ -71,19 +75,71 @@ func (ins *InstanceTypesInspector) InspectArtifact(f ArtifactReader, a ResponseA
 		return nil // Not from LXD instance types URL, we don't recognize this artifact
 	}
 
-	var data instanceTypes
+	var allData instanceTypes
+	var fileType string
+	var entries int
 
 	decoder := yaml.NewDecoder(f)
-	if err := decoder.Decode(&data); err != nil {
-		return nil // Not a YAML file
-	}
-
-	for _, t := range data {
-		for _, inst := range t {
-			if inst.CPU == "" {
-				return nil // Not an instance types file
+	if err := decoder.Decode(&allData); err == nil {
+		// Handle consolidated instance types file
+		for _, t := range allData {
+			for _, inst := range t {
+				if inst.CPU == "" {
+					return nil // Not an instance types file
+				}
 			}
 		}
+
+		fileType = "consolidated"
+		entries = len(allData)
+	}
+
+	if fileType == "" {
+		// Check if separate instance infos
+		_, err := f.Seek(0, io.SeekStart)
+		if err != nil {
+			return err
+		}
+
+		var infosData instanceInfos
+		decoder := yaml.NewDecoder(f)
+		if err := decoder.Decode(&infosData); err == nil {
+			for _, inst := range infosData {
+				if inst.CPU == "" {
+					return nil // Not an instance types file
+				}
+			}
+
+			fileType = "single-provider"
+			entries = len(infosData)
+		}
+	}
+
+	if fileType == "" {
+		// Handle index file in name: filename.yaml format.
+		_, err := f.Seek(0, io.SeekStart)
+		if err != nil {
+			return err
+		}
+
+		var indexData instanceIndexes
+		decoder := yaml.NewDecoder(f)
+		if err := decoder.Decode(&indexData); err == nil {
+			for _, v := range indexData {
+				v = strings.TrimSpace(v)
+				if !strings.HasSuffix(v, ".yaml") {
+					return nil // Not an instance types index file
+				}
+			}
+
+			fileType = "index"
+			entries = len(indexData)
+		}
+
+	}
+
+	if fileType == "" || entries == 0 {
+		return nil
 	}
 
 	a.SetArtifactMetadata(ArtifactMetadata{
@@ -93,7 +149,7 @@ func (ins *InstanceTypesInspector) InspectArtifact(f ArtifactReader, a ResponseA
 	})
 
 	a.SetResponseApproved(ins, "valid LXD instance types metadata").Annotate(
-		Annotation{"entries": len(data)},
+		Annotation{"file-type": fileType, "entries": entries},
 	)
 
 	return nil

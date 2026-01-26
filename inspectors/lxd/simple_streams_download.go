@@ -245,10 +245,6 @@ func (ins *SimpleStreamsDownloadInspector) extractSupportedUbuntuImages(products
 	}
 
 	for _, product := range products {
-		if !product.Supported {
-			continue
-		}
-
 		if _, ok := supportedVersions[product.Version]; !ok {
 			continue
 		}
