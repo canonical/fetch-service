@@ -230,6 +230,16 @@ var proxyFromEnvironmentTests = []proxyFromEnvironmentTest{{
 	url:   "https://example.com",
 	env:   map[string]string{"http_proxy": "http://localhost:1234", "https_proxy": "http://otherhost:5678"},
 	proxy: "http://otherhost:5678",
+}, {
+    // http_proxy overrides all_proxy
+	url:   "http://example.com",
+	env:   map[string]string{"http_proxy": "http://localhost:1234", "all_proxy": "http://otherhost:5678"},
+	proxy: "http://localhost:1234",
+}, {
+    // https_proxy overrides all_proxy
+	url:   "https://example.com",
+	env:   map[string]string{"https_proxy": "http://localhost:1234", "ALL_PROXY": "http://otherhost:5678"},
+	proxy: "http://localhost:1234",
 }}
 
 func (p *proxySuite) TestProxyFromEnvironment(c *C) {
