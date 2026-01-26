@@ -1,0 +1,3 @@
+aws: aws.yaml
+azure: azure.yaml
+gce: gce.yaml

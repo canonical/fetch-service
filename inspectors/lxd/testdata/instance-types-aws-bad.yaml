@@ -1,0 +1,20 @@
+c1.medium:
+ cpu: 2
+ mem: 1.7
+c1.xlarge:
+ cpu: 8
+ mem: 7
+c3.2xlarge:
+ cpu: 8
+ mem: 15
+c3.4xlarge:
+ cpu: 16
+ mem: 30
+c3.8xlarge:
+ mem: 60
+c3.large:
+ cpu: 2
+ mem: 3.75
+c3.xlarge:
+ cpu: 4
+ mem: 7.5
