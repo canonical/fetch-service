@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024 Canonical Ltd.
+ * Copyright 2024-2026 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,9 +20,12 @@
 package proxy
 
 var (
-	CopyHTTPHeader     = copyHTTPHeader
-	SplitCertKey       = splitCertKey
-	GetSessionIDHeader = getSessionIDHeader
+	CopyHTTPHeader       = copyHTTPHeader
+	SplitCertKey         = splitCertKey
+	GetSessionIDHeader   = getSessionIDHeader
+	ProxyFromEnvironment = proxyFromEnvironment
+	ShouldBypassProxy    = shouldBypassProxy
+	GetenvAny            = getenvAny
 )
 
 func (p *HTTPProxy) ForceError(err error) {

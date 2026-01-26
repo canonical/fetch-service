@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2025 Canonical Ltd.
+ * Copyright 2023-2026 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -26,8 +26,11 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/canonical/fetch-service/secrets"
@@ -162,9 +165,10 @@ func (p *HTTPProxy) processRoundTrip(req *http.Request, ctx *goproxy.ProxyCtx) (
 
 	logger.Infof("proxy: process roundtrip: %s", req.URL.String())
 	tr := transport.Transport{
-		Proxy:           transport.ProxyFromEnvironment,
+		Proxy:           proxyFromEnvironment,
 		TLSClientConfig: &tls.Config{ServerName: host},
 	}
+
 	ctx.RoundTripper = goproxy.RoundTripperFunc(func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Response, error) {
 		details, resp, err := tr.DetailedRoundTrip(r)
 		if err != nil {
@@ -283,6 +287,85 @@ func httpResponse(req *http.Request, code int, msg []byte) *http.Response {
 		ContentLength: int64(len(msg)),
 	}
 
+}
+
+func proxyFromEnvironment(req *http.Request) (*url.URL, error) {
+	if shouldBypassProxy(req.URL.Hostname()) {
+		return nil, nil
+	}
+
+	var proxy string
+	switch req.URL.Scheme {
+	case "https":
+		proxy = getenvAny("HTTPS_PROXY", "https_proxy")
+	case "http":
+		proxy = getenvAny("HTTP_PROXY", "http_proxy")
+	}
+
+	if proxy == "" {
+		proxy = getenvAny("ALL_PROXY", "all_proxy")
+	}
+
+	if proxy == "" {
+		return nil, nil
+	}
+
+	parsedProxy, err := url.Parse(proxy)
+	if err != nil {
+		return nil, err
+	}
+	redactedProxy := *parsedProxy
+	if redactedProxy.User != nil {
+		redactedProxy.User = url.UserPassword("****", "****")
+	}
+
+	logger.Infof("proxy: using upstream %s proxy: %s", req.URL.Scheme, redactedProxy.String())
+
+	return parsedProxy, nil
+}
+
+// shouldBypassProxy checks if the given host can do requests directly
+// to the destination server. There's no formal spec for this feature,
+// but mainstream applications commonly accept a comma-separated list
+// of values, with exact matches making the host to skip the proxy.
+// Suffix or glob matching is also commonly accepted. We'll use glob
+// to make matching safer and more predictable.
+func shouldBypassProxy(host string) bool {
+	noProxy := getenvAny("NO_PROXY", "no_proxy")
+	if noProxy == "" {
+		return false
+	}
+
+	host = strings.ToLower(host)
+	for _, h := range strings.Split(noProxy, ",") {
+		h = strings.TrimSpace(h)
+		if h == "" {
+			continue
+		}
+
+		h = strings.ToLower(h)
+		if host == h {
+			return true
+		}
+
+		ok, err := path.Match(h, host)
+		if err == path.ErrBadPattern {
+			logger.Warningf("proxy: bypass pattern %q is malformed", h)
+		}
+		if ok {
+			return true
+		}
+	}
+	return false
+}
+
+func getenvAny(keys ...string) string {
+	for _, k := range keys {
+		if v := os.Getenv(k); v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 // tcpKeepAliveListener sets TCP keep-alive timeouts on accepted
