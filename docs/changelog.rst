@@ -2,6 +2,12 @@
 Changelog
 *********
 
+0.14.0 (2026-01-26)
+-------------------
+
+- feat: specify and use upstream proxy (#562)
+- feat(i/lxd): support additional instance type file formats (#563)
+
 0.13.0 (2026-01-13)
 -------------------
 
