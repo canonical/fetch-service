@@ -132,13 +132,17 @@ func Run() int {
 
 	// Shut down gracefully if terminated.
 	cs := make(chan os.Signal, 1)
-	signal.Notify(cs, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	signal.Notify(cs, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGUSR1)
 
 	status := 0
 loop:
 	for {
 		select {
 		case sig := <-cs:
+			if sig == syscall.SIGUSR1 {
+				logger.Reopen()
+				continue
+			}
 			logger.Infof("Exiting on %s signal.\n", sig)
 			if sysSig, ok := sig.(syscall.Signal); ok {
 				status = 128 + int(sysSig)

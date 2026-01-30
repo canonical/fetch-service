@@ -43,10 +43,10 @@ var (
 		regexp.MustCompile(`^https://images.lxd.canonical.com:443$`),
 	}
 
-	reSimpleStreamsIndex    = regexp.MustCompile(`^/([\w-\/]+)/streams/v1/index.json$`)
-	reSimpleStreamsDownload = regexp.MustCompile(`^/([\w-\/]+)/streams/v1/([\w-\.\/:]+):download.json$`)
-	reProductItem           = regexp.MustCompile(`^/buildd/(daily|releases)/([\w-]+)/([\w-]+)/([\w+\.-]+\.tar.gz)$`)
-	reInstanceTypes         = regexp.MustCompile(`^/meta/instance-types/all.yaml$`)
+	reSimpleStreamsIndex    = regexp.MustCompile(`^/([\w-\/]+)/streams/v1/index\.json$`)
+	reSimpleStreamsDownload = regexp.MustCompile(`^/([\w-\/]+)/streams/v1/([\w-\.\/:]+):download\.json$`)
+	reProductItem           = regexp.MustCompile(`^/buildd/(daily|releases)/([\w-]+)/([\w-]+)/([\w+\.-]+\.tar\.gz)$`)
+	reInstanceTypes         = regexp.MustCompile(`^/meta/instance-types/[\w-]*\.yaml$`)
 )
 
 // Simple streams index
