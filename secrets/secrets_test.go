@@ -19,7 +19,7 @@ type secretSuite struct {
 	slog logger.Logger
 }
 
-var _ = Suite(&secretSuite{})
+var _ = Suite(&secretSuite{logger.NewSessionLogger("test")})
 
 func (t *secretSuite) TestValidateSecrets(c *C) {
 	for _, tc := range []struct {
