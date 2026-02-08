@@ -193,7 +193,7 @@ func injectKeystoneV3Secret(s Secret, r io.ReadCloser) ([]byte, error) {
 
 	authData, ok := body["auth"]
 	if !ok {
-		return nil, fmt.Errorf("no auth field in keystone-v3 request body: %w", err)
+		return nil, errors.New("no auth field in keystone-v3 request body")
 	}
 
 	var auth map[string]json.RawMessage
