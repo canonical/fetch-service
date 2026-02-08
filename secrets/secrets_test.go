@@ -66,7 +66,7 @@ func (t *secretSuite) TestSecretsUnmarshalJSON(c *C) {
         {
           "type": "keystone-v3",
 	  "url": "https://www.example.com:5000/v3/auth/tokens",
-	  "macaroon-credentials": "user:password"
+	  "keystone-v3-credentials": "user:password"
         }
       ]
     }`)
@@ -87,7 +87,7 @@ func (t *secretSuite) TestSecretsUnmarshalJSON(c *C) {
 
 	c.Assert(j.Secrets[2].Type, Equals, secrets.KeystoneV3Type)
 	c.Assert(j.Secrets[2].URL, DeepEquals, glob.MustCompile("https://www.example.com:5000/v3/auth/tokens"))
-	c.Assert(j.Secrets[2].MacaroonCreds, Equals, "user:password")
+	c.Assert(j.Secrets[2].KeystoneV3Creds, Equals, "user:password")
 }
 
 func (t *secretSuite) TestInjectHeaderSecrets(c *C) {
