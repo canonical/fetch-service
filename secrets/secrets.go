@@ -124,6 +124,7 @@ func injectSecret(s Secret, req *http.Request, slog logger.Logger) {
 		newBody, err := injectKeystoneV3Secret(s, req.Body)
 		if err != nil {
 			slog.Debugf("cannot inject keystone-v3 secret: %s", err)
+			break
 		}
 		req.Body = io.NopCloser(bytes.NewReader(newBody))
 		req.ContentLength = int64(len(newBody))
