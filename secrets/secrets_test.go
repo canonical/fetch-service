@@ -220,7 +220,7 @@ var getKeystoneV3IdentityDomainTests = []getKeystoneV3IdentityDomainTest{{
 	domain: nil,
 	errMsg: "cannot find password in keystone-v3 auth request",
 }, {
-	// Valid domain id
+	// Missing user
 	input: `{
 			"identity": {
 				"methods": ["password"],
