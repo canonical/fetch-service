@@ -20,6 +20,7 @@ control_port="$(snapctl get control.port)"
 control_auth="$(snapctl get control.auth)"
 upstream_http_proxy="$(snapctl get upstream-proxy.http)"
 upstream_https_proxy="$(snapctl get upstream-proxy.https)"
+upstream_proxy_bypass="$(snapctl get upstream-proxy.bypass)"
 
 log_file="$(snapctl get log.file || true)"
 
@@ -34,6 +35,11 @@ fi
 if [[ -n "${upstream_https_proxy}" ]]; then
 	HTTPS_PROXY="${upstream_https_proxy}"
 	export HTTPS_PROXY
+fi
+
+if [[ -n "${upstream_proxy_bypass}" ]]; then
+	NO_PROXY="${upstream_proxy_bypass}"
+	export NO_PROXY
 fi
 
 if [[ -z "${log_file}" ]]; then
