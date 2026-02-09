@@ -45,7 +45,7 @@ var (
 
 	reSimpleStreamsIndex    = regexp.MustCompile(`^/([\w-\/]+)/streams/v1/index\.json$`)
 	reSimpleStreamsDownload = regexp.MustCompile(`^/([\w-\/]+)/streams/v1/([\w-\.\/:]+):download\.json$`)
-	reProductItem           = regexp.MustCompile(`^/buildd/(daily|releases)/([\w-]+)/([\w-]+)/([\w+\.-]+\.tar\.gz)$`)
+	reProductItem           = regexp.MustCompile(`^/buildd/(daily|releases)/([\w-]+)/([\w+.-]+)/([\w+.-]+\.tar\.gz)$`)
 	reInstanceTypes         = regexp.MustCompile(`^/meta/instance-types/[\w-]*\.yaml$`)
 )
 
