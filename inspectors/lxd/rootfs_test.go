@@ -91,6 +91,10 @@ var inspectRequestTests = []inspectRequestTest{{
 	// Missing file name
 	url:     "http://cloud-images.ubuntu.com/buildd/daily/noble/20250629",
 	pending: false,
+}, {
+	// .. is not allowed in the datestamp
+	url:     "https://cloud-images.ubuntu.com:443/buildd/daily/noble/../noble-server-cloudimg-amd64-lxd_combined.tar.gz",
+	pending: false,
 }}
 
 func (s *rootfsSuite) TestInspectRequest(c *C) {
