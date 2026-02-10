@@ -30,7 +30,7 @@ import (
 // https://cloud-images.ubuntu.com:443/buildd/daily/streams/v1/index.json
 // https://cloud-images.ubuntu.com:443/buildd/daily/streams/v1/com.ubuntu.cloud:daily:download.json
 // http://cloud-images.ubuntu.com/buildd/daily/noble/20250629/noble-server-cloudimg-amd64-lxd_combined.tar.gz
-// https://cloud-images.ubuntu.com:443/buildd/daily/noble/20250629/noble-server-cloudimg-amd64-lxd_combined.tar.gz
+// https://cloud-images.ubuntu.com:443/buildd/daily/noble/20250629.1/noble-server-cloudimg-amd64-lxd_combined.tar.gz
 // https://images.lxd.canonical.com:443/meta/instance-types/all.yaml
 
 var (
@@ -45,7 +45,7 @@ var (
 
 	reSimpleStreamsIndex    = regexp.MustCompile(`^/([\w-\/]+)/streams/v1/index\.json$`)
 	reSimpleStreamsDownload = regexp.MustCompile(`^/([\w-\/]+)/streams/v1/([\w-\.\/:]+):download\.json$`)
-	reProductItem           = regexp.MustCompile(`^/buildd/(daily|releases)/([\w-]+)/([\w-]+)/([\w+\.-]+\.tar\.gz)$`)
+	reProductItem           = regexp.MustCompile(`^/buildd/(daily|releases)/([\w-]+)/(\w[\w+.-]*)/([\w+.-]+\.tar\.gz)$`)
 	reInstanceTypes         = regexp.MustCompile(`^/meta/instance-types/[\w-]*\.yaml$`)
 )
 

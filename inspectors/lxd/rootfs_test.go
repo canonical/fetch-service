@@ -66,9 +66,9 @@ var inspectRequestTests = []inspectRequestTest{{
 	imageDate: "20250629",
 	pending:   true,
 }, {
-	url:       "https://cloud-images.ubuntu.com:443/buildd/daily/noble/20250629/noble-server-cloudimg-amd64-lxd_combined.tar.gz",
+	url:       "https://cloud-images.ubuntu.com:443/buildd/daily/noble/20250629.1/noble-server-cloudimg-amd64-lxd_combined.tar.gz",
 	imageType: "daily",
-	imageDate: "20250629",
+	imageDate: "20250629.1",
 	pending:   true,
 }, {
 	url:       "http://cloud-images.ubuntu.com/buildd/releases/noble/release-20250810/noble-server-cloudimg-amd64-lxd_combined.tar.gz",
@@ -90,6 +90,10 @@ var inspectRequestTests = []inspectRequestTest{{
 }, {
 	// Missing file name
 	url:     "http://cloud-images.ubuntu.com/buildd/daily/noble/20250629",
+	pending: false,
+}, {
+	// .. is not allowed in the datestamp
+	url:     "https://cloud-images.ubuntu.com:443/buildd/daily/noble/../noble-server-cloudimg-amd64-lxd_combined.tar.gz",
 	pending: false,
 }}
 
