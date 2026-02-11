@@ -18,6 +18,7 @@ execute: |
 
   snap set fetch-service upstream-proxy.http="http://localhost:8888"
   snap set fetch-service upstream-proxy.https="http://localhost:8888"
+  snap set fetch-service upstream-proxy.bypass="google.com,*.google.com"
   snap start fetch-service
   sleep 5  # give some time for the service to start
   fetch-service.fetchctl version
@@ -35,6 +36,7 @@ execute: |
   export https_proxy="http://${session_id}:${token}@localhost:9988"
 
   wget --no-check-certificate https://canonical.com
+  wget --no-check-certificate https://www.google.com
   wget http://archive.ubuntu.com/ubuntu/pool/main/h/hello/hello_2.10-3build2_amd64.deb
 
   unset http_proxy
@@ -49,8 +51,10 @@ execute: |
   delete_resources "$session_id"
 
   grep "url.*http://archive.ubuntu.com" session_report.json
+  grep "url.*https://www.google.com:443" session_report.json
   grep "url.*https://canonical.com:443" session_report.json
 
   cat /var/log/tinyproxy/tinyproxy.log
   grep "GET http://archive.ubuntu.com" /var/log/tinyproxy/tinyproxy.log
+  grep "google.com" /var/log/tinyproxy/tinyproxy.log && exit 1
   grep "CONNECT canonical.com" /var/log/tinyproxy/tinyproxy.log
