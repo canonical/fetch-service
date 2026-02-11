@@ -317,7 +317,7 @@ func proxyFromEnvironment(req *http.Request) (*url.URL, error) {
 	}
 	redactedProxy := *parsedProxy
 	if redactedProxy.User != nil {
-		redactedProxy.User = url.UserPassword("****", "****")
+		redactedProxy.User = url.UserPassword("xxxx", "xxxx")
 	}
 
 	logger.Infof("proxy: using upstream %s proxy: %s", req.URL.Scheme, redactedProxy.String())
