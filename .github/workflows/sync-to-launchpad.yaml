@@ -14,12 +14,11 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+          ref: main # Always check out the main branch since we're going to push everything.
       - name: Sync to Launchpad
         run: |
-          git branch --set-upstream-to=origin/$(git rev-parse --abbrev-ref HEAD)
-          git branch -r | grep -v '\->' | grep -v $(git rev-parse --abbrev-ref HEAD) | while read remote; do git branch --track "${remote#origin/}" "$remote"; done
           git fetch --all
           git pull --all
-          git remote add launchpad https://lengau:${{ secrets.LP_TOKEN }}@git.launchpad.net/fetch-service
+          git remote add launchpad https://${{ secrets.LP_USER }}:${{ secrets.LP_TOKEN }}@git.launchpad.net/fetch-service
           git push --mirror --force launchpad
           git push --tags --force launchpad
