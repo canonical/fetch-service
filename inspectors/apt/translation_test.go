@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2026 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -41,6 +41,7 @@ func (s *aptSuite) TestAptTranslationDetector(c *C) {
 		filename string
 		result   bool
 	}{
+		{"testdata/Translation-en.xz", true},
 		{"testdata/Translation-zh_TW.xz", true},
 		{"testdata/Translation-zh_TW-bad.xz", false},
 		{"testdata/2048.package", false},
@@ -92,14 +93,13 @@ func (s *aptSuite) TestAptTranslationInspector(c *C) {
 		lang             string
 		translationCount int
 	}{
+		{"testdata/Translation-en.xz", true, "translation file successfully parsed", "en", 1},
 		{"testdata/Translation-zh_TW.xz", true, "translation file successfully parsed", "zh_TW", 3},
 		{"testdata/Translation-zh_TW-bad.xz", false, "not a valid translation file", "", 0},
 		{"testdata/2048.package", false, "cannot read xz file", "", 0},
 	} {
-		translationArtifactFile, _ := os.Open(tc.dataFile)
-		translationArtifactData := make([]byte, 1024*128)
-		_, err := translationArtifactFile.Read(translationArtifactData)
-		c.Assert(err, IsNil)
+		translationArtifactData, err := os.ReadFile(tc.dataFile)
+		c.Assert(err, IsNil, Commentf("test case: %+v\n", tc))
 
 		ins := apt.NewAptTranslationInspector(getTestAptConfig())
 
@@ -137,13 +137,21 @@ func (s *aptSuite) TestAptTranslationInspector(c *C) {
 
 type aptTranslationArtifactInspectorTest struct {
 	filename string // Test artifact filename
+	relpath  string // Path in the release file
 	sha256   string // File digest
 	size     int64  // File size
 	result   bool   // expected result
 }
 
 var aptTranslationArtifactInspectorTests = []aptTranslationArtifactInspectorTest{{
+	filename: "testdata/Translation-en.xz",
+	relpath:  "main/i18n/Translation-en.xz",
+	sha256:   "a0c8d5a1e5197991564101acca9069e2baa014a9d8ed0ed6143224d752aa1909",
+	size:     388,
+	result:   true,
+}, {
 	filename: "testdata/Translation-zh_TW.xz",
+	relpath:  "main/i18n/Translation-zh_TW.xz",
 	sha256:   "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed",
 	size:     792,
 	result:   true,
@@ -229,7 +237,7 @@ func (s *aptSuite) TestAptTranslationArtifactInspector(c *C) {
 				Opinion: opinions.Unknown,
 				Reason:  "Translation file listed in Release",
 				Annotations: Annotation{
-					"file-path":    "main/i18n/Translation-zh_TW.xz",
+					"file-path":    tc.relpath,
 					"release-file": "98e8b22a45d8c663490fcc133384d07534e7c52b49d3f5004a2d87199d4fee5f",
 					"vendor":       "Ubuntu",
 				},

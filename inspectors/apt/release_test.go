@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2023-2024 Canonical Ltd.
+ * Copyright 2023-2026 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -66,6 +66,7 @@ SHA256:
  65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6           240952 main/binary-amd64/Packages
  3b2b1ad6f76bec3c692d5932ceffed8c3c261c8b5fde78cd084432352c83d14d            49419 main/binary-amd64/Packages.gz
  9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6            40928 main/binary-amd64/Packages.xz
+ a0c8d5a1e5197991564101acca9069e2baa014a9d8ed0ed6143224d752aa1909              388 main/i18n/Translation-en.xz
  4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed              792 main/i18n/Translation-zh_TW.xz
 Acquire-By-Hash: yes
 -----BEGIN PGP SIGNATURE-----
@@ -207,7 +208,8 @@ func (s *aptSuite) TestAptReleaseArtifactInspector(c *C) {
 			sha256_1, _ := digests.NewSha256Digest("65183fe1e5a4f9881147fdd0042dfa259fb2fca0e86b57457e74e507358c63b6")
 			sha256_2, _ := digests.NewSha256Digest("3b2b1ad6f76bec3c692d5932ceffed8c3c261c8b5fde78cd084432352c83d14d")
 			sha256_3, _ := digests.NewSha256Digest("9efc4736be7bf5aa4ca05f28af96dc58f8491b488c930cf2c40f67e71d69beb6")
-			sha256_4, _ := digests.NewSha256Digest("4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed")
+			sha256_4, _ := digests.NewSha256Digest("a0c8d5a1e5197991564101acca9069e2baa014a9d8ed0ed6143224d752aa1909")
+			sha256_5, _ := digests.NewSha256Digest("4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed")
 
 			// verify internal state
 			state := ins.Release()
@@ -217,7 +219,8 @@ func (s *aptSuite) TestAptReleaseArtifactInspector(c *C) {
 					sha256_1: apt.ReleaseEntry{Name: "main/binary-amd64/Packages", Size: 240952},
 					sha256_2: apt.ReleaseEntry{Name: "main/binary-amd64/Packages.gz", Size: 49419},
 					sha256_3: apt.ReleaseEntry{Name: "main/binary-amd64/Packages.xz", Size: 40928},
-					sha256_4: apt.ReleaseEntry{Name: "main/i18n/Translation-zh_TW.xz", Size: 792},
+					sha256_4: apt.ReleaseEntry{Name: "main/i18n/Translation-en.xz", Size: 388},
+					sha256_5: apt.ReleaseEntry{Name: "main/i18n/Translation-zh_TW.xz", Size: 792},
 				},
 			})
 		}

@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024-2025 Canonical Ltd.
+ * Copyright 2024-2026 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -24,6 +24,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"strings"
 
@@ -48,7 +49,7 @@ func AptTranslationDetector(raw []byte, limit uint32) bool {
 
 	buf := make([]byte, 1024)
 	n, err := r.Read(buf)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return false
 	}
 
@@ -169,7 +170,6 @@ func (ins *AptTranslationInspector) InspectArtifact(f ArtifactReader, a Response
 		a.SetResponseRejected(ins, err.Error())
 		return nil
 	}
-
 	suite, ok := a.RequestStringAnnotation(ins.ID(), "suite")
 	if !ok {
 		a.SetResponseUnknown(ins, "suite not specified in request URL")
