@@ -49,7 +49,7 @@ func AptTranslationDetector(raw []byte, limit uint32) bool {
 
 	buf := make([]byte, 1024)
 	n, err := r.Read(buf)
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return false
 	}
 
