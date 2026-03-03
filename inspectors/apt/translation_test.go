@@ -36,16 +36,27 @@ import (
 	"github.com/canonical/fetch-service/metadata/opinions"
 )
 
+type aptTranslationDetectorTest struct {
+	filename string // The file to test
+	result   bool   // Expected result
+}
+
+var aptTranslationDetectorTests = []aptTranslationDetectorTest{{
+	filename: "testdata/Translation-en.xz",
+	result:   true,
+}, {
+	filename: "testdata/Translation-zh_TW.xz",
+	result:   true,
+}, {
+	filename: "testdata/Translation-zh_TW-bad.xz",
+	result:   false,
+}, {
+	filename: "testdata/2048.package",
+	result:   false,
+}}
+
 func (s *aptSuite) TestAptTranslationDetector(c *C) {
-	for _, tc := range []struct {
-		filename string
-		result   bool
-	}{
-		{"testdata/Translation-en.xz", true},
-		{"testdata/Translation-zh_TW.xz", true},
-		{"testdata/Translation-zh_TW-bad.xz", false},
-		{"testdata/2048.package", false},
-	} {
+	for _, tc := range aptTranslationDetectorTests {
 		data, err := os.ReadFile(tc.filename)
 		c.Assert(err, IsNil)
 
@@ -54,16 +65,27 @@ func (s *aptSuite) TestAptTranslationDetector(c *C) {
 	}
 }
 
+type aptTranslationInspectRequestTest struct {
+	url     string // The request URL
+	pending bool   // Expected result
+}
+
+var aptTranslationInspectRequestTests = []aptTranslationInspectRequestTest{{
+	url:     "http://archive.ubuntu.com/ubuntu/dists/focal/main/i18n/by-hash/SHA256/4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed",
+	pending: true,
+}, {
+	url:     "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/6213291a10046e8188510a0ca41a75daedfb2922940f88888ee815694ab3e7b7",
+	pending: false,
+}, {
+	url:     "http://security.ubuntu.com/ubuntu/dists/noble-security/main/i18n/Translation-en",
+	pending: true,
+}, {
+	url:     "http://some.other.location/Translation-zh_TW.xz",
+	pending: false,
+}}
+
 func (s *aptSuite) TestAptTranslationInspectRequest(c *C) {
-	for _, tc := range []struct {
-		url      string
-		detected bool
-	}{
-		{"http://archive.ubuntu.com/ubuntu/dists/focal/main/i18n/by-hash/SHA256/4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed", true},
-		{"http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/by-hash/SHA256/6213291a10046e8188510a0ca41a75daedfb2922940f88888ee815694ab3e7b7", false},
-		{"http://security.ubuntu.com/ubuntu/dists/noble-security/main/i18n/Translation-en", true},
-		{"http://some.other.location/Translation-zh_TW.xz", false},
-	} {
+	for _, tc := range aptTranslationInspectRequestTests {
 		ins := apt.NewAptTranslationInspector(getAptInspectorConfig())
 		a := metadata.NewArtifact()
 		a.CurrentDownload = metadata.Download{URL: tc.url}
@@ -71,7 +93,7 @@ func (s *aptSuite) TestAptTranslationInspectRequest(c *C) {
 		err := ins.InspectRequest(a)
 		c.Assert(err, IsNil)
 
-		if tc.detected {
+		if tc.pending {
 			insp, ok := a.RequestInspection[ins.ID()]
 			c.Assert(ok, Equals, true)
 			c.Assert(insp.Opinion, Equals, opinions.Pending)
@@ -84,20 +106,38 @@ func (s *aptSuite) TestAptTranslationInspectRequest(c *C) {
 	}
 }
 
-func (s *aptSuite) TestAptTranslationInspector(c *C) {
+type aptTranslationInspectorTest struct {
+	dataFile string // The file to test
+	approved bool   // Expected result
+	reason   string // Reason for opinion
+	language string // Expected translation language
+	count    int    // Expected translation count
+}
 
-	for _, tc := range []struct {
-		dataFile         string
-		result           bool
-		reason           string
-		lang             string
-		translationCount int
-	}{
-		{"testdata/Translation-en.xz", true, "translation file successfully parsed", "en", 1},
-		{"testdata/Translation-zh_TW.xz", true, "translation file successfully parsed", "zh_TW", 3},
-		{"testdata/Translation-zh_TW-bad.xz", false, "not a valid translation file", "", 0},
-		{"testdata/2048.package", false, "cannot read xz file", "", 0},
-	} {
+var aptTranslationInspectorTests = []aptTranslationInspectorTest{{
+	dataFile: "testdata/Translation-en.xz",
+	approved: true,
+	reason:   "translation file successfully parsed",
+	language: "en",
+	count:    1,
+}, {
+	dataFile: "testdata/Translation-zh_TW.xz",
+	approved: true,
+	reason:   "translation file successfully parsed",
+	language: "zh_TW",
+	count:    3,
+}, {
+	dataFile: "testdata/Translation-zh_TW-bad.xz",
+	approved: false,
+	reason:   "not a valid translation file",
+}, {
+	dataFile: "testdata/2048.package",
+	approved: false,
+	reason:   "cannot read xz file",
+}}
+
+func (s *aptSuite) TestAptTranslationInspector(c *C) {
+	for _, tc := range aptTranslationInspectorTests {
 		translationArtifactData, err := os.ReadFile(tc.dataFile)
 		c.Assert(err, IsNil, Commentf("test case: %+v\n", tc))
 
@@ -118,12 +158,12 @@ func (s *aptSuite) TestAptTranslationInspector(c *C) {
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)
 
-		c.Assert(a.Approved(), Equals, tc.result)
+		c.Assert(a.Approved(), Equals, tc.approved)
 		c.Assert(a.ResponseInspection[ins.ID()].Reason, Equals, tc.reason)
 
-		if tc.result {
-			c.Assert(a.ResponseInspection[ins.ID()].Annotations["translation-language"], Equals, tc.lang)
-			c.Assert(a.ResponseInspection[ins.ID()].Annotations["translation-count"], Equals, tc.translationCount)
+		if tc.approved {
+			c.Assert(a.ResponseInspection[ins.ID()].Annotations["translation-language"], Equals, tc.language)
+			c.Assert(a.ResponseInspection[ins.ID()].Annotations["translation-count"], Equals, tc.count)
 			c.Assert(a.Metadata.Type, Equals, "application/x.apt.translation")
 			c.Assert(a.Metadata.Name, Equals, "Translation")
 			c.Assert(a.Metadata.Sha256.String(), Equals, "4970d559683cafc299958246973f62fb75edbccf8cbbf67f6b3a7d05982e44ed")
