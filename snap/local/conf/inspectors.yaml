@@ -20,12 +20,17 @@ store:
     - https://api.staging.snapcraft.io:443/v2/bins/info/**
     - https://api.staging.snapcraft.io:443/v2/revisions/resolve
     - https://api.staging.snapcraft.io:443/v1/craft/**
+    - https://api.snapcraft.io:443/v2/bins/info/**
+    - https://api.snapcraft.io:443/v2/revisions/resolve
+    - https://api.snapcraft.io:443/v1/craft/**
     - https://dashboard.snapcraft.io:443/site_media/appmedia/**/*.png
 
 bldbin:
   urls:
     - https://api.staging.snapcraft.io:443/api/v1/bins/download/**
     - https://canonical-*.cdn.staging.snapcraftcontent.com:443/download-origin/canonical-*/**
+    - https://api.snapcraft.io:443/api/v1/bins/download/**
+    - https://canonical-*.cdn.snapcraftcontent.com:443/download-origin/canonical-*/**
 
 chisel:
   urls:
