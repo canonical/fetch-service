@@ -67,7 +67,7 @@ jobs:
         uses: canonical/action-build@v1
         id: snap
       - name: Upload snap artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: snap
           path: ${{ steps.snap.outputs.snap }}
