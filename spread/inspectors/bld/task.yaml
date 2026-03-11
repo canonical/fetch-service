@@ -24,7 +24,7 @@ execute: |
   export https_proxy="http://${session_id}:${token}@localhost:9988"
 
   (mkdir ~/bld-test; cd ~/bld-test;
-  bld download starcraft-test --channel=latest/edge)
+  bld download starcraft-test --channel=2.0-24.04/edge)
 
   unset http_proxy
   unset https_proxy
