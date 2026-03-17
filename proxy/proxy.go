@@ -231,9 +231,10 @@ func (p *HTTPProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 		)
 	}
 
+	slog := a.Logger()
 	sec := session.GetSessionSecrets(sid)
-	if secrets.InjectSecrets(sec, url, req) {
-		a.Logger().Debugf("applied secrets to %s", url)
+	if secrets.InjectSecrets(sec, url, req, slog) {
+		slog.Debugf("applied secrets to %s", url)
 	}
 
 	req.Body, err = NewRequestHandler(req, a, p.ch)
@@ -316,7 +317,7 @@ func proxyFromEnvironment(req *http.Request) (*url.URL, error) {
 	}
 	redactedProxy := *parsedProxy
 	if redactedProxy.User != nil {
-		redactedProxy.User = url.UserPassword("****", "****")
+		redactedProxy.User = url.UserPassword("xxxx", "xxxx")
 	}
 
 	logger.Infof("proxy: using upstream %s proxy: %s", req.URL.Scheme, redactedProxy.String())

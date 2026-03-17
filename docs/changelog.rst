@@ -2,6 +2,13 @@
 Changelog
 *********
 
+0.15.0 (2026-02-12)
+-------------------
+
+- feat: add upstream_proxy.bypass configuration option (#567)
+- feat: add keystone-v3 secrets (#565)
+- fix(inspectors/lxd): allow dot in image date (#566)
+
 0.14.0 (2026-01-26)
 -------------------
 
