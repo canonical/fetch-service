@@ -14,7 +14,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/jessevdk/go-flags v1.6.1
-	github.com/klauspost/compress v1.18.2
+	github.com/klauspost/compress v1.18.4
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
 	golang.org/x/crypto v0.46.0
 	golang.org/x/net v0.47.0
