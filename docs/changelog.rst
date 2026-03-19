@@ -2,6 +2,13 @@
 Changelog
 *********
 
+0.15.1 (2026-03-19)
+-------------------
+
+- fix(inspectors/apt): recognize small translation files (#579)
+- chore: update bld and store api urls (#580)
+- chore: change redacted urls to avoid % encoding (#570)
+
 0.15.0 (2026-02-12)
 -------------------
 
