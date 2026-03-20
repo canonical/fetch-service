@@ -57,10 +57,6 @@ func SetProxyCA(ca tls.Certificate) error {
 		Action:    goproxy.ConnectMitm,
 		TLSConfig: goproxy.TLSConfigFromCA(&ca),
 	}
-	goproxy.HTTPMitmConnect = &goproxy.ConnectAction{
-		Action:    goproxy.ConnectHTTPMitm,
-		TLSConfig: goproxy.TLSConfigFromCA(&ca),
-	}
 	goproxy.RejectConnect = &goproxy.ConnectAction{
 		Action:    goproxy.ConnectReject,
 		TLSConfig: goproxy.TLSConfigFromCA(&ca),
