@@ -1,4 +1,4 @@
-Passing Secrets to the Fetch Service
+Passing secrets to the fetch service
 ====================================
 
 When creating a session, you can provide credentials for the fetch 
