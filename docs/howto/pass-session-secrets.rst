@@ -4,8 +4,8 @@ Pass secrets to the fetch service
 Builds sometimes need to access authenticated resources, such as private Git 
 repositories or protected package servers. Rather than exposing credentials 
 to the build environment, you can provide them to the fetch service, which 
-will inject them into matching requests. This keeps credentials isolated from
-the build scripts.
+will inject them into requests to specified servers. This keeps credentials 
+isolated from the build scripts.
 
 Secrets are per-session and are provided to the fetch service when creating 
 the session.
