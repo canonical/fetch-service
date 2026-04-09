@@ -1,5 +1,5 @@
 Pass secrets to the fetch service
-====================================
+=================================
 
 Builds sometimes need to access authenticated resources, such as private Git 
 repositories or protected package servers. Rather than exposing credentials 
