@@ -17,14 +17,15 @@ Each secret specifies a type, a URL pattern and credentials. The type determines
 how the fetch service will inject the credentials into any request that matches 
 the pattern.
 
-Use ``basic-auth`` for services that accept HTTP Basic authentication. To access a 
-private GitHub repository with the username ``myuser`` and password ``mytoken``:
+Use ``basic-auth`` for services that accept HTTP Basic authentication. To access
+the private GitHub repository hosted at ``myorg/private-repo`` with the username 
+``myuser`` and password ``mytoken``:
 
 .. code-block:: bash
 
     secrets='[{
         "type":"basic-auth", 
-        "url": "https://github.com:443/canonical/fetch-service.git/**", 
+        "url": "https://github.com:443/myorg/private-repo.git/**", 
         "basic-credentials": "myuser:mytoken"
     }]'
 
