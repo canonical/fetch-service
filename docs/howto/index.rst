@@ -7,3 +7,4 @@ How-tos
 
    create-a-new-inspector
    test-the-fetch-service-locally
+   pass-session-secrets
