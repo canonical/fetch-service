@@ -1,13 +1,13 @@
-Pass secrets to the fetch service
-=================================
+Pass secrets to Fetch Service
+=============================
 
 Builds sometimes need to access authenticated resources, such as private Git 
 repositories or protected package servers. Rather than exposing credentials 
-to the build environment, you can provide them to the fetch service, which 
-will inject them into requests to specified servers. This keeps credentials 
+to the build environment, you can provide them to Fetch Service, which will 
+inject them into requests to specified servers. This keeps credentials 
 isolated from the build scripts.
 
-Secrets are per-session and are provided to the fetch service when creating 
+Secrets are per-session and are provided to Fetch Service when creating 
 the session.
 
 Create a session with secrets
@@ -18,7 +18,7 @@ how the fetch service will inject the credentials into any request that matches
 the pattern.
 
 Use ``basic-auth`` for services that accept HTTP Basic authentication. To access a 
-private Github repository with username "myuser" and password "mytoken":
+private GitHub repository with the username ``myuser`` and password ``mytoken``:
 
 .. code-block:: bash
 
@@ -34,7 +34,7 @@ private Github repository with username "myuser" and password "mytoken":
 
 
 Use ``macaroon`` for services that require macaroon-based authentication. To access 
-a package store with a macaroon stored in ``$MACAROON``: 
+a package store with a macaroon assigned to a ``$MACAROON`` variable: 
 
 .. code-block:: bash
 
