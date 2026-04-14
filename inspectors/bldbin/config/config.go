@@ -33,7 +33,7 @@ func checkRequestURL(cfg *BldBinInspectorConfig, u *url.URL, sl logger.Logger) e
 
 	for _, h := range cfg.URLs {
 		if h.Match(requestURL) {
-			sl.Debugf("url matches %v\n", h)
+			sl.Debugf("url matches %v", h)
 			return nil
 		}
 	}

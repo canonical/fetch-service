@@ -255,7 +255,7 @@ func (ins *StoreInfoAPIInspector) validateBldBin(f ArtifactReader, a ResponseArt
 				break
 			}
 			if isTarball {
-				sl.Debug("error reading tarball: %s", err)
+				sl.Debugf("error reading tarball: %s", err)
 				return err
 			}
 			return nil // We don't recognize this artifact (not a tarball)

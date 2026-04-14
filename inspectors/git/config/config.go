@@ -45,7 +45,7 @@ func checkRequestURL(cfg *GitInspectorConfig, u *url.URL, sl logger.Logger) erro
 
 	for _, h := range cfg.URLs {
 		if h.Match(reqURL) {
-			sl.Debugf("git url matches %v\n", h)
+			sl.Debugf("git url matches %v", h)
 			return nil
 		}
 	}
