@@ -31,7 +31,7 @@ import (
 )
 
 type aptSuite struct {
-	slog logger.Logger
+	sl logger.Logger
 }
 
 func (t *aptSuite) SetUpTest(c *C) {

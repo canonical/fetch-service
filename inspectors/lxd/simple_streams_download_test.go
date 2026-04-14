@@ -35,7 +35,7 @@ import (
 )
 
 type simpleStreamDownloadSuite struct {
-	slog logger.Logger
+	sl logger.Logger
 }
 
 func (t *simpleStreamDownloadSuite) SetUpTest(c *C) {}

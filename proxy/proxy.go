@@ -231,10 +231,10 @@ func (p *HTTPProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 		)
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 	sec := session.GetSessionSecrets(sid)
-	if secrets.InjectSecrets(sec, url, req, slog) {
-		slog.Debugf("applied secrets to %s", url)
+	if secrets.InjectSecrets(sec, url, req, sl) {
+		sl.Debugf("applied secrets to %s", url)
 	}
 
 	req.Body, err = NewRequestHandler(req, a, p.ch)
@@ -255,7 +255,7 @@ func (p *HTTPProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) 
 	logger.Debugf("proxy: process response: %s", resp.Request.URL.String())
 
 	a := ctx.UserData.(proxyData).a
-	slog := a.Logger()
+	sl := a.Logger()
 
 	var err error
 	body, err := NewFileDownloadHandler(resp, a, p.spool, p.ch, p.timeout)
@@ -264,10 +264,10 @@ func (p *HTTPProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) 
 			os.Remove(a.Tempfile)
 		}
 		if err == common.ErrRejectedArtifact {
-			slog.Infof("proxy: file download not authorized: %s", err)
+			sl.Infof("proxy: file download not authorized: %s", err)
 			return forbiddenResponse(resp.Request, "Download not authorized")
 		}
-		slog.Infof("proxy: file download error: %s: %s", a.Tempfile, err)
+		sl.Infof("proxy: file download error: %s: %s", a.Tempfile, err)
 		return internalErrorResponse(resp.Request, "Cannot handle file downloads")
 	}
 

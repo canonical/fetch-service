@@ -31,7 +31,7 @@ import (
 )
 
 type configSuite struct {
-	slog logger.Logger
+	sl logger.Logger
 }
 
 var _ = Suite(&configSuite{logger.NewSessionLogger("test")})
@@ -62,7 +62,7 @@ func (t *configSuite) TestCraftURLInfo(c *C) {
 		c.Assert(err, IsNil)
 
 		cfg := getTestCraftsConfig()
-		info, err := config.NewCraftURLInfo(u, &cfg, t.slog)
+		info, err := config.NewCraftURLInfo(u, &cfg, t.sl)
 
 		if tc.msg == "" {
 			c.Assert(err, IsNil)

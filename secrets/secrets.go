@@ -101,17 +101,17 @@ func validateCredentials(sec Secret) error {
 	return nil
 }
 
-func InjectSecrets(secrets []Secret, url string, req *http.Request, slog logger.Logger) bool {
+func InjectSecrets(secrets []Secret, url string, req *http.Request, sl logger.Logger) bool {
 	for _, s := range secrets {
 		if s.URL.Match(url) {
-			injectSecret(s, req, slog)
+			injectSecret(s, req, sl)
 			return true
 		}
 	}
 	return false
 }
 
-func injectSecret(s Secret, req *http.Request, slog logger.Logger) {
+func injectSecret(s Secret, req *http.Request, sl logger.Logger) {
 	switch s.Type {
 	case BasicAuthType:
 		cred := base64.StdEncoding.EncodeToString([]byte(s.BasicCreds))
@@ -123,7 +123,7 @@ func injectSecret(s Secret, req *http.Request, slog logger.Logger) {
 	case KeystoneV3Type:
 		newBody, err := injectKeystoneV3Secret(s, req.Body)
 		if err != nil {
-			slog.Debugf("cannot inject keystone-v3 secret: %s", err)
+			sl.Debugf("cannot inject keystone-v3 secret: %s", err)
 			break
 		}
 		req.Body = io.NopCloser(bytes.NewReader(newBody))

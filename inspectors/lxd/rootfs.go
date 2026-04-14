@@ -86,7 +86,7 @@ func (ins *RootfsInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 		return nil
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
 	zf, err := gzip.NewReader(f)
 	if err != nil {
@@ -104,19 +104,19 @@ func (ins *RootfsInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 			if err == io.EOF {
 				break
 			}
-			slog.Debugf("rootfs tar parsing error: %s", err)
+			sl.Debugf("rootfs tar parsing error: %s", err)
 			return nil // File may not be a tarball
 		}
 
 		if h.Name == "metadata.yaml" {
-			slog.Debug("metadata.yaml found in tarball")
+			sl.Debug("metadata.yaml found in tarball")
 			// I know it's weird, but metadata.yaml is actually a json file.
 			decoder := json.NewDecoder(tf)
 			if err := decoder.Decode(&rmd); err != nil {
 				return nil // we don't recognize this artifact
 			}
 		} else if strings.HasPrefix(h.Name, "rootfs/") {
-			slog.Debug("rootfs entry found in tarball")
+			sl.Debug("rootfs entry found in tarball")
 			hasRootfs = true
 			if rmd.Architecture != "" {
 				break

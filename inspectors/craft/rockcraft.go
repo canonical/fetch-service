@@ -60,8 +60,8 @@ func (ins *RockcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 		return nil
 	}
 
-	slog := a.Logger()
-	slog.Debugf("Inspecting rockcraft artifact")
+	sl := a.Logger()
+	sl.Debugf("Inspecting rockcraft artifact")
 
 	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
@@ -70,7 +70,7 @@ func (ins *RockcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 		return nil
 	}
 
-	slog.Debugf("inspect git upload-pack artifact: checkout at %q", checkoutPath)
+	sl.Debugf("inspect git upload-pack artifact: checkout at %q", checkoutPath)
 
 	rockcraftYamlPath := filepath.Join(checkoutPath, "rockcraft.yaml")
 	if _, err := osStat(rockcraftYamlPath); err != nil {

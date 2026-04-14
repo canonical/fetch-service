@@ -37,7 +37,7 @@ import (
 )
 
 type snapSuite struct {
-	slog logger.Logger
+	sl logger.Logger
 }
 
 var _ = Suite(&snapSuite{logger.NewSessionLogger("test")})
@@ -50,7 +50,7 @@ func getTestSnapInspectorConfig() config.SnapInspectorConfig {
 	}
 }
 
-func fakeAccountAssertion(signKey string, slog logger.Logger) (*snap.Assertion, error) {
+func fakeAccountAssertion(signKey string, sl logger.Logger) (*snap.Assertion, error) {
 	data, err := os.ReadFile("testdata/account.assert")
 	if err != nil {
 		return nil, err
@@ -58,7 +58,7 @@ func fakeAccountAssertion(signKey string, slog logger.Logger) (*snap.Assertion, 
 	return snap.NewAssertion(data)
 }
 
-func fakeSnapRevisionAssertion(snapSha3_384 string, slog logger.Logger) (*snap.Assertion, error) {
+func fakeSnapRevisionAssertion(snapSha3_384 string, sl logger.Logger) (*snap.Assertion, error) {
 	data, err := os.ReadFile("testdata/snap-revision.assert")
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func fakeSnapRevisionAssertion(snapSha3_384 string, slog logger.Logger) (*snap.A
 	return snap.NewAssertion(data)
 }
 
-func fakeSnapDeclarationAssertion(snapSha3_384 string, slog logger.Logger) (*snap.Assertion, error) {
+func fakeSnapDeclarationAssertion(snapSha3_384 string, sl logger.Logger) (*snap.Assertion, error) {
 	data, err := os.ReadFile("testdata/snap-declaration.assert")
 	if err != nil {
 		return nil, err
@@ -268,17 +268,17 @@ func (s *snapSuite) TestSnapArtifactInspectorError(c *C) {
 			})
 			defer restorer()
 		case "revision-assertion-download":
-			restorer := snap.MockDownloadSnapRevisionAssertion(func(s string, slog logger.Logger) (*snap.Assertion, error) {
+			restorer := snap.MockDownloadSnapRevisionAssertion(func(s string, sl logger.Logger) (*snap.Assertion, error) {
 				return nil, errors.New("assertion download error")
 			})
 			defer restorer()
 		case "declaration-assertion-download":
-			restorer := snap.MockDownloadSnapDeclarationAssertion(func(s string, slog logger.Logger) (*snap.Assertion, error) {
+			restorer := snap.MockDownloadSnapDeclarationAssertion(func(s string, sl logger.Logger) (*snap.Assertion, error) {
 				return nil, errors.New("assertion download error")
 			})
 			defer restorer()
 		case "account-assertion-download":
-			restorer := snap.MockDownloadAccountAssertion(func(s string, slog logger.Logger) (*snap.Assertion, error) {
+			restorer := snap.MockDownloadAccountAssertion(func(s string, sl logger.Logger) (*snap.Assertion, error) {
 				return nil, errors.New("assertion download error")
 			})
 			defer restorer()
@@ -553,7 +553,7 @@ func (s *snapSuite) TestCheckSnapDeclarationFilter(c *C) {
 		a, err := snap.NewAssertion([]byte(declarationAssertion))
 		c.Assert(err, IsNil)
 
-		err = snap.CheckSnapDeclarationFilter(cfg, a, s.slog)
+		err = snap.CheckSnapDeclarationFilter(cfg, a, s.sl)
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
 		} else {

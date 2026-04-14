@@ -98,16 +98,16 @@ func (ins *StoreInfoAPIInspector) InspectRequest(a RequestArtifact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
-	if info, err := config.NewStoreInfoAPIURLInfo(u, &ins.config, slog); err == nil {
+	if info, err := config.NewStoreInfoAPIURLInfo(u, &ins.config, sl); err == nil {
 		a.SetRequestPending(ins, "valid URL for store info API endpoint").Annotate(
 			Annotation{
 				"type":    info.PackageType,
 				"package": info.PackageName,
 			},
 		)
-	} else if _, err := bconfig.NewBldBinURLInfo(u, &ins.bconfig, slog); err == nil {
+	} else if _, err := bconfig.NewBldBinURLInfo(u, &ins.bconfig, sl); err == nil {
 		a.SetRequestPending(ins, "valid URL for bld bin download")
 	}
 
@@ -165,7 +165,7 @@ func (ins *StoreInfoAPIInspector) InspectArtifact(f ArtifactReader, a ResponseAr
 		return nil
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
 	decoder := json.NewDecoder(f)
 	var info apiInfo
@@ -174,28 +174,28 @@ func (ins *StoreInfoAPIInspector) InspectArtifact(f ArtifactReader, a ResponseAr
 	}
 
 	if len(info.ChannelMap) == 0 {
-		slog.Debug("no channel information")
+		sl.Debug("no channel information")
 		return nil // we don't recognize this artifact
 	}
 
 	if info.ChannelMap[0].Revision.Download.URL == "" {
-		slog.Debug("no download url")
+		sl.Debug("no download url")
 		return nil // we don't recognize this artifact
 	}
 
 	if info.Metadata.Publisher.Username == "" {
-		slog.Debug("no publisher username")
+		sl.Debug("no publisher username")
 		return nil // we don't recognize this artifact
 	}
 
 	if info.Name == "" || info.PackageID == "" {
-		slog.Debug("no name or package ID")
+		sl.Debug("no name or package ID")
 		return nil // we don't recognize this artifact
 	}
 
 	pkgType, ok := a.RequestStringAnnotation(ins.ID(), "type")
 	if !ok {
-		slog.Debug("no package type annotation")
+		sl.Debug("no package type annotation")
 		return nil // we don't recognize this artifact
 	}
 
@@ -242,7 +242,7 @@ func (ins *StoreInfoAPIInspector) validateBldBin(f ArtifactReader, a ResponseArt
 		return nil
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
 	tf := tar.NewReader(xr)
 	metadataFound := false
@@ -255,7 +255,7 @@ func (ins *StoreInfoAPIInspector) validateBldBin(f ArtifactReader, a ResponseArt
 				break
 			}
 			if isTarball {
-				slog.Debug("error reading tarball: %s", err)
+				sl.Debug("error reading tarball: %s", err)
 				return err
 			}
 			return nil // We don't recognize this artifact (not a tarball)
@@ -264,7 +264,7 @@ func (ins *StoreInfoAPIInspector) validateBldBin(f ArtifactReader, a ResponseArt
 
 		switch h.Name {
 		case "./metadata.yaml":
-			slog.Debug("bld bin metadata found")
+			sl.Debug("bld bin metadata found")
 			binmd, err := bldbin.ReadMetadata(tf)
 			if err != nil {
 				return err

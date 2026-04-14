@@ -156,11 +156,11 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 
 // RunRequestInspectors determine whether the HTTP request is valid.
 func (insps Inspectors) RunRequestInspectors(a *metadata.Artifact) error {
-	slog := a.Logger()
-	slog.Debugf("inspect request: %s", a.CurrentDownload.URL)
+	sl := a.Logger()
+	sl.Debugf("inspect request: %s", a.CurrentDownload.URL)
 	for _, id := range insps.ids {
 		ins := insps.insmap[id]
-		slog.Debugf("run request inspector: %s", ins.ID())
+		sl.Debugf("run request inspector: %s", ins.ID())
 		if err := ins.InspectRequest(a); err != nil {
 			a.SetRequestRejected(ins, "error inspecting request").Annotate(
 				Annotation{"error-message": err.Error()})
@@ -173,11 +173,11 @@ func (insps Inspectors) RunRequestInspectors(a *metadata.Artifact) error {
 
 // RunArtifactInspectors examines the artifact in the given assets directory.
 func (insps Inspectors) RunArtifactInspectors(dir string, a *metadata.Artifact) error {
-	slog := a.Logger()
+	sl := a.Logger()
 
 	// detect file type
 	filename := filepath.Join(dir, fmt.Sprintf("%s.data", a.Metadata.Sha256))
-	slog.Debugf("run artifact inspectors on %s", filename)
+	sl.Debugf("run artifact inspectors on %s", filename)
 
 	f, err := files.OpenArtifactFile(filename)
 	if err != nil {
@@ -187,7 +187,7 @@ func (insps Inspectors) RunArtifactInspectors(dir string, a *metadata.Artifact) 
 
 	mtype, err := mimetype.DetectReader(f)
 	if err != nil {
-		slog.Debug("cannot detect mime type")
+		sl.Debug("cannot detect mime type")
 		return err
 	}
 
@@ -196,7 +196,7 @@ func (insps Inspectors) RunArtifactInspectors(dir string, a *metadata.Artifact) 
 	ctype := a.CurrentDownload.ContentType
 
 	if len(ctype) > 0 && !mtype.Is(ctype) {
-		slog.Debugf("file type '%s' doesn't match content type '%s'", mtype.String(), ctype)
+		sl.Debugf("file type '%s' doesn't match content type '%s'", mtype.String(), ctype)
 	}
 
 	// run artifact inspectors
@@ -211,7 +211,7 @@ func (insps Inspectors) RunArtifactInspectors(dir string, a *metadata.Artifact) 
 		}
 
 		ins := insps.insmap[id]
-		slog.Debugf("run artifact inspector: %s", id)
+		sl.Debugf("run artifact inspector: %s", id)
 		if _, err := f.Seek(0, io.SeekStart); err != nil {
 			return err
 		}

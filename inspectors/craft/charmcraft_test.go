@@ -59,7 +59,7 @@ func (d DummyReader) ReadAt(p []byte, off int64) (n int, err error) {
 }
 
 type charmcraftSuite struct {
-	slog logger.Logger
+	sl logger.Logger
 }
 
 var _ = Suite(&charmcraftSuite{logger.NewSessionLogger("test")})

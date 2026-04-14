@@ -35,12 +35,12 @@ var (
 	reSourcecraft = regexp.MustCompile(`^/(.+/)*([^/]+)/git-upload-pack$`)
 )
 
-func checkRequestURL(cfg *CraftsInspectorConfig, u *url.URL, slog logger.Logger) error {
+func checkRequestURL(cfg *CraftsInspectorConfig, u *url.URL, sl logger.Logger) error {
 	requestURL := utils.NormalizedOrigin(u) + u.Path
 
 	for _, h := range cfg.URLs {
 		if h.Match(requestURL) {
-			slog.Debugf("url matches %v\n", h)
+			sl.Debugf("url matches %v\n", h)
 			return nil
 		}
 	}
@@ -55,8 +55,8 @@ type CraftURLInfo struct {
 	Project string
 }
 
-func NewCraftURLInfo(u *url.URL, cfg *CraftsInspectorConfig, slog logger.Logger) (*CraftURLInfo, error) {
-	if err := checkRequestURL(cfg, u, slog); err != nil {
+func NewCraftURLInfo(u *url.URL, cfg *CraftsInspectorConfig, sl logger.Logger) (*CraftURLInfo, error) {
+	if err := checkRequestURL(cfg, u, sl); err != nil {
 		return nil, err
 	}
 

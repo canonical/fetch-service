@@ -73,7 +73,7 @@ func (ins *UploadPackInspector) InspectRequest(a RequestArtifact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
 	repo := fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, u.Path)
 	repo, _ = strings.CutSuffix(repo, "/git-upload-pack")
@@ -87,7 +87,7 @@ func (ins *UploadPackInspector) InspectRequest(a RequestArtifact) error {
 		return nil
 	}
 
-	info, err := config.NewUploadPackURLInfo(u, &ins.config, slog)
+	info, err := config.NewUploadPackURLInfo(u, &ins.config, sl)
 	if err != nil {
 		info = &config.UploadPackURLInfo{}
 	}
@@ -111,13 +111,13 @@ func (ins *UploadPackInspector) InspectRequest(a RequestArtifact) error {
 
 	// Read request body and get protocol messages
 	var clientMsgs []string
-	body, err := newUploadPackRequestHandler(ins.ID(), a.HTTPRequest(), &clientMsgs, slog)
+	body, err := newUploadPackRequestHandler(ins.ID(), a.HTTPRequest(), &clientMsgs, sl)
 	if err != nil {
 		return fmt.Errorf("cannot handle upload-pack request: %w", err)
 	}
 	a.SetRequestBody(body)
 
-	ins.inspectRequestCommand(a, clientMsgs, notes, slog)
+	ins.inspectRequestCommand(a, clientMsgs, notes, sl)
 
 	return nil
 }
@@ -134,7 +134,7 @@ func (ins *UploadPackInspector) initRepoState(repo string) {
 	}
 }
 
-func (ins *UploadPackInspector) inspectRequestCommand(a RequestArtifact, clientMsgs []string, notes Annotation, slog logger.Logger) {
+func (ins *UploadPackInspector) inspectRequestCommand(a RequestArtifact, clientMsgs []string, notes Annotation, sl logger.Logger) {
 	// Obtain the upload-pack command from the protocol messages
 	command := ""
 	notes.Add("client-request", clientMsgs)
@@ -144,7 +144,7 @@ func (ins *UploadPackInspector) inspectRequestCommand(a RequestArtifact, clientM
 		}
 	}
 	notes.Add("command", command)
-	slog.Debugf("git-upload-pack request command %s", command)
+	sl.Debugf("git-upload-pack request command %s", command)
 
 	switch command {
 	case "ls-refs":
@@ -224,7 +224,7 @@ func (ins *UploadPackInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 	return ins.inspectResponseCommand(f, a, repo, vendor, a.Logger())
 }
 
-func (ins *UploadPackInspector) inspectResponseCommand(f ArtifactReader, a ResponseArtifact, repo, vendor string, slog logger.Logger) error {
+func (ins *UploadPackInspector) inspectResponseCommand(f ArtifactReader, a ResponseArtifact, repo, vendor string, sl logger.Logger) error {
 	command, ok := a.RequestAnnotation(ins.ID(), "command") // the upload-pack request command
 	if !ok {
 		// this must have been set by the request inspector
@@ -234,16 +234,16 @@ func (ins *UploadPackInspector) inspectResponseCommand(f ArtifactReader, a Respo
 
 	notes := Annotation{}
 
-	slog.Debugf("inspect git upload-pack artifact: command %q", command)
+	sl.Debugf("inspect git upload-pack artifact: command %q", command)
 	// Supported upload-pack commands are 'ls-refs' and 'fetch'
 	switch command {
 	case "ls-refs":
-		if err := ins.inspectLsRefsResponse(f, a, repo, vendor, notes, slog); err != nil {
+		if err := ins.inspectLsRefsResponse(f, a, repo, vendor, notes, sl); err != nil {
 			return err
 		}
 
 	case "fetch":
-		if err := ins.inspectFetchResponse(f, a, repo, vendor, notes, slog); err != nil {
+		if err := ins.inspectFetchResponse(f, a, repo, vendor, notes, sl); err != nil {
 			return err
 		}
 
@@ -254,7 +254,7 @@ func (ins *UploadPackInspector) inspectResponseCommand(f ArtifactReader, a Respo
 	return nil
 }
 
-func (ins *UploadPackInspector) inspectLsRefsResponse(f ArtifactReader, a ResponseArtifact, repo, vendor string, notes Annotation, slog logger.Logger) error {
+func (ins *UploadPackInspector) inspectLsRefsResponse(f ArtifactReader, a ResponseArtifact, repo, vendor string, notes Annotation, sl logger.Logger) error {
 	if !a.MimetypeIs("text/plain") {
 		a.SetResponseRejected(ins, "bad data type for ls-refs response")
 		return nil
@@ -267,7 +267,7 @@ func (ins *UploadPackInspector) inspectLsRefsResponse(f ArtifactReader, a Respon
 		Vendor:      vendor,
 	})
 
-	msgs, err := decodeGitProtocol(f, slog)
+	msgs, err := decodeGitProtocol(f, sl)
 	if err != nil {
 		a.SetResponseRejected(ins, "cannot decode git protocol").Annotate(Annotation{"error-msg": err.Error()})
 		return nil
@@ -305,7 +305,7 @@ func (ins *UploadPackInspector) inspectLsRefsResponse(f ArtifactReader, a Respon
 	return nil
 }
 
-func (ins *UploadPackInspector) inspectFetchResponse(f ArtifactReader, a ResponseArtifact, repo, vendor string, notes Annotation, slog logger.Logger) error {
+func (ins *UploadPackInspector) inspectFetchResponse(f ArtifactReader, a ResponseArtifact, repo, vendor string, notes Annotation, sl logger.Logger) error {
 	if !a.MimetypeIs("application/octet-stream") && !a.MimetypeIs("text/plain") {
 		a.SetResponseRejected(ins, "bad data type for fetch response")
 		return nil
@@ -329,7 +329,7 @@ func (ins *UploadPackInspector) inspectFetchResponse(f ArtifactReader, a Respons
 	notes.Add("tags", ins.tags[repo])
 	ins.Unlock()
 
-	msgs, err := decodeGitProtocol(f, slog)
+	msgs, err := decodeGitProtocol(f, sl)
 	if err != nil {
 		a.SetResponseRejected(ins, "cannot decode git protocol").Annotate(Annotation{"error-msg": err.Error()})
 		return nil
@@ -351,7 +351,7 @@ func (ins *UploadPackInspector) inspectFetchResponse(f ArtifactReader, a Respons
 	}
 
 	// Unpack & checkout the contents into a shared location
-	path, err := unpackAndCheckout(f, ref, a.CacheDir(), slog)
+	path, err := unpackAndCheckout(f, ref, a.CacheDir(), sl)
 	if err != nil {
 		a.SetResponseRejected(ins, "cannot unpack git objects").Annotate(Annotation{"error-msg": err.Error()})
 		return nil
@@ -445,12 +445,12 @@ type uploadPackRequestHandler struct {
 	body io.ReadCloser // request body
 }
 
-func newUploadPackRequestHandler(id string, req *http.Request, clientMsgs *[]string, slog logger.Logger) (*uploadPackRequestHandler, error) {
+func newUploadPackRequestHandler(id string, req *http.Request, clientMsgs *[]string, sl logger.Logger) (*uploadPackRequestHandler, error) {
 	isGzipped := req.Header.Get("Content-Encoding") == "gzip"
 
 	// Handle gzip encoding
 	if isGzipped {
-		slog.Debugf("upload-pack request body is gzipped")
+		sl.Debugf("upload-pack request body is gzipped")
 		gzipReader, err := gzip.NewReader(req.Body)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create upload pack gzip decoder: %w", err)
@@ -469,7 +469,7 @@ func newUploadPackRequestHandler(id string, req *http.Request, clientMsgs *[]str
 	req.ContentLength = int64(len(buf))
 
 	// Decode protocol
-	msgs, err := decodeGitProtocol(bytes.NewReader(buf), slog)
+	msgs, err := decodeGitProtocol(bytes.NewReader(buf), sl)
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode upload pack request: %w", err)
 	}
@@ -497,7 +497,7 @@ func (h *uploadPackRequestHandler) Close() error {
 	return h.body.Close()
 }
 
-func unpackAndCheckout(f ArtifactReader, ref string, cacheDir string, slog logger.Logger) (string, error) {
+func unpackAndCheckout(f ArtifactReader, ref string, cacheDir string, sl logger.Logger) (string, error) {
 	// Unpack and checkout in temporary directory
 	if err := os.MkdirAll(cacheDir, 0700); err != nil {
 		return "", err
@@ -508,13 +508,13 @@ func unpackAndCheckout(f ArtifactReader, ref string, cacheDir string, slog logge
 		return "", err
 	}
 
-	slog.Debugf("unpack objects in %s", dir)
-	if err := UnpackObjects(f, dir, slog); err != nil {
+	sl.Debugf("unpack objects in %s", dir)
+	if err := UnpackObjects(f, dir, sl); err != nil {
 		return "", err
 	}
 
-	slog.Debugf("checkout ref %s in %s", ref, dir)
-	if err := Checkout(dir, ref, slog); err != nil {
+	sl.Debugf("checkout ref %s in %s", ref, dir)
+	if err := Checkout(dir, ref, sl); err != nil {
 		return "", err
 	}
 

@@ -42,7 +42,7 @@ import (
 )
 
 type rockcraftSuite struct {
-	slog logger.Logger
+	sl logger.Logger
 }
 
 var _ = Suite(&rockcraftSuite{logger.NewSessionLogger("test")})
@@ -135,9 +135,9 @@ func (s *rockcraftSuite) TestRockcraftGitInspectArtifact(c *C) {
 		defer f.Close()
 
 		checkoutPath := c.MkDir()
-		err = git.UnpackObjects(f, checkoutPath, s.slog)
+		err = git.UnpackObjects(f, checkoutPath, s.sl)
 		c.Assert(err, IsNil)
-		err = git.Checkout(checkoutPath, "d9c2c0282d81a993c0011113996b541a1ef1ebc7", s.slog)
+		err = git.Checkout(checkoutPath, "d9c2c0282d81a993c0011113996b541a1ef1ebc7", s.sl)
 		c.Assert(err, IsNil)
 
 		a := createTestCraftArtifact(checkoutPath)

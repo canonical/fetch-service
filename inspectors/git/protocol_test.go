@@ -32,7 +32,7 @@ import (
 )
 
 type protocolSuite struct {
-	slog logger.Logger
+	sl logger.Logger
 }
 
 var _ = Suite(&protocolSuite{logger.NewSessionLogger("test")})
@@ -81,7 +81,7 @@ func (s *protocolSuite) TestDecodeGitProtocolFail(c *C) {
 		{[]byte("0007foo0005!0000"), []string{"foo", "!"}, ""},                  // valid message with finalizer
 		{[]byte("0007foo000dpackfile\nstuff"), []string{"foo", "packfile"}, ""}, // end at packfile
 	} {
-		msgs, err := git.DecodeGitProtocol(bytes.NewReader(tc.data), s.slog)
+		msgs, err := git.DecodeGitProtocol(bytes.NewReader(tc.data), s.sl)
 		if tc.errmsg == "" {
 			c.Assert(err, IsNil)
 		} else {
