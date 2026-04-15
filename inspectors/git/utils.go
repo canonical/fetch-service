@@ -39,17 +39,17 @@ const (
 
 // UnpackObjects creates a work tree in dir from a file containing
 // packed objects.
-func UnpackObjects(f io.ReadSeeker, dir string, slog logger.Logger) error {
-	slog.Info("unpacking git objects")
+func UnpackObjects(f io.ReadSeeker, dir string, sl logger.Logger) error {
+	sl.Info("unpacking git objects")
 
-	cmd := execCommand(slog, "git", "init-db", "-q")
+	cmd := execCommand(sl, "git", "init-db", "-q")
 	cmd.Dir = dir
 	if err := cmd.Run(); err != nil {
 		return err
 	}
 
 	// FIXME: parse protocol for want-refs
-	_, err := decodeGitProtocol(f, slog)
+	_, err := decodeGitProtocol(f, sl)
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func UnpackObjects(f io.ReadSeeker, dir string, slog logger.Logger) error {
 		}
 	}
 
-	cmd = execCommand(slog, path, "-q")
+	cmd = execCommand(sl, path, "-q")
 	cmd.Dir = dir
 	pipe, err := cmd.StdinPipe()
 	if err != nil {
@@ -73,13 +73,13 @@ func UnpackObjects(f io.ReadSeeker, dir string, slog logger.Logger) error {
 		return fmt.Errorf("git-unpack-objects execution error: %s", err)
 	}
 
-	err = readPack(f, pipe, slog)
+	err = readPack(f, pipe, sl)
 	if err != nil {
 		if err := pipe.Close(); err != nil {
 			return err
 		}
 		if err := cmd.Wait(); err != nil {
-			slog.Errorf("error waiting for git-unpack-objects: %s", err)
+			sl.Errorf("error waiting for git-unpack-objects: %s", err)
 		}
 		return fmt.Errorf("error reading git pack: %s", err)
 	}
@@ -93,16 +93,16 @@ func UnpackObjects(f io.ReadSeeker, dir string, slog logger.Logger) error {
 	return cmd.Wait()
 }
 
-func Checkout(dir, ref string, slog logger.Logger) error {
-	slog.Debugf("checkout git ref %s", ref)
+func Checkout(dir, ref string, sl logger.Logger) error {
+	sl.Debugf("checkout git ref %s", ref)
 
-	cmd := execCommand(slog, "git", "checkout", "-q", ref)
+	cmd := execCommand(sl, "git", "checkout", "-q", ref)
 	cmd.Dir = dir
 	return cmd.Run()
 }
 
-func readPack(f io.Reader, w io.Writer, slog logger.Logger) error {
-	slog.Debug("read git pack")
+func readPack(f io.Reader, w io.Writer, sl logger.Logger) error {
+	sl.Debug("read git pack")
 	buf := make([]byte, 4)
 	var err error
 
@@ -127,7 +127,7 @@ func readPack(f io.Reader, w io.Writer, slog logger.Logger) error {
 		// byte is the sideband.
 
 		if size < 5 {
-			slog.Debugf("pack size %04x", size)
+			sl.Debugf("pack size %04x", size)
 			break
 		}
 
@@ -148,7 +148,7 @@ func readPack(f io.Reader, w io.Writer, slog logger.Logger) error {
 		// generally print to stderr and sideband 3 is used for error information."
 
 		if GitPackfileSideband(gitSidebandByte[0]) != PackfileData {
-			slog.Debugf("Non-package data, skipping...")
+			sl.Debugf("Non-package data, skipping...")
 			continue
 		}
 
@@ -162,8 +162,8 @@ func readPack(f io.Reader, w io.Writer, slog logger.Logger) error {
 	return nil
 }
 
-func execCommand(slog logger.Logger, name string, args ...string) *exec.Cmd {
-	slog.Debugf("command to execute: %s %v", name, args)
+func execCommand(sl logger.Logger, name string, args ...string) *exec.Cmd {
+	sl.Debugf("command to execute: %s %v", name, args)
 	cmd := exec.Command(name, args...)
 	return cmd
 }

@@ -92,7 +92,7 @@ func createTestCraftArtifact(checkoutPath string) *metadata.Artifact {
 }
 
 type sourcecraftSuite struct {
-	slog logger.Logger
+	sl logger.Logger
 }
 
 var _ = Suite(&sourcecraftSuite{logger.NewSessionLogger("test")})
@@ -233,9 +233,9 @@ func (s *sourcecraftSuite) TestSourcecraftGitInspectArtifact(c *C) {
 		defer f.Close()
 
 		checkoutPath := c.MkDir()
-		err = git.UnpackObjects(f, checkoutPath, s.slog)
+		err = git.UnpackObjects(f, checkoutPath, s.sl)
 		c.Assert(err, IsNil)
-		err = git.Checkout(checkoutPath, "10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad", s.slog)
+		err = git.Checkout(checkoutPath, "10fce2c8e3a341998ffd2aa4e27b02699d1bb5ad", s.sl)
 		c.Assert(err, IsNil)
 
 		a := createTestCraftArtifact(checkoutPath)

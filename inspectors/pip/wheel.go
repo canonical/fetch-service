@@ -77,7 +77,7 @@ func (ins *WheelInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact)
 		return nil
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
 	// Check if zip file contains wheel files
 	if !utils.ZipMatches(f, int64(f.Len()), wheelPatterns) {
@@ -92,7 +92,7 @@ func (ins *WheelInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact)
 	size := int64(f.Len())
 	notes := newWheelNotes()
 
-	if err := readWheelMetadata(ins, f, size, a, notes, slog); err != nil {
+	if err := readWheelMetadata(ins, f, size, a, notes, sl); err != nil {
 		return err
 	}
 
@@ -139,7 +139,7 @@ func processOpinion(ins *WheelInspector, a ResponseArtifact, notes *wheelNotes) 
 }
 
 // readWheelMetadata reads the wheel's METADATA file.
-func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a ResponseArtifact, notes *wheelNotes, slog logger.Logger) error {
+func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a ResponseArtifact, notes *wheelNotes, sl logger.Logger) error {
 	z, err := zip.NewReader(f, size)
 	if err != nil {
 		return err
@@ -155,7 +155,7 @@ func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a Respons
 			}
 			defer zf.Close()
 
-			md, ver, err := scanWheelMetadata(zf, slog)
+			md, ver, err := scanWheelMetadata(zf, sl)
 			if err != nil {
 				return err
 			}
@@ -182,7 +182,7 @@ func readWheelMetadata(ins *WheelInspector, f io.ReaderAt, size int64, a Respons
 }
 
 // scanWheelMetadata parses metadata entries from the given file.
-func scanWheelMetadata(zf io.ReadCloser, slog logger.Logger) (ArtifactMetadata, string, error) {
+func scanWheelMetadata(zf io.ReadCloser, sl logger.Logger) (ArtifactMetadata, string, error) {
 	sc := bufio.NewScanner(zf)
 	sc.Split(bufio.ScanLines)
 
@@ -237,7 +237,7 @@ func scanWheelMetadata(zf io.ReadCloser, slog logger.Logger) (ArtifactMetadata, 
 	t.Flush()
 	temp.Close()
 
-	license, err = utils.GetLicense(temp.Name(), slog)
+	license, err = utils.GetLicense(temp.Name(), sl)
 	if err != nil {
 		return ArtifactMetadata{}, mver, err
 	}

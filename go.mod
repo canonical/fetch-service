@@ -1,6 +1,6 @@
 module github.com/canonical/fetch-service
 
-go 1.24.13
+go 1.25.9
 
 require (
 	github.com/BurntSushi/toml v1.5.0

@@ -113,9 +113,9 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
-	if info, err := apt_cfg.NewInReleaseURLInfo(u, &ins.config, slog); err == nil {
+	if info, err := apt_cfg.NewInReleaseURLInfo(u, &ins.config, sl); err == nil {
 		a.SetRequestPending(ins, "valid URL for Release file").Annotate(
 			Annotation{
 				"cfg-name":   info.CfgName,
@@ -124,7 +124,7 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 				"suite":      info.Suite,
 			},
 		)
-	} else if info, err := apt_cfg.NewPackagesURLInfo(u, &ins.config, slog); err == nil {
+	} else if info, err := apt_cfg.NewPackagesURLInfo(u, &ins.config, sl); err == nil {
 		// check if we already have downloaded InReleases from this repo
 		notes := Annotation{
 			"cfg-name":     info.CfgName,
@@ -135,14 +135,14 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 			"architecture": info.Architecture,
 		}
 		repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Suite)
-		repo, _ = ins.getRepositoryAlias(repo, info.CfgName, slog)
+		repo, _ = ins.getRepositoryAlias(repo, info.CfgName, sl)
 
 		if _, ok := ins.getReleaseState(repo); ok {
 			a.SetRequestPending(ins, "valid URL for packages file").Annotate(notes)
 		} else {
 			a.SetRequestRejected(ins, "attempt to download packages file before Release").Annotate(notes)
 		}
-	} else if info, err := apt_cfg.NewTranslationURLInfo(u, &ins.config, slog); err == nil {
+	} else if info, err := apt_cfg.NewTranslationURLInfo(u, &ins.config, sl); err == nil {
 		// check if we already have downloaded InReleases from this repo
 		notes := Annotation{
 			"cfg-name":   info.CfgName,
@@ -152,14 +152,14 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 			"component":  info.Component,
 		}
 		repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Suite)
-		repo, _ = ins.getRepositoryAlias(repo, info.CfgName, slog)
+		repo, _ = ins.getRepositoryAlias(repo, info.CfgName, sl)
 
 		if _, ok := ins.getReleaseState(repo); ok {
 			a.SetRequestPending(ins, "valid URL for translation file").Annotate(notes)
 		} else {
 			a.SetRequestRejected(ins, "attempt to download translation file before Release").Annotate(notes)
 		}
-	} else if info, err := apt_cfg.NewCommandURLInfo(u, &ins.config, slog); err == nil {
+	} else if info, err := apt_cfg.NewCommandURLInfo(u, &ins.config, sl); err == nil {
 		// check if we already have downloaded InReleases from this repo
 		notes := Annotation{
 			"cfg-name":   info.CfgName,
@@ -169,7 +169,7 @@ func (ins *AptReleaseInspector) InspectRequest(a RequestArtifact) error {
 			"component":  info.Component,
 		}
 		repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Suite)
-		repo, _ = ins.getRepositoryAlias(repo, info.CfgName, slog)
+		repo, _ = ins.getRepositoryAlias(repo, info.CfgName, sl)
 
 		if _, ok := ins.getReleaseState(repo); ok {
 			a.SetRequestPending(ins, "valid URL for commands file").Annotate(notes)
@@ -200,7 +200,7 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		return nil // not a Release file
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
 	// Check if this is a valid InRelease file
 
@@ -211,7 +211,7 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 	if !ok {
 		return nil
 	}
-	slog.Debugf("check repository config entry '%s'", cfgName)
+	sl.Debugf("check repository config entry '%s'", cfgName)
 
 	// Quick check for clearsigned file
 	buf := make([]byte, 34)
@@ -229,10 +229,10 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 	// InRelease files must be signed
 	signotes := Annotation{}
 	pubkey := ins.config.Repositories[cfgName].PublicKey
-	slog.Debugf("apt repository public key: %s", pubkey)
+	sl.Debugf("apt repository public key: %s", pubkey)
 	body, err := checkSignature(f, signotes, pubkey)
 	if err != nil {
-		slog.Warningf("signature checking error: %s", err)
+		sl.Warningf("signature checking error: %s", err)
 		integrityErrors = append(integrityErrors, fmt.Sprintf("signature verification failed: %s", err))
 
 		// Update the reader if the file is not clearsigned
@@ -249,16 +249,16 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 
 	fields, err := parseUpToSignatures(sc)
 	if err != nil {
-		slog.Debug(err.Error())
+		sl.Debug(err.Error())
 		return nil
 	}
 
-	if isMissingFields(fields, slog) {
+	if isMissingFields(fields, sl) {
 		return nil
 	}
 
 	// We now assume this is an InRelease file
-	slog.Debug("validate release file")
+	sl.Debug("validate release file")
 
 	release := NewReleaseFile()
 	release.Sha256 = a.Sha256()
@@ -307,7 +307,7 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 	a.SetResponseApproved(ins, "release file parsed and signature validated").Annotate(notes)
 
 	repo := strings.TrimSuffix(a.DownloadURL(), "/InRelease")
-	repo, _ = ins.getRepositoryAlias(repo, cfgName, slog)
+	repo, _ = ins.getRepositoryAlias(repo, cfgName, sl)
 	ins.setReleaseState(repo, release)
 
 	return nil
@@ -392,7 +392,7 @@ func parseSignaturesSection(sc *bufio.Scanner, release *releaseFile) []string {
 	return formatErrors
 }
 
-func isMissingFields(fields map[string]string, slog logger.Logger) bool {
+func isMissingFields(fields map[string]string, sl logger.Logger) bool {
 	// Check if all expected fields are in place
 	expectedFields := []string{
 		"Origin",
@@ -408,39 +408,39 @@ func isMissingFields(fields map[string]string, slog logger.Logger) bool {
 	for _, k := range expectedFields {
 		_, ok := fields[k]
 		if !ok {
-			slog.Debugf("expected field %q not found", k)
+			sl.Debugf("expected field %q not found", k)
 			return true
 		}
 	}
 	return false
 }
 
-func (ins *AptReleaseInspector) getRepositoryAlias(repo, cfgName string, slog logger.Logger) (string, bool) {
+func (ins *AptReleaseInspector) getRepositoryAlias(repo, cfgName string, sl logger.Logger) (string, bool) {
 	repos, ok := ins.config.Repositories[cfgName]
 	if !ok {
-		slog.Debugf("%s: repository configuration not found", cfgName)
+		sl.Debugf("%s: repository configuration not found", cfgName)
 		return repo, false
 	}
 
 	baseURL := repos.BaseURLAlias
 	if baseURL == "" {
-		slog.Debugf("repository not aliased: %s", repo)
+		sl.Debugf("repository not aliased: %s", repo)
 		return repo, true
 	}
 
 	u, err := url.Parse(repo)
 	if err != nil {
-		slog.Debugf("error parsing repository URL: %s", err)
+		sl.Debugf("error parsing repository URL: %s", err)
 		return repo, true
 	}
 
 	alias, err := url.JoinPath(baseURL, u.Path)
 	if err != nil {
-		slog.Debugf("error creating url alias: %s", err)
+		sl.Debugf("error creating url alias: %s", err)
 		return repo, true
 	}
 
-	slog.Debugf("repository url alias: %s to %s", repo, alias)
+	sl.Debugf("repository url alias: %s to %s", repo, alias)
 	return alias, true
 }
 
@@ -460,16 +460,16 @@ func (ins *AptReleaseInspector) getReleaseState(repo string) (releaseFile, bool)
 }
 
 func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a ResponseArtifact) error {
-	slog := a.Logger()
-	slog.Debug("validate package file")
+	sl := a.Logger()
+	sl.Debug("validate package file")
 
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	slog.Debugf("packages file path: %s", u.Path)
-	info, err := apt_cfg.NewPackagesURLInfo(u, &ins.config, slog)
+	sl.Debugf("packages file path: %s", u.Path)
+	info, err := apt_cfg.NewPackagesURLInfo(u, &ins.config, sl)
 	if err != nil {
 		a.SetResponseRejected(ins, "invalid path for packages file")
 		return nil
@@ -478,13 +478,13 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a Respons
 	if info.Digest != "" {
 		sha256, err := digests.NewSha256Digest(info.Digest)
 		if err != nil {
-			slog.Debugf("SHA256 digest error: %s", err)
+			sl.Debugf("SHA256 digest error: %s", err)
 			a.SetResponseRejected(ins, "invalid SHA256 digest").Annotate(
 				Annotation{"invalid-sha256": info.Digest},
 			)
 			return nil
 		}
-		slog.Debugf("by-hash SHA256 digest: %s", info.Digest)
+		sl.Debugf("by-hash SHA256 digest: %s", info.Digest)
 
 		if sha256 != a.Sha256() {
 			a.SetResponseRejected(ins, "SHA256 digest mismatch").Annotate(
@@ -500,7 +500,7 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a Respons
 		return nil
 	}
 	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Suite)
-	repo, ok = ins.getRepositoryAlias(repo, cfgName, slog)
+	repo, ok = ins.getRepositoryAlias(repo, cfgName, sl)
 	if !ok {
 		a.SetResponseRejected(ins, "Unknown repository configuration name").Annotate(
 			Annotation{"cfg-name": cfgName},
@@ -519,7 +519,7 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a Respons
 		a.SetResponseRejected(ins, "Packages file not listed in Release file")
 		return nil
 	}
-	slog.Debugf("release entry: %+v", entry)
+	sl.Debugf("release entry: %+v", entry)
 
 	a.SetResponseUnknown(ins, "Packages file listed in Release").Annotate(
 		Annotation{
@@ -536,16 +536,16 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a Respons
 // files against InRelease entries.
 // https://wiki.debian.org/DebianRepository/Format#A.22Translation.22_indices
 func (ins *AptReleaseInspector) validateTranslationFile(f ArtifactReader, a ResponseArtifact) error {
-	slog := a.Logger()
-	slog.Debug("validate translation file")
+	sl := a.Logger()
+	sl.Debug("validate translation file")
 
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	slog.Debugf("translation file path: %s", u.Path)
-	info, err := apt_cfg.NewTranslationURLInfo(u, &ins.config, slog)
+	sl.Debugf("translation file path: %s", u.Path)
+	info, err := apt_cfg.NewTranslationURLInfo(u, &ins.config, sl)
 	if err != nil {
 		a.SetResponseRejected(ins, "invalid path for translation file")
 		return nil
@@ -557,7 +557,7 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ArtifactReader, a Resp
 		return nil
 	}
 	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Suite)
-	repo, ok = ins.getRepositoryAlias(repo, cfgName, slog)
+	repo, ok = ins.getRepositoryAlias(repo, cfgName, sl)
 	if !ok {
 		a.SetResponseRejected(ins, "Unknown repository configuration name").Annotate(
 			Annotation{"cfg-name": cfgName},
@@ -576,7 +576,7 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ArtifactReader, a Resp
 		a.SetResponseRejected(ins, "Translation file not listed in Release file")
 		return nil
 	}
-	slog.Debugf("release entry: %+v", entry)
+	sl.Debugf("release entry: %+v", entry)
 
 	if int64(entry.Size) != a.Size() {
 		a.SetResponseRejected(ins, "Translation file size mismatch").Annotate(
@@ -601,16 +601,16 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ArtifactReader, a Resp
 // validateCommandsFile examines InRelease files and validates Commands-<arch>
 // files against InRelease entries.
 func (ins *AptReleaseInspector) validateCommandsFile(f ArtifactReader, a ResponseArtifact) error {
-	slog := a.Logger()
-	slog.Debug("validate commands file")
+	sl := a.Logger()
+	sl.Debug("validate commands file")
 
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	slog.Debugf("commands file path: %s", u.Path)
-	info, err := apt_cfg.NewCommandURLInfo(u, &ins.config, slog)
+	sl.Debugf("commands file path: %s", u.Path)
+	info, err := apt_cfg.NewCommandURLInfo(u, &ins.config, sl)
 	if err != nil {
 		a.SetResponseRejected(ins, "invalid path for commands file")
 		return nil
@@ -622,7 +622,7 @@ func (ins *AptReleaseInspector) validateCommandsFile(f ArtifactReader, a Respons
 		return nil
 	}
 	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Suite)
-	repo, ok = ins.getRepositoryAlias(repo, cfgName, slog)
+	repo, ok = ins.getRepositoryAlias(repo, cfgName, sl)
 	if !ok {
 		a.SetResponseRejected(ins, "Unknown repository configuration name").Annotate(
 			Annotation{"cfg-name": cfgName},
@@ -641,7 +641,7 @@ func (ins *AptReleaseInspector) validateCommandsFile(f ArtifactReader, a Respons
 		a.SetResponseRejected(ins, "Commands file not listed in Release file")
 		return nil
 	}
-	slog.Debugf("release entry: %+v", entry)
+	sl.Debugf("release entry: %+v", entry)
 
 	if int64(entry.Size) != a.Size() {
 		a.SetResponseRejected(ins, "Commands file size mismatch").Annotate(

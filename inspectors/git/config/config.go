@@ -40,12 +40,12 @@ type GitInspectorConfig struct {
 	URLs []glob.Glob `yaml:"urls"` // List of allowed URL glob patterns
 }
 
-func checkRequestURL(cfg *GitInspectorConfig, u *url.URL, slog logger.Logger) error {
+func checkRequestURL(cfg *GitInspectorConfig, u *url.URL, sl logger.Logger) error {
 	reqURL := utils.NormalizedOrigin(u) + u.Path
 
 	for _, h := range cfg.URLs {
 		if h.Match(reqURL) {
-			slog.Debugf("git url matches %v\n", h)
+			sl.Debugf("git url matches %v", h)
 			return nil
 		}
 	}
@@ -56,8 +56,8 @@ type SmartQueryURLInfo struct {
 	Service string
 }
 
-func NewSmartQueryURLInfo(u *url.URL, cfg *GitInspectorConfig, slog logger.Logger) (*SmartQueryURLInfo, error) {
-	if err := checkRequestURL(cfg, u, slog); err != nil {
+func NewSmartQueryURLInfo(u *url.URL, cfg *GitInspectorConfig, sl logger.Logger) (*SmartQueryURLInfo, error) {
+	if err := checkRequestURL(cfg, u, sl); err != nil {
 		return nil, err
 	}
 
@@ -80,8 +80,8 @@ type UploadPackURLInfo struct {
 	Project string
 }
 
-func NewUploadPackURLInfo(u *url.URL, cfg *GitInspectorConfig, slog logger.Logger) (*UploadPackURLInfo, error) {
-	if err := checkRequestURL(cfg, u, slog); err != nil {
+func NewUploadPackURLInfo(u *url.URL, cfg *GitInspectorConfig, sl logger.Logger) (*UploadPackURLInfo, error) {
+	if err := checkRequestURL(cfg, u, sl); err != nil {
 		return nil, err
 	}
 

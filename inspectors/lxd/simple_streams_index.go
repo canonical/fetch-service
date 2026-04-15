@@ -83,13 +83,13 @@ func (ins *SimpleStreamsIndexInspector) InspectArtifact(f ArtifactReader, a Resp
 		return nil
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
 	stream, ok := a.RequestStringAnnotation(ins.ID(), "stream")
 	if !ok {
 		return nil
 	}
-	slog.Debugf("parsing Simple Streams Index for stream %s", stream)
+	sl.Debugf("parsing Simple Streams Index for stream %s", stream)
 
 	decoder := json.NewDecoder(f)
 	var b simpleStreamsIndex
@@ -99,7 +99,7 @@ func (ins *SimpleStreamsIndexInspector) InspectArtifact(f ArtifactReader, a Resp
 
 	// Verify this is a format the inspector understands
 	if b.Format != indexFormat {
-		slog.Debugf("unsupported format when parsing index.json %s", b.Format)
+		sl.Debugf("unsupported format when parsing index.json %s", b.Format)
 		return nil
 	}
 	a.SetArtifactMetadata(ArtifactMetadata{

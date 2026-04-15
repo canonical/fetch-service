@@ -72,9 +72,9 @@ func inspectCraftRequest(ins Inspector, a RequestArtifact, cfg *config.CraftsIns
 		return nil // we don't recognize this request
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
-	_, err = config.NewCraftURLInfo(u, cfg, slog)
+	_, err = config.NewCraftURLInfo(u, cfg, sl)
 	if err != nil {
 		return nil // we don't recognize this request
 	}
@@ -97,8 +97,8 @@ func (ins *SnapcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 		return nil
 	}
 
-	slog := a.Logger()
-	slog.Debugf("Inspecting snapcraft artifact")
+	sl := a.Logger()
+	sl.Debugf("Inspecting snapcraft artifact")
 
 	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
@@ -107,7 +107,7 @@ func (ins *SnapcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 		return nil
 	}
 
-	slog.Debugf("inspect git upload-pack artifact: checkout at %q", checkoutPath)
+	sl.Debugf("inspect git upload-pack artifact: checkout at %q", checkoutPath)
 
 	snapcraftYamlPath, found := getSnapcraftYamlPath(checkoutPath)
 	if !found {

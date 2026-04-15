@@ -43,7 +43,7 @@ import (
 )
 
 type snapcraftSuite struct {
-	slog logger.Logger
+	sl logger.Logger
 }
 
 var _ = Suite(&snapcraftSuite{logger.NewSessionLogger("test")})
@@ -183,9 +183,9 @@ func (s *snapcraftSuite) TestSnapcraftGitInspectArtifact(c *C) {
 		defer f.Close()
 
 		checkoutPath := c.MkDir()
-		err = git.UnpackObjects(f, checkoutPath, s.slog)
+		err = git.UnpackObjects(f, checkoutPath, s.sl)
 		c.Assert(err, IsNil)
-		err = git.Checkout(checkoutPath, "9ae13d6ca5afec49279f8515feb289a7069e5a29", s.slog)
+		err = git.Checkout(checkoutPath, "9ae13d6ca5afec49279f8515feb289a7069e5a29", s.sl)
 		c.Assert(err, IsNil)
 
 		a := createTestSnapcraftArtifact(checkoutPath)

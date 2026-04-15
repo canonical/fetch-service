@@ -16,7 +16,7 @@ import (
 func Test(t *testing.T) { TestingT(t) }
 
 type secretSuite struct {
-	slog logger.Logger
+	sl logger.Logger
 }
 
 var _ = Suite(&secretSuite{logger.NewSessionLogger("test")})
@@ -109,7 +109,7 @@ func (t *secretSuite) TestInjectHeaderSecrets(c *C) {
 		req, err := http.NewRequest("GET", tc.url, nil)
 		c.Assert(err, IsNil)
 
-		injected := secrets.InjectSecrets(sec, tc.url, req, t.slog)
+		injected := secrets.InjectSecrets(sec, tc.url, req, t.sl)
 		c.Assert(injected, Equals, tc.injected)
 		if injected {
 			header := req.Header.Get("Authorization")
@@ -137,7 +137,7 @@ func (t *secretSuite) TestInjectBodySecrets(c *C) {
 	req, err := http.NewRequest("GET", "https://my-domain.com:5000/v3/auth/tokens", bytes.NewReader(body))
 	c.Assert(err, IsNil)
 
-	injected := secrets.InjectSecrets(sec, "https://my-domain.com:5000/v3/auth/tokens", req, t.slog)
+	injected := secrets.InjectSecrets(sec, "https://my-domain.com:5000/v3/auth/tokens", req, t.sl)
 	c.Assert(injected, Equals, true)
 
 	requestBody, err := io.ReadAll(req.Body)

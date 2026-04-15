@@ -50,9 +50,9 @@ func (ins *StoreResolveAPIInspector) InspectRequest(a RequestArtifact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
-	if _, err := config.NewStoreResolveAPIURLInfo(u, &ins.config, slog); err == nil {
+	if _, err := config.NewStoreResolveAPIURLInfo(u, &ins.config, sl); err == nil {
 		a.SetRequestPending(ins, "valid URL for store resolve API endpoint")
 	}
 

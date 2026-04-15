@@ -64,9 +64,9 @@ func (ins *BldBinInspector) InspectRequest(a RequestArtifact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
-	_, err = config.NewBldBinURLInfo(u, &ins.config, slog)
+	_, err = config.NewBldBinURLInfo(u, &ins.config, sl)
 	if err != nil {
 		return nil // We don't recognize the request
 	}
@@ -82,7 +82,7 @@ func (ins *BldBinInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 		return nil
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
 	tf := tar.NewReader(xr)
 
@@ -99,7 +99,7 @@ func (ins *BldBinInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 		}
 
 		if h.Name == "./metadata.yaml" {
-			slog.Debug("metadata.yaml file found")
+			sl.Debug("metadata.yaml file found")
 			binmd, err := ReadMetadata(tf)
 			if err != nil {
 				return err

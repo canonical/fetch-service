@@ -62,11 +62,11 @@ func ZipMatches(in io.ReaderAt, size int64, patterns []*regexp.Regexp) bool {
 }
 
 // GetLicense examines the given file to determine its license.
-func GetLicense(filename string, slog logger.Logger) (string, error) {
+func GetLicense(filename string, sl logger.Logger) (string, error) {
 	var license string
 
 	cmd := []string{"licensecheck", "--machine", "--shortname-scheme=spdx", filename}
-	slog.Debugf("check license: %v", cmd)
+	sl.Debugf("check license: %v", cmd)
 	out, err := exec.Command(cmd[0], cmd[1:]...).Output()
 	if err != nil {
 		return license, fmt.Errorf("license check error: %s", err)
@@ -83,14 +83,14 @@ func GetLicense(filename string, slog logger.Logger) (string, error) {
 }
 
 // CheckLicenseFiles examines common files to determine the license.
-func CheckLicenseFiles(files []string, slog logger.Logger) (string, error) {
+func CheckLicenseFiles(files []string, sl logger.Logger) (string, error) {
 	for _, f := range files {
 		_, err := os.Stat(f)
 		if err != nil {
 			continue
 		}
 
-		license, err := GetLicense(f, slog)
+		license, err := GetLicense(f, sl)
 		if err != nil {
 			return "", err
 		}

@@ -226,9 +226,9 @@ func (ins *AptPackagesInspector) InspectRequest(a RequestArtifact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
-	if info, err := apt_cfg.NewPackagesURLInfo(u, &ins.config, slog); err == nil {
+	if info, err := apt_cfg.NewPackagesURLInfo(u, &ins.config, sl); err == nil {
 		a.SetRequestPending(ins, "valid URL for Packages file").Annotate(
 			Annotation{
 				"cfg-name":     info.CfgName,
@@ -238,7 +238,7 @@ func (ins *AptPackagesInspector) InspectRequest(a RequestArtifact) error {
 				"architecture": info.Architecture,
 			},
 		)
-	} else if info, err := apt_cfg.NewDebPackageURLInfo(u, &ins.config, slog); err == nil {
+	} else if info, err := apt_cfg.NewDebPackageURLInfo(u, &ins.config, sl); err == nil {
 		a.SetRequestPending(ins, "valid URL for deb package").Annotate(
 			Annotation{
 				"cfg-name":     info.CfgName,
@@ -263,7 +263,7 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		return nil
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
@@ -292,7 +292,7 @@ func (ins *AptPackagesInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		return nil
 	}
 
-	origin, ok := ins.getOriginAlias(utils.NormalizedOrigin(u), cfgName, slog)
+	origin, ok := ins.getOriginAlias(utils.NormalizedOrigin(u), cfgName, sl)
 	if !ok {
 		a.SetResponseRejected(ins, "Unknown repository configuration name").Annotate(
 			Annotation{"cfg-name": cfgName},
@@ -371,7 +371,7 @@ func (ins *AptPackagesInspector) isValidPackages(sha256 digests.Sha256Digest) bo
 	return ok
 }
 
-func parsePackages(r io.Reader, entries map[digests.Sha256Digest]aptPackagesEntry, slog logger.Logger) (int, error) {
+func parsePackages(r io.Reader, entries map[digests.Sha256Digest]aptPackagesEntry, sl logger.Logger) (int, error) {
 	sc := bufio.NewScanner(r)
 	sc.Split(bufio.ScanLines)
 
@@ -396,7 +396,7 @@ func parsePackages(r io.Reader, entries map[digests.Sha256Digest]aptPackagesEntr
 			// It should be safe to ignore this field; the ones we're interested
 			// should always be single-line according to
 			// https://www.debian.org/doc/debian-policy/ch-controlfields.html#syntax-of-control-files
-			slog.Debugf("ignoring unknown line format '%s'", line)
+			sl.Debugf("ignoring unknown line format '%s'", line)
 			continue
 		}
 		v = strings.TrimSpace(v)
@@ -428,7 +428,7 @@ func parsePackages(r io.Reader, entries map[digests.Sha256Digest]aptPackagesEntr
 	return num, nil
 }
 
-func (ins *AptPackagesInspector) addPackages(origin, packagesPath string, data *aptPackages, slog logger.Logger) {
+func (ins *AptPackagesInspector) addPackages(origin, packagesPath string, data *aptPackages, sl logger.Logger) {
 	ins.packagesLock.Lock()
 	defer ins.packagesLock.Unlock()
 
@@ -436,24 +436,24 @@ func (ins *AptPackagesInspector) addPackages(origin, packagesPath string, data *
 		ins.packages[origin] = map[string]*aptPackages{}
 	}
 
-	slog.Debugf("adding packages origin %q, %q", origin, packagesPath)
+	sl.Debugf("adding packages origin %q, %q", origin, packagesPath)
 	ins.packages[origin][packagesPath] = data
 }
 
-func (ins *AptPackagesInspector) getOriginAlias(origin, cfgName string, slog logger.Logger) (string, bool) {
+func (ins *AptPackagesInspector) getOriginAlias(origin, cfgName string, sl logger.Logger) (string, bool) {
 	repos, ok := ins.config.Repositories[cfgName]
 	if !ok {
-		slog.Debugf("%s: repository configuration not found", cfgName)
+		sl.Debugf("%s: repository configuration not found", cfgName)
 		return "", false
 	}
 
 	alias := repos.BaseURLAlias
 	if alias == "" {
-		slog.Debugf("origin not aliased: %s", origin)
+		sl.Debugf("origin not aliased: %s", origin)
 		return origin, true
 	}
 
-	slog.Debugf("packages origin alias: %s to %s", origin, alias)
+	sl.Debugf("packages origin alias: %s to %s", origin, alias)
 	return alias, true
 }
 
@@ -465,14 +465,14 @@ func (ins *AptPackagesInspector) validateDebianPackage(f ArtifactReader, a Respo
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
 	cfgName, ok := a.RequestStringAnnotation(ins.ID(), "cfg-name")
 	if !ok {
 		a.SetResponseRejected(ins, "deb file downloaded from unknown repository")
 		return nil
 	}
-	origin, ok := ins.getOriginAlias(utils.NormalizedOrigin(u), cfgName, slog)
+	origin, ok := ins.getOriginAlias(utils.NormalizedOrigin(u), cfgName, sl)
 	if !ok {
 		a.SetResponseRejected(ins, "Unknown repository configuration name").Annotate(
 			Annotation{"cfg-name": cfgName},
@@ -480,7 +480,7 @@ func (ins *AptPackagesInspector) validateDebianPackage(f ArtifactReader, a Respo
 		return nil
 	}
 
-	info, err := apt_cfg.NewDebPackageURLInfo(u, &ins.config, slog)
+	info, err := apt_cfg.NewDebPackageURLInfo(u, &ins.config, sl)
 	if err != nil {
 		return fmt.Errorf("invalid deb package URL")
 	}

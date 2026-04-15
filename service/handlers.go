@@ -98,12 +98,12 @@ func handleRequestInspection(v messages.RequestInspection) {
 func handleResponseInspection(v messages.ResponseInspection, ch chan interface{}) {
 	sessionID := v.A.SessionID
 	digest := v.A.Metadata.Sha256
-	slog := v.A.Logger()
+	sl := v.A.Logger()
 
 	s := session.GetSession(sessionID)
 	if s == nil {
 		v.Rch <- fmt.Errorf("cannot inspect response: session %s is not active", sessionID)
-		slog.Debugf("remove stale temporary file: %s", v.A.Tempfile)
+		sl.Debugf("remove stale temporary file: %s", v.A.Tempfile)
 		os.Remove(v.A.Tempfile)
 		return
 	}
@@ -112,7 +112,7 @@ func handleResponseInspection(v messages.ResponseInspection, ch chan interface{}
 
 	// Add download info to artifact metadata
 	dl := v.A.CurrentDownload
-	slog.Infof("%s %s: %s (%s)", dl.Method, dl.URL, dl.Status, dl.ContentType)
+	sl.Infof("%s %s: %s (%s)", dl.Method, dl.URL, dl.Status, dl.ContentType)
 
 	// Reuse the result of a previous inspection if the artifact is already added
 	// to the current session (meaning that there is a complete inspection of
@@ -120,7 +120,7 @@ func handleResponseInspection(v messages.ResponseInspection, ch chan interface{}
 	// for inspection. Files are added to the spool only if they're not already
 	// there.
 	if s.HasArtifact(digest) {
-		slog.Infof("artifact %s already downloaded", digest)
+		sl.Infof("artifact %s already downloaded", digest)
 		s.AddDownload(v.A.CurrentDownload)
 		os.Remove(v.A.Tempfile)
 		if !s.Permissive && s.ArtifactResult(digest) == opinions.Rejected {
@@ -170,8 +170,8 @@ func handleCompleteInspection(v messages.CompleteInspection) {
 	}
 	s.AddDownload(v.A.CurrentDownload)
 
-	slog := v.A.Logger()
-	slog.Infof("artifact %s inspection complete", digest)
+	sl := v.A.Logger()
+	sl.Infof("artifact %s inspection complete", digest)
 	v.Rch <- nil
 }
 
@@ -291,17 +291,17 @@ func runRequestInspection(s *session.Session, a *metadata.Artifact) error {
 
 func evaluateRequestInspection(s *session.Session, a *metadata.Artifact) error {
 	dl := a.CurrentDownload
-	slog := a.Logger()
+	sl := a.Logger()
 
 	if !a.RequestPending() {
 		if s.Permissive {
-			slog.Infof("request would be rejected: %s %s", dl.Method, dl.URL)
+			sl.Infof("request would be rejected: %s %s", dl.Method, dl.URL)
 		} else {
-			slog.Infof("request rejected: %s %s", dl.Method, dl.URL)
+			sl.Infof("request rejected: %s %s", dl.Method, dl.URL)
 			return ErrRejectedRequest
 		}
 	} else {
-		slog.Infof("request approved: %s %s", dl.Method, dl.URL)
+		sl.Infof("request approved: %s %s", dl.Method, dl.URL)
 	}
 
 	return nil
@@ -320,19 +320,19 @@ func runResponseInspection(s *session.Session, a *metadata.Artifact) error {
 
 func evaluateResponseInspection(s *session.Session, a *metadata.Artifact) error {
 	digest := a.Metadata.Sha256
-	slog := a.Logger()
+	sl := a.Logger()
 
 	if a.Rejected() {
 		a.Result = opinions.Rejected
 		if s.Permissive {
-			slog.Infof("artifact %s %d (%s) would be rejected (permissive)", digest, a.Metadata.Size, a.Metadata.Type)
+			sl.Infof("artifact %s %d (%s) would be rejected (permissive)", digest, a.Metadata.Size, a.Metadata.Type)
 		} else {
-			slog.Infof("artifact rejected: %s %d (%s)", digest, a.Metadata.Size, a.Metadata.Type)
+			sl.Infof("artifact rejected: %s %d (%s)", digest, a.Metadata.Size, a.Metadata.Type)
 			return ErrRejectedArtifact
 		}
 	} else {
 		a.Result = opinions.Approved
-		slog.Infof("artifact approved: %s %d (%s)", digest, a.Metadata.Size, a.Metadata.Type)
+		sl.Infof("artifact approved: %s %d (%s)", digest, a.Metadata.Size, a.Metadata.Type)
 	}
 
 	return nil
