@@ -38,7 +38,7 @@ import (
 func Test(t *testing.T) { TestingT(t) }
 
 type fileutilsSuite struct {
-	slog logger.Logger
+	sl logger.Logger
 }
 
 var _ = Suite(&fileutilsSuite{logger.NewSessionLogger("test")})
@@ -144,7 +144,7 @@ func (t *fileutilsSuite) TestGetLicense(c *C) {
 		{"../go.mod", "UNKNOWN", ""},
 		{"does-not-exist", "", ""},
 	} {
-		res, err := utils.GetLicense(tc.filename, t.slog)
+		res, err := utils.GetLicense(tc.filename, t.sl)
 		if tc.errMsg == "" {
 			c.Assert(err, IsNil)
 			c.Check(res, Equals, tc.license)
@@ -162,7 +162,7 @@ func (t *fileutilsSuite) TestCheckLicenseFiles(c *C) {
 		{[]string{"does-not-exist", "export_test.go"}, "GPL-3"},
 		{[]string{"does-not-exist"}, ""},
 	} {
-		res, err := utils.CheckLicenseFiles(tc.files, t.slog)
+		res, err := utils.CheckLicenseFiles(tc.files, t.sl)
 		c.Assert(err, IsNil)
 		c.Check(res, Equals, tc.license)
 	}

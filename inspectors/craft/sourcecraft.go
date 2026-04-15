@@ -60,8 +60,8 @@ func (ins *SourcecraftInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		return nil
 	}
 
-	slog := a.Logger()
-	slog.Debugf("Inspecting source artifact")
+	sl := a.Logger()
+	sl.Debugf("Inspecting source artifact")
 
 	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
@@ -70,7 +70,7 @@ func (ins *SourcecraftInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		return nil
 	}
 
-	slog.Debugf("inspect git upload-pack artifact: checkout at %q", checkoutPath)
+	sl.Debugf("inspect git upload-pack artifact: checkout at %q", checkoutPath)
 
 	sourcecraftYamlPath := filepath.Join(checkoutPath, "sourcecraft.yaml")
 	if _, err := osStat(sourcecraftYamlPath); err != nil {

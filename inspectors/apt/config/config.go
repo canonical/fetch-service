@@ -43,7 +43,7 @@ type AptInspectorConfig struct {
 	Repositories map[string]AptInspectorConfigRepository
 }
 
-func checkRepositoryAndSuite(cfg *AptInspectorConfig, u *url.URL, slog logger.Logger) (string, string, string, error) {
+func checkRepositoryAndSuite(cfg *AptInspectorConfig, u *url.URL, sl logger.Logger) (string, string, string, error) {
 	origin := utils.NormalizedOrigin(u)
 	parts := strings.Split(u.Path, "/")
 
@@ -54,19 +54,19 @@ func checkRepositoryAndSuite(cfg *AptInspectorConfig, u *url.URL, slog logger.Lo
 	suite := parts[pos+1]
 
 	repo := origin + strings.Join(parts[:pos], "/")
-	repoCfgName, ok := repositoryIsAllowed(cfg, repo, slog)
+	repoCfgName, ok := repositoryIsAllowed(cfg, repo, sl)
 	if !ok {
 		return "", "", "", fmt.Errorf("invalid repository: %s", repo)
 	}
 
-	if ok := suiteIsAllowed(cfg, repoCfgName, suite, slog); !ok {
+	if ok := suiteIsAllowed(cfg, repoCfgName, suite, sl); !ok {
 		return "", "", "", fmt.Errorf("invalid series: %s", suite)
 	}
 
 	return repoCfgName, repo, suite, nil
 }
 
-func checkComponent(cfg *AptInspectorConfig, name string, u *url.URL, slog logger.Logger) (string, error) {
+func checkComponent(cfg *AptInspectorConfig, name string, u *url.URL, sl logger.Logger) (string, error) {
 	parts := strings.Split(u.Path, "/")
 
 	pos := slices.Index(parts, "dists")
@@ -75,7 +75,7 @@ func checkComponent(cfg *AptInspectorConfig, name string, u *url.URL, slog logge
 	}
 	component := parts[pos+2]
 
-	if !componentIsAllowed(cfg, name, component, slog) {
+	if !componentIsAllowed(cfg, name, component, sl) {
 		return "", fmt.Errorf("invalid component: %s", component)
 	}
 
@@ -83,13 +83,13 @@ func checkComponent(cfg *AptInspectorConfig, name string, u *url.URL, slog logge
 }
 
 // repositoryIsAllowed verifies if the given repository matches an allowed pattern.
-func repositoryIsAllowed(cfg *AptInspectorConfig, repo string, slog logger.Logger) (string, bool) {
-	slog.Debugf("apt inspector config: check if repository '%s' is allowed", repo)
+func repositoryIsAllowed(cfg *AptInspectorConfig, repo string, sl logger.Logger) (string, bool) {
+	sl.Debugf("apt inspector config: check if repository '%s' is allowed", repo)
 	for name, r := range cfg.Repositories {
-		slog.Debugf("apt inspector config: check repository entry '%s'", name)
+		sl.Debugf("apt inspector config: check repository entry '%s'", name)
 		for _, pattern := range r.URLs {
 			if pattern.G.Match(repo) {
-				slog.Debugf("apt inspector config: found repository '%s'", repo)
+				sl.Debugf("apt inspector config: found repository '%s'", repo)
 				return name, true
 			}
 		}
@@ -98,12 +98,12 @@ func repositoryIsAllowed(cfg *AptInspectorConfig, repo string, slog logger.Logge
 }
 
 // suiteIsAllowed verifies if the given suite matches an allowed pattern.
-func suiteIsAllowed(cfg *AptInspectorConfig, name, suite string, slog logger.Logger) bool {
+func suiteIsAllowed(cfg *AptInspectorConfig, name, suite string, sl logger.Logger) bool {
 	r := cfg.Repositories[name]
-	slog.Debugf("apt inspector config: check if suite '%s' is allowed", suite)
+	sl.Debugf("apt inspector config: check if suite '%s' is allowed", suite)
 	for _, pattern := range r.Suites {
 		if pattern.G.Match(suite) {
-			slog.Debugf("apt inspector config: found suite '%s'", suite)
+			sl.Debugf("apt inspector config: found suite '%s'", suite)
 			return true
 		}
 	}
@@ -111,12 +111,12 @@ func suiteIsAllowed(cfg *AptInspectorConfig, name, suite string, slog logger.Log
 }
 
 // componentIsAllowed verifies if the given component matches an allowed pattern.
-func componentIsAllowed(cfg *AptInspectorConfig, name, component string, slog logger.Logger) bool {
+func componentIsAllowed(cfg *AptInspectorConfig, name, component string, sl logger.Logger) bool {
 	r := cfg.Repositories[name]
-	slog.Debugf("apt inspector config: check if component '%s' is allowed", component)
+	sl.Debugf("apt inspector config: check if component '%s' is allowed", component)
 	for _, pattern := range r.Components {
 		if pattern.G.Match(component) {
-			slog.Debugf("apt inspector config: found component '%s'", component)
+			sl.Debugf("apt inspector config: found component '%s'", component)
 			return true
 		}
 	}
@@ -130,8 +130,8 @@ type InReleaseURLInfo struct {
 	Suite      string // Repository suite (<series>-<pocket>)
 }
 
-func NewInReleaseURLInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger) (*InReleaseURLInfo, error) {
-	name, repo, suite, err := checkRepositoryAndSuite(cfg, u, slog)
+func NewInReleaseURLInfo(u *url.URL, cfg *AptInspectorConfig, sl logger.Logger) (*InReleaseURLInfo, error) {
+	name, repo, suite, err := checkRepositoryAndSuite(cfg, u, sl)
 	if err != nil {
 		return nil, err
 	}
@@ -160,18 +160,18 @@ type PackagesURLInfo struct {
 	Digest       string // Digest from by-hash URL
 }
 
-func NewPackagesURLInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger) (*PackagesURLInfo, error) {
-	name, repo, suite, err := checkRepositoryAndSuite(cfg, u, slog)
+func NewPackagesURLInfo(u *url.URL, cfg *AptInspectorConfig, sl logger.Logger) (*PackagesURLInfo, error) {
+	name, repo, suite, err := checkRepositoryAndSuite(cfg, u, sl)
 	if err != nil {
 		return nil, err
 	}
-	slog.Debugf("packages file cfgname=%s, repo=%s, suite=%s", name, repo, suite)
+	sl.Debugf("packages file cfgname=%s, repo=%s, suite=%s", name, repo, suite)
 
-	component, err := checkComponent(cfg, name, u, slog)
+	component, err := checkComponent(cfg, name, u, sl)
 	if err != nil {
 		return nil, err
 	}
-	slog.Debugf("packages file component=%s", component)
+	sl.Debugf("packages file component=%s", component)
 
 	rePackages := regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/binary-(\w+)/by-hash/SHA256/([0-9a-f]{64})$`)
 	m := rePackages.FindStringSubmatch(u.Path)
@@ -216,13 +216,13 @@ type TranslationURLInfo struct {
 	Digest     string // Digest from by-hash URL
 }
 
-func NewTranslationURLInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger) (*TranslationURLInfo, error) {
-	name, repo, suite, err := checkRepositoryAndSuite(cfg, u, slog)
+func NewTranslationURLInfo(u *url.URL, cfg *AptInspectorConfig, sl logger.Logger) (*TranslationURLInfo, error) {
+	name, repo, suite, err := checkRepositoryAndSuite(cfg, u, sl)
 	if err != nil {
 		return nil, err
 	}
 
-	component, err := checkComponent(cfg, name, u, slog)
+	component, err := checkComponent(cfg, name, u, sl)
 	if err != nil {
 		return nil, err
 	}
@@ -259,13 +259,13 @@ type CommandsURLInfo struct {
 	Digest     string // Digest from by-hash URL
 }
 
-func NewCommandURLInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger) (*CommandsURLInfo, error) {
-	name, repo, suite, err := checkRepositoryAndSuite(cfg, u, slog)
+func NewCommandURLInfo(u *url.URL, cfg *AptInspectorConfig, sl logger.Logger) (*CommandsURLInfo, error) {
+	name, repo, suite, err := checkRepositoryAndSuite(cfg, u, sl)
 	if err != nil {
 		return nil, err
 	}
 
-	component, err := checkComponent(cfg, name, u, slog)
+	component, err := checkComponent(cfg, name, u, sl)
 	if err != nil {
 		return nil, err
 	}
@@ -302,7 +302,7 @@ type DebPackageURLInfo struct {
 	Architecture string // Package architecture
 }
 
-func NewDebPackageURLInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logger) (*DebPackageURLInfo, error) {
+func NewDebPackageURLInfo(u *url.URL, cfg *AptInspectorConfig, sl logger.Logger) (*DebPackageURLInfo, error) {
 	origin := utils.NormalizedOrigin(u)
 	parts := strings.Split(u.Path, "/")
 
@@ -312,7 +312,7 @@ func NewDebPackageURLInfo(u *url.URL, cfg *AptInspectorConfig, slog logger.Logge
 	}
 
 	repo := origin + strings.Join(parts[:pos], "/")
-	repoCfgName, ok := repositoryIsAllowed(cfg, repo, slog)
+	repoCfgName, ok := repositoryIsAllowed(cfg, repo, sl)
 	if !ok {
 		return nil, fmt.Errorf("invalid repository: %s", repo)
 	}

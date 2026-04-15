@@ -92,7 +92,7 @@ func (ins *CargoCrateInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		return nil
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
 	cargotoml := fmt.Sprintf(`%s-%s/Cargo.toml`, packageName, packageVersion)
 
@@ -109,7 +109,7 @@ func (ins *CargoCrateInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 			if err == io.EOF {
 				break
 			}
-			slog.Debugf("crate tar parsing error: %s", err)
+			sl.Debugf("crate tar parsing error: %s", err)
 			return nil // we don't recognize this artifact
 		}
 		if h.Name == cargotoml {

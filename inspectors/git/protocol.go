@@ -37,7 +37,7 @@ func getGitProtocol(a RequestArtifact) string {
 	return proto[0]
 }
 
-func decodeGitProtocol(f io.Reader, slog logger.Logger) ([]string, error) {
+func decodeGitProtocol(f io.Reader, sl logger.Logger) ([]string, error) {
 	msgs := []string{}
 	for {
 		buf := make([]byte, 4)
@@ -66,9 +66,9 @@ func decodeGitProtocol(f io.Reader, slog logger.Logger) ([]string, error) {
 		}
 
 		if len(line) < 256 {
-			slog.Debugf(":: %04x  %q", size, line)
+			sl.Debugf(":: %04x  %q", size, line)
 		} else {
-			slog.Debugf(":: %04x  <line too long>", size)
+			sl.Debugf(":: %04x  <line too long>", size)
 		}
 
 		// remove trailing line break, if any

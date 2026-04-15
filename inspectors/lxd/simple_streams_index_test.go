@@ -35,7 +35,7 @@ import (
 )
 
 type simpleStreamIndexSuite struct {
-	slog logger.Logger
+	sl logger.Logger
 }
 
 func (t *simpleStreamIndexSuite) SetUpTest(c *C) {}

@@ -33,7 +33,7 @@ import (
 )
 
 type configSuite struct {
-	slog logger.Logger
+	sl logger.Logger
 }
 
 var _ = Suite(&configSuite{logger.NewSessionLogger("test")})
@@ -117,7 +117,7 @@ func (t *configSuite) TestInReleaseURLInfo(c *C) {
 		c.Assert(err, IsNil)
 
 		cfg := getTestAptConfig()
-		info, err := config.NewInReleaseURLInfo(u, &cfg, t.slog)
+		info, err := config.NewInReleaseURLInfo(u, &cfg, t.sl)
 
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
@@ -197,7 +197,7 @@ func (t *configSuite) TestPackagesURLInfo(c *C) {
 		c.Assert(err, IsNil)
 
 		cfg := getTestAptConfig()
-		info, err := config.NewPackagesURLInfo(u, &cfg, t.slog)
+		info, err := config.NewPackagesURLInfo(u, &cfg, t.sl)
 
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
@@ -286,7 +286,7 @@ func (t *configSuite) TestTranslationURLInfo(c *C) {
 		c.Assert(err, IsNil)
 
 		cfg := getTestAptConfig()
-		info, err := config.NewTranslationURLInfo(u, &cfg, t.slog)
+		info, err := config.NewTranslationURLInfo(u, &cfg, t.sl)
 
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
@@ -309,7 +309,7 @@ func (t *configSuite) TestTranslationURLInfoByName(c *C) {
 	c.Assert(err, IsNil)
 
 	cfg := getTestAptConfig()
-	info, err := config.NewTranslationURLInfo(u, &cfg, t.slog)
+	info, err := config.NewTranslationURLInfo(u, &cfg, t.sl)
 
 	c.Assert(err, IsNil)
 	c.Assert(info, DeepEquals, &config.TranslationURLInfo{
@@ -380,7 +380,7 @@ func (t *configSuite) TestCommandsURLInfo(c *C) {
 		c.Assert(err, IsNil)
 
 		cfg := getTestAptConfig()
-		info, err := config.NewCommandURLInfo(u, &cfg, t.slog)
+		info, err := config.NewCommandURLInfo(u, &cfg, t.sl)
 
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
@@ -403,7 +403,7 @@ func (t *configSuite) TestCommandsURLInfoByName(c *C) {
 	c.Assert(err, IsNil)
 
 	cfg := getTestAptConfig()
-	info, err := config.NewCommandURLInfo(u, &cfg, t.slog)
+	info, err := config.NewCommandURLInfo(u, &cfg, t.sl)
 
 	c.Assert(err, IsNil)
 	c.Assert(info, DeepEquals, &config.CommandsURLInfo{
@@ -461,7 +461,7 @@ func (t *configSuite) TestDebPackageURLInfo(c *C) {
 		c.Assert(err, IsNil)
 
 		cfg := getTestAptConfig()
-		info, err := config.NewDebPackageURLInfo(u, &cfg, t.slog)
+		info, err := config.NewDebPackageURLInfo(u, &cfg, t.sl)
 
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil, Commentf("%+v", tc))

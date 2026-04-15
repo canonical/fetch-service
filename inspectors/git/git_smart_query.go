@@ -47,14 +47,14 @@ func (ins *SmartQueryInspector) InspectRequest(a RequestArtifact) error {
 		return nil
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
 	u, err := url.Parse(a.DownloadURL())
 	if err != nil {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	if info, err := config.NewSmartQueryURLInfo(u, &ins.config, slog); err == nil {
+	if info, err := config.NewSmartQueryURLInfo(u, &ins.config, sl); err == nil {
 		a.SetRequestPending(ins, "valid URL for git smart request").Annotate(
 			Annotation{
 				"server":   strings.SplitN(u.Host, ":", 2)[0],
@@ -114,14 +114,14 @@ func (ins *SmartQueryInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 }
 
 func (ins *SmartQueryInspector) decodeProtocol(f ArtifactReader, a ResponseArtifact) ([]string, error) {
-	slog := a.Logger()
-	msgs, err := decodeGitProtocol(f, slog)
+	sl := a.Logger()
+	msgs, err := decodeGitProtocol(f, sl)
 	if err != nil {
 		a.SetResponseRejected(ins, "cannot decode git protocol").Annotate(
 			Annotation{"error-msg": err.Error()},
 		)
 	} else if len(msgs) == 1 && msgs[0] == "# service=git-upload-pack" {
-		msgs, err = decodeGitProtocol(f, slog) // skip previous size+content
+		msgs, err = decodeGitProtocol(f, sl) // skip previous size+content
 		if err != nil {
 			a.SetResponseRejected(ins, "cannot decode pack advertisement").Annotate(
 				Annotation{"error-msg": err.Error()},
