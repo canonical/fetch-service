@@ -39,7 +39,7 @@ import (
 )
 
 type debSuite struct {
-	slog logger.Logger
+	sl logger.Logger
 }
 
 func (t *debSuite) SetUpTest(c *C) {
@@ -282,7 +282,7 @@ func (s *debSuite) TestReadDebMetadata(c *C) {
 
 		am := ArtifactMetadata{}
 		ins := deb.NewDebInspector(getTestAptConfig())
-		err = deb.DebInspectorReadDebMetadata(ins, r, &am, s.slog)
+		err = deb.DebInspectorReadDebMetadata(ins, r, &am, s.sl)
 		if tc.errMsg == "" {
 			c.Assert(err, IsNil)
 			c.Check(am.Name, Equals, tc.name)

@@ -57,8 +57,8 @@ func (ins *CharmcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		return nil
 	}
 
-	slog := a.Logger()
-	slog.Debugf("Inspecting artifact")
+	sl := a.Logger()
+	sl.Debugf("Inspecting artifact")
 
 	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
@@ -67,7 +67,7 @@ func (ins *CharmcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		return nil
 	}
 
-	slog.Debugf("inspect git upload-pack artifact: checkout at %q", checkoutPath)
+	sl.Debugf("inspect git upload-pack artifact: checkout at %q", checkoutPath)
 
 	charmcraftYamlPath := filepath.Join(checkoutPath, "charmcraft.yaml")
 	if _, err := osStat(charmcraftYamlPath); err != nil {

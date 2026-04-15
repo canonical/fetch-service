@@ -67,7 +67,7 @@ func (ins *SdistInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact)
 		return nil
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
 	zf, err := gzip.NewReader(f)
 	if err != nil {
@@ -84,7 +84,7 @@ func (ins *SdistInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact)
 			if err == io.EOF {
 				break
 			}
-			slog.Debugf("sdist tar parsing error: %s", err)
+			sl.Debugf("sdist tar parsing error: %s", err)
 			return nil // we don't recognize this artifact
 		}
 		if rePkgInfo.MatchString(h.Name) {

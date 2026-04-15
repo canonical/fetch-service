@@ -28,12 +28,12 @@ import (
 	"github.com/canonical/fetch-service/utils"
 )
 
-func checkRequestURL(cfg *BldBinInspectorConfig, u *url.URL, slog logger.Logger) error {
+func checkRequestURL(cfg *BldBinInspectorConfig, u *url.URL, sl logger.Logger) error {
 	requestURL := utils.NormalizedOrigin(u) + u.Path
 
 	for _, h := range cfg.URLs {
 		if h.Match(requestURL) {
-			slog.Debugf("url matches %v\n", h)
+			sl.Debugf("url matches %v", h)
 			return nil
 		}
 	}
@@ -47,8 +47,8 @@ type BldBinInspectorConfig struct {
 type BldBinURLInfo struct {
 }
 
-func NewBldBinURLInfo(u *url.URL, cfg *BldBinInspectorConfig, slog logger.Logger) (*BldBinURLInfo, error) {
-	if err := checkRequestURL(cfg, u, slog); err != nil {
+func NewBldBinURLInfo(u *url.URL, cfg *BldBinInspectorConfig, sl logger.Logger) (*BldBinURLInfo, error) {
+	if err := checkRequestURL(cfg, u, sl); err != nil {
 		return nil, err
 	}
 

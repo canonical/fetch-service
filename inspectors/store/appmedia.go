@@ -49,9 +49,9 @@ func (ins *StoreAppMediaInspector) InspectRequest(a RequestArtifact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
-	if _, err := config.NewStoreAppMediaURLInfo(u, &ins.config, slog); err == nil {
+	if _, err := config.NewStoreAppMediaURLInfo(u, &ins.config, sl); err == nil {
 		a.SetRequestPending(ins, "valid URL for store app media")
 	}
 
@@ -67,11 +67,11 @@ func (ins *StoreAppMediaInspector) InspectArtifact(f ArtifactReader, a ResponseA
 }
 
 func (ins *StoreAppMediaInspector) inspectArtifactPNG(f ArtifactReader, a ResponseArtifact) error {
-	slog := a.Logger()
+	sl := a.Logger()
 
 	cfg, err := png.DecodeConfig(f)
 	if err != nil {
-		slog.Infof("cannot decode PNG file: %s", err)
+		sl.Infof("cannot decode PNG file: %s", err)
 		return nil
 	}
 

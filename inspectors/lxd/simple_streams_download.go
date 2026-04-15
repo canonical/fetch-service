@@ -148,14 +148,14 @@ type simpleStreamsProductItem struct {
 }
 
 func (ins *SimpleStreamsDownloadInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
-	slog := a.Logger()
+	sl := a.Logger()
 
 	if a.MimetypeIs("application/gzip") {
 		// Check if this is a product item.
 		// State was set when the download inspector ran,
 		itemPath, err := ins.matchItemFromURL(a.DownloadURL())
 		if err != nil {
-			slog.Debug(err)
+			sl.Debug(err)
 		}
 		if itemPath != "" {
 			return ins.inspectProductItem(a, itemPath)
@@ -170,7 +170,7 @@ func (ins *SimpleStreamsDownloadInspector) InspectArtifact(f ArtifactReader, a R
 	decoder := json.NewDecoder(f)
 	var dl simpleStreamsDownload
 	if err := decoder.Decode(&dl); err != nil {
-		slog.Debug(err)
+		sl.Debug(err)
 		return nil // we don't recognize this artifact
 	}
 
@@ -183,7 +183,7 @@ func (ins *SimpleStreamsDownloadInspector) InspectArtifact(f ArtifactReader, a R
 		// The request inspector must have set a "stream" annotation.
 		return fmt.Errorf("missing stream in request annotations")
 	}
-	slog.Debugf("parsed Simple Streams Download for stream %s", stream)
+	sl.Debugf("parsed Simple Streams Download for stream %s", stream)
 
 	a.SetArtifactMetadata(ArtifactMetadata{
 		Type:        mimetypes.SimpleStreamsProducts,

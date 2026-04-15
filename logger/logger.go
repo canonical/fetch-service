@@ -180,40 +180,40 @@ func sessionFormat(sid string) string {
 	return fmt.Sprintf("[%s] ", sid)
 }
 
-func (slog SessionLogger) Info(v ...interface{}) {
-	args := []interface{}{slog.prefix}
+func (sl SessionLogger) Info(v ...interface{}) {
+	args := []interface{}{sl.prefix}
 	Info(append(args, v...)...)
 }
 
-func (slog SessionLogger) Infof(format string, v ...interface{}) {
-	Infof(slog.prefix+format, v...)
+func (sl SessionLogger) Infof(format string, v ...interface{}) {
+	Infof(sl.prefix+format, v...)
 }
 
-func (slog SessionLogger) Warning(v ...interface{}) {
-	args := []interface{}{slog.prefix}
+func (sl SessionLogger) Warning(v ...interface{}) {
+	args := []interface{}{sl.prefix}
 	Warning(append(args, v...)...)
 }
 
-func (slog SessionLogger) Warningf(format string, v ...interface{}) {
-	Warningf(slog.prefix+format, v...)
+func (sl SessionLogger) Warningf(format string, v ...interface{}) {
+	Warningf(sl.prefix+format, v...)
 }
 
-func (slog SessionLogger) Error(v ...interface{}) {
-	args := []interface{}{slog.prefix}
+func (sl SessionLogger) Error(v ...interface{}) {
+	args := []interface{}{sl.prefix}
 	Error(append(args, v...)...)
 }
 
-func (slog SessionLogger) Errorf(format string, v ...interface{}) {
-	Errorf(slog.prefix+format, v...)
+func (sl SessionLogger) Errorf(format string, v ...interface{}) {
+	Errorf(sl.prefix+format, v...)
 }
 
-func (slog SessionLogger) Debug(v ...interface{}) {
-	args := []interface{}{slog.prefix}
+func (sl SessionLogger) Debug(v ...interface{}) {
+	args := []interface{}{sl.prefix}
 	Debug(append(args, v...)...)
 }
 
-func (slog SessionLogger) Debugf(format string, v ...interface{}) {
-	Debugf(slog.prefix+format, v...)
+func (sl SessionLogger) Debugf(format string, v ...interface{}) {
+	Debugf(sl.prefix+format, v...)
 }
 
 // Info logs informational messages.

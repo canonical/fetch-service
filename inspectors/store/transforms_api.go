@@ -49,9 +49,9 @@ func (ins *StoreTransformsAPIInspector) InspectRequest(a RequestArtifact) error 
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
-	if _, err := config.NewStoreTransformsAPIURLInfo(u, &ins.config, slog); err == nil {
+	if _, err := config.NewStoreTransformsAPIURLInfo(u, &ins.config, sl); err == nil {
 		a.SetRequestPending(ins, "valid URL for store transforms API endpoint")
 	}
 

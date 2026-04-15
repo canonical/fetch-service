@@ -127,9 +127,9 @@ func (ins *AptTranslationInspector) InspectRequest(a RequestArtifact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
-	if info, err := apt_cfg.NewTranslationURLInfo(u, &ins.config, slog); err == nil {
+	if info, err := apt_cfg.NewTranslationURLInfo(u, &ins.config, sl); err == nil {
 		a.SetRequestPending(ins, "valid URL for Translation file").Annotate(
 			Annotation{
 				"repository": info.Repository,

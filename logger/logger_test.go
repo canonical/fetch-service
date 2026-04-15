@@ -233,49 +233,49 @@ func (s *logSuite) TestReopenLogFile(c *C) {
 }
 
 func (s *logSuite) TestSessionLoggerInfo(c *C) {
-	slog := logger.NewSessionLogger("test")
-	slog.Info("hello world")
+	sl := logger.NewSessionLogger("test")
+	sl.Info("hello world")
 	c.Check(testlogger.Contains("INFO : [test] hello world\n"), Equals, true)
 }
 
 func (s *logSuite) TestSessionLoggerInfof(c *C) {
-	slog := logger.NewSessionLogger("test")
-	slog.Infof("hello %s", "world")
+	sl := logger.NewSessionLogger("test")
+	sl.Infof("hello %s", "world")
 	c.Check(testlogger.Contains("INFO : [test] hello world\n"), Equals, true)
 }
 
 func (s *logSuite) TestSessionLoggerWarning(c *C) {
-	slog := logger.NewSessionLogger("test")
-	slog.Warning("hello world")
+	sl := logger.NewSessionLogger("test")
+	sl.Warning("hello world")
 	c.Check(testlogger.Contains("WARN : [test] hello world\n"), Equals, true)
 }
 
 func (s *logSuite) TestSessionLoggerWarningf(c *C) {
-	slog := logger.NewSessionLogger("test")
-	slog.Warningf("hello %s", "world")
+	sl := logger.NewSessionLogger("test")
+	sl.Warningf("hello %s", "world")
 	c.Check(testlogger.Contains("WARN : [test] hello world\n"), Equals, true)
 }
 
 func (s *logSuite) TestSessionLoggerError(c *C) {
-	slog := logger.NewSessionLogger("test")
-	slog.Error("hello world")
+	sl := logger.NewSessionLogger("test")
+	sl.Error("hello world")
 	c.Check(testlogger.Contains("ERROR: [test] hello world\n"), Equals, true)
 }
 
 func (s *logSuite) TestSessionLoggerErrorf(c *C) {
-	slog := logger.NewSessionLogger("test")
-	slog.Errorf("hello %s", "world")
+	sl := logger.NewSessionLogger("test")
+	sl.Errorf("hello %s", "world")
 	c.Check(testlogger.Contains("ERROR: [test] hello world\n"), Equals, true)
 }
 
 func (s *logSuite) TestSessionLoggerDebug(c *C) {
-	slog := logger.NewSessionLogger("test")
-	slog.Debug("hello world")
+	sl := logger.NewSessionLogger("test")
+	sl.Debug("hello world")
 	c.Check(testlogger.Contains("DEBUG: [test] hello world\n"), Equals, true)
 }
 
 func (s *logSuite) TestSessionLoggerDebugf(c *C) {
-	slog := logger.NewSessionLogger("test")
-	slog.Debugf("hello %s", "world")
+	sl := logger.NewSessionLogger("test")
+	sl.Debugf("hello %s", "world")
 	c.Check(testlogger.Contains("DEBUG: [test] hello world\n"), Equals, true)
 }

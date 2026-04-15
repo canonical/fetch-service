@@ -147,7 +147,7 @@ func (s *aptSuite) TestPackagesInspectArtifact(c *C) {
 
 		// simulate InRelease entry
 		data := apt.NewAptPackages(h2, "http://myserver", "jammy", "main", "amd64")
-		apt.AptPackagesInspectorAddPackages(ins, "http://myserver", "/path/Packages.xz", data, s.slog)
+		apt.AptPackagesInspectorAddPackages(ins, "http://myserver", "/path/Packages.xz", data, s.sl)
 
 		a := metadata.NewArtifact()
 		a.CurrentDownload.URL = "http://myserver/path/Packages.xz"
@@ -286,7 +286,7 @@ func (s *aptSuite) TestPackageParsing(c *C) {
 		entries := map[digests.Sha256Digest]apt.AptPackagesEntry{}
 
 		var num int
-		num, err = apt.ParsePackages(reader, entries, s.slog)
+		num, err = apt.ParsePackages(reader, entries, s.sl)
 
 		c.Assert(err, IsNil)
 		c.Assert(num, Equals, 1)

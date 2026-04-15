@@ -31,7 +31,7 @@ import (
 )
 
 type configSuite struct {
-	slog logger.Logger
+	sl logger.Logger
 }
 
 var _ = Suite(&configSuite{logger.NewSessionLogger("test")})
@@ -64,7 +64,7 @@ func (t *configSuite) TestSmartQueryURLInfo(c *C) {
 		c.Assert(err, IsNil)
 
 		cfg := getTestGitConfig()
-		info, err := config.NewSmartQueryURLInfo(u, &cfg, t.slog)
+		info, err := config.NewSmartQueryURLInfo(u, &cfg, t.sl)
 
 		if tc.msg == "" {
 			c.Assert(err, IsNil)
@@ -94,7 +94,7 @@ func (t *configSuite) TestUploadPackURLInfo(c *C) {
 		c.Assert(err, IsNil)
 
 		cfg := getTestGitConfig()
-		info, err := config.NewUploadPackURLInfo(u, &cfg, t.slog)
+		info, err := config.NewUploadPackURLInfo(u, &cfg, t.sl)
 
 		if tc.msg == "" {
 			c.Assert(err, IsNil)
