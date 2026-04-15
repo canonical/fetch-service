@@ -25,7 +25,7 @@ execute: |
 
   # create permissive session with secrets.
   creds="${MACAROON}"
-  secrets='[{"type": "macaroon", "url": "https://api.staging.pkg.store:443/**", "macaroon-credentials": "'$creds'"}]'
+  secrets='[{"type": "macaroon", "url": "https://api.staging.snapcraft.io:443/**", "macaroon-credentials": "'$creds'"}]'
   
   tmpfile=$(mktemp)
   curl -s -X POST -d '{"policy": "permissive", "secrets": '"$secrets"'}' http://craft:craft@localhost:9999/session | tee "${tmpfile}"
@@ -37,7 +37,10 @@ execute: |
   export http_proxy="http://${session_id}:${token}@localhost:9988"
   export https_proxy="http://${session_id}:${token}@localhost:9988"
   
-  curl -L https://api.staging.pkg.store/api/v1/bins/download/jfIaIzjm1HrrorlTJT5WS8mtjwFvQEGV_2.bin --output out.bin
+  # The url corresponds to revision 26 of the "starcraft-test" package available on the
+  # "ubuntu/starcraft" private plane. This one:
+  # 2.0-on-plane-24.04/edge:  2.0.3  2026-03-05  (26)  2kB
+  curl -H "X-Plane-Name: ubuntu/starcraft" -L https://api.staging.snapcraft.io/api/v1/bins/download/ysIk8jpfwVGSHUtWkNK1ykhch2mAkOOi_26.bin --output out.bin
 
   file out.bin | MATCH "XZ compressed data"
 
