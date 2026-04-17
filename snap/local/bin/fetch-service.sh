@@ -42,30 +42,24 @@ if [[ -n "${upstream_proxy_bypass}" ]]; then
 	export NO_PROXY
 fi
 
-if [[ -z "${log_file}" ]]; then
-	# shellcheck disable=SC2086
-	exec "${SNAP}/bin/fetch" \
-		"--proxy-port=${proxy_port}" \
-		"--control-port=${control_port}" \
-		"--profile-port=${profile_port}" \
-		"--spool=${SNAP_COMMON}/spool" \
-		"--config=${SNAP_DATA}/conf" \
-		"--cert=${SNAP_DATA}/certs/ca.pem" \
-		"--key=${SNAP_DATA}/certs/ca.key.pem" \
-		"--verbosity=${verbosity}" \
-		${profile} \
-		${permissive}
-else
-	# shellcheck disable=SC2086
-	exec "${SNAP}/bin/fetch" \
-		"--proxy-port=${proxy_port}" \
-		"--control-port=${control_port}" \
-		"--profile-port=${profile_port}" \
-		"--spool=${SNAP_COMMON}/spool" \
-		"--config=${SNAP_DATA}/conf" \
-		"--cert=${SNAP_DATA}/certs/ca.pem" \
-		"--key=${SNAP_DATA}/certs/ca.key.pem" \
-		"--verbosity=${verbosity}" \
-		${profile} \
-		${permissive} > >(tee -a "${SNAP_DATA}/${log_file}")
+if [[ -n "${log_file}" ]]; then
+	logging="--log-file=${log_file}"
 fi
+
+mkdir -p "${SNAP_COMMON}/spool"
+mkdir -p "${SNAP_COMMON}/log"
+
+# shellcheck disable=SC2086
+exec "${SNAP}/bin/fetch" \
+	"--proxy-port=${proxy_port}" \
+	"--control-port=${control_port}" \
+	"--profile-port=${profile_port}" \
+	"--spool=${SNAP_COMMON}/spool" \
+	"--config=${SNAP_DATA}/conf" \
+	"--cert=${SNAP_DATA}/certs/ca.pem" \
+	"--key=${SNAP_DATA}/certs/ca.key.pem" \
+	"--verbosity=${verbosity}" \
+	"--security-log-file=${SNAP_COMMON}/log/security.log" \
+	"${logging}" \
+	${profile} \
+	${permissive}

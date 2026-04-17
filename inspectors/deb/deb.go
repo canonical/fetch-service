@@ -207,7 +207,6 @@ func (ins DebInspector) getDebianBinaryVersion(af io.Reader) string {
 		return ""
 	}
 	return strings.TrimSpace(sc.Text())
-
 }
 
 func (ins DebInspector) parseControlTar(zf io.Reader, md *ArtifactMetadata) error {

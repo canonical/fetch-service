@@ -51,7 +51,7 @@ var (
 
 // LogWriter handles log file reopening
 type LogWriter struct {
-	path string
+	Path string
 	file *os.File
 	lock sync.RWMutex
 }
@@ -72,11 +72,11 @@ func (w *LogWriter) Reopen() error {
 	w.lock.Lock()
 	defer w.lock.Unlock()
 
-	if w.path == "" {
+	if w.Path == "" {
 		return nil
 	}
 
-	newFile, err := os.OpenFile(w.path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	newFile, err := os.OpenFile(w.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (w *LogWriter) Close() error {
 	w.lock.Lock()
 	defer w.lock.Unlock()
 
-	if w.path == "" {
+	if w.Path == "" {
 		log.SetOutput(io.Discard)
 		return nil
 	}
@@ -114,7 +114,7 @@ func Init(lv Level, logFilepath string) error {
 	log.SetFlags(log.Ldate | log.Lmicroseconds)
 
 	if logFilepath != "" {
-		logWriter = &LogWriter{path: logFilepath}
+		logWriter = &LogWriter{Path: logFilepath}
 		if err := logWriter.Reopen(); err != nil {
 			fmt.Fprintf(os.Stderr, "cannot open log file: %s\n", err)
 			return err
@@ -139,8 +139,8 @@ func Close() {
 
 func Reopen() {
 	if logWriter != nil {
-		if logWriter.path != "" {
-			Warningf("reopening log file %s", logWriter.path)
+		if logWriter.Path != "" {
+			Warningf("reopening log file %s", logWriter.Path)
 		}
 
 		if err := logWriter.Reopen(); err != nil {
