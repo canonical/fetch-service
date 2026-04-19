@@ -29,7 +29,7 @@ import (
 )
 
 type utilsSuite struct {
-	slog logger.Logger
+	sl logger.Logger
 }
 
 var _ = Suite(&utilsSuite{logger.NewSessionLogger("test")})
@@ -57,7 +57,7 @@ func (s *utilsSuite) TestUnpackObjects(c *C) {
 		c.Assert(err, IsNil)
 		defer f.Close()
 
-		err = git.UnpackObjects(f, dir, s.slog)
+		err = git.UnpackObjects(f, dir, s.sl)
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
 			_, err = os.Stat(filepath.Join(dir, ".git", "objects"))
@@ -89,9 +89,9 @@ func (s *utilsSuite) TestCheckout(c *C) {
 		c.Assert(err, IsNil)
 		defer f.Close()
 
-		err = git.UnpackObjects(f, dir, s.slog)
+		err = git.UnpackObjects(f, dir, s.sl)
 		c.Assert(err, IsNil)
-		err = git.Checkout(dir, tc.wants, s.slog)
+		err = git.Checkout(dir, tc.wants, s.sl)
 		if tc.errorMsg == "" {
 			c.Assert(err, IsNil)
 			_, err = os.Stat(filepath.Join(dir, "sourcecraft.yaml"))

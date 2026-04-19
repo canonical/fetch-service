@@ -92,7 +92,7 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 		return nil
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
 	digest, err := computeDigest(f)
 	if err != nil {
@@ -111,20 +111,20 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 	// Retrieve snap-revision assertion
 	// It's cheaper to check the assertion existence first than look for snap
 	// metadata inside a potentially large squashfs file that's not a snap.
-	snapRevisionAssertion, err := downloadSnapRevisionAssertion(snapSha3_384, slog)
+	snapRevisionAssertion, err := downloadSnapRevisionAssertion(snapSha3_384, sl)
 	if err != nil {
-		slog.Debugf("cannot retrieve snap-revision assertion: %s", err)
+		sl.Debugf("cannot retrieve snap-revision assertion: %s", err)
 		return nil // This is (probably) not a snap
 	}
 
-	snapID, note, err := checkSnapRevisionAssertion(snapRevisionAssertion, snapSha3_384, slog, a)
+	snapID, note, err := checkSnapRevisionAssertion(snapRevisionAssertion, snapSha3_384, sl, a)
 	if err != nil {
 		a.SetResponseRejected(ins, err.Error()).Annotate(note)
 		return nil
 	}
 
 	// Retrieve the snap-declaration assertion
-	snapDeclarationAssertion, err := downloadSnapDeclarationAssertion(snapID, slog)
+	snapDeclarationAssertion, err := downloadSnapDeclarationAssertion(snapID, sl)
 	if err != nil {
 		return fmt.Errorf("cannot retrieve snap-declaration assertion: %w", err)
 	}
@@ -139,7 +139,7 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 		return nil
 	}
 
-	if err := snapDeclarationAssertion.VerifySignature(slog); err != nil {
+	if err := snapDeclarationAssertion.VerifySignature(sl); err != nil {
 		a.SetResponseRejected(ins, "snap-declaration assertion has invalid signature").Annotate(
 			Annotation{
 				"error-msg":                         err.Error(),
@@ -150,11 +150,11 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 	}
 
 	// Obtain the account assertion
-	accountAssertion, err := downloadAccountAssertion(publisherID, slog)
+	accountAssertion, err := downloadAccountAssertion(publisherID, sl)
 	if err != nil {
 		return fmt.Errorf("cannot retrieve account assertion: %w", err)
 	}
-	if err := accountAssertion.VerifySignature(slog); err != nil {
+	if err := accountAssertion.VerifySignature(sl); err != nil {
 		a.SetResponseRejected(ins, "account assertion has invalid signature").Annotate(
 			Annotation{
 				"error-msg":                err.Error(),
@@ -195,7 +195,7 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 		ContentID:     snapID,
 	})
 
-	if err := checkSnapDeclarationFilter(ins.config, snapDeclarationAssertion, slog); err != nil {
+	if err := checkSnapDeclarationFilter(ins.config, snapDeclarationAssertion, sl); err != nil {
 		a.SetResponseRejected(ins, "failure on snap-declaration assertion attribute check").Annotate(
 			Annotation{
 				"error-msg":                         err.Error(),
@@ -218,32 +218,32 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 
 var downloadSnapRevisionAssertion = downloadSnapRevisionAssertionImpl
 
-func downloadSnapRevisionAssertionImpl(snapSha3_384 string, slog logger.Logger) (*assertion, error) {
+func downloadSnapRevisionAssertionImpl(snapSha3_384 string, sl logger.Logger) (*assertion, error) {
 	url := fmt.Sprintf("https://api.snapcraft.io/v2/assertions/snap-revision/%s?max-format=0", snapSha3_384)
-	return downloadAssertion(url, slog)
+	return downloadAssertion(url, sl)
 }
 
 var downloadSnapDeclarationAssertion = downloadSnapDeclarationAssertionImpl
 
-func downloadSnapDeclarationAssertionImpl(snapID string, slog logger.Logger) (*assertion, error) {
+func downloadSnapDeclarationAssertionImpl(snapID string, sl logger.Logger) (*assertion, error) {
 	url := fmt.Sprintf("https://api.snapcraft.io/v2/assertions/snap-declaration/16/%s?max-format=5", snapID)
-	return downloadAssertion(url, slog)
+	return downloadAssertion(url, sl)
 }
 
 var downloadAccountAssertion = downloadAccountAssertionImpl
 
-func downloadAccountAssertionImpl(publisherID string, slog logger.Logger) (*assertion, error) {
+func downloadAccountAssertionImpl(publisherID string, sl logger.Logger) (*assertion, error) {
 	url := fmt.Sprintf("https://api.snapcraft.io/v2/assertions/account/%s?max-format=5", publisherID)
-	return downloadAssertion(url, slog)
+	return downloadAssertion(url, sl)
 }
 
-func downloadAccountKeyAssertion(signKey string, slog logger.Logger) (*assertion, error) {
+func downloadAccountKeyAssertion(signKey string, sl logger.Logger) (*assertion, error) {
 	url := fmt.Sprintf("https://api.snapcraft.io/v2/assertions/account-key/%s?max-format=1", signKey)
-	return downloadAssertion(url, slog)
+	return downloadAssertion(url, sl)
 }
 
-func downloadAssertion(url string, slog logger.Logger) (*assertion, error) {
-	slog.Debugf("download assertion: %s", url)
+func downloadAssertion(url string, sl logger.Logger) (*assertion, error) {
+	sl.Debugf("download assertion: %s", url)
 
 	client := http.Client{
 		Transport: &http.Transport{},
@@ -273,16 +273,16 @@ func downloadAssertion(url string, slog logger.Logger) (*assertion, error) {
 
 	assert, err := newAssertion(data)
 	if err == nil {
-		slog.Debugf("assertion: %+v", assert.Header)
+		sl.Debugf("assertion: %+v", assert.Header)
 	}
 
 	return assert, err
 }
 
-func checkSnapDeclarationFilter(cfg config.SnapInspectorConfig, assert *assertion, slog logger.Logger) error {
+func checkSnapDeclarationFilter(cfg config.SnapInspectorConfig, assert *assertion, sl logger.Logger) error {
 	for _, v := range cfg.SnapDeclarationFilter {
 		declared, ok := assert.Header[v.Name]
-		slog.Debugf("snap-declaration filter: (%s, %v)", v.Name, v.Value)
+		sl.Debugf("snap-declaration filter: (%s, %v)", v.Name, v.Value)
 		if !ok {
 			// attribute not found
 			return fmt.Errorf("attribute '%s' not found in the snap-declaration assertion", v.Name)
@@ -290,7 +290,7 @@ func checkSnapDeclarationFilter(cfg config.SnapInspectorConfig, assert *assertio
 
 		match := false
 		for _, allowed := range v.Value {
-			slog.Debugf("snap-declaration filter: check if %s == %s", declared, allowed)
+			sl.Debugf("snap-declaration filter: check if %s == %s", declared, allowed)
 			if declared == allowed {
 				match = true
 				break
@@ -307,7 +307,7 @@ func checkSnapDeclarationFilter(cfg config.SnapInspectorConfig, assert *assertio
 }
 
 // checkSnapRevisionAssertion checks the snap revision assertion and extracts the snap ID
-func checkSnapRevisionAssertion(snapRevisionAssertion *assertion, snapSha3_384 string, slog logger.Logger, a ResponseArtifact) (string, Annotation, error) {
+func checkSnapRevisionAssertion(snapRevisionAssertion *assertion, snapSha3_384 string, sl logger.Logger, a ResponseArtifact) (string, Annotation, error) {
 	if snapRevisionAssertion.SnapSize() != fmt.Sprintf("%d", a.Size()) {
 		return "", Annotation{
 			"snap-revision-assertion-header": snapRevisionAssertion.Header,
@@ -324,7 +324,7 @@ func checkSnapRevisionAssertion(snapRevisionAssertion *assertion, snapSha3_384 s
 			"snap-revision-assertion-header": snapRevisionAssertion.Header,
 		}, errors.New("cannot find snap ID in snap-revision assertion")
 	}
-	if err := snapRevisionAssertion.VerifySignature(slog); err != nil {
+	if err := snapRevisionAssertion.VerifySignature(sl); err != nil {
 		return "", Annotation{
 			"error-msg":                      err.Error(),
 			"snap-revision-assertion-header": snapRevisionAssertion.Header,

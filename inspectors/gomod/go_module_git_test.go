@@ -39,7 +39,7 @@ import (
 )
 
 type goModuleGitSuite struct {
-	slog logger.Logger
+	sl logger.Logger
 }
 
 var _ = Suite(&goModuleGitSuite{logger.NewSessionLogger("test")})
@@ -184,9 +184,9 @@ func (s *goModuleGitSuite) TestGoModuleGitInspectArtifact(c *C) {
 	for _, tc := range goModuleGitInspectArtifactTests {
 		f := bytes.NewReader(tc.data)
 		checkoutPath := c.MkDir()
-		err := git.UnpackObjects(f, checkoutPath, s.slog)
+		err := git.UnpackObjects(f, checkoutPath, s.sl)
 		c.Assert(err, IsNil)
-		err = git.Checkout(checkoutPath, "467ef24fabbcce4a3bda7af3918fb970ee970c8b", s.slog)
+		err = git.Checkout(checkoutPath, "467ef24fabbcce4a3bda7af3918fb970ee970c8b", s.sl)
 		c.Assert(err, IsNil)
 
 		a := metadata.NewArtifact()

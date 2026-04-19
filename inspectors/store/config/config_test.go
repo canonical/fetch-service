@@ -31,7 +31,7 @@ import (
 )
 
 type configSuite struct {
-	slog logger.Logger
+	sl logger.Logger
 }
 
 var _ = Suite(&configSuite{logger.NewSessionLogger("test")})
@@ -71,7 +71,7 @@ func (t *configSuite) TestStoreInfoAPIURLInfo(c *C) {
 		c.Assert(err, IsNil)
 
 		cfg := getTestStoreConfig()
-		info, err := config.NewStoreInfoAPIURLInfo(u, &cfg, t.slog)
+		info, err := config.NewStoreInfoAPIURLInfo(u, &cfg, t.sl)
 
 		if tc.errMsg == "" {
 			c.Assert(err, IsNil)
@@ -109,7 +109,7 @@ func (t *configSuite) TestStoreResolveAPIURLResolve(c *C) {
 		c.Assert(err, IsNil)
 
 		cfg := getTestStoreConfig()
-		info, err := config.NewStoreResolveAPIURLInfo(u, &cfg, t.slog)
+		info, err := config.NewStoreResolveAPIURLInfo(u, &cfg, t.sl)
 
 		if tc.errMsg == "" {
 			c.Assert(err, IsNil)

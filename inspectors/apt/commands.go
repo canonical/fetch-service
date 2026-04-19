@@ -91,9 +91,9 @@ func (ins *AptCommandsInspector) InspectRequest(a RequestArtifact) error {
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
-	slog := a.Logger()
+	sl := a.Logger()
 
-	if info, err := apt_cfg.NewCommandURLInfo(u, &ins.config, slog); err == nil {
+	if info, err := apt_cfg.NewCommandURLInfo(u, &ins.config, sl); err == nil {
 		a.SetRequestPending(ins, "valid URL for Commands file").Annotate(
 			Annotation{
 				"repository": info.Repository,

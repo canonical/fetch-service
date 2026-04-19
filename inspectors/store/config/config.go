@@ -37,12 +37,12 @@ var (
 	reStoreAppMedia      = regexp.MustCompile(`^/site_media/appmedia/([0-9]+)/([0-9]+)/([a-zA-Z0-9.-]+)$`)
 )
 
-func checkRequestURL(cfg *StoreInspectorConfig, u *url.URL, slog logger.Logger) error {
+func checkRequestURL(cfg *StoreInspectorConfig, u *url.URL, sl logger.Logger) error {
 	requestURL := utils.NormalizedOrigin(u) + u.Path
 
 	for _, h := range cfg.URLs {
 		if h.Match(requestURL) {
-			slog.Debugf("url matches %v\n", h)
+			sl.Debugf("url matches %v", h)
 			return nil
 		}
 	}
@@ -58,8 +58,8 @@ type StoreInfoAPIURLInfo struct {
 	PackageName string
 }
 
-func NewStoreInfoAPIURLInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreInfoAPIURLInfo, error) {
-	if err := checkRequestURL(cfg, u, slog); err != nil {
+func NewStoreInfoAPIURLInfo(u *url.URL, cfg *StoreInspectorConfig, sl logger.Logger) (*StoreInfoAPIURLInfo, error) {
+	if err := checkRequestURL(cfg, u, sl); err != nil {
 		return nil, err
 	}
 
@@ -78,8 +78,8 @@ func NewStoreInfoAPIURLInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.L
 type StoreResolveAPIURLInfo struct {
 }
 
-func NewStoreResolveAPIURLInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreResolveAPIURLInfo, error) {
-	if err := checkRequestURL(cfg, u, slog); err != nil {
+func NewStoreResolveAPIURLInfo(u *url.URL, cfg *StoreInspectorConfig, sl logger.Logger) (*StoreResolveAPIURLInfo, error) {
+	if err := checkRequestURL(cfg, u, sl); err != nil {
 		return nil, err
 	}
 
@@ -95,8 +95,8 @@ type StoreTransformsAPIURLInfo struct {
 	WorkspaceID string
 }
 
-func NewStoreTransformsAPIURLInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreTransformsAPIURLInfo, error) {
-	if err := checkRequestURL(cfg, u, slog); err != nil {
+func NewStoreTransformsAPIURLInfo(u *url.URL, cfg *StoreInspectorConfig, sl logger.Logger) (*StoreTransformsAPIURLInfo, error) {
+	if err := checkRequestURL(cfg, u, sl); err != nil {
 		return nil, err
 	}
 
@@ -116,8 +116,8 @@ type StoreAppMediaURLInfo struct {
 	Filename string
 }
 
-func NewStoreAppMediaURLInfo(u *url.URL, cfg *StoreInspectorConfig, slog logger.Logger) (*StoreAppMediaURLInfo, error) {
-	if err := checkRequestURL(cfg, u, slog); err != nil {
+func NewStoreAppMediaURLInfo(u *url.URL, cfg *StoreInspectorConfig, sl logger.Logger) (*StoreAppMediaURLInfo, error) {
+	if err := checkRequestURL(cfg, u, sl); err != nil {
 		return nil, err
 	}
 
