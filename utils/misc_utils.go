@@ -25,7 +25,7 @@ import (
 	"os"
 )
 
-// ServerIP returns the server IP addres from request r.
+// ServerIP returns the server IP address from request r.
 func ServerIP(r *http.Request) string {
 	localAddr, ok := r.Context().Value(http.LocalAddrContextKey).(net.Addr)
 	if !ok {
