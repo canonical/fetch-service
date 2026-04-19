@@ -33,6 +33,8 @@ import (
 	"github.com/canonical/fetch-service/service/messages"
 )
 
+var socketPath string
+
 type OperationRequest struct {
 	Operation    string `json:"operation"`
 	Type         string `json:"type,omitempty"`
@@ -139,5 +141,8 @@ func (cs *Server) Err() error {
 }
 
 func SocketPath() string {
-	return filepath.Join(os.TempDir(), "fetchctl.socket")
+	if socketPath == "" {
+		socketPath = filepath.Join(os.TempDir(), "fetchctl.socket")
+	}
+	return socketPath
 }
