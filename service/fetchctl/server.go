@@ -26,6 +26,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"gopkg.in/tomb.v2"
 
@@ -33,7 +34,10 @@ import (
 	"github.com/canonical/fetch-service/service/messages"
 )
 
-var socketPath string
+var (
+	socketPath string
+	once       sync.Once
+)
 
 type OperationRequest struct {
 	Operation    string `json:"operation"`
@@ -141,8 +145,8 @@ func (cs *Server) Err() error {
 }
 
 func SocketPath() string {
-	if socketPath == "" {
+	once.Do(func() {
 		socketPath = filepath.Join(os.TempDir(), "fetchctl.socket")
-	}
+	})
 	return socketPath
 }
