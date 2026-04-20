@@ -145,6 +145,7 @@ func (ins *DebInspector) readDebMetadata(f io.Reader, md *ArtifactMetadata, sl l
 			if err != nil {
 				return err
 			}
+			defer zf.Close()
 			if err = ins.parseControlTar(zf, md); err != nil {
 				return err
 			}
@@ -173,6 +174,7 @@ func (ins *DebInspector) readDebMetadata(f io.Reader, md *ArtifactMetadata, sl l
 			if err != nil {
 				return err
 			}
+			defer zf.Close()
 			if err = ins.parseDataTar(zf, md, sl); err != nil {
 				return err
 			}
