@@ -148,6 +148,10 @@ func (ins *DebInspector) readDebMetadata(f io.Reader, md *ArtifactMetadata, sl l
 			if err = ins.parseControlTar(zf, md); err != nil {
 				return err
 			}
+		case "control.tar":
+			if err = ins.parseControlTar(af, md); err != nil {
+				return err
+			}
 		case "data.tar.gz":
 			zf, err := gzip.NewReader(af)
 			if err != nil {
@@ -170,6 +174,10 @@ func (ins *DebInspector) readDebMetadata(f io.Reader, md *ArtifactMetadata, sl l
 				return err
 			}
 			if err = ins.parseDataTar(zf, md, sl); err != nil {
+				return err
+			}
+		case "data.tar":
+			if err = ins.parseDataTar(af, md, sl); err != nil {
 				return err
 			}
 		}
