@@ -273,6 +273,11 @@ var readDebMetadataTests = []readDebMetadataTest{{
 	name:     "",
 	version:  "",
 	errMsg:   "cannot read name and version from control metadata",
+}, {
+	filename: "testdata/hello_2.10-4_amd64.deb", // deb has uncompressed control and data
+	name:     "hello",
+	version:  "2.10-1", // version is 2.10-1 because the deb file was renamed but contents not changed
+	errMsg:   "",
 }}
 
 func (s *debSuite) TestReadDebMetadata(c *C) {
