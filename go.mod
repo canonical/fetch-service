@@ -4,7 +4,7 @@ go 1.25.9
 
 require (
 	github.com/BurntSushi/toml v1.6.0
-	github.com/CalebQ42/squashfs v1.0.4
+	github.com/CalebQ42/squashfs v1.4.1
 	github.com/ProtonMail/go-crypto v1.4.1
 	github.com/PuerkitoBio/purell v1.2.1
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
@@ -27,7 +27,8 @@ require (
 	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/pierrec/lz4/v4 v4.1.21 // indirect
+	github.com/mikelolasagasti/xz v1.0.1 // indirect
+	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/rasky/go-lzo v0.0.0-20200203143853-96a758eda86e // indirect
 	github.com/therootcompany/xz v1.0.1 // indirect
 	github.com/ulikunitz/xz v0.5.15 // indirect
