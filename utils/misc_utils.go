@@ -20,6 +20,7 @@
 package utils
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -43,7 +44,7 @@ func ServerIP(r *http.Request) string {
 func ClientIP(r *http.Request) string {
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		return r.RemoteAddr
+		return fmt.Sprintf("%s (%s)", err, r.RemoteAddr)
 	}
 	return ip
 }

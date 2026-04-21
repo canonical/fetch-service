@@ -72,7 +72,7 @@ var clientIPTests = []clientIPTest{{
 	expected:   "2001:db8::1",
 }, {
 	remoteAddr: "invalid",
-	expected:   "invalid",
+	expected:   "address invalid: missing port in address (invalid)",
 }}
 
 func (t *miscUtilsSuite) TestClientIP(c *C) {
