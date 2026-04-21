@@ -141,11 +141,19 @@ func (ins *DebInspector) readDebMetadata(f io.Reader, md *ArtifactMetadata, sl l
 				return err
 			}
 		case "control.tar.zst", "control.tar.zstd":
-			zf, err := zstd.NewReader(af, zstd.WithDecoderConcurrency(1))
+			err = func() error {
+				zf, err := zstd.NewReader(af, zstd.WithDecoderConcurrency(1))
+				if err != nil {
+					return err
+				}
+				defer zf.Close()
+				return ins.parseControlTar(zf, md)
+			}()
 			if err != nil {
 				return err
 			}
-			if err = ins.parseControlTar(zf, md); err != nil {
+		case "control.tar":
+			if err = ins.parseControlTar(af, md); err != nil {
 				return err
 			}
 		case "data.tar.gz":
@@ -165,11 +173,19 @@ func (ins *DebInspector) readDebMetadata(f io.Reader, md *ArtifactMetadata, sl l
 				return err
 			}
 		case "data.tar.zst", "data.tar.zstd":
-			zf, err := zstd.NewReader(af, zstd.WithDecoderConcurrency(1))
+			err = func() error {
+				zf, err := zstd.NewReader(af, zstd.WithDecoderConcurrency(1))
+				if err != nil {
+					return err
+				}
+				defer zf.Close()
+				return ins.parseDataTar(zf, md, sl)
+			}()
 			if err != nil {
 				return err
 			}
-			if err = ins.parseDataTar(zf, md, sl); err != nil {
+		case "data.tar":
+			if err = ins.parseDataTar(af, md, sl); err != nil {
 				return err
 			}
 		}
