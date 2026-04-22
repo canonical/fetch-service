@@ -1,5 +1,5 @@
 .. meta::
-    :description: Security considerations on the Fetch Service's operation.
+    :description: Overview of the security of the Fetch Service, covering implementation specifics such as cryptography and certificates.
 
 .. _explanation-security:
 
