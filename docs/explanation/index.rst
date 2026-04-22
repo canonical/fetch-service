@@ -4,6 +4,6 @@ Explanation
 ***********
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
-    Cryptographic technology <cryptography>
+    Security <security>

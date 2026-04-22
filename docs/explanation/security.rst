@@ -1,14 +1,24 @@
-.. _explanation-cryptographic-technology:
+.. meta::
+    :description: Security considerations on the Fetch Service's operation.
 
-Cryptographic technology in the Fetch Service
-=============================================
+.. _explanation-security:
+
+Fetch Service security
+======================
 
 The Fetch Service is a proxy server that inspects and authorizes requests to remote
-servers and the responses to those requests. Each component in this architecture
-makes use of cryptographic processes.
+servers and the responses to those requests. This document describes security considerations
+for the overall production and its individual components.
+
+.. _explanation-cryptographic-technology:
+
+Cryptographic technology
+------------------------
+
+Each component in the Fetch Service's architecture makes use of cryptographic processes.
 
 Server certificate
-------------------
+~~~~~~~~~~~~~~~~~~
 
 The Fetch Service makes use of a `X.509 certificate`_ to set up the proxy server and
 inspect HTTPS requests from clients. The service can use any correctly-configured
@@ -18,7 +28,7 @@ makes use of the certificate during its operation through the standard `crypto/t
 `crypto/x509`_ Go packages.
 
 Proxy server sessions
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 The Fetch Service uses the `elazarl/goproxy`_ library to implement the proxy server. Before
 handling client requests, the client must first ask the service to create a session, which
@@ -28,7 +38,7 @@ requests. This token is an alphanumeric value generated with the standard `math/
 Go package.
 
 Response processing
--------------------
+~~~~~~~~~~~~~~~~~~~
 
 The type of processing performed on remote server responses depends on the nature of
 the response. What's relevant here is the handling of responses from Apt
