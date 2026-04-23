@@ -17,7 +17,11 @@ html_context = {
 # Add extensions
 extensions = [
     "canonical_sphinx",
+    "sphinxext.rediraffe",
 ]
 
 github_username = "canonical"
 github_repository = "fetch-service"
+
+# Client-side page redirects.
+rediraffe_redirects = "redirects.txt"
