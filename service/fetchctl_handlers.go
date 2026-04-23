@@ -22,9 +22,11 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/canonical/fetch-service/logger"
+	"github.com/canonical/fetch-service/seclog"
 	"github.com/canonical/fetch-service/service/config"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
@@ -34,6 +36,11 @@ import (
 )
 
 func handleFetchCtl(v messages.FetchCtl, svc *Service) messages.FetchCtlResult {
+	seclog.AuthzAdmin(&seclog.EventData{
+		User:     "fetchctl",
+		Identity: "fetchctl",
+	}, strings.ReplaceAll(v.Operation, "-", "_"))
+
 	switch v.Operation {
 	case "version":
 		return messages.FetchCtlResult{
@@ -129,6 +136,12 @@ func fetchCtlCreateSession(v messages.FetchCtl, svc *Service) messages.FetchCtlR
 
 	logger.Infof("service: session %s created", s.ID)
 	svc.totalSessions++
+
+	seclog.AuthnTokenCreated(&seclog.EventData{
+		User:     s.ID,
+		Identity: "fetchctl",
+	})
+
 	return messages.FetchCtlResult{
 		Status:  "ok",
 		Message: fmt.Sprintf("session %s:%s created (%s)", s.ID, s.Token, s.Metadata().Policy),

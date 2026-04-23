@@ -7,10 +7,12 @@ environment:
 prepare: |
   snap stop fetch-service
   rm -f ./*.json ./*.deb
+  rm -f /var/snap/fetch-service/common/log/security.log
 
 restore: |
   snap stop fetch-service
   rm -f ./*.json ./*.deb
+  rm -f /var/snap/fetch-service/common/log/security.log
 
 execute: |
   snap start fetch-service
@@ -35,6 +37,9 @@ execute: |
   else
       test ! -f hello_2.10-3build2_amd64.deb
   fi
+
+  grep sys_start /var/snap/fetch-service/common/log/security.log
+  grep authn_login_success: /var/snap/fetch-service/common/log/security.log
 
   # download it again
 

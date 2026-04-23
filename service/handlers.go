@@ -68,7 +68,7 @@ func handleMessages(svc *Service, msg interface{}) {
 		handleDeleteResources(v, svc.opt.Spool)
 
 	case messages.ProxyAuth:
-		v.Rch <- session.CheckAuth(v.ID, v.Pw)
+		v.Rch <- session.CheckAuth(v.ID, v.Pw, v.HostIP, v.ClientIP, v.Agent)
 
 	case messages.FetchCtl:
 		logger.Infof("service: fetchctl operation: %s", v.Operation)

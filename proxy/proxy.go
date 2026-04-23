@@ -83,7 +83,14 @@ func NewHTTPProxy(port int, spool string, cert, key []byte, ch chan interface{})
 	basicAuth := func(req *http.Request, user, passwd string) bool {
 		req.Header.Set(sessionIDHeader, user)
 		rch := make(chan bool)
-		ch <- messages.ProxyAuth{Rch: rch, ID: user, Pw: passwd}
+		ch <- messages.ProxyAuth{
+			Rch:      rch,
+			ID:       user,
+			Pw:       passwd,
+			HostIP:   utils.ServerIP(req),
+			ClientIP: utils.ClientIP(req),
+			Agent:    req.UserAgent(),
+		}
 		return <-rch
 	}
 

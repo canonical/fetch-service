@@ -27,6 +27,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/canonical/fetch-service/seclog"
 	"github.com/canonical/fetch-service/secrets"
 	"github.com/gorilla/mux"
 	"gopkg.in/tomb.v2"
@@ -39,9 +40,9 @@ import (
 
 // Parameters for session creation
 type createSessionParameters struct {
-	Timeout          uint64                         `json:"timeout"`                  // Session timeout in seconds
-	Policy           string                         `json:"policy"`                   // Session policy ("strict" or "permissive")
-	Secrets          []secrets.Secret               `json:"secrets"`                  // Session secrets
+	Timeout          uint64                          `json:"timeout"`                  // Session timeout in seconds
+	Policy           string                          `json:"policy"`                   // Session policy ("strict" or "permissive")
+	Secrets          []secrets.Secret                `json:"secrets"`                  // Session secrets
 	InspectorsConfig config.OverrideInspectorsConfig `json:"inspectors-configuration"` // Session inspectors configuration
 }
 
@@ -161,6 +162,15 @@ func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user, _, _ := r.BasicAuth()
+	seclog.AuthnTokenCreated(&seclog.EventData{
+		User:     cred.ID,           // the session ID
+		HostIP:   utils.ServerIP(r), // the server IP address
+		ClientIP: utils.ClientIP(r), // the controller IP address
+		Identity: user,              // the authenticated controller user
+		Agent:    r.UserAgent(),     // the client agent
+	})
+
 	j, err := json.Marshal(cred)
 	if err != nil {
 		internalServerError(w, r)
@@ -200,6 +210,14 @@ func (c *Server) deleteSessionToken(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	seclog.AuthnTokenRevoked(&seclog.EventData{
+		User:     id,                // the session ID
+		HostIP:   utils.ServerIP(r), // the server IP address
+		ClientIP: utils.ClientIP(r), // the controller IP address
+		Agent:    r.UserAgent(),     // the client agent
+		Reason:   "Proxy access disabled",
+	})
 
 	j, err := json.Marshal(res)
 	if err != nil {
@@ -275,6 +293,16 @@ func (c *Server) deleteSession(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	user, _, _ := r.BasicAuth()
+	seclog.AuthnTokenDelete(&seclog.EventData{
+		User:     id,                // the session ID
+		HostIP:   utils.ServerIP(r), // the server IP address
+		ClientIP: utils.ClientIP(r), // the controller IP address
+		Identity: user,              // the authenticated controller user
+		Agent:    r.UserAgent(),     // the client agent
+		Reason:   "end of session",  // reason for token deletion
+	})
 }
 
 func (c *Server) deleteResources(w http.ResponseWriter, r *http.Request) {
@@ -317,10 +345,22 @@ func (c *Server) checkAuth(w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 
+	ev := &seclog.EventData{
+		User:     c.user,
+		HostIP:   utils.ServerIP(r),
+		ClientIP: utils.ClientIP(r),
+		Agent:    r.UserAgent(),
+	}
+
 	if user != c.user || pw != c.pw {
 		unauthorized(w, r)
+		ev.Reason = "Invalid credentials"
+		seclog.AuthnLoginFail(ev)
 		return false
 	}
+
+	ev.Identity = c.user
+	seclog.AuthnLoginSuccess(ev)
 
 	return true
 }

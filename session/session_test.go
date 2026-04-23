@@ -212,8 +212,8 @@ func (t *sessionSuite) TestCheckAuth(c *C) {
 	s := session.New("", 0, true, nil, config.OverrideInspectorsConfig{})
 	defer s.Discard()
 
-	c.Assert(session.CheckAuth("foo", "bar"), Equals, false)
-	c.Assert(session.CheckAuth(s.ID, s.Token), Equals, true)
+	c.Assert(session.CheckAuth("foo", "bar", "1.2.3.4", "5.6.7.8", "agent"), Equals, false)
+	c.Assert(session.CheckAuth(s.ID, s.Token, "1.2.3.4", "5.6.7.8", "agent"), Equals, true)
 }
 
 func (t *sessionSuite) TestAddMetadata(c *C) {

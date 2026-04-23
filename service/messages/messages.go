@@ -30,9 +30,12 @@ import (
 
 // ProxyAuth contains credentials for basic authentication.
 type ProxyAuth struct {
-	Rch chan bool // return channel
-	ID  string    // user (session id)
-	Pw  string    // password
+	Rch      chan bool // return channel
+	ID       string    // user (session id)
+	Pw       string    // password
+	HostIP   string    // server IP address
+	ClientIP string    // client IP address
+	Agent    string    // client agent header
 }
 
 // Service status
@@ -109,11 +112,13 @@ type SessionCredentials struct {
 }
 
 type CreateSession struct {
-	Rch              chan SessionCredentials        // Handler response channel
-	Timeout          uint64                         // Session timeout in seconds
-	Policy           string                         // Session policy (strict or permissive)
-	Secrets          []secrets.Secret               // Secrets for the session
+	Rch              chan SessionCredentials         // Handler response channel
+	Timeout          uint64                          // Session timeout in seconds
+	Policy           string                          // Session policy (strict or permissive)
+	Secrets          []secrets.Secret                // Secrets for the session
 	InspectorsConfig config.OverrideInspectorsConfig // Session inspectors configuration
+	ClientIP         string                          // The client requesting the session creation
+	Agent            string                          // The agent used by the client
 }
 
 func NewCreateSession(policy string, timeout uint64, secrets []secrets.Secret, inspectorsConfig config.OverrideInspectorsConfig) CreateSession {

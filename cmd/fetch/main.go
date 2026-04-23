@@ -24,13 +24,18 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
+	"runtime/debug"
+	"strings"
 	"syscall"
 
 	"github.com/jessevdk/go-flags"
+	"golang.org/x/sys/unix"
 
 	"github.com/canonical/fetch-service/cmd/fetchctl"
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/profile"
+	"github.com/canonical/fetch-service/seclog"
 	"github.com/canonical/fetch-service/service"
 	"github.com/canonical/fetch-service/version"
 )
@@ -81,6 +86,9 @@ type CmdlineOptions struct {
 
 	// Specify the path to the log file
 	LogFile string `long:"log-file" description:"Log to this file instead of standard out"`
+
+	// Specify the path to the security log file
+	SecLog string `long:"security-log-file" description:"Log security events to this file"`
 }
 
 var opts CmdlineOptions
@@ -113,6 +121,14 @@ func Run() int {
 	logger.Infof("Version %s", version.Version)
 	logger.Debug("Running in debug mode")
 
+	if opts.SecLog != "" {
+		if err := seclog.Init(opts.SecLog); err != nil {
+			printf("error: %v", err)
+			return 1
+		}
+		defer seclog.Close()
+	}
+
 	// Start continuous profiling server
 	pp := profile.NewProfiler(opts.ProfilePort)
 	if opts.Profile {
@@ -120,6 +136,8 @@ func Run() int {
 	}
 
 	svcOpts := getServiceOptions(opts)
+
+	seclog.SysStart(&seclog.EventData{}, policyMode(opts))
 
 	svc, err := service.New(svcOpts)
 	if err != nil {
@@ -135,35 +153,43 @@ func Run() int {
 	signal.Notify(cs, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGUSR1)
 
 	status := 0
+	reason := ""
+
 loop:
 	for {
 		select {
 		case sig := <-cs:
 			if sig == syscall.SIGUSR1 {
 				logger.Reopen()
+				seclog.Reopen()
 				continue
 			}
 			logger.Infof("Exiting on %s signal.\n", sig)
 			if sysSig, ok := sig.(syscall.Signal); ok {
 				status = 128 + int(sysSig)
+				reason = fmt.Sprintf("%s received", unix.SignalName(sysSig))
 			} else {
 				status = 128
+				reason = sig.String()
 			}
 			break loop
 
 		case <-svc.Dying():
 			if err := svc.Err(); err != nil {
-				logger.Errorf("Server error: %s", err)
+				reason = fmt.Sprintf("Server error: %s", err)
+				logger.Error(reason)
 				status = 2
 			} else {
 				// something called Stop()
-				logger.Info("Server exiting!")
+				reason = "Server stopped"
+				logger.Info(reason)
 			}
 			break loop
 
 		case <-pp.Dying():
 			// profiling server died
-			logger.Errorf("Profiling error: %s", pp.Err())
+			reason = fmt.Sprintf("Profiling error: %s", pp.Err())
+			logger.Error(reason)
 			status = 3
 		}
 	}
@@ -171,6 +197,8 @@ loop:
 	if err := svc.Stop(); err != nil {
 		logger.Fatalf("error: %s", err)
 	}
+
+	seclog.SysShutdown(&seclog.EventData{Reason: reason})
 
 	return status
 }
@@ -220,11 +248,52 @@ func getServiceOptions(opts CmdlineOptions) *service.Options {
 
 }
 
+func policyMode(opts CmdlineOptions) string {
+	if opts.PermissiveMode {
+		return "permissive-allowed"
+	}
+	return "strict-only"
+}
+
 func main() {
 	cmd := filepath.Base(os.Args[0])
 	if cmd == "fetchctl" || cmd == "fetch-service.fetchctl" {
 		os.Exit(fetchctl.Run())
 	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			stack := debug.Stack()
+			var description string
+			var event string
+
+			switch err := r.(type) {
+			case runtime.Error:
+				description = err.Error()
+
+				msg := err.Error()
+				if strings.Contains(msg, "nil pointer dereference") {
+					event = "nil_pointer_dereference"
+				} else if strings.Contains(msg, "out of range") {
+					event = "index_out_of_bounds"
+				} else {
+					event = "runtime_error"
+				}
+			case error:
+				description = err.Error()
+				event = "panic"
+			default:
+				description = fmt.Sprintf("%v", r)
+				event = "other"
+			}
+
+			seclog.SysCrash(&seclog.EventData{}, event, description, stack)
+
+			fmt.Fprintf(os.Stderr, "panic: %v\n\n", r)
+			os.Stderr.Write(debug.Stack())
+			os.Exit(2)
+		}
+	}()
 
 	os.Exit(Run())
 }

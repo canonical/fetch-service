@@ -38,6 +38,7 @@ import (
 	"github.com/canonical/fetch-service/metadata"
 	"github.com/canonical/fetch-service/metadata/digests"
 	"github.com/canonical/fetch-service/metadata/opinions"
+	"github.com/canonical/fetch-service/seclog"
 	"github.com/canonical/fetch-service/service/config"
 	"github.com/canonical/fetch-service/utils"
 	"github.com/canonical/fetch-service/version"
@@ -372,15 +373,32 @@ var (
 )
 
 // CheckAuth verifies if the given credentials are valid and match an active session.
-func CheckAuth(id string, pw string) bool {
+func CheckAuth(id, pw, hostIP, clientIP, agent string) bool {
 	s := sessions.Get(id)
 	if s == nil {
 		return false
 	}
+
+	ev := &seclog.EventData{
+		User:     id,
+		Identity: id,
+		HostIP:   hostIP,
+		ClientIP: clientIP,
+		Agent:    agent,
+	}
+
 	if s.revoked {
+		seclog.AuthnTokenReuse(ev)
 		return false
 	}
-	return s.Token == pw
+
+	if s.Token != pw {
+		seclog.AuthnLoginFail(ev)
+		return false
+	}
+
+	seclog.AuthnLoginSuccess(ev)
+	return true
 }
 
 // GetSession returns the session corresponding to the given session ID.
