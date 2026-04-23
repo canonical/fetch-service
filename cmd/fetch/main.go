@@ -126,6 +126,7 @@ func Run() int {
 			printf("error: %v", err)
 			return 1
 		}
+		defer seclog.Close()
 	}
 
 	// Start continuous profiling server
