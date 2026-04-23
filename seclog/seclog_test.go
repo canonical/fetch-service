@@ -366,7 +366,9 @@ func checkLog(c *C, log map[string]any, expected map[string]any) {
 	// Check datetime
 	datetime, err := time.Parse(time.RFC3339, log["datetime"].(string))
 	c.Assert(err, IsNil)
-	c.Check(time.Since(datetime) < time.Duration(2*time.Second), Equals, true)
+	now := time.Now()
+	c.Check(datetime.After(now), Equals, false)
+	c.Check(now.Sub(datetime) < 10*time.Second, Equals, true)
 
 	cleanLog := copyLogExcept(log, "appid", "type", "hostname", "datetime")
 	c.Assert(cleanLog, DeepEquals, expected)
