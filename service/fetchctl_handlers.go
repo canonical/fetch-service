@@ -28,7 +28,6 @@ import (
 	"github.com/canonical/fetch-service/logger"
 	"github.com/canonical/fetch-service/seclog"
 	"github.com/canonical/fetch-service/service/config"
-	"github.com/canonical/fetch-service/service/fetchctl"
 	"github.com/canonical/fetch-service/service/messages"
 	"github.com/canonical/fetch-service/session"
 	"github.com/canonical/fetch-service/utils"
@@ -38,7 +37,6 @@ import (
 
 func handleFetchCtl(v messages.FetchCtl, svc *Service) messages.FetchCtlResult {
 	seclog.AuthzAdmin(&seclog.EventData{
-		HostIP:   fetchctl.SocketPath(),
 		User:     "fetchctl",
 		Identity: "fetchctl",
 	}, strings.ReplaceAll(v.Operation, "-", "_"))
