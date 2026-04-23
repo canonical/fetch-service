@@ -134,7 +134,7 @@ func AuthnLoginSuccess(ev *EventData) {
 // of failed authentication attempts, such as password spraying, probing, or
 // brute-force attacks.
 func AuthnLoginFail(ev *EventData) {
-	secl.Warn(fmt.Sprintf("User %s authentication fail", ev.User),
+	secl.Warn(fmt.Sprintf("User %s authentication failed", ev.User),
 		"event", fmt.Sprintf("authn_login_fail:%s", ev.User),
 		"host_ip", ev.HostIP,
 		"client_ip", ev.ClientIP,

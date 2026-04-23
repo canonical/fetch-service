@@ -95,7 +95,7 @@ func (t *seclogSuite) TestAuthnLoginFail(c *C) {
 		"host_ip":     "1.1.1.1",
 		"client_ip":   "2.2.2.2",
 		"user_agent":  "TestAgent/007",
-		"description": "User joebob1 authentication fail",
+		"description": "User joebob1 authentication failed",
 		"request_url": "/test/seclog",
 		"reason":      "Something happened",
 	})
