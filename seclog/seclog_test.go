@@ -21,6 +21,7 @@ package seclog_test
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -340,9 +341,13 @@ func parseLog(filename string) []map[string]any {
 	decoder := json.NewDecoder(file)
 
 	// Decode each JSON object in the file
-	for decoder.More() {
+	for {
 		var m map[string]any
-		if err := decoder.Decode(&m); err != nil {
+		err := decoder.Decode(&m)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
 			panic(err)
 		}
 		results = append(results, m)
