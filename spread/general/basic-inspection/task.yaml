@@ -12,7 +12,7 @@ prepare: |
 restore: |
   snap stop fetch-service
   rm -f ./*.json ./*.deb
-  rm /var/snap/fetch-service/common/log/security.log
+  rm -f /var/snap/fetch-service/common/log/security.log
 
 execute: |
   snap start fetch-service
