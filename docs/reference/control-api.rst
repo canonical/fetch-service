@@ -52,6 +52,7 @@ Endpoints
         ],
     }
 
+.. _reference-control-post-session:
 
 ``POST /session``
 ^^^^^^^^^^^^^^^^^

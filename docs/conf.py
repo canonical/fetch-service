@@ -18,6 +18,7 @@ html_context = {
 extensions = [
     "canonical_sphinx",
     "sphinxext.rediraffe",
+    "sphinx_related_links",
 ]
 
 github_username = "canonical"
