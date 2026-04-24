@@ -13,6 +13,9 @@ adopt-info: fetch
 platforms:
   amd64:
   arm64:
+  s390x:
+  riscv64:
+  ppc64el:
 
 apps:
   # licensecheck app here for debugging.
