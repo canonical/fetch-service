@@ -65,7 +65,7 @@ the following types of credentials are supported:
 
 * The Basic HTTP Authentication Scheme. This is the standard "user and password" scheme
   and is typically used when accessing remote Git repositories.
-* Macaroons, which are special Cookies used by the Snap Store.
+* Macaroons, which are special bearer tokens used by the Snap Store.
 
 Each provided credential is paired with a match pattern for a web URL, which can contain
 wildcards. When processing a request, the Fetch Service will inject the credential if the
