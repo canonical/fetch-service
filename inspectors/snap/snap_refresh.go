@@ -53,14 +53,19 @@ func (ins *SnapRefreshInspector) InspectRequest(a RequestArtifact) error {
 	return nil // we don't recognize this request
 }
 
+type snapData struct {
+	Version  string `json:"version"`
+	Revision int    `json:"revision"`
+}
+
 type snapRefreshItem struct {
-	EffectiveChannel string         `json:"effective-channel"`
-	InstanceKey      string         `json:"instance-key"`
-	Name             string         `json:"name"`
-	ReleasedAt       string         `json:"released-at"`
-	Result           string         `json:"result"`
-	Snap             map[string]any `json:"snap"`
-	SnapID           string         `json:"snap-id"`
+	EffectiveChannel string   `json:"effective-channel"`
+	InstanceKey      string   `json:"instance-key"`
+	Name             string   `json:"name"`
+	ReleasedAt       string   `json:"released-at"`
+	Result           string   `json:"result"`
+	Snap             snapData `json:"snap"`
+	SnapID           string   `json:"snap-id"`
 }
 
 type snapRefreshBody struct {
@@ -88,10 +93,12 @@ func (ins *SnapRefreshInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		})
 		a.SetResponseApproved(ins, "valid snap API refresh endpoint response").Annotate(
 			Annotation{
-				"name":    b.Results[0].Name,
-				"channel": b.Results[0].EffectiveChannel,
-				"result":  b.Results[0].Result,
-				"snap-id": b.Results[0].SnapID,
+				"name":     b.Results[0].Name,
+				"version":  b.Results[0].Snap.Version,
+				"revision": b.Results[0].Snap.Revision,
+				"channel":  b.Results[0].EffectiveChannel,
+				"result":   b.Results[0].Result,
+				"snap-id":  b.Results[0].SnapID,
 			})
 	}
 

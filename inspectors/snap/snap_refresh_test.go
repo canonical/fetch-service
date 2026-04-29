@@ -91,10 +91,12 @@ func (s *snapSuite) TestSnapRefreshArtifactInspector(c *C) {
 	c.Check(a.Metadata.Size, Equals, int64(3330))
 	c.Check(a.Metadata.Description, Equals, "Snap store response for refresh request")
 	c.Check(a.ResponseInspection["snap.refresh"].Annotations, DeepEquals, Annotation{
-		"name":    "go",
-		"channel": "stable",
-		"result":  "install",
-		"snap-id": "Md1HBASHzP4i0bniScAjXGnOII9cEK6e",
+		"name":     "go",
+		"version":  "1.22.5",
+		"revision": 10660,
+		"channel":  "stable",
+		"result":   "install",
+		"snap-id":  "Md1HBASHzP4i0bniScAjXGnOII9cEK6e",
 	})
 }
 
