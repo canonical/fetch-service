@@ -23,6 +23,8 @@ execute: |
   sleep 5  # give some time for the service to start
   fetch-service.fetchctl version
 
+  ss -ltnp
+
   # start upstream proxy
   rm -f /var/log/tinyproxy/tinyproxy.log
   chown tinyproxy /var/log/tinyproxy
