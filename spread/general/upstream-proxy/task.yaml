@@ -23,15 +23,16 @@ execute: |
   sleep 5  # give some time for the service to start
   fetch-service.fetchctl version
 
-  ss -ltnp
-
   # start upstream proxy
   rm -f /var/log/tinyproxy/tinyproxy.log
   chown tinyproxy /var/log/tinyproxy
   sed -i 's/^Port [0-9]+/Port 7788/' /etc/tinyproxy/tinyproxy.conf
+  cat /etc/tinyproxy/tinyproxy.conf
   systemctl restart tinyproxy
   sleep 2
   cat /var/log/tinyproxy/tinyproxy.log
+  ss -ltnp
+
 
   # create session
   read -r session_id token < <(create_session permissive)
