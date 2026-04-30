@@ -26,8 +26,8 @@ execute: |
   # start upstream proxy
   rm -f /var/log/tinyproxy/tinyproxy.log
   chown tinyproxy /var/log/tinyproxy
-  sed -i 's/^Port [0-9]+/Port 7788/' /etc/tinyproxy/tinyproxy.conf
-  cat /etc/tinyproxy/tinyproxy.conf
+  sed -i 's/^Port [0-9][0-9]*/Port 7788/' /etc/tinyproxy/tinyproxy.conf
+  grep ^Port /etc/tinyproxy/tinyproxy.conf
   systemctl restart tinyproxy
   sleep 2
   cat /var/log/tinyproxy/tinyproxy.log
