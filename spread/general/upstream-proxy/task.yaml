@@ -16,8 +16,8 @@ execute: |
   # shellcheck disable=SC1091
   . ../../utils.sh
 
-  snap set fetch-service upstream-proxy.http="http://localhost:8888"
-  snap set fetch-service upstream-proxy.https="http://localhost:8888"
+  snap set fetch-service upstream-proxy.http="http://localhost:8877"
+  snap set fetch-service upstream-proxy.https="http://localhost:8877"
   snap set fetch-service upstream-proxy.bypass="google.com,*.google.com"
   snap start fetch-service
   sleep 5  # give some time for the service to start
@@ -28,6 +28,7 @@ execute: |
   # start upstream proxy
   rm -f /var/log/tinyproxy/tinyproxy.log
   chown tinyproxy /var/log/tinyproxy
+  sed -i 's/^Port [0-9]+/Port 7788/' /etc/tinyproxy/tinyproxy.conf
   systemctl restart tinyproxy
   sleep 2
   cat /var/log/tinyproxy/tinyproxy.log
