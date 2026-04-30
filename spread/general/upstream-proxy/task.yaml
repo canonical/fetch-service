@@ -27,6 +27,8 @@ execute: |
   rm -f /var/log/tinyproxy/tinyproxy.log
   chown tinyproxy /var/log/tinyproxy
   systemctl restart tinyproxy
+  sleep 2
+  cat /var/log/tinyproxy/tinyproxy.log
 
   # create session
   read -r session_id token < <(create_session permissive)
