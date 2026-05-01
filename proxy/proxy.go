@@ -145,11 +145,17 @@ func (p *HTTPProxy) Start() error {
 // Stop shuts down the proxy.
 func (p *HTTPProxy) Stop() error {
 	logger.Infof("Shutting down the HTTP proxy...")
+	// Close unblocks Serve, then Wait ensures the serving goroutine has exited.
 	if err := p.srv.Close(); err != nil {
 		return err
 	}
-	if err := p.tomb.Wait(); err != nil {
-		return err
+	p.tomb.Kill(nil)
+
+	// Wait for goroutine cleanup if Start was called. Discard the tomb error
+	// here — if the server failed, the error was already surfaced via
+	// Dying()/Err() through the service dispatcher.
+	if p.srv.Handler != nil {
+		p.tomb.Wait()
 	}
 
 	return nil

@@ -64,6 +64,27 @@ func (t *proxySuite) TestServerError(c *C) {
 	c.Assert(p.Err(), Equals, err)
 }
 
+// TestStopWithoutStart verifies that calling Stop on a proxy that was
+// never started does not panic or hang.
+func (t *proxySuite) TestStopWithoutStart(c *C) {
+	ch := make(chan interface{}, 1)
+	spool := c.MkDir()
+	p, err := proxy.NewHTTPProxy(5566, spool, testutils.ProxyCert, testutils.ProxyKey, ch)
+	c.Assert(err, IsNil)
+
+	done := make(chan error, 1)
+	go func() {
+		done <- p.Stop()
+	}()
+
+	select {
+	case err := <-done:
+		c.Assert(err, IsNil)
+	case <-time.After(5 * time.Second):
+		c.Fatal("Stop() hung on proxy that was never started")
+	}
+}
+
 // Test file transfer using the proxy.
 func (t *proxySuite) TestProxyDownload(c *C) {
 	// start the fetch service proxy

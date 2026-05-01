@@ -117,6 +117,14 @@ func (t *serviceSuite) TestFetchctlServerCrash(c *C) {
 	})
 	defer restorer()
 
+	var ctl *control.Server
+	restorer = service.MockNewControlServer(func(port int, ch chan interface{}, creds string) *control.Server {
+		ctl = control.NewServer(port, ch, creds)
+		return ctl
+	})
+	defer restorer()
+	defer func() { ctl.Stop() }() // nolint:errcheck
+
 	svc, err := service.New(serviceOptionsFixture(c))
 	c.Assert(err, IsNil)
 

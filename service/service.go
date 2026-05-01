@@ -205,6 +205,7 @@ loop:
 		case <-svc.tomb.Dying():
 			return svc.tomb.Err()
 
+		// Any server dying unexpectedly tears down the whole service.
 		case <-svc.ctl.Dying():
 			return svc.ctl.Err()
 
@@ -232,6 +233,8 @@ func (svc *Service) Stop() error {
 	logger.Info("Stopping service...")
 	session.FinishAll()
 
+	// Stop child servers first so their in-flight work can drain before the
+	// main service loop is marked dead.
 	if err := svc.p.Stop(); err != nil {
 		return fmt.Errorf("cannot shut down the HTTP server: %w", err)
 	}
@@ -245,7 +248,7 @@ func (svc *Service) Stop() error {
 	}
 
 	svc.tomb.Kill(nil)
-	return nil
+	return svc.tomb.Wait()
 }
 
 func (svc *Service) Alive() bool {

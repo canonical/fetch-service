@@ -59,6 +59,25 @@ func (t *controlSuite) TestStartStop(c *C) {
 	c.Assert(ctl.Alive(), Equals, false)
 }
 
+// TestStopWithoutStart verifies that calling Stop on a control server that was
+// never started does not panic or hang.
+func (t *controlSuite) TestStopWithoutStart(c *C) {
+	ch := make(chan any, 1)
+	ctl := control.NewServer(18111, ch, "user:password")
+
+	done := make(chan error, 1)
+	go func() {
+		done <- ctl.Stop()
+	}()
+
+	select {
+	case err := <-done:
+		c.Assert(err, IsNil)
+	case <-time.After(5 * time.Second):
+		c.Fatal("Stop() hung on control server that was never started")
+	}
+}
+
 func (t *controlSuite) TestServerError(c *C) {
 	ch := make(chan any, 1)
 	ctl := control.NewServer(18111, ch, "user:password")

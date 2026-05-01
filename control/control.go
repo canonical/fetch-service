@@ -22,6 +22,7 @@ package control
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -95,7 +96,10 @@ func (c *Server) Start() {
 	logger.Infof("control server listening on :%d\n", c.port)
 
 	c.tomb.Go(func() error {
-		return c.server.ListenAndServe()
+		if err := c.server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			return err
+		}
+		return nil
 	})
 }
 
@@ -108,8 +112,16 @@ func (c *Server) Stop() error {
 		return fmt.Errorf("server shutdown error: %s", err)
 	}
 
+	// Mark the tomb dead explicitly so Wait does not depend on the serve loop
+	// being the thing that transitions tomb state.
 	c.tomb.Kill(nil)
 
+	// Wait for goroutine cleanup if Start was called. Discard the tomb error
+	// here — if the server failed (e.g. port conflict), the error was already
+	// surfaced via Dying()/Err() through the service dispatcher.
+	if c.server.Handler != nil {
+		c.tomb.Wait()
+	}
 	return nil
 }
 
