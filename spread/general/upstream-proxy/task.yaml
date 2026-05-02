@@ -16,8 +16,8 @@ execute: |
   # shellcheck disable=SC1091
   . ../../utils.sh
 
-  snap set fetch-service upstream-proxy.http="http://localhost:8877"
-  snap set fetch-service upstream-proxy.https="http://localhost:8877"
+  snap set fetch-service upstream-proxy.http="http://localhost:7788"
+  snap set fetch-service upstream-proxy.https="http://localhost:7788"
   snap set fetch-service upstream-proxy.bypass="google.com,*.google.com"
   snap start fetch-service
   sleep 5  # give some time for the service to start
