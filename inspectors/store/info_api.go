@@ -21,16 +21,17 @@ package store
 
 import (
 	"archive/tar"
+	"crypto/sha3"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"hash"
 	"io"
 	"net/url"
 	"strconv"
 	"sync"
 
 	"github.com/xi2/xz"
-	"golang.org/x/crypto/sha3"
 
 	"github.com/canonical/fetch-service/inspectors/bldbin"
 	bconfig "github.com/canonical/fetch-service/inspectors/bldbin/config"
@@ -320,7 +321,7 @@ func sha3_384Digest(f io.ReadSeeker) (string, error) {
 		return "", err
 	}
 
-	hash := sha3.New384()
+	hash := hash.Hash(sha3.New384())
 	if _, err := io.Copy(hash, f); err != nil {
 		return "", err
 	}
