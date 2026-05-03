@@ -1,26 +1,26 @@
-.. _ref_sourcecraft:
+.. _ref_charmcraft:
 
 .. meta::
-    :description: Reference for the Sourcecraft inspector which verifies source repositories cloned using the git upload-pack protocol.
+    :description: Reference for the Charmcraft inspector which verifies charm source repositories cloned using the git upload-pack protocol.
 
-Sourcecraft inspector
-=========================
+Charmcraft inspector
+====================
 
-Sourcecraft is a Canonical toolchain for source-based builds. Sourcecraft
-source repositories contain a ``sourcecraft.yaml`` manifest that describes
-the project's metadata and build configuration.
+A charm is a software operator built with the Charmcraft toolchain for use
+with Juju. Charm source repositories contain a ``charmcraft.yaml`` manifest
+that describes the charm's name, metadata, and build configuration.
 
-The Sourcecraft inspector checks whether the Git
-repository that was selected for cloning is a valid and trustworthy
-Sourcecraft repository.
+The Charmcraft inspector checks whether the Git repository that was selected
+for cloning is a valid and trustworthy Charmcraft repository.
 
-Once a request is accepted for inspection it downloads and tries to extract the packed content
-of the repository. In the extracted data it looks for the ``sourcecraft.yaml``
-file, which if found is used to extract the metadata of the processed project.
+Once a request is accepted for inspection it downloads and tries to extract
+the packed content of the repository. In the extracted data it looks for the
+``charmcraft.yaml`` file, which if found is used to extract the metadata of
+the processed project.
 
 If the metadata is missing or doesn't properly attest for the code in the
-repository, the proxy rejects the request, protecting the calling machine from
-accessing the code.
+repository, the proxy rejects the request, protecting the calling machine
+from accessing the code.
 
 This inspector must be called after the :doc:`git.upload-pack
 <git_upload_pack>` inspector, and only supports v2 of the `smart transfer
@@ -31,7 +31,7 @@ in Git.
 Inspector ID
 ------------
 
-``craft.sourcecraft``
+``craft.charmcraft``
 
 
 Internal state
@@ -76,7 +76,8 @@ This inspector is configured under the ``crafts`` key in ``inspectors.yaml``.
 Acceptance criteria
 -------------------
 
-A repository is approved if the processed artifact meets all of the following criteria:
+A repository is approved if the processed artifact meets all of the
+following criteria:
 
 * The response's `Content-Type <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type>`_
   HTTP header is ``application/x-git-upload-pack-result``.
@@ -85,8 +86,8 @@ A repository is approved if the processed artifact meets all of the following cr
 * The request is for a single revision.
 * The data is a response to the ``fetch`` upload-pack command.
 * The content can be decoded with v2 of Git's smart transfer protocol.
-* The repository contains a ``sourcecraft.yaml`` file.
-* The ``sourcecraft.yaml`` file is readable and can be decoded as YAML.
+* The repository contains a ``charmcraft.yaml`` file.
+* The ``charmcraft.yaml`` file is readable and contains valid metadata keys.
 
 
 Rejection reasons
@@ -97,32 +98,31 @@ A repository is rejected if any of the following criteria are met:
 * The clone is not
   `shallow <https://git-scm.com/docs/git-clone#Documentation/git-clone.txt-code--depthcodeemltdepthgtem>`_.
 * Multiple Git revisions were requested.
-* The ``sourcecraft.yaml`` file is unreadable.
+* The ``charmcraft.yaml`` file is unreadable.
+* The ``charmcraft.yaml`` file can't be decoded as YAML.
 
-If the repository is missing the ``sourcecraft.yaml`` file,
+If the repository is missing the ``charmcraft.yaml`` file,
 the inspector returns no verdict and defers to subsequent inspectors.
 
 
 Extracted metadata
 ------------------
 
-The following pieces of metadata are extracted by the Sourcecraft inspector:
+The following pieces of metadata are extracted by the Charmcraft inspector:
 
-.. table:: Sourcecraft inspector metadata
+.. table:: Charmcraft inspector metadata
    :widths: auto
 
    ============  ====  ============================================
    Field         Used  Data source
    ============  ====  ============================================
-   type          Yes   ``application/x.canonical.sourcecraft``
-   name          Yes   ``name`` key in ``sourcecraft.yaml``
-   version       Yes   ``version`` key in ``sourcecraft.yaml``
-   description   Yes   ``summary`` key in ``sourcecraft.yaml``
+   type          Yes   ``application/x.canonical.charmcraft``
+   name          Yes   ``name`` key in ``charmcraft.yaml``
+   version
+   description   Yes   ``summary`` key in ``charmcraft.yaml``
    vendor
    author
    author-email
    architecture
-   license       Yes   ``license`` key in ``sourcecraft.yaml``
    content-id    Yes   Fetched Git ref
    ============  ====  ============================================
-

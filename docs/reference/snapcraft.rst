@@ -1,12 +1,23 @@
+.. _ref_snapcraft:
+
+.. meta::
+    :description: Reference for the Snapcraft inspector which verifies snap source repositories cloned using the git upload-pack protocol.
+
 Snapcraft inspector
 ===================
 
-The Snapccraft inspector checks whether the Git repository that was selected for
+Snapcraft is the toolchain for building and packaging snap applications.
+Snapcraft source repositories contain a ``snapcraft.yaml`` manifest (or
+equivalently ``snap/snapcraft.yaml`` or ``build-aux/snap/snapcraft.yaml``)
+that describes the snap's metadata and build configuration.
+
+The Snapcraft inspector checks whether the Git repository that was selected for
 cloning is a valid and trustworthy Snapcraft repository.
 
 Once a request is accepted for inspection it downloads and tries to extract the packed content
 of the repository. In the extracted data it looks for the ``snapcraft.yaml``
-file, which if found is used to extract the metadata of the processed project.
+file (also at ``snap/snapcraft.yaml`` or ``build-aux/snap/snapcraft.yaml``),
+which if found is used to extract the metadata of the processed project.
 
 If the metadata is missing or doesn't properly attest for the code in the
 repository, the proxy rejects the request, protecting the calling machine from
@@ -44,9 +55,24 @@ following criteria:
 * The `Accept <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept>`_
   HTTP header is ``application/x-git-upload-pack-result``.
 
-* The request is a response to the ``fetch`` command.
+* The upload-pack command is ``fetch``.
 
 
+
+Configuration options
+---------------------
+
+This inspector is configured under the ``crafts`` key in ``inspectors.yaml``.
+
+.. list-table::
+   :widths: auto
+   :header-rows: 1
+
+   * - Option
+     - Description
+   * - ``urls``
+     - List of URL glob patterns. Only requests to matching URLs are
+       approved for further inspection.
 
 Acceptance criteria
 -------------------
@@ -58,10 +84,12 @@ A repository is approved if the processed artifact meets all of the following cr
 * The clone is
   `shallow <https://git-scm.com/docs/git-clone#Documentation/git-clone.txt-code--depthcodeemltdepthgtem>`_.
 * The request is for a single revision.
-* The data is a response to the ``fetch`` command.
+* The data is a response to the ``fetch`` upload-pack command.
 * The content can be decoded with v2 of Git's smart transfer protocol.
-* The repository contains a ``snapcraft.yaml`` file.
-* The ``snapcraft.yaml`` file is readable and contains valid metadata keys.
+* The repository contains a ``snapcraft.yaml`` file
+  (at ``snapcraft.yaml``, ``snap/snapcraft.yaml``, or
+  ``build-aux/snap/snapcraft.yaml``).
+* The ``snapcraft.yaml`` file is readable and can be decoded as YAML.
 
 
 Rejection reasons
@@ -73,11 +101,9 @@ A repository is rejected if any of the following criteria are met:
   `shallow <https://git-scm.com/docs/git-clone#Documentation/git-clone.txt-code--depthcodeemltdepthgtem>`_.
 * Multiple Git revisions were requested.
 * The ``snapcraft.yaml`` file is unreadable.
-* The ``snapcraft.yaml`` file doesn't include the required metadata keys.
 
-If the repository is missing the ``snapcraft.yaml`` file, the inspector can't
-determine validity on its own, and redirects the request for the further
-inspection.
+If the repository is missing the ``snapcraft.yaml`` file,
+the inspector returns no verdict and defers to subsequent inspectors.
 
 
 Extracted metadata
@@ -100,6 +126,6 @@ The following pieces of metadata are extracted by the Snapcraft inspector:
    author-email
    architecture
    license       Yes   ``license`` key in ``snapcraft.yaml``
-   copyright
+   content-id    Yes   Fetched Git ref
    ============  ====  ============================================
 

@@ -1,5 +1,15 @@
+.. _ref_sdist:
+
+.. meta::
+    :description: Reference for the Python source distribution inspector which verifies Python sdist archives.
+
 The sdist inspector
 ===================
+
+A Python source distribution (sdist) is a compressed archive of a Python
+package's source code together with a ``PKG-INFO`` metadata file. Sdists
+are published to PyPI-compatible repositories as a source-based alternative
+to pre-built wheel packages.
 
 The sdist inspector examines and extracts metadata from Python sdists, as
 published in the Python Package Index (PyPI).
@@ -12,13 +22,16 @@ Inspector ID
 Internal state
 --------------
 
-None
+None.
 
 Request verification
 --------------------
 
-The current implementation allows downloads from the PyPI archive. This
-will be changed to match an internal repository of binary artifacts.
+The sdist inspector recognizes requests to
+``https://files.pythonhosted.org:443/packages/<hash-prefix>/<name>-<version>-*.tar.gz``.
+
+These requests are marked as unknown (unsupported origin) because
+``files.pythonhosted.org`` is not a configured trusted origin.
 
 File format
 -----------
@@ -28,10 +41,15 @@ To be considered an sdist file, an artifact must meet the following criteria:
 * It must be a gzipped tar archive.
 * It must contain a ``PKG-INFO`` file in the root directory.
 
+Configuration options
+---------------------
+
+None.
+
 Acceptance criteria
 -------------------
 
-In order be approved, the downloaded sdist file must also meet
+To be approved, the downloaded sdist file must also meet
 the following requirements:
 
 * The ``PKG-INFO`` file must contain at least the package name, package
@@ -56,13 +74,13 @@ The following pieces of metadata are extracted by the sdist inspector:
    ============  ====  ============================================
    Field         Used  Data source
    ============  ====  ============================================
+   type          Yes   ``application/x.python.sdist``
    name          Yes   ``PKG-INFO`` field ``name``
    version       Yes   ``PKG-INFO`` field ``version``
    description   Yes   ``PKG-INFO`` field ``summary``
-   vendor        Yes   ``PKG-INFO`` field ``maintainer`` or ``author``
+   vendor        Yes   ``PKG-INFO`` field ``author`` or ``maintainer``
    author        Yes   ``PKG-INFO`` field ``author``
    author-email  Yes   ``PKG-INFO`` field ``author-email``
-   architecture                   
-   license       Yes   ``PKG-INFO`` via licensecheck
-   copyright                   
+   architecture
+   license       Yes   ``PKG-INFO`` using licensecheck
    ============  ====  ============================================

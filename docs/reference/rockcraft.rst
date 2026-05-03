@@ -1,5 +1,14 @@
+.. _ref_rockcraft:
+
+.. meta::
+    :description: Reference for the Rockcraft inspector which verifies rock source repositories cloned using the git upload-pack protocol.
+
 Rockcraft inspector
 ===================
+
+A rock is an OCI-compliant container image built with the Rockcraft
+toolchain. Rock source repositories contain a ``rockcraft.yaml`` manifest
+that describes the rock's name, version, base, and build configuration.
 
 The Rockcraft inspector checks whether the Git
 repository that was selected for cloning is a valid and trustworthy
@@ -45,9 +54,24 @@ following criteria:
 * The `Accept <https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept>`_
   HTTP header is ``application/x-git-upload-pack-result``.
 
-* The request is a response to the ``fetch`` command.
+* The upload-pack command is ``fetch``.
 
 
+
+Configuration options
+---------------------
+
+This inspector is configured under the ``crafts`` key in ``inspectors.yaml``.
+
+.. list-table::
+   :widths: auto
+   :header-rows: 1
+
+   * - Option
+     - Description
+   * - ``urls``
+     - List of URL glob patterns. Only requests to matching URLs are
+       approved for further inspection.
 
 Acceptance criteria
 -------------------
@@ -59,10 +83,10 @@ A repository is approved if the processed artifact meets all of the following cr
 * The clone is
   `shallow <https://git-scm.com/docs/git-clone#Documentation/git-clone.txt-code--depthcodeemltdepthgtem>`_.
 * The request is for a single revision.
-* The data is a response to the ``fetch`` command.
+* The data is a response to the ``fetch`` upload-pack command.
 * The content can be decoded with v2 of Git's smart transfer protocol.
 * The repository contains a ``rockcraft.yaml`` file.
-* The ``rockcraft.yaml`` file is readable and contains valid metadata keys.
+* The ``rockcraft.yaml`` file is readable and can be decoded as YAML.
 
 
 Rejection reasons
@@ -74,11 +98,9 @@ A repository is rejected if any of the following criteria are met:
   `shallow <https://git-scm.com/docs/git-clone#Documentation/git-clone.txt-code--depthcodeemltdepthgtem>`_.
 * Multiple Git revisions were requested.
 * The ``rockcraft.yaml`` file is unreadable.
-* The ``rockcraft.yaml`` file doesn't include the required metadata keys.
 
-If the repository is missing the ``rockcraft.yaml`` file, the inspector can't
-determine validity on its own, and redirects the request for the further
-inspection.
+If the repository is missing the ``rockcraft.yaml`` file,
+the inspector returns no verdict and defers to subsequent inspectors.
 
 
 Extracted metadata
@@ -101,6 +123,6 @@ The following pieces of metadata are extracted by the Rockcraft inspector:
    author-email
    architecture
    license       Yes   ``license`` key in ``rockcraft.yaml``
-   copyright
+   content-id    Yes   Fetched Git ref
    ============  ====  ============================================
 

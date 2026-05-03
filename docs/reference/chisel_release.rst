@@ -1,10 +1,19 @@
+.. _ref_chisel_release:
+
+.. meta::
+    :description: Reference for the Chisel release inspector which verifies the chisel-releases repository tarball.
+
 The Chisel release inspector
 ============================
+
+`Chisel`_ is a tool for slicing Ubuntu packages into minimal filesystem
+components. The `chisel-releases repository`_ defines the available slices
+and their contents, and is distributed as a gzip-compressed tarball.
 
 The Chisel release inspector verifies the `chisel-releases repository`_'s
 tarball download request and response artifact.
 
-`Chisel`_ downloads the tarball via a GET request. The inspector monitors this
+`Chisel`_ downloads the tarball using a GET request. The inspector monitors this
 request and currently only examines the URL and the gzip compressed tarball. It
 checks if the artifact tarball contains the appropriate files.
 
@@ -47,6 +56,29 @@ The Chisel release inspector ensures the downloaded file:
 * Is a gzip compressed tar file.
 * Contains a valid ``chisel.yaml`` file inside.
 
+
+Configuration options
+---------------------
+
+This inspector is configured under both the ``chisel`` and ``apt`` keys in
+``inspectors.yaml``.
+
+``chisel`` options:
+
+.. list-table::
+   :widths: auto
+   :header-rows: 1
+
+   * - Option
+     - Description
+   * - ``urls``
+     - List of URL glob patterns. Only requests to matching URLs are
+       approved for further inspection.
+
+``apt.repositories`` options: each repository entry must include a
+``public-key`` field. The inspector compares these keys with the public
+keys referenced in the ``chisel.yaml`` file. For the full list of
+repository options, see the :doc:`apt.release <apt_release>` inspector.
 
 Acceptance criteria
 -------------------
@@ -93,16 +125,14 @@ The following pieces of metadata are extracted by the Chisel release inspector:
    ============  ====  ============================================
    Field         Used  Data source
    ============  ====  ============================================
-   type          Yes   ``application/x.canonical.chisel.release``
+   type          Yes   ``application/x.canonical.chisel-release``
    name          Yes   ``chisel-release``
-   version       Yes   ``chisel.yaml`` field ``format`` e.g. ``v1``
+   version       Yes   ``chisel.yaml`` field ``format``, for example ``v1``
    description   Yes   ``Chisel release file for <release>``
    vendor        Yes   ``Canonical``
    author
    author-email
    architecture
-   license
-   copyright
    ============  ====  ============================================
 
 
