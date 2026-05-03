@@ -1,7 +1,7 @@
 .. _ref_wheels:
 
 .. meta::
-    :description: Reference for the Python wheel inspector which verifies Python wheel archives.
+    :description: Reference for the Python wheel inspector which verifies Python .whl archives.
 
 The wheel inspector
 ===================

@@ -13,10 +13,6 @@ and their contents, and is distributed as a gzip-compressed tarball.
 The Chisel release inspector verifies the `chisel-releases repository`_'s
 tarball download request and response artifact.
 
-`Chisel`_ downloads the tarball using a GET request. The inspector monitors this
-request and currently only examines the URL and the gzip compressed tarball. It
-checks if the artifact tarball contains the appropriate files.
-
 
 Inspector ID
 ------------

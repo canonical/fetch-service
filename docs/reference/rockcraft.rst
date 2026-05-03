@@ -6,10 +6,6 @@
 Rockcraft inspector
 ===================
 
-A rock is an OCI-compliant container image built with the Rockcraft
-toolchain. Rock source repositories contain a ``rockcraft.yaml`` manifest
-that describes the rock's name, version, base, and build configuration.
-
 The Rockcraft inspector checks whether the Git
 repository that was selected for cloning is a valid and trustworthy
 Rockcraft repository.

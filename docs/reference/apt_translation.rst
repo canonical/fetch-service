@@ -10,9 +10,6 @@ APT translation files provide localised descriptions for packages in an APT
 repository. They are downloaded alongside the Packages file and let
 package managers display package descriptions in the user's language.
 
-The APT translation inspector verifies the APT repository's translation
-files.
-
 This inspector currently only examines the XZ-compressed version of
 the Translation-<lang> files (they are the files downloaded when running
 ``apt update`` on Ubuntu).

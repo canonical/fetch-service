@@ -6,11 +6,6 @@
 Snapcraft inspector
 ===================
 
-Snapcraft is the toolchain for building and packaging snap applications.
-Snapcraft source repositories contain a ``snapcraft.yaml`` manifest (or
-equivalently ``snap/snapcraft.yaml`` or ``build-aux/snap/snapcraft.yaml``)
-that describes the snap's metadata and build configuration.
-
 The Snapcraft inspector checks whether the Git repository that was selected for
 cloning is a valid and trustworthy Snapcraft repository.
 

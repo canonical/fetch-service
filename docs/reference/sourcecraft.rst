@@ -6,10 +6,6 @@
 Sourcecraft inspector
 =========================
 
-Sourcecraft is a Canonical toolchain for source-based builds. Sourcecraft
-source repositories contain a ``sourcecraft.yaml`` manifest that describes
-the project's metadata and build configuration.
-
 The Sourcecraft inspector checks whether the Git
 repository that was selected for cloning is a valid and trustworthy
 Sourcecraft repository.

@@ -6,7 +6,7 @@
 The snap assertion inspector
 =============================
 
-Ubuntu assertions are cryptographically signed documents used in the Snap
+Assertion files are cryptographically signed documents used in the Snap
 platform to certify properties of snaps, snap revisions, publishers, and
 devices. They establish the trust chain that lets ``snapd`` verify the
 authenticity of installed snaps.

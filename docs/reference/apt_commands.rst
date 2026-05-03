@@ -10,9 +10,6 @@ APT Commands files map command names to the packages that provide them.
 They are used by the ``command-not-found`` helper to suggest packages when
 a user runs an unrecognised command.
 
-The APT commands inspector verifies the APT repository's Commands
-files.
-
 This inspector currently only examines the XZ-compressed version of
 the commands-<arch>.xz files.
 

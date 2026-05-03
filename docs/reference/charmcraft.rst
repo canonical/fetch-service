@@ -6,10 +6,6 @@
 Charmcraft inspector
 ====================
 
-A charm is a software operator built with the Charmcraft toolchain for use
-with Juju. Charm source repositories contain a ``charmcraft.yaml`` manifest
-that describes the charm's name, metadata, and build configuration.
-
 The Charmcraft inspector checks whether the Git repository that was selected
 for cloning is a valid and trustworthy Charmcraft repository.
 
