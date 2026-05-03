@@ -26,6 +26,9 @@ prepare: |
   fetch-service.fetchctl version   
 
 execute: |
+  # shellcheck disable=SC1091
+  . ../../utils.sh
+
   if [ -z "${PAT}" ]; then
     echo "Credentials not found; is 'GH_FETCH_SERVICE_TOKEN' set?"
     exit 1
@@ -35,12 +38,8 @@ execute: |
   # matter, but this isn't true for all git hosts.
   creds="craft-test:${PAT}"
   secrets='[{"type": "basic-auth", "url": "https://github.com:443/canonical/fetch-service.git/**", "basic-credentials": "'$creds'"}]'
-  
-  tmpfile=$(mktemp)
-  curl -s -X POST -d '{"policy": "permissive", "secrets": '"$secrets"'}' http://craft:craft@localhost:9999/session | tee "${tmpfile}"
-  session_id=$(jq -r .id "${tmpfile}")
-  token=$(jq -r .token "${tmpfile}")
-  rm "${tmpfile}"
+
+  read -r session_id token < <(create_session permissive "$secrets")
   
   # set up proxy
   export http_proxy="http://${session_id}:${token}@localhost:9988"
@@ -65,10 +64,10 @@ execute: |
   unset https_proxy
   
   # revoke token, get report, and end session
-  curl -sf -X DELETE -d "{\"token\": \"${token}\"}" "http://localhost:9999/session/${session_id}/token"
-  curl -sf "http://craft:craft@localhost:9999/session/${session_id}" | tee session_report.json  
-  curl -sf -X DELETE "http://craft:craft@localhost:9999/session/${session_id}"
-  curl -sf -X DELETE "http://craft:craft@localhost:9999/resources/${session_id}"
+  revoke_token "$session_id" "$token"
+  get_session_report "$session_id" | tee session_report.json
+  delete_session "$session_id"
+  delete_resources "$session_id"
 
 restore: |
   snap stop fetch-service

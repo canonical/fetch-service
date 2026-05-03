@@ -1,11 +1,17 @@
 create_session() (
-    local policy tmpfile session_id token
+    local policy secrets body tmpfile session_id token
     exec 3>&1
     exec 1>&2
 
     policy="$1"
+    secrets="${2:-}"
+    if [ -n "${secrets}" ]; then
+        body='{"policy": "'"${policy}"'", "secrets": '"${secrets}"'}'
+    else
+        body='{"policy": "'"${policy}"'"}'
+    fi
     tmpfile=$(mktemp)
-    curl -s -X POST -d '{"policy": "'"${policy}"'"}' http://craft:craft@localhost:9999/session | tee "${tmpfile}"
+    curl -s -X POST -d "${body}" http://craft:craft@localhost:9999/session | tee "${tmpfile}"
     session_id=$(jq -r .id "${tmpfile}")
     token=$(jq -r .token "${tmpfile}")
     rm "${tmpfile}"
