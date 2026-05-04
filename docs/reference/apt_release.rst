@@ -41,7 +41,9 @@ File format
 
 The APT release inspector ensures the InRelease file:
 
-* Is a GPG-clearsigned text file, signed by the Ubuntu archive ftpmaster.
+* Is a GPG-clearsigned text file, with a signature that verifies using
+  the repository-specific public key configured in
+  ``apt.repositories.<name>.public-key``.
 * Contains the fields ``Origin``, ``Label``, ``Suite``, ``Version``,
   ``Codename``, ``Date``, ``Architectures``, and ``Components``.
 * It contains a ``SHA256`` section containing lines in the format
