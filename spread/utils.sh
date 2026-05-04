@@ -27,7 +27,7 @@ revoke_token() (
     session_id="$1"
     token="$2"
     tmpfile=$(mktemp)
-    curl -s -X DELETE -d "{\"token\": \"${token}\"}" "http://localhost:9999/session/${session_id}/token" | tee "${tmpfile}"
+    curl -sSf -X DELETE -d "{\"token\": \"${token}\"}" "http://localhost:9999/session/${session_id}/token" | tee "${tmpfile}"
     spool_path=$(jq -r '."spool-path"' "${tmpfile}")
     rm "${tmpfile}"
 
@@ -35,12 +35,12 @@ revoke_token() (
 )
 
 get_status() {
-    curl -s http://localhost:9999/status
+    curl -sSf http://localhost:9999/status
 }
 
 get_session_report() {
     local session_id="$1"
-    curl -s "http://craft:craft@localhost:9999/session/${session_id}"
+    curl -sSf "http://craft:craft@localhost:9999/session/${session_id}"
 }
 
 delete_session() {
