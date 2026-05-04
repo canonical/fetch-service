@@ -12,7 +12,7 @@ repository metadata files, allowing clients to verify the integrity of
 downloaded packages.
 
 The APT release inspector examines different types of artifacts. Besides
-the Ubuntu archive InRelease file, it verifies whether Packages.xz, Translation,
+the InRelease file itself, it verifies whether Packages.xz, Translation,
 and Commands files are correctly listed in the InRelease file with a matching
 file digest.
 
@@ -96,11 +96,10 @@ Rejection reasons
 
 The ``InRelease`` file is rejected if:
 
-* The URL doesn't match the Ubuntu archive hosts and file paths.
 * The expected fields are not found.
 * The file entries cannot be parsed.
 
-The ``Packages.xz`, ``Translation-<lang>.xz``, or ``Commands-<arch>.xz``
+The ``Packages.xz``, ``Translation-<lang>.xz``, or ``Commands-<arch>.xz``
 files are rejected if:
 
 * They're downloaded before the repository's ``InRelease`` file.
