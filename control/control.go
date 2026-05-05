@@ -53,12 +53,13 @@ type revokeTokenParameters struct {
 }
 
 type Server struct {
-	server *http.Server
-	port   int
-	ch     chan interface{}
-	user   string
-	pw     string
-	tomb   tomb.Tomb
+	server  *http.Server
+	port    int
+	ch      chan interface{}
+	user    string
+	pw      string
+	tomb    tomb.Tomb
+	started bool
 }
 
 func NewServer(port int, ch chan interface{}, creds string) *Server {
@@ -101,6 +102,7 @@ func (c *Server) Start() {
 		}
 		return nil
 	})
+	c.started = true
 }
 
 func (c *Server) Stop() error {
@@ -121,10 +123,11 @@ func (c *Server) Stop() error {
 	// being the thing that transitions tomb state.
 	c.tomb.Kill(nil)
 
-	// Wait for goroutine cleanup if Start was called. Discard the tomb error
-	// here — if the server failed (e.g. port conflict), the error was already
-	// surfaced via Dying()/Err() through the service dispatcher.
-	if c.server.Handler != nil {
+	// Wait for goroutine cleanup only if Start registered a serving
+	// goroutine. Using c.started rather than c.server.Handler because
+	// Handler is set before tomb.Go — a concurrent Stop() could see
+	// Handler != nil before the goroutine is registered, hanging forever.
+	if c.started {
 		c.tomb.Wait()
 	}
 	return nil
