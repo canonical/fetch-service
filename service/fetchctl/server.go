@@ -136,12 +136,13 @@ func (cs *Server) handleConn(fd net.Conn) {
 		// Avoid deadlock on shutdown while sending request or waiting for reply.
 		select {
 		case cs.ch <- msg:
-			select {
-			case res := <-msg.Rch:
-				reply = buildReply(res.Status, res.Message)
-			case <-cs.tomb.Dying():
-				reply = buildReply("error", "service shutting down")
-			}
+			// The message has been handed to the service dispatcher which
+			// processes it synchronously and always sends a reply. We must
+			// wait for the actual result rather than short-circuiting on
+			// tomb.Dying(), because the operation will complete regardless
+			// and the client should see its true outcome.
+			res := <-msg.Rch
+			reply = buildReply(res.Status, res.Message)
 		case <-cs.tomb.Dying():
 			reply = buildReply("error", "service shutting down")
 		}
