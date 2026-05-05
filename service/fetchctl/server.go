@@ -56,13 +56,14 @@ func buildReply(result, message string) []byte {
 }
 
 type Server struct {
-	ch     chan interface{}
-	tomb   tomb.Tomb
-	ctx    context.Context
-	cancel context.CancelFunc
-	ln     net.Listener
-	mu     sync.Mutex
-	conns  map[net.Conn]struct{}
+	ch      chan interface{}
+	tomb    tomb.Tomb
+	ctx     context.Context
+	cancel  context.CancelFunc
+	ln      net.Listener
+	mu      sync.Mutex
+	conns   map[net.Conn]struct{}
+	stopped bool
 }
 
 func NewServer(ch chan interface{}) *Server {
@@ -113,7 +114,9 @@ func (cs *Server) Start() error {
 }
 
 func (cs *Server) handleConn(fd net.Conn) {
-	cs.addConn(fd)
+	if !cs.addConn(fd) {
+		return
+	}
 	defer cs.removeConn(fd)
 	defer func() {
 		if err := fd.Close(); err != nil {
@@ -150,10 +153,20 @@ func (cs *Server) handleConn(fd net.Conn) {
 	}
 }
 
-func (cs *Server) addConn(fd net.Conn) {
+// addConn registers a connection for shutdown tracking. It returns false if
+// the server is already stopping, in which case it closes fd immediately.
+// This prevents a race where a connection accepted just before ln.Close()
+// could be missed by closeConns() and block the accept goroutine on Decode
+// indefinitely, hanging tomb.Wait().
+func (cs *Server) addConn(fd net.Conn) bool {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
+	if cs.stopped {
+		fd.Close()
+		return false
+	}
 	cs.conns[fd] = struct{}{}
+	return true
 }
 
 func (cs *Server) removeConn(fd net.Conn) {
@@ -164,6 +177,7 @@ func (cs *Server) removeConn(fd net.Conn) {
 
 func (cs *Server) closeConns() {
 	cs.mu.Lock()
+	cs.stopped = true
 	conns := make([]net.Conn, 0, len(cs.conns))
 	for fd := range cs.conns {
 		conns = append(conns, fd)
