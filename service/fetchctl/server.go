@@ -128,6 +128,13 @@ func (cs *Server) handleConn(fd net.Conn) {
 	var reply []byte
 	dec := json.NewDecoder(fd)
 	if err := dec.Decode(&op); err != nil {
+		// If the tomb is dying, the connection was closed deliberately by
+		// closeConns() during shutdown — not a real parse error.
+		select {
+		case <-cs.tomb.Dying():
+			return
+		default:
+		}
 		logger.Errorf("fetchctl: cannot unmarshal operation request: %s", err)
 		reply = buildReply("error", err.Error())
 	} else {
