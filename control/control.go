@@ -109,7 +109,12 @@ func (c *Server) Stop() error {
 	defer cancel()
 
 	if err := c.server.Shutdown(ctx); err != nil {
-		return fmt.Errorf("server shutdown error: %s", err)
+		// If the server already died (for example due to a listen/bind error),
+		// preserve that original failure path and don't turn shutdown into a new
+		// fatal error.
+		if c.tomb.Err() == tomb.ErrStillAlive {
+			return fmt.Errorf("server shutdown error: %s", err)
+		}
 	}
 
 	// Mark the tomb dead explicitly so Wait does not depend on the serve loop

@@ -106,6 +106,7 @@ func (t *controlSuite) TestServerListening(c *C) {
 
 	c.Assert(ctl2.Err(), ErrorMatches, ".* bind: address already in use")
 	c.Assert(ctl2.Alive(), Equals, false)
+	c.Assert(ctl2.Stop(), IsNil)
 }
 
 func (t *controlSuite) TestCreateSession(c *C) {
