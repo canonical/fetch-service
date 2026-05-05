@@ -64,6 +64,7 @@ type Server struct {
 	mu      sync.Mutex
 	conns   map[net.Conn]struct{}
 	stopped bool
+	started bool
 }
 
 func NewServer(ch chan interface{}) *Server {
@@ -109,6 +110,7 @@ func (cs *Server) Start() error {
 		}
 
 	})
+	cs.started = true
 
 	return nil
 }
@@ -212,9 +214,9 @@ func (cs *Server) Stop() error {
 	removeErr := os.RemoveAll(SocketPath())
 
 	// tomb.Wait blocks forever if no goroutine was registered via tomb.Go,
-	// so only wait when Start was called (indicated by the listener being set).
+	// so only wait when the accept goroutine was successfully registered.
 	var waitErr error
-	if cs.ln != nil {
+	if cs.started {
 		waitErr = cs.tomb.Wait()
 	}
 	if removeErr != nil {
