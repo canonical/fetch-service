@@ -69,6 +69,7 @@ type HTTPProxy struct {
 	srv     http.Server              // server instance
 	timeout time.Duration            // inspection timeout
 	tomb    tomb.Tomb                // proxy service reaper
+	started bool                     // true only after tomb.Go registered the serve goroutine
 }
 
 func NewHTTPProxy(port int, spool string, cert, key []byte, ch chan interface{}) (*HTTPProxy, error) {
@@ -138,6 +139,7 @@ func (p *HTTPProxy) Start() error {
 		}
 		return nil
 	})
+	p.started = true
 
 	return nil
 }
@@ -151,10 +153,11 @@ func (p *HTTPProxy) Stop() error {
 	}
 	p.tomb.Kill(nil)
 
-	// Wait for goroutine cleanup if Start was called. Discard the tomb error
-	// here — if the server failed, the error was already surfaced via
-	// Dying()/Err() through the service dispatcher.
-	if p.srv.Handler != nil {
+	// Wait for goroutine cleanup if Start registered a serving goroutine.
+	// We check p.started rather than p.srv.Handler because Handler is set
+	// before net.Listen — a bind failure would leave Handler non-nil with
+	// no goroutine registered, causing tomb.Wait() to block forever.
+	if p.started {
 		p.tomb.Wait()
 	}
 
