@@ -231,6 +231,67 @@ func (t *serviceSuite) TestServiceEntombment(c *C) {
 	c.Assert(svc.Alive(), Equals, false)
 }
 
+// TestStopWithoutStart verifies that calling Stop on a service that was never
+// started does not hang. This exercises the svc.started guard that prevents
+// tomb.Wait() from blocking when no dispatcher goroutine was registered.
+func (t *serviceSuite) TestStopWithoutStart(c *C) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
+		return &proxy.HTTPProxy{}, nil
+	})
+	defer restorer()
+
+	svc, err := service.New(serviceOptionsFixture(c))
+	c.Assert(err, IsNil)
+
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.Stop()
+	}()
+
+	select {
+	case err := <-done:
+		c.Assert(err, IsNil)
+	case <-time.After(5 * time.Second):
+		c.Fatal("Stop() hung on service that was never started")
+	}
+}
+
+// TestStopAfterPartialStart verifies that Stop completes without hanging when
+// Start() fails partway through — after child servers have started but before
+// the dispatcher goroutine is registered.
+func (t *serviceSuite) TestStopAfterPartialStart(c *C) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
+		return &proxy.HTTPProxy{}, nil
+	})
+	defer restorer()
+
+	// Make config loading fail so Start() returns before registering the
+	// dispatcher goroutine. The proxy was already constructed (by New), so
+	// Stop() must still clean up without hanging on tomb.Wait().
+	restorer = service.MockConfigLoadProxyHTTPRules(func(string) error {
+		return errors.New("simulated config error")
+	})
+	defer restorer()
+
+	svc, err := service.New(serviceOptionsFixture(c))
+	c.Assert(err, IsNil)
+
+	err = svc.Start()
+	c.Assert(err, ErrorMatches, "cannot load proxy rules: simulated config error")
+
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.Stop()
+	}()
+
+	select {
+	case err := <-done:
+		c.Assert(err, IsNil)
+	case <-time.After(5 * time.Second):
+		c.Fatal("Stop() hung after partial Start() failure")
+	}
+}
+
 func (t *serviceSuite) TestServiceIdleShutdown(c *C) {
 	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		t.ch = ch
