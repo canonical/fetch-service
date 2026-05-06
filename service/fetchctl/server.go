@@ -27,6 +27,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 
 	"gopkg.in/tomb.v2"
 
@@ -64,7 +65,7 @@ type Server struct {
 	mu      sync.Mutex
 	conns   map[net.Conn]struct{}
 	stopped bool
-	started bool
+	started atomic.Bool
 }
 
 func NewServer(ch chan interface{}) *Server {
@@ -110,7 +111,7 @@ func (cs *Server) Start() error {
 		}
 
 	})
-	cs.started = true
+	cs.started.Store(true)
 
 	return nil
 }
@@ -216,7 +217,7 @@ func (cs *Server) Stop() error {
 	// tomb.Wait blocks forever if no goroutine was registered via tomb.Go,
 	// so only wait when the accept goroutine was successfully registered.
 	var waitErr error
-	if cs.started {
+	if cs.started.Load() {
 		waitErr = cs.tomb.Wait()
 	}
 	if removeErr != nil {

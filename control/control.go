@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/canonical/fetch-service/seclog"
@@ -59,7 +60,7 @@ type Server struct {
 	user    string
 	pw      string
 	tomb    tomb.Tomb
-	started bool
+	started atomic.Bool
 }
 
 func NewServer(port int, ch chan interface{}, creds string) *Server {
@@ -102,7 +103,7 @@ func (c *Server) Start() {
 		}
 		return nil
 	})
-	c.started = true
+	c.started.Store(true)
 }
 
 func (c *Server) Stop() error {
@@ -127,7 +128,7 @@ func (c *Server) Stop() error {
 	// goroutine. Using c.started rather than c.server.Handler because
 	// Handler is set before tomb.Go — a concurrent Stop() could see
 	// Handler != nil before the goroutine is registered, hanging forever.
-	if c.started {
+	if c.started.Load() {
 		c.tomb.Wait()
 	}
 	return nil

@@ -31,6 +31,7 @@ import (
 	"path"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/canonical/fetch-service/secrets"
@@ -69,7 +70,7 @@ type HTTPProxy struct {
 	srv     http.Server              // server instance
 	timeout time.Duration            // inspection timeout
 	tomb    tomb.Tomb                // proxy service reaper
-	started bool                     // true only after tomb.Go registered the serve goroutine
+	started atomic.Bool              // true only after tomb.Go registered the serve goroutine
 }
 
 func NewHTTPProxy(port int, spool string, cert, key []byte, ch chan interface{}) (*HTTPProxy, error) {
@@ -139,7 +140,7 @@ func (p *HTTPProxy) Start() error {
 		}
 		return nil
 	})
-	p.started = true
+	p.started.Store(true)
 
 	return nil
 }
@@ -157,7 +158,7 @@ func (p *HTTPProxy) Stop() error {
 	// We check p.started rather than p.srv.Handler because Handler is set
 	// before net.Listen — a bind failure would leave Handler non-nil with
 	// no goroutine registered, causing tomb.Wait() to block forever.
-	if p.started {
+	if p.started.Load() {
 		p.tomb.Wait()
 	}
 

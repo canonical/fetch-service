@@ -57,7 +57,7 @@ type Service struct {
 	start    time.Time        // service start time (UTC)
 	opt      *Options         // configuration options
 	tomb     tomb.Tomb        // service dispatcher loop reaper
-	started  bool             // true only after tomb.Go registered the dispatcher
+	started  atomic.Bool      // true only after tomb.Go registered the dispatcher
 	stopping atomic.Bool      // set when Stop() begins graceful shutdown
 
 	totalSessions uint64 // number of created sessions
@@ -121,7 +121,7 @@ func (svc *Service) Start() error {
 	svc.ctl.Start()
 
 	svc.tomb.Go(svc.dispatcher)
-	svc.started = true
+	svc.started.Store(true)
 
 	return nil
 }
@@ -283,7 +283,7 @@ func (svc *Service) Stop() error {
 	// Only wait for the dispatcher goroutine if Start() successfully
 	// registered it. If Start() failed partway through (e.g. a listen
 	// error), no goroutine was registered and Wait() would block forever.
-	if svc.started {
+	if svc.started.Load() {
 		return svc.tomb.Wait()
 	}
 	return nil
