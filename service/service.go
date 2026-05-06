@@ -64,10 +64,11 @@ type Service struct {
 }
 
 var (
-	proxyNewHTTPProxy = proxy.NewHTTPProxy
-	controlNewServer  = control.NewServer
-	fetchctlNewServer = fetchctl.NewServer
-	sessionNewWithID  = session.NewWithID
+	proxyNewHTTPProxy   = proxy.NewHTTPProxy
+	controlNewServer    = control.NewServer
+	fetchctlNewServer   = fetchctl.NewServer
+	fetchctlServerStart = func(s *fetchctl.Server) error { return s.Start() }
+	sessionNewWithID    = session.NewWithID
 )
 
 func New(opt *Options) (*Service, error) {
@@ -113,7 +114,7 @@ func (svc *Service) Start() error {
 		return err
 	}
 
-	if err := svc.fetchctl.Start(); err != nil {
+	if err := fetchctlServerStart(svc.fetchctl); err != nil {
 		return err
 	}
 

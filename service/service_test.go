@@ -257,19 +257,19 @@ func (t *serviceSuite) TestStopWithoutStart(c *C) {
 }
 
 // TestStopAfterPartialStart verifies that Stop completes without hanging when
-// Start() fails partway through — after child servers have started but before
-// the dispatcher goroutine is registered.
+// Start() fails after child servers have started but before the dispatcher
+// goroutine is registered. This exercises the svc.started guard in Stop().
 func (t *serviceSuite) TestStopAfterPartialStart(c *C) {
 	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
 		return &proxy.HTTPProxy{}, nil
 	})
 	defer restorer()
 
-	// Make config loading fail so Start() returns before registering the
-	// dispatcher goroutine. The proxy was already constructed (by New), so
-	// Stop() must still clean up without hanging on tomb.Wait().
-	restorer = service.MockConfigLoadProxyHTTPRules(func(string) error {
-		return errors.New("simulated config error")
+	// Make fetchctl.Start() fail after the proxy was already constructed and
+	// started. This puts the service in a partial-start state where the
+	// proxy is running but the dispatcher goroutine was never registered.
+	restorer = service.MockFetchctlServerStart(func(s *fetchctl.Server) error {
+		return errors.New("simulated fetchctl start error")
 	})
 	defer restorer()
 
@@ -277,7 +277,7 @@ func (t *serviceSuite) TestStopAfterPartialStart(c *C) {
 	c.Assert(err, IsNil)
 
 	err = svc.Start()
-	c.Assert(err, ErrorMatches, "cannot load proxy rules: simulated config error")
+	c.Assert(err, ErrorMatches, "simulated fetchctl start error")
 
 	done := make(chan error, 1)
 	go func() {
