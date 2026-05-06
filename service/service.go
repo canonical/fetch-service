@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"gopkg.in/tomb.v2"
@@ -57,6 +58,7 @@ type Service struct {
 	opt      *Options         // configuration options
 	tomb     tomb.Tomb        // service dispatcher loop reaper
 	started  bool             // true only after tomb.Go registered the dispatcher
+	stopping atomic.Bool      // set when Stop() begins graceful shutdown
 
 	totalSessions uint64 // number of created sessions
 }
@@ -176,6 +178,14 @@ func (svc *Service) dispatcher() error {
 		}
 	}
 
+	// Local copies of child Dying channels so we can nil them out when a
+	// child dies cleanly during graceful shutdown (err == nil). This keeps
+	// the dispatcher alive to process remaining in-flight messages until
+	// svc.tomb itself is killed.
+	ctlDying := svc.ctl.Dying()
+	fetchctlDying := svc.fetchctl.Dying()
+	proxyDying := svc.p.Dying()
+
 loop:
 	for {
 		select {
@@ -207,15 +217,27 @@ loop:
 		case <-svc.tomb.Dying():
 			return svc.tomb.Err()
 
-		// Any server dying unexpectedly tears down the whole service.
-		case <-svc.ctl.Dying():
-			return svc.ctl.Err()
+		// Child servers dying unexpectedly tears down the whole service.
+		// During graceful shutdown (svc.stopping is set), deaths are
+		// expected — ignore them so the dispatcher keeps processing
+		// in-flight requests from other servers.
+		case <-ctlDying:
+			if !svc.stopping.Load() {
+				return svc.ctl.Err()
+			}
+			ctlDying = nil
 
-		case <-svc.fetchctl.Dying():
-			return svc.fetchctl.Err()
+		case <-fetchctlDying:
+			if !svc.stopping.Load() {
+				return svc.fetchctl.Err()
+			}
+			fetchctlDying = nil
 
-		case <-svc.p.Dying():
-			return svc.p.Err()
+		case <-proxyDying:
+			if !svc.stopping.Load() {
+				return svc.p.Err()
+			}
+			proxyDying = nil
 
 		case <-idleTimer.C:
 			n := session.NumSessions()
@@ -233,6 +255,13 @@ loop:
 
 func (svc *Service) Stop() error {
 	logger.Info("Stopping service...")
+
+	// Signal the dispatcher that child deaths are expected from this point.
+	// Without this, the dispatcher exits as soon as a child tomb dies during
+	// graceful shutdown, leaving other children's in-flight requests blocked
+	// on the dispatch channel with no reader.
+	svc.stopping.Store(true)
+
 	session.FinishAll()
 
 	// Stop child servers first so their in-flight work can drain before the
