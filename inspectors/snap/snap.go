@@ -246,7 +246,7 @@ func downloadAssertion(url string, sl logger.Logger) (*assertion, error) {
 	sl.Debugf("download assertion: %s", url)
 
 	client := http.Client{
-		Transport: &http.Transport{},
+		Transport: &http.Transport{Proxy: http.ProxyFromEnvironment},
 		Timeout:   60 * time.Second,
 	}
 
