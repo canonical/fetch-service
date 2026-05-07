@@ -38,6 +38,13 @@ import (
 	"github.com/canonical/fetch-service/logger"
 )
 
+// assertionClient is shared across calls for connection reuse. Transport is
+// nil so it defaults to http.DefaultTransport, which correctly routes
+// requests through any upstream proxy set in the environment.
+var assertionClient = &http.Client{
+	Timeout: 60 * time.Second,
+}
+
 func SquashFsDetector(raw []byte, limit uint32) bool {
 	if limit < 4 {
 		return false
@@ -245,18 +252,13 @@ func downloadAccountKeyAssertion(signKey string, sl logger.Logger) (*assertion, 
 func downloadAssertion(url string, sl logger.Logger) (*assertion, error) {
 	sl.Debugf("download assertion: %s", url)
 
-	client := http.Client{
-		Transport: &http.Transport{Proxy: http.ProxyFromEnvironment},
-		Timeout:   60 * time.Second,
-	}
-
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/x.ubuntu.assertion")
 
-	res, err := client.Do(req)
+	res, err := assertionClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
