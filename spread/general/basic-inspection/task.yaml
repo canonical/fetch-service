@@ -15,17 +15,18 @@ restore: |
   rm -f /var/snap/fetch-service/common/log/security.log
 
 execute: |
+  # shellcheck disable=SC1091
+  . ../../utils.sh
+
   snap start fetch-service
   sleep 5  # give some time for the service to start
   fetch-service.fetchctl version
 
   # check if service is up and running
-  curl -sf http://localhost:9999/status
+  get_status
 
-  # create permissive session
-  curl -sf -X POST -d '{"policy": "'"$POLICY"'"}' http://craft:craft@localhost:9999/session | tee session.json
-  session_id=$(jq -r .id session.json)
-  token=$(jq -r .token session.json)
+  # create session
+  read -r session_id token < <(create_session "$POLICY")
 
   # set up proxy and download a file
   export http_proxy="http://${session_id}:${token}@localhost:9988"
@@ -55,11 +56,10 @@ execute: |
   unset https_proxy
 
   # revoke token, get report, and end session
-  curl -sf -X DELETE -d "{\"token\": \"${token}\"}" "http://localhost:9999/session/${session_id}/token" | tee delete_token.json
-  spool_path=$(jq -r '."spool-path"' delete_token.json)
+  read -r spool_path < <(revoke_token "$session_id" "$token")
   [ -d "$spool_path" ]
 
-  curl -sf "http://craft:craft@localhost:9999/session/${session_id}" | tee session_report.json
+  get_session_report "$session_id" > session_report.json
 
   jq -r '."spool-path"' session_report.json | MATCH "$spool_path"
   jq -r .policy session_report.json | MATCH "$POLICY"
@@ -68,12 +68,12 @@ execute: |
   jq -r '(.artifacts[] | select(.metadata.name=="hello")).result' session_report.json | MATCH "Rejected"
   jq -r '(.artifacts[] | select(.metadata.name=="hello")).metadata.license' session_report.json | MATCH "GPL"
 
-  curl -sf -X DELETE "http://craft:craft@localhost:9999/session/${session_id}"
+  delete_session "$session_id"
 
   # check if resources present
   [ -f "$spool_path/$session_id/assets/24e6cc07c34cb53fedce7e1e82a501111e5da2a7f8e3125a7e7b32ad18db00f7.json" ]
   [ -f "$spool_path/$session_id/assets/24e6cc07c34cb53fedce7e1e82a501111e5da2a7f8e3125a7e7b32ad18db00f7.data" ]
 
   # remove session resources
-  curl -sf -X DELETE "http://craft:craft@localhost:9999/resources/${session_id}"
+  delete_resources "$session_id"
   [ ! -d "$spool_path/$session_id" ]
