@@ -2,6 +2,14 @@
 Changelog
 *********
 
+0.16.0 (2026-05-07)
+-------------------
+
+- feat: add extra information to snap refresh inspection (#601)
+- feat: add security log following owasp conventions (#598)
+- fix(i/snap): honor upstream proxy when downloading assertions (#607)
+- fix(i/deb): parse uncompressed control and data files (#596)
+
 0.15.2 (2026-03-20)
 -------------------
 
