@@ -8,7 +8,7 @@ require (
 	github.com/ProtonMail/go-crypto v1.4.1
 	github.com/PuerkitoBio/purell v1.2.1
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
-	github.com/elazarl/goproxy v1.8.3
+	github.com/elazarl/goproxy v1.8.4
 	github.com/gabriel-vasile/mimetype v1.4.13
 	github.com/gobwas/glob v0.2.3
 	github.com/google/uuid v1.6.0
