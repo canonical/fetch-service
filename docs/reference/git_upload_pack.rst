@@ -1,3 +1,8 @@
+.. _ref_git_upload_pack:
+
+.. meta::
+    :description: Reference for the git upload-pack inspector which verifies repository clones using the Git upload-pack protocol.
+
 Git upload pack inspector
 =========================
 
@@ -15,7 +20,10 @@ Inspector ID
 Internal state
 --------------
 
-None.
+* A map of repository URLs to their list of heads (branch names to commit
+  hashes), populated from ``ls-refs`` responses.
+* A map of repository URLs to their list of tags (tag names to commit
+  hashes), populated from ``ls-refs`` responses.
 
 
 Request verification
@@ -37,6 +45,21 @@ Response format
 
 The git upload-pack response is encoded according to the git protocol v2.
 
+
+Configuration options
+---------------------
+
+This inspector is configured under the ``git`` key in ``inspectors.yaml``.
+
+.. list-table::
+   :widths: auto
+   :header-rows: 1
+
+   * - Option
+     - Description
+   * - ``urls``
+     - List of URL glob patterns. Only requests to matching URLs are
+       approved for further inspection.
 
 Acceptance criteria
 -------------------
@@ -72,25 +95,26 @@ The upload-pack response is rejected if:
 Extracted metadata
 ------------------
 
-The following pieces of metadata are extracted by the APT packages file
- inspector:
+The following pieces of metadata are extracted by the git upload-pack
+inspector:
 
-.. table:: APT release inspector metadata
+.. table:: Git upload-pack inspector metadata
    :widths: auto
 
-   ============  ====  ============================================
+   ============  ====  ==================================================
    Field         Used  Data source
-   ============  ====  ============================================
-   type          Yes   ``application/x.git.upload-pack-result.ls-ref``,
+   ============  ====  ==================================================
+   type          Yes   ``application/x.git.upload-pack-result.ls-ref``
+                       (ls-refs response),
                        ``application/x.git.upload-pack-result.fetch``
-   name          Yes   ``git-upload-pack-result``
+                       (fetch response)
+   name          Yes   ``git ls-refs response`` (ls-refs),
+                       ``git fetch response`` (fetch)
    version
-   description   Yes   ``Response to the git <cmd> command``
+   description   Yes   ``Response to the git '<cmd>' command``
    vendor        Yes   The git server hostname
    author
    author-email
    architecture
-   license
-   copyright
-   ============  ====  ============================================
+   ============  ====  ==================================================
 

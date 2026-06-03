@@ -1,5 +1,15 @@
+.. _ref_maven_pom:
+
+.. meta::
+    :description: Reference for the Maven POM inspector which verifies Maven project object model files.
+
 The Maven POM inspector
 =======================
+
+A POM (Project Object Model) file is an XML file that describes a Maven
+project, including its identity, dependencies, and build configuration.
+Every artifact in a Maven repository has a corresponding POM file that
+provides metadata such as the group ID, artifact ID, version, and license.
 
 The Maven POM inspector examines requests for POM files hosted on a Maven
 repository.
@@ -13,16 +23,21 @@ Inspector ID
 Internal state
 --------------
 
-None
+None.
 
 Request verification
 --------------------
 
-The current implementation allows downloads from
-``https://repo.maven.apache.org:443``. This will be changed in the future to match
-an internal repository of Maven assets. Only requests with the
-``/maven2/<org components separated by />/<artifact-id>/<version>/<pom file>``
-form are allowed.
+The Maven POM inspector recognizes requests to
+``https://repo.maven.apache.org:443`` with the URL form
+``/maven2/<org components separated by />/<artifact-id>/<version>/<pom file>``.
+These requests are marked as unknown (unsupported origin) because
+``repo.maven.apache.org`` is not a configured trusted origin.
+
+Configuration options
+---------------------
+
+None.
 
 Acceptance criteria
 -------------------
@@ -48,7 +63,8 @@ The following pieces of metadata are extracted by the POM inspector:
    ============  ====  ==============================================
    Field         Used  Data source
    ============  ====  ==============================================
-   name          Yes   ``pom.xml``'s ``artifact-id``
+   type          Yes   ``text/xml``
+   name          Yes   ``Maven POM file for '<artifact-id>'``
    description   Yes   ``pom.xml``'s ``description``
    vendor        Yes   ``pom.xml``'s ``group-id``
    version       Yes   ``pom.xml``'s ``version``
