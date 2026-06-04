@@ -62,10 +62,13 @@ parts:
       - git
     plugin: go
     source: .
+    build-environment:
+      - GOPROXY: "off"
+      - GOFLAGS: "-mod=vendor"
     override-build: |
       rm -f version/version.txt
       go generate ./...
-      craftctl default
+      go build -o "${CRAFT_PART_INSTALL}/bin/fetch" ./cmd/fetch
       craftctl set version=$(cat version/version.txt)
   config:
     plugin: dump
