@@ -1,0 +1,174 @@
+# github.com/BurntSushi/toml v1.6.0
+## explicit; go 1.18
+github.com/BurntSushi/toml
+github.com/BurntSushi/toml/internal
+# github.com/CalebQ42/squashfs v1.4.1
+## explicit; go 1.24.0
+github.com/CalebQ42/squashfs
+github.com/CalebQ42/squashfs/internal/decompress
+github.com/CalebQ42/squashfs/internal/metadata
+github.com/CalebQ42/squashfs/internal/toreader
+github.com/CalebQ42/squashfs/low
+github.com/CalebQ42/squashfs/low/data
+github.com/CalebQ42/squashfs/low/directory
+github.com/CalebQ42/squashfs/low/inode
+# github.com/ProtonMail/go-crypto v1.4.1
+## explicit; go 1.23.0
+github.com/ProtonMail/go-crypto/bitcurves
+github.com/ProtonMail/go-crypto/brainpool
+github.com/ProtonMail/go-crypto/eax
+github.com/ProtonMail/go-crypto/internal/byteutil
+github.com/ProtonMail/go-crypto/ocb
+github.com/ProtonMail/go-crypto/openpgp
+github.com/ProtonMail/go-crypto/openpgp/aes/keywrap
+github.com/ProtonMail/go-crypto/openpgp/armor
+github.com/ProtonMail/go-crypto/openpgp/clearsign
+github.com/ProtonMail/go-crypto/openpgp/ecdh
+github.com/ProtonMail/go-crypto/openpgp/ecdsa
+github.com/ProtonMail/go-crypto/openpgp/ed25519
+github.com/ProtonMail/go-crypto/openpgp/ed448
+github.com/ProtonMail/go-crypto/openpgp/eddsa
+github.com/ProtonMail/go-crypto/openpgp/elgamal
+github.com/ProtonMail/go-crypto/openpgp/errors
+github.com/ProtonMail/go-crypto/openpgp/internal/algorithm
+github.com/ProtonMail/go-crypto/openpgp/internal/ecc
+github.com/ProtonMail/go-crypto/openpgp/internal/encoding
+github.com/ProtonMail/go-crypto/openpgp/packet
+github.com/ProtonMail/go-crypto/openpgp/s2k
+github.com/ProtonMail/go-crypto/openpgp/x25519
+github.com/ProtonMail/go-crypto/openpgp/x448
+# github.com/PuerkitoBio/purell v1.2.1
+## explicit; go 1.21
+github.com/PuerkitoBio/purell
+# github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
+## explicit
+github.com/blakesmith/ar
+# github.com/cloudflare/circl v1.6.3
+## explicit; go 1.22.0
+github.com/cloudflare/circl/dh/x25519
+github.com/cloudflare/circl/dh/x448
+github.com/cloudflare/circl/ecc/goldilocks
+github.com/cloudflare/circl/internal/conv
+github.com/cloudflare/circl/internal/sha3
+github.com/cloudflare/circl/math
+github.com/cloudflare/circl/math/fp25519
+github.com/cloudflare/circl/math/fp448
+github.com/cloudflare/circl/math/mlsbset
+github.com/cloudflare/circl/sign
+github.com/cloudflare/circl/sign/ed25519
+github.com/cloudflare/circl/sign/ed448
+# github.com/elazarl/goproxy v1.8.3
+## explicit; go 1.23.0
+github.com/elazarl/goproxy
+github.com/elazarl/goproxy/internal/http1parser
+github.com/elazarl/goproxy/internal/signer
+github.com/elazarl/goproxy/transport
+# github.com/gabriel-vasile/mimetype v1.4.13
+## explicit; go 1.21
+github.com/gabriel-vasile/mimetype
+github.com/gabriel-vasile/mimetype/internal/charset
+github.com/gabriel-vasile/mimetype/internal/csv
+github.com/gabriel-vasile/mimetype/internal/json
+github.com/gabriel-vasile/mimetype/internal/magic
+github.com/gabriel-vasile/mimetype/internal/markup
+github.com/gabriel-vasile/mimetype/internal/scan
+# github.com/gobwas/glob v0.2.3
+## explicit
+github.com/gobwas/glob
+github.com/gobwas/glob/compiler
+github.com/gobwas/glob/match
+github.com/gobwas/glob/syntax
+github.com/gobwas/glob/syntax/ast
+github.com/gobwas/glob/syntax/lexer
+github.com/gobwas/glob/util/runes
+github.com/gobwas/glob/util/strings
+# github.com/google/uuid v1.6.0
+## explicit
+github.com/google/uuid
+# github.com/gorilla/mux v1.8.1
+## explicit; go 1.20
+github.com/gorilla/mux
+# github.com/jessevdk/go-flags v1.6.1
+## explicit; go 1.20
+github.com/jessevdk/go-flags
+# github.com/klauspost/compress v1.18.6
+## explicit; go 1.24
+github.com/klauspost/compress
+github.com/klauspost/compress/flate
+github.com/klauspost/compress/fse
+github.com/klauspost/compress/huff0
+github.com/klauspost/compress/internal/cpuinfo
+github.com/klauspost/compress/internal/le
+github.com/klauspost/compress/internal/snapref
+github.com/klauspost/compress/zlib
+github.com/klauspost/compress/zstd
+github.com/klauspost/compress/zstd/internal/xxhash
+# github.com/kr/pretty v0.2.1
+## explicit; go 1.12
+github.com/kr/pretty
+# github.com/kr/text v0.2.0
+## explicit
+github.com/kr/text
+# github.com/mikelolasagasti/xz v1.0.1
+## explicit; go 1.15
+github.com/mikelolasagasti/xz
+# github.com/pierrec/lz4/v4 v4.1.22
+## explicit; go 1.14
+github.com/pierrec/lz4/v4
+github.com/pierrec/lz4/v4/internal/lz4block
+github.com/pierrec/lz4/v4/internal/lz4errors
+github.com/pierrec/lz4/v4/internal/lz4stream
+github.com/pierrec/lz4/v4/internal/xxh32
+# github.com/rasky/go-lzo v0.0.0-20200203143853-96a758eda86e
+## explicit
+github.com/rasky/go-lzo
+# github.com/therootcompany/xz v1.0.1
+## explicit; go 1.15
+# github.com/ulikunitz/xz v0.5.15
+## explicit; go 1.12
+github.com/ulikunitz/xz/internal/hash
+github.com/ulikunitz/xz/internal/xlog
+github.com/ulikunitz/xz/lzma
+# github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
+## explicit
+github.com/xi2/xz
+# golang.org/x/crypto v0.52.0
+## explicit; go 1.25.0
+golang.org/x/crypto/argon2
+golang.org/x/crypto/blake2b
+golang.org/x/crypto/cast5
+golang.org/x/crypto/cryptobyte
+golang.org/x/crypto/cryptobyte/asn1
+golang.org/x/crypto/hkdf
+golang.org/x/crypto/sha3
+# golang.org/x/net v0.55.0
+## explicit; go 1.25.0
+golang.org/x/net/context
+golang.org/x/net/html
+golang.org/x/net/html/atom
+golang.org/x/net/http/httpguts
+golang.org/x/net/http2
+golang.org/x/net/http2/hpack
+golang.org/x/net/idna
+golang.org/x/net/internal/httpcommon
+golang.org/x/net/internal/httpsfv
+# golang.org/x/sys v0.45.0
+## explicit; go 1.25.0
+golang.org/x/sys/cpu
+golang.org/x/sys/unix
+# golang.org/x/text v0.37.0
+## explicit; go 1.25.0
+golang.org/x/text/secure/bidirule
+golang.org/x/text/transform
+golang.org/x/text/unicode/bidi
+golang.org/x/text/unicode/norm
+golang.org/x/text/width
+# gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
+## explicit; go 1.11
+gopkg.in/check.v1
+# gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637
+## explicit
+gopkg.in/tomb.v2
+# gopkg.in/yaml.v3 v3.0.1
+## explicit
+gopkg.in/yaml.v3
