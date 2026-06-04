@@ -60,7 +60,7 @@ parts:
       - go
     stage-packages:
       - git
-    plugin: go
+    plugin: nil
     source: .
     build-environment:
       - GOPROXY: "off"
