@@ -14,7 +14,7 @@ lint-golangci-lint: install-golangci-lint
 
 .PHONY: lint-shellcheck
 lint-shellcheck: install-shellcheck lint-shellcheck-spread
-	git ls-files | file --mime-type -Nnf- | grep shellscript | cut -f1 -d: | xargs -r shellcheck
+	git ls-files | grep -v '^vendor/' | file --mime-type -Nnf- | grep shellscript | cut -f1 -d: | xargs -r shellcheck
 
 .PHONY: lint-shellcheck-spread
 lint-shellcheck-spread:
