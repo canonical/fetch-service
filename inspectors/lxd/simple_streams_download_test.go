@@ -171,6 +171,35 @@ func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectArtifact(c
 	})
 }
 
+func (s *simpleStreamDownloadSuite) TestSimpleDownloadSupportedUbuntuVersions(c *C) {
+	ins := lxd.NewSimpleStreamsDownloadInspector()
+	a := metadata.NewArtifact()
+	a.MimeType = mimetype.Lookup("application/json")
+	a.CurrentDownload = metadata.Download{URL: "https://cloud-images.ubuntu.com:443/buildd/daily/streams/v1/com.ubuntu.cloud:daily:download.json"}
+
+	err := ins.InspectRequest(a)
+	c.Assert(err, IsNil)
+	c.Assert(a.RequestPending(), Equals, true)
+
+	f, err := files.OpenArtifactFile("testdata/download-supported-ubuntu-versions.json")
+	c.Assert(err, IsNil)
+	defer f.Close()
+
+	err = ins.InspectArtifact(f, a)
+	c.Assert(err, IsNil)
+
+	insp, ok := a.ResponseInspection[ins.ID()]
+	c.Assert(ok, Equals, true)
+	images := insp.Annotations["product-items"].(map[string]string)
+	c.Assert(images, DeepEquals, map[string]string{
+		"stonking/20260617/stonking-server-cloudimg-amd64-lxd_combined.tar.gz": "sha-2610",
+		"resolute/20260617/resolute-server-cloudimg-amd64-lxd_combined.tar.gz": "sha-2604",
+		"noble/20260617/noble-server-cloudimg-amd64-lxd_combined.tar.gz":       "sha-2404",
+		"jammy/20260617/jammy-server-cloudimg-amd64-lxd_combined.tar.gz":       "sha-2204",
+		"focal/20260617/focal-server-cloudimg-amd64-lxd_combined.tar.gz":       "sha-2004",
+	})
+}
+
 func (s *simpleStreamDownloadSuite) TestSimpleDownloadInspectorInspectArtifactNonJSON(c *C) {
 	ins := lxd.NewSimpleStreamsDownloadInspector()
 	a := metadata.NewArtifact()
