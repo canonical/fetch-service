@@ -79,13 +79,11 @@ func (ins *SnapAuthSessionsInspector) InspectArtifact(f ArtifactReader, a Respon
 		return nil // we don't recognize this artifact
 	}
 
-	a.SetArtifactMetadata(ArtifactMetadata{
+	a.SetResponseApproved(ins, "valid format for snapd session authentication", ArtifactMetadata{
 		Type:        mimetypes.SnapdAuthSessions,
 		Name:        "Session authentication",
 		Description: "Snapd session authentication",
 	})
-
-	a.SetResponseApproved(ins, "valid format for snapd session authentication")
 
 	return nil
 }

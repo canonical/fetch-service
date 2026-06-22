@@ -142,13 +142,11 @@ func (ins *InstanceTypesInspector) InspectArtifact(f ArtifactReader, a ResponseA
 		return nil
 	}
 
-	a.SetArtifactMetadata(ArtifactMetadata{
+	a.SetResponseApproved(ins, "valid LXD instance types metadata", ArtifactMetadata{
 		Type:        mimetypes.LXDInstanceTypes,
 		Name:        "Instance types",
 		Description: "LXD instance types metadata",
-	})
-
-	a.SetResponseApproved(ins, "valid LXD instance types metadata").Annotate(
+	}).Annotate(
 		Annotation{"file-type": fileType, "entries": entries},
 	)
 

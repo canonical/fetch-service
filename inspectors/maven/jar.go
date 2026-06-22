@@ -94,8 +94,7 @@ func (ins *MavenJarInspector) InspectArtifact(f ArtifactReader, a ResponseArtifa
 			}
 
 			if md.Name == artifactID {
-				a.SetArtifactMetadata(*md)
-				a.SetResponseApproved(ins, "Maven pom successfully parsed and validated").Annotate(
+				a.SetResponseApproved(ins, "Maven pom successfully parsed and validated", *md).Annotate(
 					Annotation{
 						"group-id":    groupID,
 						"artifact-id": artifactID,

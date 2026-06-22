@@ -179,7 +179,7 @@ var snapAssertionArtifactInspectorTests = []snapAssertionArtifactInspectorTest{{
 	filename: "testdata/bad-signature.assert",
 	approved: false,
 	reason:   "assertion signature verification failed",
-	filetype: "application/x.ubuntu.assertion",
+	filetype: "application/x.ubuntu.assertion.snap-revision",
 }}
 
 func (s *snapSuite) TestSnapAssertionArtifactInspector(c *C) {

@@ -29,6 +29,7 @@ const (
 	AptTranslation             = "application/x.apt.translation"
 	AptCommands                = "application/x.apt.commands"
 	GitUploadPackAdvertisement = "application/x.git.upload-pack-advertisement"
+	GitUploadPackResult        = "application/x.git.upload-pack-result"
 	GitUploadPackLsRef         = "application/x.git.upload-pack-result.ls-ref"
 	GitUploadPackFetch         = "application/x.git.upload-pack-result.fetch"
 	Charmcraft                 = "application/x.canonical.charmcraft"

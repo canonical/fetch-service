@@ -213,7 +213,8 @@ func (ins *UploadPackInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 	repo, ok := a.RequestStringAnnotation(ins.ID(), "repository") // the upload-pack request repository
 	if !ok {
 		// this must have been set by the request inspector
-		a.SetResponseRejected(ins, "repository not set during request inspection")
+		md := ArtifactMetadata{Type: mimetypes.GitUploadPackResult}
+		a.SetResponseRejected(ins, "repository not set during request inspection", md)
 		return nil
 	}
 
@@ -225,10 +226,12 @@ func (ins *UploadPackInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 }
 
 func (ins *UploadPackInspector) inspectResponseCommand(f ArtifactReader, a ResponseArtifact, repo, vendor string, sl logger.Logger) error {
+	md := ArtifactMetadata{Type: mimetypes.GitUploadPackResult}
+
 	command, ok := a.RequestAnnotation(ins.ID(), "command") // the upload-pack request command
 	if !ok {
 		// this must have been set by the request inspector
-		a.SetResponseRejected(ins, "command not set during request inspection")
+		a.SetResponseRejected(ins, "command not set during request inspection", md)
 		return nil
 	}
 
@@ -248,7 +251,7 @@ func (ins *UploadPackInspector) inspectResponseCommand(f ArtifactReader, a Respo
 		}
 
 	default:
-		a.SetResponseRejected(ins, "only ls-refs and fetch commands are supported").Annotate(notes)
+		a.SetResponseRejected(ins, "only ls-refs and fetch commands are supported", md).Annotate(notes)
 	}
 
 	return nil
@@ -256,20 +259,19 @@ func (ins *UploadPackInspector) inspectResponseCommand(f ArtifactReader, a Respo
 
 func (ins *UploadPackInspector) inspectLsRefsResponse(f ArtifactReader, a ResponseArtifact, repo, vendor string, notes Annotation, sl logger.Logger) error {
 	if !a.MimetypeIs("text/plain") {
-		a.SetResponseRejected(ins, "bad data type for ls-refs response")
-		return nil
+		return nil // We don't recognize this artifact
 	}
 
-	a.SetArtifactMetadata(ArtifactMetadata{
+	md := ArtifactMetadata{
 		Type:        mimetypes.GitUploadPackLsRef,
 		Name:        "git ls-refs response",
 		Description: "Response to the git 'ls-refs' command",
 		Vendor:      vendor,
-	})
+	}
 
 	msgs, err := decodeGitProtocol(f, sl)
 	if err != nil {
-		a.SetResponseRejected(ins, "cannot decode git protocol").Annotate(Annotation{"error-msg": err.Error()})
+		a.SetResponseRejected(ins, "cannot decode git protocol", md).Annotate(Annotation{"error-msg": err.Error()})
 		return nil
 	}
 
@@ -301,26 +303,25 @@ func (ins *UploadPackInspector) inspectLsRefsResponse(f ArtifactReader, a Respon
 		}
 	}
 
-	a.SetResponseApproved(ins, "git ls-refs response decoded").Annotate(notes)
+	a.SetResponseApproved(ins, "git ls-refs response decoded", md).Annotate(notes)
 	return nil
 }
 
 func (ins *UploadPackInspector) inspectFetchResponse(f ArtifactReader, a ResponseArtifact, repo, vendor string, notes Annotation, sl logger.Logger) error {
 	if !a.MimetypeIs("application/octet-stream") && !a.MimetypeIs("text/plain") {
-		a.SetResponseRejected(ins, "bad data type for fetch response")
-		return nil
+		return nil // We don´t recognize this artifact
 	}
 
-	a.SetArtifactMetadata(ArtifactMetadata{
+	md := ArtifactMetadata{
 		Type:        mimetypes.GitUploadPackFetch,
 		Name:        "git fetch response",
 		Description: "Response to the git 'fetch' command",
 		Vendor:      vendor,
-	})
+	}
 
 	if numWants, ok := a.RequestAnnotation(ins.ID(), "num-wants"); !ok || numWants != 1 {
 		notes.Add("num-wants", numWants)
-		a.SetResponseRejected(ins, "fetch is allowed only on a single ref").Annotate(notes)
+		a.SetResponseRejected(ins, "fetch is allowed only on a single ref", md).Annotate(notes)
 		return nil
 	}
 
@@ -331,7 +332,7 @@ func (ins *UploadPackInspector) inspectFetchResponse(f ArtifactReader, a Respons
 
 	msgs, err := decodeGitProtocol(f, sl)
 	if err != nil {
-		a.SetResponseRejected(ins, "cannot decode git protocol").Annotate(Annotation{"error-msg": err.Error()})
+		a.SetResponseRejected(ins, "cannot decode git protocol", md).Annotate(Annotation{"error-msg": err.Error()})
 		return nil
 	}
 
@@ -339,13 +340,13 @@ func (ins *UploadPackInspector) inspectFetchResponse(f ArtifactReader, a Respons
 		return err
 	}
 
-	if !ins.fetchResponseIsShallow(a, msgs, notes) {
+	if !ins.fetchResponseIsShallow(a, msgs, notes, md) {
 		return nil
 	}
 
 	// Valid fetch command; unpack it and checkout the wanted ref so that git-based inspectors
 	// can inspect its contents.
-	ref := ins.getRefFromWants(a, notes)
+	ref := ins.getRefFromWants(a, notes, md)
 	if ref == "" {
 		return nil
 	}
@@ -353,7 +354,7 @@ func (ins *UploadPackInspector) inspectFetchResponse(f ArtifactReader, a Respons
 	// Unpack & checkout the contents into a shared location
 	path, err := unpackAndCheckout(f, ref, a.CacheDir(), sl)
 	if err != nil {
-		a.SetResponseRejected(ins, "cannot unpack git objects").Annotate(Annotation{"error-msg": err.Error()})
+		a.SetResponseRejected(ins, "cannot unpack git objects", md).Annotate(Annotation{"error-msg": err.Error()})
 		return nil
 	}
 
@@ -361,11 +362,12 @@ func (ins *UploadPackInspector) inspectFetchResponse(f ArtifactReader, a Respons
 	// files so that git-based inspectors can look into them.
 	notes.Add("git-checkout-path", path)
 
-	a.SetResponseUnknown(ins, "git fetch response is valid but content is unknown").Annotate(notes)
+	// We never approve because we don't know the contents of the repository.
+	a.SetResponseUnknown(ins, "git fetch response is valid but content is unknown", md).Annotate(notes)
 	return nil
 }
 
-func (ins *UploadPackInspector) fetchResponseIsShallow(a ResponseArtifact, msgs []string, notes Annotation) bool {
+func (ins *UploadPackInspector) fetchResponseIsShallow(a ResponseArtifact, msgs []string, notes Annotation, md ArtifactMetadata) bool {
 	serverMsgs := []string{}
 	isShallow := false
 	isUnshallow := false
@@ -381,30 +383,30 @@ func (ins *UploadPackInspector) fetchResponseIsShallow(a ResponseArtifact, msgs 
 	notes.Add("server-response", serverMsgs)
 
 	if !isShallow {
-		a.SetResponseRejected(ins, "fetch is only allowed with depth 1").Annotate(notes)
+		a.SetResponseRejected(ins, "fetch is only allowed with depth 1", md).Annotate(notes)
 		return false
 	}
 
 	if isUnshallow {
-		a.SetResponseRejected(ins, "unshallow is not supported").Annotate(notes)
+		a.SetResponseRejected(ins, "unshallow is not supported", md).Annotate(notes)
 		return false
 	}
 
 	return true
 }
 
-func (ins *UploadPackInspector) getRefFromWants(a ResponseArtifact, notes Annotation) string {
+func (ins *UploadPackInspector) getRefFromWants(a ResponseArtifact, notes Annotation, md ArtifactMetadata) string {
 	// Read "wants" information from the request annotation
 	w, hasWants := a.RequestAnnotation(ins.ID(), "wants")
 	wr, hasWantRefs := a.RequestAnnotation(ins.ID(), "want-refs")
 	if !hasWants && !hasWantRefs {
 		// this must have been set by the request inspection
-		a.SetResponseRejected(ins, "cannot read request want/want-ref annotation").Annotate(notes)
+		a.SetResponseRejected(ins, "cannot read request want/want-ref annotation", md).Annotate(notes)
 		return ""
 	}
 	if !hasWants {
 		// check out wanted-ref
-		a.SetResponseRejected(ins, "want-refs handling not implemented yet").Annotate(notes)
+		a.SetResponseRejected(ins, "want-refs handling not implemented yet", md).Annotate(notes)
 		return ""
 	}
 
@@ -413,7 +415,7 @@ func (ins *UploadPackInspector) getRefFromWants(a ResponseArtifact, notes Annota
 		var ok bool
 		wants, ok = w.([]string)
 		if !ok || len(wants) < 1 {
-			a.SetResponseRejected(ins, "cannot read want annotation").Annotate(notes)
+			a.SetResponseRejected(ins, "cannot read want annotation", md).Annotate(notes)
 			return ""
 		}
 	}
@@ -423,7 +425,7 @@ func (ins *UploadPackInspector) getRefFromWants(a ResponseArtifact, notes Annota
 		var ok bool
 		wantRefs, ok = wr.([]string)
 		if !ok || len(wantRefs) < 1 {
-			a.SetResponseRejected(ins, "cannot read want-ref annotation").Annotate(notes)
+			a.SetResponseRejected(ins, "cannot read want-ref annotation", md).Annotate(notes)
 			return ""
 		}
 	}

@@ -273,7 +273,7 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 	if desc == "" {
 		desc = fmt.Sprintf("%s %s", fields["Origin"], fields["Suite"])
 	}
-	a.SetArtifactMetadata(ArtifactMetadata{
+	md := ArtifactMetadata{
 		Type:        mimetypes.AptRelease,
 		Name:        "InRelease",
 		Version:     fields["Codename"],
@@ -281,7 +281,7 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		Vendor:      fields["Origin"],
 		Author:      fields["Origin"],
 		AptSuite:    fields["Suite"],
-	})
+	}
 
 	notes := Annotation{}
 
@@ -293,7 +293,7 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 	}
 
 	if len(notes) > 0 {
-		a.SetResponseRejected(ins, "error parsing release file").Annotate(notes)
+		a.SetResponseRejected(ins, "error parsing release file", md).Annotate(notes)
 		return nil
 	}
 
@@ -304,7 +304,7 @@ func (ins *AptReleaseInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		notes.Add(k, v)
 	}
 
-	a.SetResponseApproved(ins, "release file parsed and signature validated").Annotate(notes)
+	a.SetResponseApproved(ins, "release file parsed and signature validated", md).Annotate(notes)
 
 	repo := strings.TrimSuffix(a.DownloadURL(), "/InRelease")
 	repo, _ = ins.getRepositoryAlias(repo, cfgName, sl)
@@ -468,18 +468,25 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a Respons
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
+	md := ArtifactMetadata{Type: mimetypes.AptPackages}
+
 	sl.Debugf("packages file path: %s", u.Path)
 	info, err := apt_cfg.NewPackagesURLInfo(u, &ins.config, sl)
 	if err != nil {
-		a.SetResponseRejected(ins, "invalid path for packages file")
+		a.SetResponseRejected(ins, "invalid path for packages file", md)
 		return nil
 	}
+
+	md.Name = "Packages"
+	md.Description = fmt.Sprintf("%s %s Packages file", info.Suite, info.Component)
+	md.Architecture = info.Architecture
+	md.AptSuite = info.Suite
 
 	if info.Digest != "" {
 		sha256, err := digests.NewSha256Digest(info.Digest)
 		if err != nil {
 			sl.Debugf("SHA256 digest error: %s", err)
-			a.SetResponseRejected(ins, "invalid SHA256 digest").Annotate(
+			a.SetResponseRejected(ins, "invalid SHA256 digest", md).Annotate(
 				Annotation{"invalid-sha256": info.Digest},
 			)
 			return nil
@@ -487,7 +494,7 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a Respons
 		sl.Debugf("by-hash SHA256 digest: %s", info.Digest)
 
 		if sha256 != a.Sha256() {
-			a.SetResponseRejected(ins, "SHA256 digest mismatch").Annotate(
+			a.SetResponseRejected(ins, "SHA256 digest mismatch", md).Annotate(
 				Annotation{"expected-sha256": sha256.String()},
 			)
 			return nil
@@ -496,13 +503,13 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a Respons
 
 	cfgName, ok := a.RequestStringAnnotation(ins.ID(), "cfg-name")
 	if !ok {
-		a.SetResponseRejected(ins, "Packages file downloaded from unknown repository")
+		a.SetResponseRejected(ins, "Packages file downloaded from unknown repository", md)
 		return nil
 	}
 	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Suite)
 	repo, ok = ins.getRepositoryAlias(repo, cfgName, sl)
 	if !ok {
-		a.SetResponseRejected(ins, "Unknown repository configuration name").Annotate(
+		a.SetResponseRejected(ins, "Unknown repository configuration name", md).Annotate(
 			Annotation{"cfg-name": cfgName},
 		)
 		return nil
@@ -510,18 +517,18 @@ func (ins *AptReleaseInspector) validatePackagesFile(f ArtifactReader, a Respons
 
 	rel, ok := ins.getReleaseState(repo)
 	if !ok {
-		a.SetResponseRejected(ins, "Repository Release data not found")
+		a.SetResponseRejected(ins, "Repository Release data not found", md)
 		return nil
 	}
 
 	entry, ok := rel.Files[a.Sha256()]
 	if !ok {
-		a.SetResponseRejected(ins, "Packages file not listed in Release file")
+		a.SetResponseRejected(ins, "Packages file not listed in Release file", md)
 		return nil
 	}
 	sl.Debugf("release entry: %+v", entry)
 
-	a.SetResponseUnknown(ins, "Packages file listed in Release").Annotate(
+	a.SetResponseUnknown(ins, "Packages file listed in Release", md).Annotate(
 		Annotation{
 			"file-path":    entry.Name,
 			"release-file": rel.Sha256.String(),
@@ -544,22 +551,27 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ArtifactReader, a Resp
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
+	md := ArtifactMetadata{Type: mimetypes.AptTranslation}
+
 	sl.Debugf("translation file path: %s", u.Path)
 	info, err := apt_cfg.NewTranslationURLInfo(u, &ins.config, sl)
 	if err != nil {
-		a.SetResponseRejected(ins, "invalid path for translation file")
+		a.SetResponseRejected(ins, "invalid path for translation file", md)
 		return nil
 	}
 
+	md.Name = "Translation"
+	md.AptSuite = info.Suite
+
 	cfgName, ok := a.RequestStringAnnotation(ins.ID(), "cfg-name")
 	if !ok {
-		a.SetResponseRejected(ins, "Translation file downloaded from unknown repository")
+		a.SetResponseRejected(ins, "Translation file downloaded from unknown repository", md)
 		return nil
 	}
 	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Suite)
 	repo, ok = ins.getRepositoryAlias(repo, cfgName, sl)
 	if !ok {
-		a.SetResponseRejected(ins, "Unknown repository configuration name").Annotate(
+		a.SetResponseRejected(ins, "Unknown repository configuration name", md).Annotate(
 			Annotation{"cfg-name": cfgName},
 		)
 		return nil
@@ -567,19 +579,19 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ArtifactReader, a Resp
 
 	rel, ok := ins.getReleaseState(repo)
 	if !ok {
-		a.SetResponseRejected(ins, "Repository Release data not found")
+		a.SetResponseRejected(ins, "Repository Release data not found", md)
 		return nil
 	}
 
 	entry, ok := rel.Files[a.Sha256()]
 	if !ok {
-		a.SetResponseRejected(ins, "Translation file not listed in Release file")
+		a.SetResponseRejected(ins, "Translation file not listed in Release file", md)
 		return nil
 	}
 	sl.Debugf("release entry: %+v", entry)
 
 	if int64(entry.Size) != a.Size() {
-		a.SetResponseRejected(ins, "Translation file size mismatch").Annotate(
+		a.SetResponseRejected(ins, "Translation file size mismatch", md).Annotate(
 			Annotation{
 				"expected-size": entry.Size,
 			},
@@ -587,7 +599,7 @@ func (ins *AptReleaseInspector) validateTranslationFile(f ArtifactReader, a Resp
 		return nil
 	}
 
-	a.SetResponseUnknown(ins, "Translation file listed in Release").Annotate(
+	a.SetResponseUnknown(ins, "Translation file listed in Release", md).Annotate(
 		Annotation{
 			"file-path":    entry.Name,
 			"release-file": rel.Sha256.String(),
@@ -609,22 +621,28 @@ func (ins *AptReleaseInspector) validateCommandsFile(f ArtifactReader, a Respons
 		return fmt.Errorf("cannot parse URL: %s", err)
 	}
 
+	md := ArtifactMetadata{Type: mimetypes.AptCommands}
+
 	sl.Debugf("commands file path: %s", u.Path)
 	info, err := apt_cfg.NewCommandURLInfo(u, &ins.config, sl)
 	if err != nil {
-		a.SetResponseRejected(ins, "invalid path for commands file")
+		a.SetResponseRejected(ins, "invalid path for commands file", md)
 		return nil
 	}
 
+	md.Name = "Commands"
+	md.Description = "Commands list for command-not-found"
+	md.AptSuite = info.Suite
+
 	cfgName, ok := a.RequestStringAnnotation(ins.ID(), "cfg-name")
 	if !ok {
-		a.SetResponseRejected(ins, "Commands file downloaded from unknown repository")
+		a.SetResponseRejected(ins, "Commands file downloaded from unknown repository", md)
 		return nil
 	}
 	repo := fmt.Sprintf("%s/dists/%s", info.Repository, info.Suite)
 	repo, ok = ins.getRepositoryAlias(repo, cfgName, sl)
 	if !ok {
-		a.SetResponseRejected(ins, "Unknown repository configuration name").Annotate(
+		a.SetResponseRejected(ins, "Unknown repository configuration name", md).Annotate(
 			Annotation{"cfg-name": cfgName},
 		)
 		return nil
@@ -632,19 +650,19 @@ func (ins *AptReleaseInspector) validateCommandsFile(f ArtifactReader, a Respons
 
 	rel, ok := ins.getReleaseState(repo)
 	if !ok {
-		a.SetResponseRejected(ins, "Repository Release data not found")
+		a.SetResponseRejected(ins, "Repository Release data not found", md)
 		return nil
 	}
 
 	entry, ok := rel.Files[a.Sha256()]
 	if !ok {
-		a.SetResponseRejected(ins, "Commands file not listed in Release file")
+		a.SetResponseRejected(ins, "Commands file not listed in Release file", md)
 		return nil
 	}
 	sl.Debugf("release entry: %+v", entry)
 
 	if int64(entry.Size) != a.Size() {
-		a.SetResponseRejected(ins, "Commands file size mismatch").Annotate(
+		a.SetResponseRejected(ins, "Commands file size mismatch", md).Annotate(
 			Annotation{
 				"expected-size": entry.Size,
 			},
@@ -652,7 +670,7 @@ func (ins *AptReleaseInspector) validateCommandsFile(f ArtifactReader, a Respons
 		return nil
 	}
 
-	a.SetResponseUnknown(ins, "Commands file listed in Release").Annotate(
+	a.SetResponseUnknown(ins, "Commands file listed in Release", md).Annotate(
 		Annotation{
 			"file-path":    entry.Name,
 			"release-file": rel.Sha256.String(),

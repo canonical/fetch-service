@@ -99,7 +99,7 @@ func (ins *GoModuleGitInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
 		// this must have been set by the git upload-pack inspector
-		a.SetResponseUnknown(ins, "no git checkout found")
+		a.SetResponseUnknown(ins, "no git checkout found", NoMetadata)
 		return nil
 	}
 	notes := Annotation{}
@@ -113,9 +113,10 @@ func (ins *GoModuleGitInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 
 	mod := goMod{}
 	if err := mod.parse(goModPath); err != nil {
-		a.SetResponseUnknown(ins, "cannot parse go.mod file").Annotate(
+		a.SetResponseUnknown(ins, "cannot parse go.mod file", NoMetadata).Annotate(
 			Annotation{"error-msg": err.Error()},
 		)
+		return nil
 	}
 
 	md := ArtifactMetadata{Type: mimetypes.GoModuleGit}
@@ -150,7 +151,7 @@ func (ins *GoModuleGitInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		md.Version = getVersionTag(tags.(map[string]string), wants[0])
 	} else {
 		// Cannot approve if version not found
-		a.SetResponseUnknown(ins, "cannot find go module version tag").Annotate(notes)
+		a.SetResponseUnknown(ins, "cannot find go module version tag", md).Annotate(notes)
 		return nil
 	}
 
@@ -170,8 +171,7 @@ func (ins *GoModuleGitInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 		notes.Add("go", mod.GoVersion)
 	}
 
-	a.SetResponseApproved(ins, "go module found").Annotate(notes)
-	a.SetArtifactMetadata(md)
+	a.SetResponseApproved(ins, "go module found", md).Annotate(notes)
 
 	return nil
 }

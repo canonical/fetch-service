@@ -185,13 +185,13 @@ func (ins *SimpleStreamsDownloadInspector) InspectArtifact(f ArtifactReader, a R
 	}
 	sl.Debugf("parsed Simple Streams Download for stream %s", stream)
 
-	a.SetArtifactMetadata(ArtifactMetadata{
+	md := ArtifactMetadata{
 		Type:        mimetypes.SimpleStreamsProducts,
 		Name:        "Simple Streams Download",
 		Description: fmt.Sprintf("Simple Streams Download for %s", dl.ContentID),
-	})
+	}
 
-	a.SetResponseApproved(ins, "valid Simple Streams Download file").Annotate(
+	a.SetResponseApproved(ins, "valid Simple Streams Download file", md).Annotate(
 		Annotation{productItems: ins.extractSupportedUbuntuImages(dl.Products)},
 	)
 
@@ -207,9 +207,10 @@ func (ins *SimpleStreamsDownloadInspector) getProductItemDigest(itemPath string)
 }
 
 func (ins *SimpleStreamsDownloadInspector) inspectProductItem(a ResponseArtifact, itemPath string) error {
+	md := ArtifactMetadata{} // We don't know what this artifact is
 	digest, ok := ins.getProductItemDigest(itemPath)
 	if !ok {
-		a.SetResponseRejected(ins, "sha256 missing for item").Annotate(Annotation{
+		a.SetResponseRejected(ins, "sha256 missing for item", md).Annotate(Annotation{
 			productItemPath:   itemPath,
 			productItemSha256: a.Sha256().String(),
 		})
@@ -217,7 +218,7 @@ func (ins *SimpleStreamsDownloadInspector) inspectProductItem(a ResponseArtifact
 	}
 
 	if digest != a.Sha256().String() {
-		a.SetResponseRejected(ins, "sha256 mismatch").Annotate(Annotation{
+		a.SetResponseRejected(ins, "sha256 mismatch", md).Annotate(Annotation{
 			"expected-sha256": digest,
 			productItemSha256: a.Sha256().String(),
 		})
@@ -225,7 +226,7 @@ func (ins *SimpleStreamsDownloadInspector) inspectProductItem(a ResponseArtifact
 
 	}
 
-	a.SetResponseUnknown(ins, "simple streams product item matches digest").Annotate(Annotation{
+	a.SetResponseUnknown(ins, "simple streams product item matches digest", NoMetadata).Annotate(Annotation{
 		productItemPath: itemPath,
 		"sha256":        a.Sha256().String(),
 	})

@@ -78,15 +78,14 @@ func (ins *SmartQueryInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 
 	vendor, _ := a.RequestStringAnnotation(ins.ID(), "server")
 
-	// Content type says it's an upload pack advertisement
-	a.SetArtifactMetadata(ArtifactMetadata{
+	md := ArtifactMetadata{
 		Type:        mimetypes.GitUploadPackAdvertisement,
 		Name:        "git upload-pack advertisement",
 		Description: "response to git smart server query",
 		Vendor:      vendor,
-	})
+	}
 
-	msgs, err := ins.decodeProtocol(f, a)
+	msgs, err := ins.decodeProtocol(f, a, md)
 	if err != nil {
 		return nil
 	}
@@ -107,23 +106,23 @@ func (ins *SmartQueryInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 	// using protocol version 2 notifies the client by sending a version string
 	// in its initial response followed by an advertisement of its capabilities.
 	// Each capability is a key with an optional value.
-	a.SetResponseApproved(ins, "upload pack advertisement received").Annotate(
+	a.SetResponseApproved(ins, "upload pack advertisement received", md).Annotate(
 		Annotation{"version": version, "server-response": serverMsgs},
 	)
 	return nil
 }
 
-func (ins *SmartQueryInspector) decodeProtocol(f ArtifactReader, a ResponseArtifact) ([]string, error) {
+func (ins *SmartQueryInspector) decodeProtocol(f ArtifactReader, a ResponseArtifact, md ArtifactMetadata) ([]string, error) {
 	sl := a.Logger()
 	msgs, err := decodeGitProtocol(f, sl)
 	if err != nil {
-		a.SetResponseRejected(ins, "cannot decode git protocol").Annotate(
+		a.SetResponseRejected(ins, "cannot decode git protocol", md).Annotate(
 			Annotation{"error-msg": err.Error()},
 		)
 	} else if len(msgs) == 1 && msgs[0] == "# service=git-upload-pack" {
 		msgs, err = decodeGitProtocol(f, sl) // skip previous size+content
 		if err != nil {
-			a.SetResponseRejected(ins, "cannot decode pack advertisement").Annotate(
+			a.SetResponseRejected(ins, "cannot decode pack advertisement", md).Annotate(
 				Annotation{"error-msg": err.Error()},
 			)
 		}

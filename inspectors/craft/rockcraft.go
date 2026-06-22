@@ -66,7 +66,7 @@ func (ins *RockcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
 		// this must have been set by the git upload-pack inspector
-		a.SetResponseUnknown(ins, "no git checkout found")
+		a.SetResponseUnknown(ins, "no git checkout found", NoMetadata)
 		return nil
 	}
 
@@ -76,9 +76,15 @@ func (ins *RockcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 	if _, err := osStat(rockcraftYamlPath); err != nil {
 		return nil
 	}
+
+	md := ArtifactMetadata{
+		Type:      mimetypes.Rockcraft,
+		ContentID: getSingleFetchedRef(a),
+	}
+
 	yamlDataFileReader, err := osOpen(rockcraftYamlPath)
 	if err != nil {
-		a.SetResponseRejected(ins, "cannot open rockcraft.yaml file")
+		a.SetResponseRejected(ins, "cannot open rockcraft.yaml file", md)
 		return nil
 	}
 	defer yamlDataFileReader.Close()
@@ -86,19 +92,16 @@ func (ins *RockcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtif
 	var data rockcraftYaml
 	dec := yaml.NewDecoder(yamlDataFileReader)
 	if err := dec.Decode(&data); err != nil {
-		a.SetResponseRejected(ins, "cannot decode rockcraft.yaml")
+		a.SetResponseRejected(ins, "cannot decode rockcraft.yaml", md)
 		return nil
 	}
 
-	a.SetArtifactMetadata(ArtifactMetadata{
-		Type:        mimetypes.Rockcraft,
-		Name:        data.Name,
-		Version:     data.Version,
-		Description: data.Summary,
-		License:     data.License,
-		ContentID:   getSingleFetchedRef(a),
-	})
-	a.SetResponseApproved(ins, "rockcraft repository found")
+	md.Name = data.Name
+	md.Version = data.Version
+	md.Description = data.Summary
+	md.License = data.License
+
+	a.SetResponseApproved(ins, "rockcraft repository found", md)
 
 	return nil
 }

@@ -120,16 +120,39 @@ func (ins *SnapAssertionInspector) InspectArtifact(f ArtifactReader, a ResponseA
 		return err
 	}
 
+	md := ArtifactMetadata{
+		Type: mimetypes.Assertion,
+	}
+
 	assert, err := newAssertion(buf)
 	if err != nil {
-		a.SetResponseRejected(ins, "error parsing assertion").Annotate(
+		a.SetResponseRejected(ins, "error parsing assertion", md).Annotate(
 			Annotation{"error-msg": err.Error()},
 		)
 		return nil
 	}
 
+	switch assert.Type() {
+	case "snap-revision":
+		md.Type = mimetypes.SnapRevisionAssertion
+	case "snap-declaration":
+		md.Type = mimetypes.SnapDeclarationAssertion
+	case "account":
+		md.Type = mimetypes.AccountAssertion
+	case "account-key":
+		md.Type = mimetypes.AccountKeyAssertion
+	case "serial":
+		md.Type = mimetypes.SerialAssertion
+	}
+
+	md.Name = "assertion"
+	md.Description = fmt.Sprintf("%s assertion file", assert.Header["type"])
+	md.Version = assert.Header["revision"]
+	md.Vendor = assert.Header["authority-id"]
+	md.Author = assert.Header["authority-id"]
+
 	if err := assert.VerifySignature(sl); err != nil {
-		a.SetResponseRejected(ins, "assertion signature verification failed").Annotate(
+		a.SetResponseRejected(ins, "assertion signature verification failed", md).Annotate(
 			Annotation{
 				"assertion-type": assert.Type(),
 				"error-msg":      err.Error(),
@@ -138,35 +161,12 @@ func (ins *SnapAssertionInspector) InspectArtifact(f ArtifactReader, a ResponseA
 		return nil
 	}
 
-	var mtype string
-	switch assert.Type() {
-	case "snap-revision":
-		mtype = mimetypes.SnapRevisionAssertion
-	case "snap-declaration":
-		mtype = mimetypes.SnapDeclarationAssertion
-	case "account":
-		mtype = mimetypes.AccountAssertion
-	case "account-key":
-		mtype = mimetypes.AccountKeyAssertion
-	case "serial":
-		mtype = mimetypes.SerialAssertion
-	}
-
-	a.SetArtifactMetadata(ArtifactMetadata{
-		Type:        mtype,
-		Name:        "assertion",
-		Description: fmt.Sprintf("%s assertion file", assert.Header["type"]),
-		Version:     assert.Header["revision"],
-		Vendor:      assert.Header["authority-id"],
-		Author:      assert.Header["authority-id"],
-	})
-
 	notes := Annotation{}
 	for k, v := range assert.Header {
 		notes.Add(k, v)
 	}
 
-	a.SetResponseApproved(ins, "valid snap assertion").Annotate(notes)
+	a.SetResponseApproved(ins, "valid snap assertion", md).Annotate(notes)
 
 	return nil
 }

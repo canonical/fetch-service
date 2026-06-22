@@ -79,13 +79,11 @@ func (ins *SnapAuthNonceInspector) InspectArtifact(f ArtifactReader, a ResponseA
 		return nil // we don't recognize this artifact
 	}
 
-	a.SetArtifactMetadata(ArtifactMetadata{
+	a.SetResponseApproved(ins, "valid format for snapd authentication nonce", ArtifactMetadata{
 		Type:        mimetypes.SnapAuthNonce,
 		Name:        "Authentication nonce",
 		Description: "Snapd authentication nonce",
 	})
-
-	a.SetResponseApproved(ins, "valid format for snapd authentication nonce")
 
 	return nil
 }

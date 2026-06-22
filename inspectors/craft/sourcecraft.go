@@ -66,7 +66,7 @@ func (ins *SourcecraftInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
 		// this must have been set by the git upload-pack inspector
-		a.SetResponseUnknown(ins, "no git checkout found")
+		a.SetResponseUnknown(ins, "no git checkout found", NoMetadata)
 		return nil
 	}
 
@@ -76,9 +76,15 @@ func (ins *SourcecraftInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	if _, err := osStat(sourcecraftYamlPath); err != nil {
 		return nil
 	}
+
+	md := ArtifactMetadata{
+		Type:      mimetypes.Sourcecraft,
+		ContentID: getSingleFetchedRef(a),
+	}
+
 	yamlDataFileReader, err := osOpen(sourcecraftYamlPath)
 	if err != nil {
-		a.SetResponseRejected(ins, "cannot open sourcecraft.yaml file")
+		a.SetResponseRejected(ins, "cannot open sourcecraft.yaml file", md)
 		return nil
 	}
 	defer yamlDataFileReader.Close()
@@ -86,18 +92,15 @@ func (ins *SourcecraftInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 	var data sourcecraftYaml
 	dec := yaml.NewDecoder(yamlDataFileReader)
 	if err := dec.Decode(&data); err != nil {
-		a.SetResponseRejected(ins, "cannot decode sourcecraft.yaml")
+		a.SetResponseRejected(ins, "cannot decode sourcecraft.yaml", md)
 		return nil
 	}
 
-	a.SetArtifactMetadata(ArtifactMetadata{
-		Type:        mimetypes.Sourcecraft,
-		Name:        data.Name,
-		Version:     data.Version,
-		Description: data.Summary,
-		License:     data.License,
-		ContentID:   getSingleFetchedRef(a),
-	})
-	a.SetResponseApproved(ins, "sourcecraft repository found")
+	md.Name = data.Name
+	md.Version = data.Version
+	md.Description = data.Summary
+	md.License = data.License
+
+	a.SetResponseApproved(ins, "sourcecraft repository found", md)
 	return nil
 }
