@@ -1,3 +1,8 @@
+.. _ref_git_smart_query:
+
+.. meta::
+    :description: Reference for the git smart server query inspector which verifies the initial capability advertisement in the Git smart HTTP protocol.
+
 Git smart query inspector
 =========================
 
@@ -28,7 +33,7 @@ Request verification
 
 The git smart server verification contains the ``service=git-upload-pack``
 query. Valid requests contain the ``Git-Protocol`` request header set to
-`2`.
+``version=2``.
 
 
 Response format
@@ -36,6 +41,21 @@ Response format
 
 The response is encoded using the git v2 protocol.
 
+
+Configuration options
+---------------------
+
+This inspector is configured under the ``git`` key in ``inspectors.yaml``.
+
+.. list-table::
+   :widths: auto
+   :header-rows: 1
+
+   * - Option
+     - Description
+   * - ``urls``
+     - List of URL glob patterns. Only requests to matching URLs are
+       approved for further inspection.
 
 Acceptance criteria
 -------------------
@@ -72,12 +92,10 @@ inspector:
    type          Yes   ``application/x.git.upload-pack-advertisement``
    name          Yes   ``git upload-pack advertisement``
    version
-   description   Yes   ``Response to the git smart server query``
+   description   Yes   ``response to git smart server query``
    vendor        Yes   The git server hostname
    author
    author-email
    architecture
-   license
-   copyright
    ============  ====  ============================================
 

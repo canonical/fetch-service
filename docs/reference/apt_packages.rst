@@ -1,12 +1,20 @@
+.. _ref_apt_packages:
+
+.. meta::
+    :description: Reference for the APT packages file inspector which verifies Packages files listing available packages in an APT repository.
+
 The APT packages file inspector
 ===============================
 
-The APT packages inspector verifies the APT repository's Packages.xz
+APT Packages files list the packages available in an APT repository along
+with their metadata and SHA256 checksums. They are downloaded by package
+managers such as ``apt`` during a repository refresh.
+
+The APT packages inspector verifies the APT repository's Packages
 file and whether it has a matching entry for downloaded deb files.
 
-This inspector currently only examines the XZ-compressed version of
-the Packages file (it's the file downloaded when running ``apt update``
-on Ubuntu).
+This inspector examines the gzip-compressed version of the Packages file
+as well as files fetched by hash (which may be XZ or gzip compressed).
 
 Inspector ID
 ------------
@@ -23,23 +31,45 @@ Internal state
 Request verification
 --------------------
 
-The APT packages inspector accepts HTTP requests to the Ubuntu archive,
-including official ``*.archive.ubuntu.com`` mirrors, ``security.ubuntu.com``,
-and HTTPS requests to ``esm.ubuntu.com``.
+The APT packages inspector accepts HTTP requests to the repositories
+configured in the ``apt.repositories.<name>`` entry in ``inspectors.yaml``.
 
-The Packages.xz file path is expected to match the regular expression
-``^/ubuntu/dists/[\w-]+/[\w-]+/binary-\w+/by-hash/SHA256/[0-9a-f]{64}$``
+The Packages file path is expected to match one of these patterns:
+
+* Direct: ``/<repo>/dists/[\w-]+/[\w-]+/binary-\w+/Packages.gz``
+* By hash: ``/<repo>/dists/[\w-]+/[\w-]+/binary-\w+/by-hash/SHA256/[0-9a-f]{64}``
 
 File format
 -----------
 
-The APT release inspector expects the Packages file to:
+The APT packages inspector expects the Packages file to:
 
-* Be a XZ-compressed text file.
+* Be a compressed (gzip or XZ) text file.
 * Contain blocks separated by a blank line, each block containing the
-  fields ``Package``, ``Architecture``, ``Version", ``Priority``,
-  ``Section``, ``Origin``, and ``Maintainer``.
+  fields ``Package``, ``Architecture``, ``Version``, ``Priority``,
+  ``Section``, and ``Maintainer``.
 
+
+Configuration options
+---------------------
+
+This inspector is configured under the ``apt`` key in ``inspectors.yaml``.
+The ``repositories`` map defines the allowed APT repositories.
+
+.. list-table:: Per-repository options (``apt.repositories.<name>``)
+   :widths: auto
+   :header-rows: 1
+
+   * - Option
+     - Description
+   * - ``urls``
+     - List of URL glob patterns for the repository base URL.
+   * - ``suites``
+     - List of allowed suite name glob patterns (for example, ``focal``
+       or ``noble-updates``).
+   * - ``components``
+     - List of allowed component glob patterns (for example, ``main``
+       or ``universe``).
 
 Acceptance criteria
 -------------------
@@ -47,32 +77,35 @@ Acceptance criteria
 To be approved, the artifacts examined by this inspector must comply
 to the following rules:
 
-* The ``Packages.xz`` file must follow the format described in the
+* The ``Packages`` file must follow the format described in the
   previous section.
-* The deb file must match an entry in a previously downloaded Packages
-  file.
+
+When a deb file is downloaded and matches an entry in a previously downloaded
+Packages file, this inspector marks it as unknown (pending further
+validation by the :doc:`deb <deb>` inspector).
 
 
 Rejection reasons
 -----------------
 
-The ``Packages.xz`` file is rejected if:
+The ``Packages`` file is rejected if:
 
 * The package entries cannot be parsed.
 
 The deb file is rejected if:
 
-* It doesn't correspond to an entry in a previously downloaded Packages
-  file.
+* It doesn't correspond to an entry in a previously downloaded Packages file.
+* The file size does not match the Packages entry.
+* The URL architecture does not match the Packages entry.
 
 
 Extracted metadata
 ------------------
 
 The following pieces of metadata are extracted by the APT packages file
- inspector:
+inspector:
 
-.. table:: APT release inspector metadata
+.. table:: APT packages file inspector metadata
    :widths: auto
 
    ============  ====  ============================================
@@ -80,13 +113,11 @@ The following pieces of metadata are extracted by the APT packages file
    ============  ====  ============================================
    type          Yes   ``application/x.apt.packages``
    name          Yes   ``Packages``
-   version       Yes   ``InRelease`` field ``Codename``
-   description   Yes   ``<Codename> <Component> Packages file``
+   version
+   description   Yes   ``<Suite> <Component> Packages file``
    vendor        Yes   ``InRelease`` field ``Origin``
    author        Yes   ``InRelease`` field ``Origin``
    author-email
-   architecture                   
-   license
-   copyright                   
+   architecture  Yes   Binary architecture from request URL
    ============  ====  ============================================
 
