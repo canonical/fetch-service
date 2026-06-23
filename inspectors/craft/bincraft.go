@@ -61,7 +61,7 @@ func (ins *BincraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtifa
 	}
 
 	sl := a.Logger()
-	sl.Debugf("Inspecting source artifact")
+	sl.Debugf("Inspecting bincraft artifact")
 
 	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
