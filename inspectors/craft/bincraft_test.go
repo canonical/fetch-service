@@ -123,8 +123,8 @@ func createTestBincraftArtifact(checkoutPath string) *metadata.Artifact {
 }
 
 func loadTestBincraftArtifactData() (*files.ArtifactFile, error) {
-	sourcepkgFile := filepath.Join("testdata", "bincraftpkg.raw")
-	file, err := files.OpenArtifactFile(sourcepkgFile)
+	bincraftpkgFile := filepath.Join("testdata", "bincraftpkg.raw")
+	file, err := files.OpenArtifactFile(bincraftpkgFile)
 	return file, err
 }
 
@@ -163,7 +163,7 @@ func (s *bincraftSuite) TestInspectBincraftGitRequest(c *C) {
 		c.Assert(err, IsNil)
 
 		insp, ok := a.RequestInspection[ins.ID()]
-		c.Assert(ok, Equals, tc.approved, Commentf("Aproval status is wrong for '%s' (%t != %t)", tc.url, ok, tc.approved))
+		c.Assert(ok, Equals, tc.approved, Commentf("Approval status is wrong for '%s' (%t != %t)", tc.url, ok, tc.approved))
 		if tc.approved {
 			c.Assert(insp.Opinion, Equals, opinions.Pending)
 		}

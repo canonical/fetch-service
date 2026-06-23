@@ -1,3 +1,4 @@
+// -*- Mode: Go; indent-tabs-mode: t -*-
 /*
  * Copyright 2026 Canonical Ltd.
  *
@@ -56,7 +57,7 @@ func (ins *BincraftInspector) InspectArtifact(f ArtifactReader, a ResponseArtifa
 	}
 
 	sl := a.Logger()
-	sl.Debugf("Inspecting bin artifact")
+	sl.Debugf("Inspecting bincraft artifact")
 
 	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
