@@ -9,6 +9,7 @@ Reference
    apt_packages
    apt_release
    apt_translation
+   bincraft
    bld_bin
    cargo_crate
    cargo_index
