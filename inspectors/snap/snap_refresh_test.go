@@ -20,6 +20,8 @@
 package snap_test
 
 import (
+	"io"
+	"net/http"
 	"strings"
 
 	. "gopkg.in/check.v1"
@@ -72,6 +74,57 @@ func (s *snapSuite) TestInspectRefreshRequest(c *C) {
 	}
 }
 
+func (s *snapSuite) TestInspectRefreshRequestAnnotatesRequestedChannel(c *C) {
+	ins := snap.NewSnapRefreshInspector()
+	a := metadata.NewArtifact()
+	a.CurrentDownload = metadata.Download{URL: "https://api.snapcraft.io:443/v2/snaps/refresh"}
+	a.Request = &http.Request{Body: io.NopCloser(strings.NewReader(`{"actions":[{"channel":"latest/edge"}]}`))}
+
+	err := ins.InspectRequest(a)
+	c.Assert(err, IsNil)
+
+	insp, ok := a.RequestInspection[ins.ID()]
+	c.Assert(ok, Equals, true)
+	c.Assert(insp.Opinion, Equals, opinions.Pending)
+	c.Assert(insp.Annotations, DeepEquals, Annotation{
+		"requested-channel": "latest/edge",
+	})
+
+	body, err := io.ReadAll(a.Request.Body)
+	c.Assert(err, IsNil)
+	c.Assert(string(body), Equals, `{"actions":[{"channel":"latest/edge"}]}`)
+}
+
+func (s *snapSuite) TestInspectRefreshRequestWithoutChannel(c *C) {
+	ins := snap.NewSnapRefreshInspector()
+	a := metadata.NewArtifact()
+	a.CurrentDownload = metadata.Download{URL: "https://api.snapcraft.io:443/v2/snaps/refresh"}
+	a.Request = &http.Request{Body: io.NopCloser(strings.NewReader(`{"context":[{"snap-id":"foo"}]}`))}
+
+	err := ins.InspectRequest(a)
+	c.Assert(err, IsNil)
+
+	insp, ok := a.RequestInspection[ins.ID()]
+	c.Assert(ok, Equals, true)
+	c.Assert(insp.Opinion, Equals, opinions.Pending)
+	c.Assert(insp.Annotations, IsNil)
+}
+
+func (s *snapSuite) TestInspectRefreshRequestIgnoresInvalidJSON(c *C) {
+	ins := snap.NewSnapRefreshInspector()
+	a := metadata.NewArtifact()
+	a.CurrentDownload = metadata.Download{URL: "https://api.snapcraft.io:443/v2/snaps/refresh"}
+	a.Request = &http.Request{Body: io.NopCloser(strings.NewReader(`{`))}
+
+	err := ins.InspectRequest(a)
+	c.Assert(err, IsNil)
+
+	insp, ok := a.RequestInspection[ins.ID()]
+	c.Assert(ok, Equals, true)
+	c.Assert(insp.Opinion, Equals, opinions.Pending)
+	c.Assert(insp.Annotations, IsNil)
+}
+
 func (s *snapSuite) TestSnapRefreshArtifactInspector(c *C) {
 	a := metadata.NewArtifact()
 	a.Metadata.Type = "application/json"
@@ -82,7 +135,7 @@ func (s *snapSuite) TestSnapRefreshArtifactInspector(c *C) {
 	defer f.Close()
 
 	ins := snap.NewSnapRefreshInspector()
-	a.SetRequestPending(ins, "test")
+	a.SetRequestPending(ins, "test").Annotate(Annotation{"requested-channel": "latest/candidate"})
 	err = ins.InspectArtifact(f, a)
 	c.Assert(err, IsNil)
 	c.Assert(a.Approved(), Equals, true)
@@ -99,6 +152,71 @@ func (s *snapSuite) TestSnapRefreshArtifactInspector(c *C) {
 		"result":   "install",
 		"snap-id":  "Md1HBASHzP4i0bniScAjXGnOII9cEK6e",
 	})
+}
+
+func (s *snapSuite) TestSnapRefreshInspectorAnnotatesMatchingSnapDownload(c *C) {
+	ins := snap.NewSnapRefreshInspector()
+
+	refreshReq := metadata.NewArtifact()
+	refreshReq.CurrentDownload = metadata.Download{URL: "https://api.snapcraft.io:443/v2/snaps/refresh"}
+	refreshReq.Request = &http.Request{Body: io.NopCloser(strings.NewReader(`{"actions":[{"channel":"latest/candidate"}]}`))}
+	err := ins.InspectRequest(refreshReq)
+	c.Assert(err, IsNil)
+
+	refreshResp := metadata.NewArtifact()
+	refreshResp.Metadata.Type = "application/json"
+	refreshResp.Metadata.Size = 3330
+	refreshResp.CurrentDownload = metadata.Download{URL: "https://api.snapcraft.io:443/v2/snaps/refresh"}
+	refreshResp.RequestInspection = refreshReq.RequestInspection
+	refreshFile, err := files.OpenArtifactFile("testdata/refresh.json")
+	c.Assert(err, IsNil)
+	defer refreshFile.Close()
+	err = ins.InspectArtifact(refreshFile, refreshResp)
+	c.Assert(err, IsNil)
+
+	snapReq := metadata.NewArtifact()
+	snapReq.CurrentDownload = metadata.Download{URL: "https://api.snapcraft.io:443/api/v1/snaps/download/Md1HBASHzP4i0bniScAjXGnOII9cEK6e_10660.snap"}
+	err = ins.InspectRequest(snapReq)
+	c.Assert(err, IsNil)
+	insp, ok := snapReq.RequestInspection[ins.ID()]
+	c.Assert(ok, Equals, true)
+	c.Assert(insp.Opinion, Equals, opinions.Pending)
+	c.Assert(insp.Annotations, DeepEquals, Annotation{
+		"requested-channel": "latest/candidate",
+		"effective-channel": "stable",
+		"snap-id":           "Md1HBASHzP4i0bniScAjXGnOII9cEK6e",
+		"revision":          10660,
+		"name":              "go",
+		"version":           "1.22.5",
+	})
+
+	snapResp := metadata.NewArtifact()
+	snapResp.Metadata.Type = "application/x.squashfs"
+	snapResp.CurrentDownload = snapReq.CurrentDownload
+	snapResp.RequestInspection = snapReq.RequestInspection
+	snapFile, err := files.OpenArtifactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
+	c.Assert(err, IsNil)
+	defer snapFile.Close()
+	err = ins.InspectArtifact(snapFile, snapResp)
+	c.Assert(err, IsNil)
+
+	respInsp, ok := snapResp.ResponseInspection[ins.ID()]
+	c.Assert(ok, Equals, true)
+	c.Assert(respInsp.Opinion, Equals, opinions.Unknown)
+	c.Assert(respInsp.Annotations, DeepEquals, insp.Annotations)
+	c.Check(snapResp.Metadata.ReqChannel, Equals, "")
+	c.Check(snapResp.Metadata.Channel, Equals, "")
+}
+
+func (s *snapSuite) TestSnapRefreshInspectorIgnoresUnmatchedSnapDownload(c *C) {
+	ins := snap.NewSnapRefreshInspector()
+	a := metadata.NewArtifact()
+	a.CurrentDownload = metadata.Download{URL: "https://api.snapcraft.io:443/api/v1/snaps/download/Md1HBASHzP4i0bniScAjXGnOII9cEK6e_10660.snap"}
+
+	err := ins.InspectRequest(a)
+	c.Assert(err, IsNil)
+	_, ok := a.RequestInspection[ins.ID()]
+	c.Assert(ok, Equals, false)
 }
 
 func (s *snapSuite) TestSnapRefreshArtifactBadType(c *C) {

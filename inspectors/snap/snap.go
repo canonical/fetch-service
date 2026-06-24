@@ -135,6 +135,12 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 		StoreRevision: snapRevisionAssertion.SnapRevision(),
 		ContentID:     snapID,
 	}
+	if requestedChannel, ok := a.RequestStringAnnotation("snap.refresh", "requested-channel"); ok {
+		md.ReqChannel = requestedChannel
+	}
+	if effectiveChannel, ok := a.RequestStringAnnotation("snap.refresh", "effective-channel"); ok {
+		md.Channel = effectiveChannel
+	}
 
 	// Retrieve the snap-declaration assertion
 	snapDeclarationAssertion, err := downloadSnapDeclarationAssertion(snapID, sl)

@@ -216,6 +216,8 @@ func (t *metadataSuite) TestSetResponseApprovedSetsMetadata(c *C) {
 			License:       "CC0",
 			Copyright:     "Copyright 1976 Acme Corp.",
 			SourcePackage: "my-source-package",
+			ReqChannel:    "latest/candidate",
+			Channel:       "stable",
 		}
 
 		ins := testInspector{}
@@ -234,6 +236,8 @@ func (t *metadataSuite) TestSetResponseApprovedSetsMetadata(c *C) {
 		c.Check(a.Metadata.License, Equals, m.License)
 		c.Check(a.Metadata.Copyright, Equals, m.Copyright)
 		c.Check(a.Metadata.SourcePackage, Equals, m.SourcePackage)
+		c.Check(a.Metadata.ReqChannel, Equals, m.ReqChannel)
+		c.Check(a.Metadata.Channel, Equals, m.Channel)
 	}
 }
 

@@ -163,6 +163,8 @@ func (s *snapSuite) TestSnapArtifactInspector(c *C) {
 	c.Check(a.Metadata.Architecture, Equals, "amd64")
 	c.Check(a.Metadata.Description, Equals, "Word Salad - Password Generator")
 	c.Check(a.Metadata.ContentID, Equals, "UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7")
+	c.Check(a.Metadata.ReqChannel, Equals, "")
+	c.Check(a.Metadata.Channel, Equals, "")
 	c.Check(a.ResponseInspection["snap"].Annotations, DeepEquals, Annotation{
 		"snap-revision-assertion-header": map[string]string{
 			"type":              "snap-revision",
@@ -197,6 +199,29 @@ func (s *snapSuite) TestSnapArtifactInspector(c *C) {
 			"validation":        "starred",
 		},
 	})
+}
+
+func (s *snapSuite) TestSnapArtifactInspectorWithRefreshChannels(c *C) {
+	a := metadata.NewArtifact()
+	a.Metadata.Type = "application/x.squashfs"
+	a.Metadata.Size = 8192
+	a.SetRequestPending(snap.NewSnapInspector(getTestSnapInspectorConfig()), "test")
+	a.SetRequestPending(snap.NewSnapRefreshInspector(), "refresh correlation").Annotate(Annotation{
+		"requested-channel": "latest/candidate",
+		"effective-channel": "stable",
+	})
+
+	f, err := files.OpenArtifactFile("testdata/UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7.snap")
+	c.Assert(err, IsNil)
+	defer f.Close()
+
+	ins := snap.NewSnapInspector(getTestSnapInspectorConfig())
+	err = ins.InspectArtifact(f, a)
+	c.Assert(err, IsNil)
+
+	c.Check(a.Metadata.ContentID, Equals, "UQEdRgY5gr1dI2fwIDOgUQidMZauRqt7")
+	c.Check(a.Metadata.ReqChannel, Equals, "latest/candidate")
+	c.Check(a.Metadata.Channel, Equals, "stable")
 }
 
 func (s *snapSuite) TestSnapArtifactInspectorSkip(c *C) {

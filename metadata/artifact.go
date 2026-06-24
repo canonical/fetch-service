@@ -125,6 +125,8 @@ func (a *Artifact) setArtifactMetadata(m ArtifactMetadata) {
 	a.Metadata.StoreRevision = m.StoreRevision
 	a.Metadata.AptSuite = m.AptSuite
 	a.Metadata.ContentID = m.ContentID
+	a.Metadata.ReqChannel = m.ReqChannel
+	a.Metadata.Channel = m.Channel
 }
 
 func (a *Artifact) MimetypeIs(t string) bool {

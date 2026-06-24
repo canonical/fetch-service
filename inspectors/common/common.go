@@ -172,4 +172,6 @@ type ArtifactMetadata struct {
 	StoreRevision string // The revision of the artifact assigned by the store, if any.
 	AptSuite      string // The apt repository series and pocket
 	ContentID     string // Content-specific identifier (value depends on artifact type)
+	ReqChannel    string // Channel this artifact was requested from
+	Channel       string // Channel effectively used to deliver this artifact
 }

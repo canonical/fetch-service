@@ -27,23 +27,25 @@ import (
 
 // Metadata holds information about each artifact.
 type Metadata struct {
-	Type          string       `json:"type"`                     // The mime-type of the artifact file
-	Sha1          Sha1Digest   `json:"sha1"`                     // The SHA1 digest of the artifact file
-	Sha256        Sha256Digest `json:"sha256"`                   // The SHA256 digest of the artifact file
-	Size          int64        `json:"size"`                     // The size of the artifact file
-	Name          string       `json:"name"`                     // The artifact designation, given by its author
-	Version       string       `json:"version"`                  // The artifact version, as published by the upstream
-	Vendor        string       `json:"vendor"`                   // The artifact vendor
-	Description   string       `json:"description"`              // A free-form description of the artifact
-	Author        string       `json:"author"`                   // The artifact author name
-	AuthorEmail   string       `json:"author-email,omitempty"`   // The artifact author email address
-	Architecture  string       `json:"architecture,omitempty"`   // The architecture, if the artifact contains binary code
-	License       string       `json:"license"`                  // The license the artifact is published under
-	Copyright     string       `json:"copyright,omitempty"`      // The copyright line, if available
-	SourcePackage string       `json:"source-package,omitempty"` // The name of the source package that generated this artifact.
-	StoreRevision string       `json:"store-revision,omitempty"` // The revision number assigned by the store to this artifact.
-	AptSuite      string       `json:"apt-suite,omitempty"`      // The apt repository series and pocket
-	ContentID     string       `json:"content-id,omitempty"`     // Content-specific identifier (value depends on artifact type)
+	Type          string       `json:"type"`                        // The mime-type of the artifact file
+	Sha1          Sha1Digest   `json:"sha1"`                        // The SHA1 digest of the artifact file
+	Sha256        Sha256Digest `json:"sha256"`                      // The SHA256 digest of the artifact file
+	Size          int64        `json:"size"`                        // The size of the artifact file
+	Name          string       `json:"name"`                        // The artifact designation, given by its author
+	Version       string       `json:"version"`                     // The artifact version, as published by the upstream
+	Vendor        string       `json:"vendor"`                      // The artifact vendor
+	Description   string       `json:"description"`                 // A free-form description of the artifact
+	Author        string       `json:"author"`                      // The artifact author name
+	AuthorEmail   string       `json:"author-email,omitempty"`      // The artifact author email address
+	Architecture  string       `json:"architecture,omitempty"`      // The architecture, if the artifact contains binary code
+	License       string       `json:"license"`                     // The license the artifact is published under
+	Copyright     string       `json:"copyright,omitempty"`         // The copyright line, if available
+	SourcePackage string       `json:"source-package,omitempty"`    // The name of the source package that generated this artifact.
+	StoreRevision string       `json:"store-revision,omitempty"`    // The revision number assigned by the store to this artifact.
+	AptSuite      string       `json:"apt-suite,omitempty"`         // The apt repository series and pocket
+	ContentID     string       `json:"content-id,omitempty"`        // Content-specific identifier (value depends on artifact type)
+	ReqChannel    string       `json:"requested-channel,omitempty"` // Channel this artifact was requested from
+	Channel       string       `json:"effective-channel,omitempty"` // Channel effectively used to deliver this artifact
 }
 
 // Download holds information about each artifact download.

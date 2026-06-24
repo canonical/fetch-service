@@ -13,6 +13,11 @@ managed by the ``snapd`` daemon and are published through the Snap store.
 The snap package inspector examines snap packages downloaded from the
 Snap store.
 
+In addition to the primary ``snap`` inspector, matching snap downloads may
+also receive correlation annotations from the ``snap.refresh`` inspector when
+they were previously resolved through the Snap store refresh API in the same
+session.
+
 Inspector ID
 ------------
 
@@ -92,17 +97,34 @@ The following pieces of metadata are extracted by the snap package inspector:
 .. table:: Snap package inspector metadata
    :widths: auto
 
-   ==============  ====  =============================================
-   Field           Used  Data source
-   ==============  ====  =============================================
-   type            Yes   ``application/x.canonical.snap-package``
-   name            Yes   Snap name from snap-declaration assertion
-   version         Yes   ``version`` key in ``meta/snap.yaml``
-   description     Yes   ``summary`` key in ``meta/snap.yaml``
-   vendor          Yes   Publisher display name from account assertion
+   ==================  ====  =============================================
+   Field               Used  Data source
+   ==================  ====  =============================================
+   type                Yes   ``application/x.canonical.snap-package``
+   name                Yes   Snap name from snap-declaration assertion
+   version             Yes   ``version`` key in ``meta/snap.yaml``
+   description         Yes   ``summary`` key in ``meta/snap.yaml``
+   vendor              Yes   Publisher display name from account assertion
    author
-   architecture    Yes   ``architectures`` list joined with ``,``
-   license         Yes   ``license`` key in ``meta/snap.yaml``
-   store-revision  Yes   Snap revision from snap-revision assertion
-   content-id      Yes   Snap ID from snap-revision assertion
-   ==============  ====  =============================================
+   architecture        Yes   ``architectures`` list joined with ``,``
+   license             Yes   ``license`` key in ``meta/snap.yaml``
+   store-revision      Yes   Snap revision from snap-revision assertion
+   content-id          Yes   Snap ID from snap-revision assertion
+   requested-channel   Yes   Correlated from ``snap.refresh`` when available
+   effective-channel   Yes   Correlated from ``snap.refresh`` when available
+   ==================  ====  =============================================
+
+Related annotations
+-------------------
+
+When the snap download matches a prior refresh exchange in the same session,
+the ``snap.refresh`` inspector may add a separate ``response-inspection``
+entry for the same artifact with an ``Unknown`` opinion. That entry can carry:
+
+* ``snap-id``
+* ``revision``
+* ``requested-channel``
+* ``effective-channel``
+
+These values are correlation annotations only. The ``snap`` inspector remains
+the owner of the snap package metadata and approval decision.
