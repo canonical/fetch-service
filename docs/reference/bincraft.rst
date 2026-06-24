@@ -1,14 +1,13 @@
 .. _ref_bincraft:
 
 .. meta::
-    :description: Reference for the Bincraft inspector which verifies bin repositories cloned using the git upload-pack protocol.
+    :description: Reference for the Bincraft inspector which verifies repositories containing bincraft projects cloned using the git upload-pack protocol.
 
 Bincraft inspector
-=========================
+==================
 
-The Bincraft inspector checks whether the Git
-repository that was selected for cloning is a valid and trustworthy
-Bincraft repository.
+The Bincraft inspector checks whether the Git repository that was selected for cloning
+is a valid Bincraft repository.
 
 Once a request is accepted for inspection it downloads and tries to extract the packed content
 of the repository. In the extracted data it looks for the ``bincraft.yaml``
