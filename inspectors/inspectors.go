@@ -51,6 +51,7 @@ func init() {
 	mimetype.SetLimit(1 << 16) // set buffer size to 64Kb
 	mimetype.Lookup("application/x-xz").Extend(apt.AptPackagesDetector, mimetypes.AptPackages, "")
 	mimetype.Lookup("application/x-gzip").Extend(apt.AptPackagesDetector, mimetypes.AptPackages, "")
+	mimetype.Lookup("text/plain").Extend(apt.AptPackagesDetector, mimetypes.AptPackages, "")
 	mimetype.Lookup("application/x-xz").Extend(apt.AptTranslationDetector, mimetypes.AptTranslation, "")
 	mimetype.Lookup("application/x-xz").Extend(apt.AptCommandsDetector, mimetypes.AptCommands, "")
 	mimetype.Lookup("application/octet-stream").Extend(snap.SquashFsDetector, mimetypes.SquashFs, "")

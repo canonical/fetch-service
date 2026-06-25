@@ -178,6 +178,18 @@ var packageURLInfoTests = []packageURLInfoTest{{
 	series:   "jammy",
 	errorMsg: "invalid series: jammy",
 }, {
+	url:      "http://archive.ubuntu.com/ubuntu/dists/focal/main/binary-amd64/Packages",
+	conf:     "default",
+	repo:     "http://archive.ubuntu.com/ubuntu",
+	series:   "focal",
+	errorMsg: "",
+}, {
+	url:      "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/Packages",
+	conf:     "none",
+	repo:     "http://archive.ubuntu.com/ubuntu",
+	series:   "jammy",
+	errorMsg: "invalid series: jammy",
+}, {
 	url:      "https://esm.ubuntu.com:443/fips-preview/ubuntu/dists/noble/main/binary-amd64/by-hash/SHA256/5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03",
 	conf:     "esm",
 	repo:     "https://esm.ubuntu.com:443/fips-preview/ubuntu",

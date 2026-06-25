@@ -204,6 +204,22 @@ func NewPackagesURLInfo(u *url.URL, cfg *AptInspectorConfig, sl logger.Logger) (
 		return info, nil
 	}
 
+	// apt may also fetch the uncompressed Packages file by name, e.g.:
+	// GET http://archive.ubuntu.com/ubuntu/dists/noble/universe/binary-amd64/Packages
+	rePackages = regexp.MustCompile(`/[\w-]+/dists/[\w-]+/[\w-]+/binary-(\w+)/Packages$`)
+	m = rePackages.FindStringSubmatch(u.Path)
+	if len(m) == 2 {
+		info := &PackagesURLInfo{
+			CfgName:      name,
+			Origin:       utils.NormalizedOrigin(u),
+			Repository:   repo,
+			Suite:        suite,
+			Component:    component,
+			Architecture: m[1],
+		}
+		return info, nil
+	}
+
 	return nil, fmt.Errorf("invalid Packages URL path: %s", u.Path)
 }
 

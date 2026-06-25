@@ -1,0 +1,70 @@
+Package: 0ad
+Architecture: amd64
+Version: 0.0.25b-2
+Priority: optional
+Section: universe/games
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 21883
+Pre-Depends: dpkg (>= 1.15.6~)
+Depends: 0ad-data (>= 0.0.25b), 0ad-data (<= 0.0.25b-2), 0ad-data-common (>= 0.0.25b), 0ad-data-common (<= 0.0.25b-2), libboost-filesystem1.74.0 (>= 1.74.0), libc6 (>= 2.34), libcurl3-gnutls (>= 7.32.0), libenet7, libfmt8 (>= 8.1.1+ds1), libgcc-s1 (>= 3.4), libgl1, libgloox18 (>= 1.0.24), libicu70 (>= 70.1-1~), libminiupnpc17 (>= 1.9.20140610), libopenal1 (>= 1.14), libpng16-16 (>= 1.6.2-1), libsdl2-2.0-0 (>= 2.0.12), libsodium23 (>= 1.0.14), libstdc++6 (>= 12), libvorbisfile3 (>= 1.1.2), libwxbase3.0-0v5 (>= 3.0.5.1+dfsg), libwxgtk3.0-gtk3-0v5 (>= 3.0.5.1+dfsg), libx11-6, libxml2 (>= 2.9.0), zlib1g (>= 1:1.2.0)
+Filename: pool/universe/0/0ad/0ad_0.0.25b-2_amd64.deb
+Size: 7446276
+MD5sum: 2da5687f8a6530fffd3e917366bc4082
+SHA1: 5ccae1d407cf606f4e944dae9ab02cffb990ebe0
+SHA256: 180288603db5d559d2b7420e84a1b54491c690157bc5a491ae17544a87967424
+SHA512: 7a6ae66d414ecf580f79ed8fdeddf8bd4b3634ba5f2766df8f239529f2abbb22d1c5b57da83e2788df563319df7d93ac15708ae3faa461b7e698d44e2d16b54d
+Homepage: https://play0ad.com/
+Description: Real-time strategy game of ancient warfare
+Description-md5: d943033bedada21853d2ae54a2578a7b
+
+Package: 0ad-data
+Architecture: all
+Version: 0.0.25b-1
+Priority: optional
+Section: universe/games
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 3210038
+Pre-Depends: dpkg (>= 1.15.6~)
+Suggests: 0ad
+Filename: pool/universe/0/0ad-data/0ad-data_0.0.25b-1_all.deb
+Size: 1274080644
+MD5sum: a09d0b4dcc55ecd713947e3d9d7949b9
+SHA1: f3170ba0807966daa3d82bb59c515f22bbd12d4f
+SHA256: b809dc257d7938b64036a7eced5c8e1bc798984f9167c073c31f1e31cdc940be
+SHA512: d428836214bebe315423f26200b956b7dd0016e880f729372cfada478e594b74b0123b21771dbc559e9af4a38c9a64e5c04dd913f6521d73f1567ffb06035665
+Homepage: https://play0ad.com/
+Description: Real-time strategy game of ancient warfare (data files)
+Description-md5: 26581e685027d5ae84824362a4ba59ee
+
+Package: 0ad-data-common
+Architecture: all
+Version: 0.0.25b-1
+Priority: optional
+Section: universe/games
+Source: 0ad-data
+Origin: Ubuntu
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Original-Maintainer: Debian Games Team <pkg-games-devel@lists.alioth.debian.org>
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
+Installed-Size: 2428
+Pre-Depends: dpkg (>= 1.15.6~)
+Depends: fonts-dejavu-core | ttf-dejavu-core, fonts-freefont-ttf | ttf-freefont, fonts-texgyre | tex-gyre
+Suggests: 0ad
+Breaks: 0ad-data (<< 0.0.12-1~)
+Replaces: 0ad-data (<< 0.0.12-1~)
+Filename: pool/universe/0/0ad-data/0ad-data-common_0.0.25b-1_all.deb
+Size: 778820
+MD5sum: 20a71d52d2d8f63109b4cd910885d198
+SHA1: 94d5a5c0320958add31fc7d03300bee3ceb26fef
+SHA256: 3378afc90841edd9cb447586c1ba3d03f46f846e0ddbff52f7cf664167df56bf
+SHA512: c1147041c27f447c018eef659e23e6818b552204b1aef8163e1f5e51ea45bc776428266acc4f43ff75e282ddce67ec7e1e36d4c091e08a55148da5965eaa31fd
+Homepage: https://play0ad.com/
+Description: Real-time strategy game of ancient warfare (common data files)
+Description-md5: 8d014b839c4c4e9b6f82c7512d7e3496
+

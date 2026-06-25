@@ -149,7 +149,12 @@ func compressedReader(r io.ReadSeeker) (io.Reader, error) {
 		return gzr, nil
 	}
 
-	return nil, err
+	if _, err := r.Seek(0, io.SeekStart); err != nil {
+		return nil, err
+	}
+
+	// Fall back to treating it as an uncompressed (plain text) file
+	return r, nil
 }
 
 // aptPackagesEntry stores selected fields from each package listed in

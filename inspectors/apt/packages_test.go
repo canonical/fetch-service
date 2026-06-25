@@ -51,6 +51,9 @@ var packagesDetectorTests = []packagesDetectorTest{{
 	filename: "testdata/Packages.gz",
 	detected: true,
 }, {
+	filename: "testdata/Packages",
+	detected: true,
+}, {
 	filename: "testdata/Packages-build-using.xz",
 	detected: true,
 }, {
@@ -84,6 +87,9 @@ var packagesInspectRequestTests = []packagesInspectRequestTest{{
 	isValid: true,
 }, {
 	url:     "http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/Packages.gz",
+	isValid: true,
+}, {
+	url:     "http://archive.ubuntu.com/ubuntu/dists/noble/universe/binary-amd64/Packages",
 	isValid: true,
 }, {
 	url:     "http://some.other.location/Packages.xz",
