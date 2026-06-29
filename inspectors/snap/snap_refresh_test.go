@@ -1,7 +1,7 @@
 // -*- Mode: Go; indent-tabs-mode: t -*-
 
 /*
- * Copyright 2024-2025 Canonical Ltd.
+ * Copyright 2024-2026 Canonical Ltd.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 3 as
@@ -20,6 +20,9 @@
 package snap_test
 
 import (
+	"encoding/json"
+	"io"
+	"net/http"
 	"strings"
 
 	. "gopkg.in/check.v1"
@@ -72,6 +75,52 @@ func (s *snapSuite) TestInspectRefreshRequest(c *C) {
 	}
 }
 
+func (s *snapSuite) TestInspectRefreshRequestUsesTrackingChannelOnly(c *C) {
+	a := metadata.NewArtifact()
+	refreshReq := `{"actions":[{"action":"refresh","instance-key":"k1","tracking-channel":"stable"}]}`
+
+	var err error
+	a.Request, err = http.NewRequest("POST", "https://api.snapcraft.io:443/v2/snaps/refresh", io.NopCloser(strings.NewReader(refreshReq)))
+	c.Assert(err, IsNil)
+	a.CurrentDownload.URL = "https://api.snapcraft.io:443/v2/snaps/refresh"
+
+	ins := snap.NewSnapRefreshInspector()
+	err = ins.InspectRequest(a)
+	c.Assert(err, IsNil)
+
+	insp, ok := a.RequestInspection[ins.ID()]
+	c.Assert(ok, Equals, true)
+
+	raw, err := json.Marshal(insp.Annotations)
+	c.Assert(err, IsNil)
+	rawJSON := string(raw)
+	c.Check(strings.Contains(rawJSON, `"tracking-channel":"stable"`), Equals, true)
+	c.Check(strings.Contains(rawJSON, `"channel":"stable"`), Equals, false)
+}
+
+func (s *snapSuite) TestInspectRefreshRequestNormalizesLegacyChannel(c *C) {
+	a := metadata.NewArtifact()
+	refreshReq := `{"actions":[{"action":"refresh","instance-key":"k1","channel":"stable"}]}`
+
+	var err error
+	a.Request, err = http.NewRequest("POST", "https://api.snapcraft.io:443/v2/snaps/refresh", io.NopCloser(strings.NewReader(refreshReq)))
+	c.Assert(err, IsNil)
+	a.CurrentDownload.URL = "https://api.snapcraft.io:443/v2/snaps/refresh"
+
+	ins := snap.NewSnapRefreshInspector()
+	err = ins.InspectRequest(a)
+	c.Assert(err, IsNil)
+
+	insp, ok := a.RequestInspection[ins.ID()]
+	c.Assert(ok, Equals, true)
+
+	raw, err := json.Marshal(insp.Annotations)
+	c.Assert(err, IsNil)
+	rawJSON := string(raw)
+	c.Check(strings.Contains(rawJSON, `"tracking-channel":"stable"`), Equals, false)
+	c.Check(strings.Contains(rawJSON, `"channel":"stable"`), Equals, true)
+}
+
 func (s *snapSuite) TestSnapRefreshArtifactInspector(c *C) {
 	a := metadata.NewArtifact()
 	a.Metadata.Type = "application/json"
@@ -92,13 +141,293 @@ func (s *snapSuite) TestSnapRefreshArtifactInspector(c *C) {
 	c.Check(a.Metadata.ContentID, Equals, "stable:10660")
 	c.Check(a.Metadata.Description, Equals, "Snap store response for refresh request")
 	c.Check(a.ResponseInspection["snap.refresh"].Annotations, DeepEquals, Annotation{
-		"name":     "go",
-		"version":  "1.22.5",
-		"revision": 10660,
-		"channel":  "stable",
-		"result":   "install",
-		"snap-id":  "Md1HBASHzP4i0bniScAjXGnOII9cEK6e",
+		"refresh-results": []Annotation{{
+			"tracking-channel":  "",
+			"effective-channel": "stable",
+			"release-timestamp": "2024-07-04T13:56:12.190670+00:00",
+			"result":            "install",
+			"snap-name":         "go",
+			"snap-id":           "Md1HBASHzP4i0bniScAjXGnOII9cEK6e",
+			"snap-revision":     10660,
+			"snap-version":      "1.22.5",
+			"architectures":     []string{"amd64"},
+		}},
 	})
+}
+
+func (s *snapSuite) TestSnapRefreshArtifactInspectorAddsTrackingChannels(c *C) {
+	a := metadata.NewArtifact()
+	a.Metadata.Type = "application/json"
+	a.Metadata.Size = 100
+
+	refreshReq := `{"actions":[
+		{"action":"refresh","instance-key":"k1","tracking-channel":"stable"},
+		{"action":"refresh","snap-id":"snap-id-2","instance-key":"k2","tracking-channel":"latest/candidate"}
+	]}`
+	var err error
+	a.Request, err = http.NewRequest("POST", "https://api.snapcraft.io:443/v2/snaps/refresh", io.NopCloser(strings.NewReader(refreshReq)))
+	c.Assert(err, IsNil)
+
+	ins := snap.NewSnapRefreshInspector()
+	a.CurrentDownload.URL = "https://api.snapcraft.io:443/v2/snaps/refresh"
+	err = ins.InspectRequest(a)
+	c.Assert(err, IsNil)
+
+	resp := strings.NewReader(`{
+		"error-list": [],
+		"results": [
+			{
+				"effective-channel": "latest/edge",
+				"instance-key": "k2",
+				"name": "snap-two",
+				"released-at": "2026-06-28T04:05:06+00:00",
+				"result": "refresh",
+				"snap": {"architectures": ["amd64", "arm64"], "version": "4.5.6", "revision": 22},
+				"snap-id": "snap-id-2"
+			},
+			{
+				"effective-channel": "stable",
+				"instance-key": "k1",
+				"name": "snap-one",
+				"released-at": "2026-06-28T01:02:03+00:00",
+				"result": "refresh",
+				"snap": {"architectures": ["amd64"], "version": "1.2.3", "revision": 11},
+				"snap-id": "snap-id-1"
+			}
+		]
+	}`)
+
+	err = ins.InspectArtifact(resp, a)
+	c.Assert(err, IsNil)
+
+	ann := a.ResponseInspection["snap.refresh"].Annotations
+	results, ok := ann["refresh-results"].([]Annotation)
+	c.Assert(ok, Equals, true)
+	c.Assert(results, HasLen, 2)
+	c.Check(results[0]["tracking-channel"], Equals, "latest/candidate")
+	c.Check(results[1]["tracking-channel"], Equals, "stable")
+}
+
+func (s *snapSuite) TestSnapRefreshArtifactInspectorNormalizesLegacyChannel(c *C) {
+	a := metadata.NewArtifact()
+	a.Metadata.Type = "application/json"
+	a.Metadata.Size = 100
+
+	refreshReq := `{"actions":[{"action":"refresh","instance-key":"k1","channel":"stable"}]}`
+	var err error
+	a.Request, err = http.NewRequest("POST", "https://api.snapcraft.io:443/v2/snaps/refresh", io.NopCloser(strings.NewReader(refreshReq)))
+	c.Assert(err, IsNil)
+
+	ins := snap.NewSnapRefreshInspector()
+	a.CurrentDownload.URL = "https://api.snapcraft.io:443/v2/snaps/refresh"
+	err = ins.InspectRequest(a)
+	c.Assert(err, IsNil)
+
+	resp := strings.NewReader(`{
+		"error-list": [],
+		"results": [
+			{
+				"effective-channel": "stable",
+				"instance-key": "k1",
+				"name": "snap-one",
+				"released-at": "2026-06-28T01:02:03+00:00",
+				"result": "refresh",
+				"snap": {"architectures": ["amd64"], "version": "1.2.3", "revision": 11},
+				"snap-id": "snap-id-1"
+			}
+		]
+	}`)
+
+	err = ins.InspectArtifact(resp, a)
+	c.Assert(err, IsNil)
+
+	ann := a.ResponseInspection["snap.refresh"].Annotations
+	results, ok := ann["refresh-results"].([]Annotation)
+	c.Assert(ok, Equals, true)
+	c.Assert(results, HasLen, 1)
+	c.Check(results[0]["tracking-channel"], Equals, "stable")
+}
+
+func (s *snapSuite) TestSnapRefreshArtifactInspectorPrefersTrackingChannel(c *C) {
+	a := metadata.NewArtifact()
+	a.Metadata.Type = "application/json"
+	a.Metadata.Size = 100
+
+	refreshReq := `{"actions":[{"action":"refresh","instance-key":"k1","channel":"stable","tracking-channel":"latest/beta"}]}`
+	var err error
+	a.Request, err = http.NewRequest("POST", "https://api.snapcraft.io:443/v2/snaps/refresh", io.NopCloser(strings.NewReader(refreshReq)))
+	c.Assert(err, IsNil)
+
+	ins := snap.NewSnapRefreshInspector()
+	a.CurrentDownload.URL = "https://api.snapcraft.io:443/v2/snaps/refresh"
+	err = ins.InspectRequest(a)
+	c.Assert(err, IsNil)
+
+	resp := strings.NewReader(`{
+		"error-list": [],
+		"results": [
+			{
+				"effective-channel": "stable",
+				"instance-key": "k1",
+				"name": "snap-one",
+				"released-at": "2026-06-28T01:02:03+00:00",
+				"result": "refresh",
+				"snap": {"architectures": ["amd64"], "version": "1.2.3", "revision": 11},
+				"snap-id": "snap-id-1"
+			}
+		]
+	}`)
+
+	err = ins.InspectArtifact(resp, a)
+	c.Assert(err, IsNil)
+
+	ann := a.ResponseInspection["snap.refresh"].Annotations
+	results, ok := ann["refresh-results"].([]Annotation)
+	c.Assert(ok, Equals, true)
+	c.Assert(results, HasLen, 1)
+	c.Check(results[0]["tracking-channel"], Equals, "latest/beta")
+}
+
+func (s *snapSuite) TestSnapRefreshArtifactInspectorUnexpectedInstanceKey(c *C) {
+	a := metadata.NewArtifact()
+	a.Metadata.Type = "application/json"
+	a.Metadata.Size = 100
+
+	refreshReq := `{"actions":[{"action":"refresh","instance-key":"k1","snap-id":"snap-id-1","tracking-channel":"latest/stable"}]}`
+	var err error
+	a.Request, err = http.NewRequest("POST", "https://api.snapcraft.io:443/v2/snaps/refresh", io.NopCloser(strings.NewReader(refreshReq)))
+	c.Assert(err, IsNil)
+
+	ins := snap.NewSnapRefreshInspector()
+	a.CurrentDownload.URL = "https://api.snapcraft.io:443/v2/snaps/refresh"
+	err = ins.InspectRequest(a)
+	c.Assert(err, IsNil)
+
+	resp := strings.NewReader(`{
+		"error-list": [],
+		"results": [
+			{
+				"effective-channel": "stable",
+				"instance-key": "unexpected-key",
+				"name": "snap-one",
+				"released-at": "2026-06-28T01:02:03+00:00",
+				"result": "refresh",
+				"snap": {"architectures": ["amd64"], "version": "1.2.3", "revision": 11},
+				"snap-id": "snap-id-1"
+			}
+		]
+	}`)
+
+	err = ins.InspectArtifact(resp, a)
+	c.Assert(err, IsNil)
+	insp := a.ResponseInspection["snap.refresh"]
+	c.Assert(insp, NotNil)
+	c.Check(insp.Opinion, Equals, opinions.Rejected)
+	c.Check(insp.Reason, Equals, "unexpected instance-key \"unexpected-key\" for refresh result")
+}
+
+func (s *snapSuite) TestSnapRefreshArtifactInspectorAllowsUnknownDownloadKey(c *C) {
+	a := metadata.NewArtifact()
+	a.Metadata.Type = "application/json"
+	a.Metadata.Size = 100
+
+	refreshReq := `{"actions":[{"action":"refresh","instance-key":"k1","tracking-channel":"latest/stable"}]}`
+	var err error
+	a.Request, err = http.NewRequest("POST", "https://api.snapcraft.io:443/v2/snaps/refresh", io.NopCloser(strings.NewReader(refreshReq)))
+	c.Assert(err, IsNil)
+
+	ins := snap.NewSnapRefreshInspector()
+	a.CurrentDownload.URL = "https://api.snapcraft.io:443/v2/snaps/refresh"
+	err = ins.InspectRequest(a)
+	c.Assert(err, IsNil)
+
+	resp := strings.NewReader(`{
+		"error-list": [],
+		"results": [
+			{
+				"effective-channel": "stable",
+				"instance-key": "k1",
+				"name": "snap-one",
+				"released-at": "2026-06-28T01:02:03+00:00",
+				"result": "refresh",
+				"snap": {"architectures": ["amd64"], "version": "1.2.3", "revision": 11},
+				"snap-id": "snap-id-1"
+			},
+			{
+				"effective-channel": "edge",
+				"instance-key": "download-1",
+				"name": "snap-two",
+				"released-at": "2026-06-28T04:05:06+00:00",
+				"result": "download",
+				"snap": {"architectures": ["amd64"], "version": "4.5.6", "revision": 22},
+				"snap-id": "snap-id-2"
+			}
+		]
+	}`)
+
+	err = ins.InspectArtifact(resp, a)
+	c.Assert(err, IsNil)
+	insp := a.ResponseInspection["snap.refresh"]
+	c.Assert(insp, NotNil)
+	c.Check(insp.Opinion, Equals, opinions.Approved)
+}
+
+func (s *snapSuite) TestSnapRefreshArtifactInspectorSnapIDMismatch(c *C) {
+	a := metadata.NewArtifact()
+	a.Metadata.Type = "application/json"
+	a.Metadata.Size = 100
+
+	refreshReq := `{"actions":[
+		{"action":"refresh","instance-key":"k1","snap-id":"wrong-snap-id","tracking-channel":"latest/candidate"},
+		{"action":"refresh","instance-key":"k2","snap-id":"snap-id-2","tracking-channel":"latest/stable"}
+	]}`
+	var err error
+	a.Request, err = http.NewRequest("POST", "https://api.snapcraft.io:443/v2/snaps/refresh", io.NopCloser(strings.NewReader(refreshReq)))
+	c.Assert(err, IsNil)
+
+	ins := snap.NewSnapRefreshInspector()
+	a.CurrentDownload.URL = "https://api.snapcraft.io:443/v2/snaps/refresh"
+	err = ins.InspectRequest(a)
+	c.Assert(err, IsNil)
+
+	resp := strings.NewReader(`{
+		"error-list": [],
+		"results": [
+			{
+				"effective-channel": "stable",
+				"instance-key": "k1",
+				"name": "snap-one",
+				"released-at": "2026-06-28T01:02:03+00:00",
+				"result": "refresh",
+				"snap": {
+					"architectures": ["amd64"],
+					"version": "1.2.3",
+					"revision": 11
+				},
+				"snap-id": "actual-snap-id"
+			},
+			{
+				"effective-channel": "edge",
+				"instance-key": "k2",
+				"name": "snap-two",
+				"released-at": "2026-06-28T04:05:06+00:00",
+				"result": "refresh",
+				"snap": {
+					"architectures": ["amd64"],
+					"version": "4.5.6",
+					"revision": 22
+				},
+				"snap-id": "snap-id-2"
+			}
+		]
+	}`)
+
+	err = ins.InspectArtifact(resp, a)
+	c.Assert(err, IsNil)
+	insp := a.ResponseInspection["snap.refresh"]
+	c.Assert(insp, NotNil)
+	c.Check(insp.Opinion, Equals, opinions.Rejected)
+	c.Check(insp.Reason, Equals, "refresh result snap-id does not match request action with instance-key \"k1\"")
 }
 
 func (s *snapSuite) TestSnapRefreshArtifactBadType(c *C) {
