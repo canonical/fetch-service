@@ -106,6 +106,9 @@ func getSnapRefreshActions(a RequestArtifact) []snapRefreshAction {
 	_ = req.Body.Close()
 	// Always restore the body so other handlers can still forward/inspect it.
 	a.SetRequestBody(io.NopCloser(bytes.NewReader(body)))
+	if req.ContentLength >= 0 {
+		req.ContentLength = int64(len(body))
+	}
 	if err != nil {
 		return nil
 	}
