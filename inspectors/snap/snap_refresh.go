@@ -112,10 +112,11 @@ func getSnapRefreshActions(a RequestArtifact) []snapRefreshAction {
 
 	body, err := io.ReadAll(req.Body)
 	_ = req.Body.Close()
+	// Always restore the body so other handlers can still forward/inspect it.
+	a.SetRequestBody(io.NopCloser(bytes.NewReader(body)))
 	if err != nil {
 		return nil
 	}
-	a.SetRequestBody(io.NopCloser(bytes.NewReader(body)))
 
 	var b snapRefreshRequestBody
 	if err := json.Unmarshal(body, &b); err != nil {
