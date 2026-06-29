@@ -20,7 +20,6 @@
 package snap_test
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
@@ -73,51 +72,6 @@ func (s *snapSuite) TestInspectRefreshRequest(c *C) {
 			c.Assert(insp.Opinion, Equals, opinions.Pending)
 		}
 	}
-}
-
-func (s *snapSuite) TestInspectRefreshRequestAnnotatesChannelAsTrackingChannel(c *C) {
-	a := metadata.NewArtifact()
-	refreshReq := `{"actions":[{"action":"refresh","instance-key":"k1","channel":"stable"}]}`
-
-	var err error
-	a.Request, err = http.NewRequest("POST", "https://api.snapcraft.io:443/v2/snaps/refresh", io.NopCloser(strings.NewReader(refreshReq)))
-	c.Assert(err, IsNil)
-	a.CurrentDownload.URL = "https://api.snapcraft.io:443/v2/snaps/refresh"
-
-	ins := snap.NewSnapRefreshInspector()
-	err = ins.InspectRequest(a)
-	c.Assert(err, IsNil)
-
-	insp, ok := a.RequestInspection[ins.ID()]
-	c.Assert(ok, Equals, true)
-
-	raw, err := json.Marshal(insp.Annotations)
-	c.Assert(err, IsNil)
-	rawJSON := string(raw)
-	c.Check(strings.Contains(rawJSON, `"tracking-channel":"stable"`), Equals, true)
-	c.Check(strings.Contains(rawJSON, `"channel":"stable"`), Equals, true)
-}
-
-func (s *snapSuite) TestInspectRefreshRequestDoesNotExposeRequestChannelAnnotation(c *C) {
-	a := metadata.NewArtifact()
-	refreshReq := `{"actions":[{"action":"refresh","instance-key":"k1","channel":"stable"}]}`
-
-	var err error
-	a.Request, err = http.NewRequest("POST", "https://api.snapcraft.io:443/v2/snaps/refresh", io.NopCloser(strings.NewReader(refreshReq)))
-	c.Assert(err, IsNil)
-	a.CurrentDownload.URL = "https://api.snapcraft.io:443/v2/snaps/refresh"
-
-	ins := snap.NewSnapRefreshInspector()
-	err = ins.InspectRequest(a)
-	c.Assert(err, IsNil)
-
-	insp, ok := a.RequestInspection[ins.ID()]
-	c.Assert(ok, Equals, true)
-
-	raw, err := json.Marshal(insp.Annotations)
-	c.Assert(err, IsNil)
-	rawJSON := string(raw)
-	c.Check(strings.Contains(rawJSON, `"tracking-channel":"stable"`), Equals, true)
 }
 
 func (s *snapSuite) TestSnapRefreshArtifactInspector(c *C) {
@@ -207,12 +161,12 @@ func (s *snapSuite) TestSnapRefreshArtifactInspectorAddsTrackingChannels(c *C) {
 	c.Check(results[1]["tracking-channel"], Equals, "stable")
 }
 
-func (s *snapSuite) TestSnapRefreshArtifactInspectorUsesChannelAsTrackingChannel(c *C) {
+func (s *snapSuite) TestSnapRefreshArtifactInspectorTrackingChannel(c *C) {
 	a := metadata.NewArtifact()
 	a.Metadata.Type = "application/json"
 	a.Metadata.Size = 100
 
-	refreshReq := `{"actions":[{"action":"refresh","instance-key":"k1","channel":"stable"}]}`
+	refreshReq := `{"actions":[{"action":"refresh","instance-key":"k1","channel":"beta"}]}`
 	var err error
 	a.Request, err = http.NewRequest("POST", "https://api.snapcraft.io:443/v2/snaps/refresh", io.NopCloser(strings.NewReader(refreshReq)))
 	c.Assert(err, IsNil)
@@ -244,7 +198,7 @@ func (s *snapSuite) TestSnapRefreshArtifactInspectorUsesChannelAsTrackingChannel
 	results, ok := ann["refresh-results"].([]Annotation)
 	c.Assert(ok, Equals, true)
 	c.Assert(results, HasLen, 1)
-	c.Check(results[0]["tracking-channel"], Equals, "stable")
+	c.Check(results[0]["tracking-channel"], Equals, "beta")
 }
 
 func (s *snapSuite) TestSnapRefreshArtifactInspectorUnexpectedInstanceKey(c *C) {
