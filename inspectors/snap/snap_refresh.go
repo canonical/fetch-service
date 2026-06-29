@@ -85,19 +85,11 @@ type snapRefreshBody struct {
 }
 
 type snapRefreshAction struct {
-	Action          string `json:"action,omitempty"`
-	Channel         string `json:"channel,omitempty"`
-	TrackingChannel string `json:"tracking-channel,omitempty"`
-	InstanceKey     string `json:"instance-key,omitempty"`
-	Name            string `json:"name,omitempty"`
-	SnapID          string `json:"snap-id,omitempty"`
-}
-
-func (a snapRefreshAction) requestedTrackingChannel() string {
-	if a.TrackingChannel != "" {
-		return a.TrackingChannel
-	}
-	return a.Channel
+	Action      string `json:"action,omitempty"`
+	Channel     string `json:"channel,omitempty"`
+	InstanceKey string `json:"instance-key,omitempty"`
+	Name        string `json:"name,omitempty"`
+	SnapID      string `json:"snap-id,omitempty"`
 }
 
 type snapRefreshRequestBody struct {
@@ -198,7 +190,7 @@ func (ins *SnapRefreshInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 						a.SetResponseRejected(ins, fmt.Sprintf("refresh result snap-id does not match request action with instance-key %q", result.InstanceKey), md)
 						return nil
 					}
-					trackingChannel = action.requestedTrackingChannel()
+					trackingChannel = action.Channel
 				}
 			}
 
