@@ -161,7 +161,9 @@ func (ins *SnapRefreshInspector) InspectArtifact(f ArtifactReader, a ResponseArt
 			Type:        mimetypes.SnapRefresh,
 			Name:        "Store protocol response",
 			Description: "Snap store response for refresh request",
-			ContentID:   fmt.Sprintf("%s:%d", channel, revision),
+		}
+		if len(b.Results) == 1 {
+			md.ContentID = fmt.Sprintf("%s:%d", channel, revision)
 		}
 
 		actions := []snapRefreshAction{}

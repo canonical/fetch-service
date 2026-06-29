@@ -77,5 +77,5 @@ The following pieces of metadata are extracted by the snap refresh inspector:
    version
    vendor
    author
-   content-id    Yes   ``<effective-channel>:<revision>``
+   content-id    Yes   ``<effective-channel>:<revision>`` for single-result responses only
    ============  ====  ============================================
