@@ -18,7 +18,7 @@ execute: |
 
   snap set fetch-service upstream-proxy.http="http://localhost:7788"
   snap set fetch-service upstream-proxy.https="http://localhost:7788"
-  snap set fetch-service upstream-proxy.bypass="google.com,*.google.com"
+  snap set fetch-service upstream-proxy.no-proxy="google.com,*.google.com"
   snap start fetch-service
   sleep 5  # give some time for the service to start
   fetch-service.fetchctl version
