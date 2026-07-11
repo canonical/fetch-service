@@ -200,13 +200,11 @@ func (ins *StoreInfoAPIInspector) InspectArtifact(f ArtifactReader, a ResponseAr
 		return nil // we don't recognize this artifact
 	}
 
-	a.SetArtifactMetadata(ArtifactMetadata{
+	a.SetResponseApproved(ins, "valid store info API response", ArtifactMetadata{
 		Type:        mimetypes.StoreInfoAPI,
 		Name:        "Store protocol response",
 		Description: "Store response for info request",
-	})
-
-	a.SetResponseApproved(ins, "valid store info API response").Annotate(
+	}).Annotate(
 		Annotation{
 			"name":       info.Name,
 			"type":       pkgType,
@@ -282,11 +280,20 @@ func (ins *StoreInfoAPIInspector) validateBldBin(f ArtifactReader, a ResponseArt
 			}
 
 			ainfo, rev, channel := ins.findInfo(sha3_384)
+			md := ArtifactMetadata{
+				Type:         mimetypes.BldBinPackage,
+				Name:         binmd.Name,
+				Version:      binmd.Version,
+				Description:  binmd.Summary,
+				Architecture: binmd.Architecture,
+				License:      binmd.License,
+				Vendor:       binmd.Contact,
+			}
 			if ainfo != nil {
 				if ainfo.Type == "bins" {
 					// Setting as Unknown to avoid approval in case the bld bin inspector
 					// doesn't recognize the format.
-					a.SetResponseUnknown(ins, "file digest matches store info API bin request").Annotate(
+					a.SetResponseUnknown(ins, "file digest matches store info API bin request", md).Annotate(
 						Annotation{
 							"package-id": ainfo.ID,
 							"revision":   rev,
@@ -296,7 +303,7 @@ func (ins *StoreInfoAPIInspector) validateBldBin(f ArtifactReader, a ResponseArt
 					)
 
 				} else {
-					a.SetResponseRejected(ins, "file digest matches a request for a different package type").Annotate(
+					a.SetResponseRejected(ins, "file digest matches a request for a different package type", md).Annotate(
 						Annotation{
 							"package-id": ainfo.ID,
 							"type":       ainfo.Type,
@@ -306,7 +313,7 @@ func (ins *StoreInfoAPIInspector) validateBldBin(f ArtifactReader, a ResponseArt
 					)
 				}
 			} else {
-				a.SetResponseRejected(ins, "file digest does not match any store info API request")
+				a.SetResponseRejected(ins, "file digest does not match any store info API request", md)
 			}
 
 			metadataFound = true

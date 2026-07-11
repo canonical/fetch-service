@@ -63,7 +63,7 @@ func (ins *CharmcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 	checkoutPath, ok := a.ResponseStringAnnotation(GitUploadPackID, "git-checkout-path")
 	if !ok {
 		// this must have been set by the git upload-pack inspector
-		a.SetResponseUnknown(ins, "no git checkout found")
+		a.SetResponseUnknown(ins, "no git checkout found", NoMetadata)
 		return nil
 	}
 
@@ -73,9 +73,15 @@ func (ins *CharmcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 	if _, err := osStat(charmcraftYamlPath); err != nil {
 		return nil
 	}
+
+	md := ArtifactMetadata{
+		Type:      mimetypes.Charmcraft,
+		ContentID: getSingleFetchedRef(a),
+	}
+
 	yamlFile, err := osOpen(charmcraftYamlPath)
 	if err != nil {
-		a.SetResponseRejected(ins, "cannot open charmcraft.yaml file")
+		a.SetResponseRejected(ins, "cannot open charmcraft.yaml file", md)
 		return nil
 	}
 	defer yamlFile.Close()
@@ -83,16 +89,13 @@ func (ins *CharmcraftInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 	var data charmcraftYaml
 	dec := yaml.NewDecoder(yamlFile)
 	if err := dec.Decode(&data); err != nil {
-		a.SetResponseRejected(ins, "cannot decode charmcraft.yaml")
+		a.SetResponseRejected(ins, "cannot decode charmcraft.yaml", md)
 		return nil
 	}
 
-	a.SetArtifactMetadata(ArtifactMetadata{
-		Type:        mimetypes.Charmcraft,
-		Name:        data.Name,
-		Description: data.Summary,
-		ContentID:   getSingleFetchedRef(a),
-	})
-	a.SetResponseApproved(ins, "charmcraft repository found")
+	md.Name = data.Name
+	md.Description = data.Summary
+
+	a.SetResponseApproved(ins, "charmcraft repository found", md)
 	return nil
 }

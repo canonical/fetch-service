@@ -100,8 +100,7 @@ func (ins *CargoIndexInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 		}
 
 		if md != nil {
-			a.SetArtifactMetadata(*md)
-			a.SetResponseApproved(ins, "document contains valid config.json")
+			a.SetResponseApproved(ins, "document contains valid config.json", *md)
 		}
 
 		return nil
@@ -119,8 +118,7 @@ func (ins *CargoIndexInspector) InspectArtifact(f ArtifactReader, a ResponseArti
 	}
 
 	if md != nil && md.Name == crate {
-		a.SetArtifactMetadata(*md)
-		a.SetResponseApproved(ins, "document contains valid crate index")
+		a.SetResponseApproved(ins, "document contains valid crate index", *md)
 	}
 
 	return nil

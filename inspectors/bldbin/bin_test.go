@@ -134,7 +134,7 @@ func (s *bldbinSuite) TestBldBinArtifactInspector(c *C) {
 		storeIns := store.NewStoreInfoAPIInspector(getTestStoreConfig(), getTestBldBinConfig())
 		ins := bldbin.NewBldBinInspector(getTestBldBinConfig())
 		a.SetRequestPending(storeIns, "test").Annotate(Annotation{"package-id": "package-id"})
-		a.SetResponseUnknown(storeIns, "test").Annotate(Annotation{"revision": "1234"})
+		a.SetResponseUnknown(storeIns, "test", ArtifactMetadata{}).Annotate(Annotation{"revision": "1234"})
 		a.SetRequestPending(ins, "test")
 		err = ins.InspectArtifact(f, a)
 		c.Assert(err, IsNil)

@@ -117,6 +117,7 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		craft.NewCharmcraftInspector(cfg.Crafts),
 		craft.NewSnapcraftInspector(cfg.Crafts),
 		craft.NewSourcecraftInspector(cfg.Crafts),
+		craft.NewBincraftInspector(cfg.Crafts),
 
 		// rust
 		cargo.NewIndexInspector(),
@@ -216,7 +217,7 @@ func (insps Inspectors) RunArtifactInspectors(dir string, a *metadata.Artifact) 
 			return err
 		}
 		if err := ins.InspectArtifact(f, a); err != nil {
-			a.SetResponseRejected(ins, "error inspecting artifact").Annotate(
+			a.SetResponseRejected(ins, "error inspecting artifact", ArtifactMetadata{}).Annotate(
 				Annotation{"error-message": err.Error()})
 			return err
 		}
@@ -256,7 +257,7 @@ func (ins DefaultInspector) InspectRequest(a RequestArtifact) error {
 
 func (ins DefaultInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) error {
 	if !a.ResponseRejected() && !a.ResponseApproved() {
-		a.SetResponseUnknown(ins, "the artifact file content was not recognized by any format inspector")
+		a.SetResponseUnknown(ins, "the artifact file content was not recognized by any format inspector", NoMetadata)
 	}
 	return nil
 }

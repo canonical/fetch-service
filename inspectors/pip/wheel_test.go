@@ -164,7 +164,7 @@ func (s *wheelSuite) TestWheelReadMetadata(c *C) {
 		"Name: trololo\n"+
 		"Version: 3.14159\n"+
 		"Summary: A trove of marvelous thingies\n"+
-		"Author: Poppy Bolger\n"+
+		"Author: Reginald Fakington\n"+
 		"Author-email: contact@foobar.com\n"+
 		"Random-tag: doesn't matter\n"+
 		"Classifier: License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)\n"+
@@ -186,15 +186,15 @@ func (s *wheelSuite) TestWheelReadMetadata(c *C) {
 	a.SetRequestPending(ins, "test")
 
 	notes := pip.NewWheelNotes()
-	err = pip.ReadWheelMetadata(ins, f, int64(f.Len()), a, notes, s.sl)
+	md, err := pip.ReadWheelMetadata(ins, f, int64(f.Len()), a, notes, s.sl)
 	c.Assert(err, IsNil)
-	c.Assert(a.Metadata.Name, Equals, "trololo")
-	c.Assert(a.Metadata.Version, Equals, "3.14159")
-	c.Assert(a.Metadata.Description, Equals, "A trove of marvelous thingies")
-	c.Assert(a.Metadata.Vendor, Equals, "Poppy Bolger")
-	c.Assert(a.Metadata.Author, Equals, "Poppy Bolger")
-	c.Assert(a.Metadata.AuthorEmail, Equals, "contact@foobar.com")
-	c.Assert(a.Metadata.License, Equals, "GPL-3.0-or-later")
+	c.Assert(md.Name, Equals, "trololo")
+	c.Assert(md.Version, Equals, "3.14159")
+	c.Assert(md.Description, Equals, "A trove of marvelous thingies")
+	c.Assert(md.Vendor, Equals, "Reginald Fakington")
+	c.Assert(md.Author, Equals, "Reginald Fakington")
+	c.Assert(md.AuthorEmail, Equals, "contact@foobar.com")
+	c.Assert(md.License, Equals, "GPL-3.0-or-later")
 }
 
 func (s *wheelSuite) TestReadWheelRecord(c *C) {
@@ -345,7 +345,7 @@ func (s *wheelSuite) TestReadWheelRecord(c *C) {
 		err = pip.ReadWheelRecord(ins, f, int64(f.Len()), a, files, notes)
 		c.Assert(err, IsNil)
 
-		pip.ProcessOpinion(ins, a, notes)
+		pip.ProcessOpinion(ins, a, ArtifactMetadata{}, notes)
 
 		c.Assert(a.ResponseInspection, DeepEquals, tc.inspection)
 	}

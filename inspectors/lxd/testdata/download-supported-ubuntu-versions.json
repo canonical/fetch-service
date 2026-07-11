@@ -1,0 +1,90 @@
+{
+  "updated": "2026-06-17T00:00:00Z",
+  "format": "products:1.0",
+  "datatype": "image-downloads",
+  "content_id": "com.ubuntu.cloud:daily:download",
+  "products": {
+    "ubuntu-2610": {
+      "version": "26.10",
+      "versions": {
+        "20260617": {
+          "items": {
+            "lxd.tar.gz": {
+              "path": "stonking/20260617/stonking-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "sha-2610"
+            }
+          }
+        }
+      }
+    },
+    "ubuntu-2604": {
+      "version": "26.04",
+      "versions": {
+        "20260617": {
+          "items": {
+            "lxd.tar.gz": {
+              "path": "resolute/20260617/resolute-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "sha-2604"
+            }
+          }
+        }
+      }
+    },
+    "ubuntu-2404": {
+      "version": "24.04",
+      "versions": {
+        "20260617": {
+          "items": {
+            "lxd.tar.gz": {
+              "path": "noble/20260617/noble-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "sha-2404"
+            }
+          }
+        }
+      }
+    },
+    "ubuntu-2204": {
+      "version": "22.04",
+      "versions": {
+        "20260617": {
+          "items": {
+            "lxd.tar.gz": {
+              "path": "jammy/20260617/jammy-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "sha-2204"
+            }
+          }
+        }
+      }
+    },
+    "ubuntu-2004": {
+      "version": "20.04",
+      "versions": {
+        "20260617": {
+          "items": {
+            "lxd.tar.gz": {
+              "path": "focal/20260617/focal-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "sha-2004"
+            },
+            "squashfs": {
+              "path": "focal/20260617/focal-server-cloudimg-amd64.squashfs",
+              "sha256": "sha-squashfs"
+            }
+          }
+        }
+      }
+    },
+    "ubuntu-1804": {
+      "version": "18.04",
+      "versions": {
+        "20260617": {
+          "items": {
+            "lxd.tar.gz": {
+              "path": "bionic/20260617/bionic-server-cloudimg-amd64-lxd_combined.tar.gz",
+              "sha256": "sha-1804"
+            }
+          }
+        }
+      }
+    }
+  }
+}

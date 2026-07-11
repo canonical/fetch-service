@@ -93,6 +93,7 @@ func parseHTMLIndex(ins *SimpleIndexInspector, f ArtifactReader, a ResponseArtif
 			return nil // end of file
 
 		case html.StartTagToken, html.SelfClosingTagToken:
+			md := ArtifactMetadata{Type: "text/html"}
 			t := z.Token()
 			if t.Data == "meta" {
 				ver, ok := extractMetaProperty(t, "pypi:repository-version")
@@ -110,15 +111,12 @@ func parseHTMLIndex(ins *SimpleIndexInspector, f ArtifactReader, a ResponseArtif
 						host = host[:vidx]
 					}
 
-					a.SetArtifactMetadata(ArtifactMetadata{
-						Type:        "text/html",
-						Name:        fmt.Sprintf("Simple index for '%s'", pkgName),
-						Description: fmt.Sprintf("PyPI repository index HTML file for package '%s'", pkgName),
-						Vendor:      host,
-						Author:      host,
-					})
+					md.Name = fmt.Sprintf("Simple index for '%s'", pkgName)
+					md.Description = fmt.Sprintf("PyPI repository index HTML file for package '%s'", pkgName)
+					md.Vendor = host
+					md.Author = host
 
-					a.SetResponseApproved(ins, "document contains pypi repository version").Annotate(
+					a.SetResponseApproved(ins, "document contains pypi repository version", md).Annotate(
 						Annotation{
 							"format":             "HTML",
 							"repository-version": ver,
@@ -126,7 +124,7 @@ func parseHTMLIndex(ins *SimpleIndexInspector, f ArtifactReader, a ResponseArtif
 					)
 					return nil
 				} else {
-					a.SetResponseRejected(ins, "unknown pypi repository version").Annotate(
+					a.SetResponseRejected(ins, "unknown pypi repository version", md).Annotate(
 						Annotation{
 							"format":             "HTML",
 							"repository-version": ver,
@@ -166,16 +164,16 @@ func parseJSONIndex(ins *SimpleIndexInspector, f ArtifactReader, a ResponseArtif
 		host = host[:vidx]
 	}
 
-	a.SetArtifactMetadata(ArtifactMetadata{
+	md := ArtifactMetadata{
 		Type:        "application/json",
-		Name:        fmt.Sprintf("JSON index for '%s'", pkgName),
+		Name:        "PyPI JSON index",
 		Version:     "v1+json",
 		Description: fmt.Sprintf("PyPI repository index JSON file for package '%s'", pkgName),
 		Vendor:      host,
 		Author:      host,
-	})
+	}
 
-	a.SetResponseApproved(ins, "content type is pip simple index").Annotate(
+	a.SetResponseApproved(ins, "content type is pip simple index", md).Annotate(
 		Annotation{
 			"format":             "JSON",
 			"repository-version": "v1",

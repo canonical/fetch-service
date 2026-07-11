@@ -86,12 +86,10 @@ func (ins *StoreAppMediaInspector) inspectArtifactPNG(f ArtifactReader, a Respon
 		Description: "Store media file in PNG format",
 	}
 
-	a.SetArtifactMetadata(md)
-
 	if a.InspectorRequestOpinionPending(ins) {
-		a.SetResponseApproved(ins, "store media file in PNG format").Annotate(notes)
+		a.SetResponseApproved(ins, "store media file in PNG format", md).Annotate(notes)
 	} else {
-		a.SetResponseUnknown(ins, "unknown PNG image").Annotate(notes)
+		a.SetResponseUnknown(ins, "unknown PNG image", md).Annotate(notes)
 	}
 
 	return nil

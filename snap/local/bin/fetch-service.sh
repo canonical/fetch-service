@@ -20,7 +20,7 @@ control_port="$(snapctl get control.port)"
 control_auth="$(snapctl get control.auth)"
 upstream_http_proxy="$(snapctl get upstream-proxy.http)"
 upstream_https_proxy="$(snapctl get upstream-proxy.https)"
-upstream_proxy_bypass="$(snapctl get upstream-proxy.bypass)"
+upstream_proxy_bypass="$(snapctl get upstream-proxy.no-proxy)"
 
 log_file="$(snapctl get log.file || true)"
 

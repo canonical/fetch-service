@@ -196,7 +196,7 @@ func (t *metadataSuite) TestSetRequestBody(c *C) {
 	c.Assert(a.Request.Body, Equals, f)
 }
 
-func (t *metadataSuite) TestSetArtifactMetadata(c *C) {
+func (t *metadataSuite) TestSetResponseApprovedSetsMetadata(c *C) {
 	for _, tc := range []struct {
 		assignedType string
 		expectedType string
@@ -218,9 +218,10 @@ func (t *metadataSuite) TestSetArtifactMetadata(c *C) {
 			SourcePackage: "my-source-package",
 		}
 
+		ins := testInspector{}
 		a := metadata.NewArtifact()
 		a.Metadata.Type = "text/plain"
-		a.SetArtifactMetadata(m)
+		a.SetResponseApproved(&ins, "test", m)
 
 		c.Check(a.Metadata.Type, Equals, tc.expectedType)
 		c.Check(a.Metadata.Name, Equals, m.Name)
@@ -234,6 +235,47 @@ func (t *metadataSuite) TestSetArtifactMetadata(c *C) {
 		c.Check(a.Metadata.Copyright, Equals, m.Copyright)
 		c.Check(a.Metadata.SourcePackage, Equals, m.SourcePackage)
 	}
+}
+
+func (t *metadataSuite) TestSetResponseApprovedEmptyMetadataPreserved(c *C) {
+	// Approval with empty metadata must not erase metadata already present.
+	ins := testInspector{}
+	a := metadata.NewArtifact()
+	a.Metadata.Name = "pre-existing"
+	a.SetResponseApproved(&ins, "approved", ArtifactMetadata{})
+	c.Check(a.Metadata.Name, Equals, "pre-existing")
+}
+
+func (t *metadataSuite) TestSetResponseRejectedSetsMetadata(c *C) {
+	// Rejection with non-empty metadata should record that metadata.
+	ins := testInspector{}
+	a := metadata.NewArtifact()
+	m := ArtifactMetadata{Type: "application/test", Name: "froblator"}
+	a.SetResponseRejected(&ins, "rejected", m)
+	c.Check(a.Metadata.Type, Equals, "application/test")
+	c.Check(a.Metadata.Name, Equals, "froblator")
+}
+
+func (t *metadataSuite) TestSetResponseRejectedApprovalMetadataWins(c *C) {
+	// Metadata set by an approval must not be overwritten by a later rejection.
+	ins := testInspector{}
+	ins2 := testInspector2{}
+	a := metadata.NewArtifact()
+	a.SetResponseApproved(&ins, "approved", ArtifactMetadata{Type: "application/test", Name: "approved-name"})
+	a.SetResponseRejected(&ins2, "rejected", ArtifactMetadata{Type: "application/other", Name: "rejected-name"})
+	c.Check(a.Metadata.Type, Equals, "application/test")
+	c.Check(a.Metadata.Name, Equals, "approved-name")
+}
+
+func (t *metadataSuite) TestSetResponseRejectedEmptyMetadataPreserved(c *C) {
+	// Rejection with empty metadata must not erase metadata already present.
+	ins := testInspector{}
+	ins2 := testInspector2{}
+	a := metadata.NewArtifact()
+	a.SetResponseRejected(&ins, "first rejection", ArtifactMetadata{Type: "application/test", Name: "froblator"})
+	a.SetResponseRejected(&ins2, "second rejection", ArtifactMetadata{})
+	c.Check(a.Metadata.Type, Equals, "application/test")
+	c.Check(a.Metadata.Name, Equals, "froblator")
 }
 
 func (t *metadataSuite) TestSize(c *C) {
@@ -335,7 +377,7 @@ func (t *metadataSuite) TestRequestRejected(c *C) {
 func (t *metadataSuite) TestSetResponseApproved(c *C) {
 	ins := &testInspector{}
 	a := metadata.NewArtifact()
-	a.SetResponseApproved(ins, "testing").Annotate(
+	a.SetResponseApproved(ins, "testing", ArtifactMetadata{}).Annotate(
 		Annotation{"foo": "bar"},
 	)
 	c.Assert(*a.ResponseInspection["test-inspector"], DeepEquals, Inspection{
@@ -348,7 +390,7 @@ func (t *metadataSuite) TestSetResponseApproved(c *C) {
 func (t *metadataSuite) TestSetResponseRejected(c *C) {
 	ins := &testInspector{}
 	a := metadata.NewArtifact()
-	a.SetResponseRejected(ins, "testing").Annotate(
+	a.SetResponseRejected(ins, "testing", ArtifactMetadata{}).Annotate(
 		Annotation{"foo": "bar"},
 	)
 	c.Assert(*a.ResponseInspection["test-inspector"], DeepEquals, Inspection{
@@ -361,7 +403,7 @@ func (t *metadataSuite) TestSetResponseRejected(c *C) {
 func (t *metadataSuite) TestSetResponseUnknown(c *C) {
 	ins := &testInspector{}
 	a := metadata.NewArtifact()
-	a.SetResponseUnknown(ins, "testing").Annotate(
+	a.SetResponseUnknown(ins, "testing", ArtifactMetadata{}).Annotate(
 		Annotation{"foo": "bar"},
 	)
 	c.Assert(*a.ResponseInspection["test-inspector"], DeepEquals, Inspection{
@@ -387,10 +429,10 @@ func (t *metadataSuite) TestResponseRejected(c *C) {
 	} {
 		a := metadata.NewArtifact()
 		if tc.reject {
-			a.SetResponseRejected(ins, "test")
+			a.SetResponseRejected(ins, "test", ArtifactMetadata{})
 		}
 		if tc.approve {
-			a.SetResponseApproved(ins2, "test")
+			a.SetResponseApproved(ins2, "test", ArtifactMetadata{})
 		}
 		c.Check(a.ResponseRejected(), Equals, tc.rejected)
 	}
@@ -412,10 +454,10 @@ func (t *metadataSuite) TestRequestPending(c *C) {
 	} {
 		a := metadata.NewArtifact()
 		if tc.reject {
-			a.SetResponseRejected(ins, "test")
+			a.SetResponseRejected(ins, "test", ArtifactMetadata{})
 		}
 		if tc.setPending {
-			a.SetResponseApproved(ins2, "test")
+			a.SetResponseApproved(ins2, "test", ArtifactMetadata{})
 		}
 		c.Check(a.ResponseApproved(), Equals, tc.pending)
 	}
@@ -437,10 +479,10 @@ func (t *metadataSuite) TestResponseApproved(c *C) {
 	} {
 		a := metadata.NewArtifact()
 		if tc.reject {
-			a.SetResponseRejected(ins, "test")
+			a.SetResponseRejected(ins, "test", ArtifactMetadata{})
 		}
 		if tc.approve {
-			a.SetResponseApproved(ins2, "test")
+			a.SetResponseApproved(ins2, "test", ArtifactMetadata{})
 		}
 		c.Check(a.ResponseApproved(), Equals, tc.approved)
 	}
@@ -517,7 +559,7 @@ func (t *metadataSuite) TestRequestBoolAnnotation(c *C) {
 func (t *metadataSuite) TestResponseAnnotation(c *C) {
 	ins := &testInspector{}
 	a := metadata.NewArtifact()
-	a.SetResponseUnknown(ins, "test").Annotate(
+	a.SetResponseUnknown(ins, "test", ArtifactMetadata{}).Annotate(
 		Annotation{
 			"key": "value",
 		},
@@ -537,7 +579,7 @@ func (t *metadataSuite) TestResponseAnnotation(c *C) {
 func (t *metadataSuite) TestResponseStringAnnotation(c *C) {
 	ins := &testInspector{}
 	a := metadata.NewArtifact()
-	a.SetResponseUnknown(ins, "test").Annotate(
+	a.SetResponseUnknown(ins, "test", ArtifactMetadata{}).Annotate(
 		Annotation{
 			"key": "value",
 			"int": 123,
@@ -561,7 +603,7 @@ func (t *metadataSuite) TestResponseStringAnnotation(c *C) {
 func (t *metadataSuite) TestResponseBoolAnnotation(c *C) {
 	ins := &testInspector{}
 	a := metadata.NewArtifact()
-	a.SetResponseUnknown(ins, "test").Annotate(
+	a.SetResponseUnknown(ins, "test", ArtifactMetadata{}).Annotate(
 		Annotation{
 			"key": true,
 			"int": 123,
@@ -608,10 +650,10 @@ func (t *metadataSuite) TestApproved(c *C) {
 			a.SetRequestPending(ins2, "test")
 		}
 		if tc.rejectResponse {
-			a.SetResponseRejected(ins, "test")
+			a.SetResponseRejected(ins, "test", ArtifactMetadata{})
 		}
 		if tc.approveResponse {
-			a.SetResponseApproved(ins2, "test")
+			a.SetResponseApproved(ins2, "test", ArtifactMetadata{})
 		}
 
 		c.Check(a.Approved(), Equals, tc.resultApproved)

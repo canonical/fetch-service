@@ -128,17 +128,17 @@ func (ins *RootfsInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 		return nil // we don't recognize this artifact
 	}
 
-	a.SetArtifactMetadata(ArtifactMetadata{
+	md := ArtifactMetadata{
 		Type:         mimetypes.LXDRootFS,
 		Name:         "LXD rootfs image",
 		Version:      strconv.FormatInt(rmd.CreationDate, 10),
 		Description:  rmd.Properties.Description,
 		Architecture: rmd.Properties.Architecture,
-	})
+	}
 
 	_, ok := a.ResponseStringAnnotation(simpleStreamsDownloadInspectorID, productItemPath)
 	if ok {
-		a.SetResponseApproved(ins, "valid LXD rootfs tarball").Annotate(
+		a.SetResponseApproved(ins, "valid LXD rootfs tarball", md).Annotate(
 			Annotation{
 				"architecture":  rmd.Architecture,
 				"creation-date": rmd.CreationDate,
@@ -147,7 +147,7 @@ func (ins *RootfsInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact
 			},
 		)
 	} else {
-		a.SetResponseRejected(ins, "artifact not verified against product items").Annotate(
+		a.SetResponseRejected(ins, "artifact not verified against product items", md).Annotate(
 			Annotation{
 				"architecture":  rmd.Architecture,
 				"creation-date": rmd.CreationDate,

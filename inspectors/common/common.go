@@ -73,9 +73,9 @@ type RequestArtifact interface {
 // artifact metadata during the response inspection.
 type ResponseArtifact interface {
 	// Inspector opinions
-	SetResponseApproved(Inspector, string) *Inspection
-	SetResponseRejected(Inspector, string) *Inspection
-	SetResponseUnknown(Inspector, string) *Inspection
+	SetResponseApproved(Inspector, string, ArtifactMetadata) *Inspection
+	SetResponseRejected(Inspector, string, ArtifactMetadata) *Inspection
+	SetResponseUnknown(Inspector, string, ArtifactMetadata) *Inspection
 	ResponseApproved() bool
 	ResponseRejected() bool
 	InspectorRequestOpinionPending(Inspector) bool
@@ -97,9 +97,6 @@ type ResponseArtifact interface {
 
 	// Helpers to use during inspection
 	CacheDir() string
-
-	// Fill metadata fields
-	SetArtifactMetadata(ArtifactMetadata)
 
 	// Logging
 	Logger() logger.Logger
@@ -153,6 +150,10 @@ func (in *Inspection) Annotate(a Annotation) {
 		in.Annotations[key] = a[key]
 	}
 }
+
+// NoMetadata is used in SetResponseUnknown calls when the inspector
+// has no artifact metadata to provide.
+var NoMetadata = ArtifactMetadata{}
 
 // ArtifactMetadata contains essential metadata information
 // about the artifact being inspected.

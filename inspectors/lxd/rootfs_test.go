@@ -128,7 +128,7 @@ func (s *rootfsSuite) TestInspectArtifact(c *C) {
 	a.SetRequestPending(ins, "test")
 
 	dins := lxd.NewSimpleStreamsDownloadInspector()
-	a.SetResponseUnknown(dins, "test").Annotate(Annotation{"product-item-path": "filename"})
+	a.SetResponseUnknown(dins, "test", ArtifactMetadata{}).Annotate(Annotation{"product-item-path": "filename"})
 
 	f, err := files.OpenArtifactFile("testdata/base.tar.gz")
 	c.Assert(err, IsNil)

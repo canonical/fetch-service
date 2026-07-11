@@ -126,8 +126,14 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 
 	snapID, note, err := checkSnapRevisionAssertion(snapRevisionAssertion, snapSha3_384, sl, a)
 	if err != nil {
-		a.SetResponseRejected(ins, err.Error()).Annotate(note)
+		a.SetResponseRejected(ins, err.Error(), ArtifactMetadata{Type: mimetypes.SnapPackage}).Annotate(note)
 		return nil
+	}
+
+	md := ArtifactMetadata{
+		Type:          mimetypes.SnapPackage,
+		StoreRevision: snapRevisionAssertion.SnapRevision(),
+		ContentID:     snapID,
 	}
 
 	// Retrieve the snap-declaration assertion
@@ -136,9 +142,11 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 		return fmt.Errorf("cannot retrieve snap-declaration assertion: %w", err)
 	}
 
+	md.Name = snapDeclarationAssertion.SnapName()
+
 	publisherID := snapDeclarationAssertion.PublisherID()
 	if publisherID == "" {
-		a.SetResponseRejected(ins, "cannot find publisher ID in snap-declaration assertion").Annotate(
+		a.SetResponseRejected(ins, "cannot find publisher ID in snap-declaration assertion", md).Annotate(
 			Annotation{
 				"snap-declaration-assertion-header": snapDeclarationAssertion.Header,
 			},
@@ -147,7 +155,7 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 	}
 
 	if err := snapDeclarationAssertion.VerifySignature(sl); err != nil {
-		a.SetResponseRejected(ins, "snap-declaration assertion has invalid signature").Annotate(
+		a.SetResponseRejected(ins, "snap-declaration assertion has invalid signature", md).Annotate(
 			Annotation{
 				"error-msg":                         err.Error(),
 				"snap-declaration-assertion-header": snapDeclarationAssertion.Header,
@@ -162,7 +170,7 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 		return fmt.Errorf("cannot retrieve account assertion: %w", err)
 	}
 	if err := accountAssertion.VerifySignature(sl); err != nil {
-		a.SetResponseRejected(ins, "account assertion has invalid signature").Annotate(
+		a.SetResponseRejected(ins, "account assertion has invalid signature", md).Annotate(
 			Annotation{
 				"error-msg":                err.Error(),
 				"account-assertion-header": accountAssertion.Header,
@@ -171,6 +179,8 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 		return nil
 	}
 
+	md.Vendor = accountAssertion.DisplayName()
+
 	// Extract additional metadata from snap.yaml
 	sqsh, err := squashfs.NewReader(f)
 	if err != nil {
@@ -178,7 +188,7 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 	}
 	sf, err := sqsh.Open("meta/snap.yaml")
 	if err != nil {
-		a.SetResponseRejected(ins, "image has no meta/snap.yaml file")
+		a.SetResponseRejected(ins, "image has no meta/snap.yaml file", md)
 		return nil // it's not a snap package
 	}
 	defer sf.Close()
@@ -186,24 +196,17 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 	var data snapYaml
 	dec := yaml.NewDecoder(sf)
 	if err := dec.Decode(&data); err != nil {
-		a.SetResponseRejected(ins, "cannot decode meta/snap.yaml")
+		a.SetResponseRejected(ins, "cannot decode meta/snap.yaml", md)
 		return nil
 	}
 
-	a.SetArtifactMetadata(ArtifactMetadata{
-		Type:          mimetypes.SnapPackage,
-		Name:          snapDeclarationAssertion.SnapName(),
-		Version:       data.Version,
-		Description:   data.Summary,
-		License:       data.License,
-		Vendor:        accountAssertion.DisplayName(),
-		Architecture:  strings.Join(data.Architectures, ","),
-		StoreRevision: snapRevisionAssertion.SnapRevision(),
-		ContentID:     snapID,
-	})
+	md.Version = data.Version
+	md.Description = data.Summary
+	md.License = data.License
+	md.Architecture = strings.Join(data.Architectures, ",")
 
 	if err := checkSnapDeclarationFilter(ins.config, snapDeclarationAssertion, sl); err != nil {
-		a.SetResponseRejected(ins, "failure on snap-declaration assertion attribute check").Annotate(
+		a.SetResponseRejected(ins, "failure on snap-declaration assertion attribute check", md).Annotate(
 			Annotation{
 				"error-msg":                         err.Error(),
 				"snap-declaration-assertion-header": snapDeclarationAssertion.Header,
@@ -212,7 +215,7 @@ func (ins *SnapInspector) InspectArtifact(f ArtifactReader, a ResponseArtifact) 
 		return nil
 	}
 
-	a.SetResponseApproved(ins, "valid snap file found").Annotate(
+	a.SetResponseApproved(ins, "valid snap file found", md).Annotate(
 		Annotation{
 			"snap-revision-assertion-header":    snapRevisionAssertion.Header,
 			"snap-declaration-assertion-header": snapDeclarationAssertion.Header,
