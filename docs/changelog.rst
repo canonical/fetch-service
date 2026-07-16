@@ -2,6 +2,14 @@
 Changelog
 *********
 
+0.17.0 (2026-07-16)
+-------------------
+
+- feat(i/lxd): add support for stonking image download (#621)
+- feat: annotate comprehensive snap refresh information (#628)
+- feat: bincraft inspector (#626)
+- chore: rename upstream-proxy.bypass to upstream-proxy.no-proxy (#630)
+
 0.16.0 (2026-05-07)
 -------------------
 
