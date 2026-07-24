@@ -22,9 +22,11 @@ package control
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/canonical/fetch-service/seclog"
@@ -52,12 +54,13 @@ type revokeTokenParameters struct {
 }
 
 type Server struct {
-	server *http.Server
-	port   int
-	ch     chan interface{}
-	user   string
-	pw     string
-	tomb   tomb.Tomb
+	server  *http.Server
+	port    int
+	ch      chan interface{}
+	user    string
+	pw      string
+	tomb    tomb.Tomb
+	started atomic.Bool
 }
 
 func NewServer(port int, ch chan interface{}, creds string) *Server {
@@ -95,8 +98,12 @@ func (c *Server) Start() {
 	logger.Infof("control server listening on :%d\n", c.port)
 
 	c.tomb.Go(func() error {
-		return c.server.ListenAndServe()
+		if err := c.server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			return err
+		}
+		return nil
 	})
+	c.started.Store(true)
 }
 
 func (c *Server) Stop() error {
@@ -105,11 +112,25 @@ func (c *Server) Stop() error {
 	defer cancel()
 
 	if err := c.server.Shutdown(ctx); err != nil {
-		return fmt.Errorf("server shutdown error: %s", err)
+		// If the server already died (for example due to a listen/bind error),
+		// preserve that original failure path and don't turn shutdown into a new
+		// fatal error.
+		if c.tomb.Err() == tomb.ErrStillAlive {
+			return fmt.Errorf("server shutdown error: %s", err)
+		}
 	}
 
+	// Mark the tomb dead explicitly so Wait does not depend on the serve loop
+	// being the thing that transitions tomb state.
 	c.tomb.Kill(nil)
 
+	// Wait for goroutine cleanup only if Start registered a serving
+	// goroutine. Using c.started rather than c.server.Handler because
+	// Handler is set before tomb.Go — a concurrent Stop() could see
+	// Handler != nil before the goroutine is registered, hanging forever.
+	if c.started.Load() {
+		c.tomb.Wait()
+	}
 	return nil
 }
 

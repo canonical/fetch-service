@@ -1,0 +1,32 @@
+summary: Fetchctl socket operations
+
+prepare: |
+  snap stop fetch-service
+
+restore: |
+  snap stop fetch-service
+
+execute: |
+  snap start fetch-service
+  sleep 5  # give some time for the service to start
+
+  # verify fetchctl version works via the unix socket
+  fetch-service.fetchctl version
+
+  # verify update-config reports an error for missing file
+  if fetch-service.fetchctl update-config --type=inspectors /nonexistent.yaml 2>&1; then exit 1; fi
+
+  # stop the service gracefully
+  snap stop fetch-service
+  sleep 2
+
+  # verify the socket is gone after shutdown
+  test ! -e /tmp/fetchctl.socket
+
+  # verify fetchctl fails gracefully when service is stopped
+  if fetch-service.fetchctl version 2>&1; then exit 1; fi
+
+  # restart service and verify fetchctl works again
+  snap start fetch-service
+  sleep 5
+  fetch-service.fetchctl version

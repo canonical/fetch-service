@@ -23,6 +23,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -62,6 +63,60 @@ func (t *proxySuite) TestServerError(c *C) {
 	err = errors.New("an error")
 	p.ForceError(err)
 	c.Assert(p.Err(), Equals, err)
+}
+
+// TestStopWithoutStart verifies that calling Stop on a proxy that was
+// never started does not panic or hang.
+func (t *proxySuite) TestStopWithoutStart(c *C) {
+	ch := make(chan interface{}, 1)
+	spool := c.MkDir()
+	p, err := proxy.NewHTTPProxy(5566, spool, testutils.ProxyCert, testutils.ProxyKey, ch)
+	c.Assert(err, IsNil)
+
+	done := make(chan error, 1)
+	go func() {
+		done <- p.Stop()
+	}()
+
+	select {
+	case err := <-done:
+		c.Assert(err, IsNil)
+	case <-time.After(5 * time.Second):
+		c.Fatal("Stop() hung on proxy that was never started")
+	}
+}
+
+// TestStopAfterStartFailure verifies that calling Stop on a proxy whose Start
+// failed (e.g. port already in use, so p.srv is initialized but no serving
+// goroutine was registered) does not hang.
+func (t *proxySuite) TestStopAfterStartFailure(c *C) {
+	// Hold a port so that the proxy's net.Listen will fail with "address
+	// already in use", exercising the p.started guard in Stop.
+	ln, err := net.Listen("tcp", ":0")
+	c.Assert(err, IsNil)
+	defer ln.Close()
+	port := ln.Addr().(*net.TCPAddr).Port
+
+	ch := make(chan interface{}, 1)
+	spool := c.MkDir()
+	p, err := proxy.NewHTTPProxy(port, spool, testutils.ProxyCert, testutils.ProxyKey, ch)
+	c.Assert(err, IsNil)
+
+	// Start must fail because the port is already bound.
+	err = p.Start()
+	c.Assert(err, NotNil)
+
+	done := make(chan error, 1)
+	go func() {
+		done <- p.Stop()
+	}()
+
+	select {
+	case err := <-done:
+		c.Assert(err, IsNil)
+	case <-time.After(5 * time.Second):
+		c.Fatal("Stop() hung after a failed Start()")
+	}
 }
 
 // Test file transfer using the proxy.
@@ -231,12 +286,12 @@ var proxyFromEnvironmentTests = []proxyFromEnvironmentTest{{
 	env:   map[string]string{"http_proxy": "http://localhost:1234", "https_proxy": "http://otherhost:5678"},
 	proxy: "http://otherhost:5678",
 }, {
-    // http_proxy overrides all_proxy
+	// http_proxy overrides all_proxy
 	url:   "http://example.com",
 	env:   map[string]string{"http_proxy": "http://localhost:1234", "all_proxy": "http://otherhost:5678"},
 	proxy: "http://localhost:1234",
 }, {
-    // https_proxy overrides all_proxy
+	// https_proxy overrides all_proxy
 	url:   "https://example.com",
 	env:   map[string]string{"https_proxy": "http://localhost:1234", "ALL_PROXY": "http://otherhost:5678"},
 	proxy: "http://localhost:1234",
