@@ -1,3 +1,3 @@
-canonical-sphinx==0.6.0
+canonical-sphinx==0.7.0
 sphinxext-rediraffe==0.3.0
 sphinx-related-links==0.1.2
