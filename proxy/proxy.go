@@ -22,6 +22,7 @@ package proxy
 import (
 	"bytes"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -240,7 +241,15 @@ func (p *HTTPProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 
 	sl := a.Logger()
 	sec := session.GetSessionSecrets(sid)
-	if secrets.InjectSecrets(sec, url, req, sl) {
+	injected, err := secrets.InjectSecrets(sec, url, req, sl)
+	if err != nil {
+		sl.Infof("cannot apply secrets to %s: %s", url, err)
+		if errors.Is(err, secrets.ErrKeystoneV3BodyTooLarge) {
+			return req, requestEntityTooLargeResponse(req, "Request body too large")
+		}
+		return req, internalErrorResponse(req, "Cannot handle requests")
+	}
+	if injected {
 		sl.Debugf("applied secrets to %s", url)
 	}
 
@@ -409,6 +418,10 @@ func internalErrorResponse(r *http.Request, msg string) *http.Response {
 
 func forbiddenResponse(r *http.Request, msg string) *http.Response {
 	return goproxy.NewResponse(r, goproxy.ContentTypeText, http.StatusForbidden, msg)
+}
+
+func requestEntityTooLargeResponse(r *http.Request, msg string) *http.Response {
+	return goproxy.NewResponse(r, goproxy.ContentTypeText, http.StatusRequestEntityTooLarge, msg)
 }
 
 // copyHTTPHeader deepcopies HTTP header maps.

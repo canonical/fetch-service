@@ -3,6 +3,7 @@ package secrets_test
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"testing"
@@ -109,7 +110,8 @@ func (t *secretSuite) TestInjectHeaderSecrets(c *C) {
 		req, err := http.NewRequest("GET", tc.url, nil)
 		c.Assert(err, IsNil)
 
-		injected := secrets.InjectSecrets(sec, tc.url, req, t.sl)
+		injected, err := secrets.InjectSecrets(sec, tc.url, req, t.sl)
+		c.Assert(err, IsNil)
 		c.Assert(injected, Equals, tc.injected)
 		if injected {
 			header := req.Header.Get("Authorization")
@@ -137,7 +139,8 @@ func (t *secretSuite) TestInjectBodySecrets(c *C) {
 	req, err := http.NewRequest("GET", "https://my-domain.com:5000/v3/auth/tokens", bytes.NewReader(body))
 	c.Assert(err, IsNil)
 
-	injected := secrets.InjectSecrets(sec, "https://my-domain.com:5000/v3/auth/tokens", req, t.sl)
+	injected, err := secrets.InjectSecrets(sec, "https://my-domain.com:5000/v3/auth/tokens", req, t.sl)
+	c.Assert(err, IsNil)
 	c.Assert(injected, Equals, true)
 
 	requestBody, err := io.ReadAll(req.Body)
@@ -172,6 +175,219 @@ func (t *secretSuite) TestInjectBodySecrets(c *C) {
 			"extra-field": "extra-content",
 		},
 	})
+}
+
+func (t *secretSuite) TestInjectBodySecretsApplicationCredential(c *C) {
+	sec := []secrets.Secret{
+		{Type: secrets.KeystoneV3Type, URL: glob.MustCompile("https://my-domain.com:5000/v3/auth/tokens"), KeystoneV3Creds: "new-id:new-secret"},
+	}
+
+	body := []byte(`{
+		"auth": {
+			"identity": {
+				"methods": ["application_credential"],
+				"application_credential": { "id": "old-id", "secret": "old-secret" }
+			},
+			"extra-field": "extra-content"
+		}
+	}`)
+
+	req, err := http.NewRequest("GET", "https://my-domain.com:5000/v3/auth/tokens", bytes.NewReader(body))
+	c.Assert(err, IsNil)
+
+	injected, err := secrets.InjectSecrets(sec, "https://my-domain.com:5000/v3/auth/tokens", req, t.sl)
+	c.Assert(err, IsNil)
+	c.Assert(injected, Equals, true)
+
+	requestBody, err := io.ReadAll(req.Body)
+	c.Assert(err, IsNil)
+
+	var bodyData map[string]any
+	err = json.Unmarshal(requestBody, &bodyData)
+	c.Assert(err, IsNil)
+
+	c.Check(bodyData, DeepEquals, map[string]any{
+		"auth": map[string]any{
+			"identity": map[string]any{
+				"methods": []any{"application_credential"},
+				"application_credential": map[string]any{
+					"id":     "new-id",
+					"secret": "new-secret",
+				},
+			},
+			"extra-field": "extra-content",
+		},
+	})
+}
+
+func (t *secretSuite) TestInjectBodySecretsRejectsAmbiguousMultiMethodIdentity(c *C) {
+	sec := []secrets.Secret{
+		{Type: secrets.KeystoneV3Type, URL: glob.MustCompile("https://my-domain.com:5000/v3/auth/tokens"), KeystoneV3Creds: "new-id:new-secret"},
+	}
+
+	// Both "password" and "application_credential" are listed. Injection
+	// only has one credential pair to substitute, so picking either method
+	// and dropping the other would silently change the auth request's
+	// meaning (e.g. downgrading a multi-factor requirement). This must be
+	// rejected instead of forwarding either interpretation.
+	body := []byte(`{
+		"auth": {
+			"identity": {
+				"methods": ["password", "application_credential"],
+				"password": { "user": { "name": "old-name", "password": "old-pass", "domain": {"name": "my-domain"} } },
+				"application_credential": { "id": "old-id", "secret": "old-secret" }
+			}
+		}
+	}`)
+
+	req, err := http.NewRequest("GET", "https://my-domain.com:5000/v3/auth/tokens", bytes.NewReader(body))
+	c.Assert(err, IsNil)
+
+	injected, err := secrets.InjectSecrets(sec, "https://my-domain.com:5000/v3/auth/tokens", req, t.sl)
+	c.Assert(injected, Equals, false)
+	c.Assert(err, ErrorMatches, ".*exactly one method is supported.*")
+}
+
+func (t *secretSuite) TestInjectBodySecretsDispatchesOnMethodsNotFieldPresence(c *C) {
+	sec := []secrets.Secret{
+		{Type: secrets.KeystoneV3Type, URL: glob.MustCompile("https://my-domain.com:5000/v3/auth/tokens"), KeystoneV3Creds: "new-user:new-pass"},
+	}
+
+	// The methods list says "password", but a stray application_credential
+	// object is also present. Dispatch must follow methods, not field
+	// presence, so this must still be rewritten as password auth.
+	body := []byte(`{
+		"auth": {
+			"identity": {
+				"methods": ["password"],
+				"password": { "user": { "name": "old-name", "password": "old-pass", "domain": {"name": "my-domain"} } },
+				"application_credential": { "id": "stray-id", "secret": "stray-secret" }
+			}
+		}
+	}`)
+
+	req, err := http.NewRequest("GET", "https://my-domain.com:5000/v3/auth/tokens", bytes.NewReader(body))
+	c.Assert(err, IsNil)
+
+	injected, err := secrets.InjectSecrets(sec, "https://my-domain.com:5000/v3/auth/tokens", req, t.sl)
+	c.Assert(err, IsNil)
+	c.Assert(injected, Equals, true)
+
+	requestBody, err := io.ReadAll(req.Body)
+	c.Assert(err, IsNil)
+
+	var bodyData map[string]any
+	err = json.Unmarshal(requestBody, &bodyData)
+	c.Assert(err, IsNil)
+
+	identity := bodyData["auth"].(map[string]any)["identity"].(map[string]any)
+	c.Check(identity["methods"], DeepEquals, []any{"password"})
+	c.Check(identity["password"], DeepEquals, map[string]any{
+		"user": map[string]any{
+			"name":     "new-user",
+			"password": "new-pass",
+			"domain": map[string]any{
+				"name": "my-domain",
+			},
+		},
+	})
+	_, hasApplicationCredential := identity["application_credential"]
+	c.Check(hasApplicationCredential, Equals, false)
+}
+
+func (t *secretSuite) TestInjectBodySecretsRejectsMethodWithoutMatchingObject(c *C) {
+	sec := []secrets.Secret{
+		{Type: secrets.KeystoneV3Type, URL: glob.MustCompile("https://my-domain.com:5000/v3/auth/tokens"), KeystoneV3Creds: "new-id:new-secret"},
+	}
+
+	// The methods list says "application_credential", but the object is
+	// missing. Forwarding the caller's original, unsubstituted body here
+	// would be exactly the silent-failure this feature exists to fix, so
+	// the request must be rejected instead.
+	body := []byte(`{
+		"auth": {
+			"identity": {
+				"methods": ["application_credential"]
+			}
+		}
+	}`)
+
+	req, err := http.NewRequest("GET", "https://my-domain.com:5000/v3/auth/tokens", bytes.NewReader(body))
+	c.Assert(err, IsNil)
+
+	injected, err := secrets.InjectSecrets(sec, "https://my-domain.com:5000/v3/auth/tokens", req, t.sl)
+	c.Assert(injected, Equals, false)
+	c.Assert(err, ErrorMatches, ".*application_credential object is missing.*")
+}
+
+// failingReader returns some data, then a non-EOF error, simulating a
+// body read that fails partway through (e.g. a client disconnect).
+type failingReader struct {
+	data []byte
+	err  error
+}
+
+func (r *failingReader) Read(p []byte) (int, error) {
+	if len(r.data) == 0 {
+		return 0, r.err
+	}
+	n := copy(p, r.data)
+	r.data = r.data[n:]
+	return n, nil
+}
+
+func (t *secretSuite) TestInjectBodySecretsPropagatesBodyReadError(c *C) {
+	sec := []secrets.Secret{
+		{Type: secrets.KeystoneV3Type, URL: glob.MustCompile("https://my-domain.com:5000/v3/auth/tokens"), KeystoneV3Creds: "new-id:new-secret"},
+	}
+
+	req, err := http.NewRequest("GET", "https://my-domain.com:5000/v3/auth/tokens", nil)
+	c.Assert(err, IsNil)
+
+	// Simulate a request whose body read fails partway through. Only a
+	// truncated prefix is available, so forwarding it dressed up as a
+	// complete request would send malformed JSON to Keystone in place of
+	// whatever the client actually sent. The caller must be told to
+	// reject the request instead of receiving a fabricated body.
+	req.Body = io.NopCloser(&failingReader{data: []byte(`{"partial`), err: errors.New("connection reset by peer")})
+
+	injected, err := secrets.InjectSecrets(sec, "https://my-domain.com:5000/v3/auth/tokens", req, t.sl)
+	c.Assert(injected, Equals, false)
+	c.Assert(err, ErrorMatches, "cannot read keystone-v3 request body:.*")
+}
+
+func (t *secretSuite) TestInjectBodySecretsRejectsOversizedBody(c *C) {
+	sec := []secrets.Secret{
+		{Type: secrets.KeystoneV3Type, URL: glob.MustCompile("https://my-domain.com:5000/v3/auth/tokens"), KeystoneV3Creds: "new-id:new-secret"},
+	}
+
+	// A body far larger than any real Keystone v3 auth-token request
+	// must be rejected before being fully buffered in memory.
+	oversized := bytes.Repeat([]byte("x"), 2<<20)
+
+	req, err := http.NewRequest("GET", "https://my-domain.com:5000/v3/auth/tokens", bytes.NewReader(oversized))
+	c.Assert(err, IsNil)
+
+	injected, err := secrets.InjectSecrets(sec, "https://my-domain.com:5000/v3/auth/tokens", req, t.sl)
+	c.Assert(injected, Equals, false)
+	c.Assert(errors.Is(err, secrets.ErrKeystoneV3BodyTooLarge), Equals, true)
+}
+
+func (t *secretSuite) TestInjectBodySecretsNilBodyIsNoOp(c *C) {
+	sec := []secrets.Secret{
+		{Type: secrets.KeystoneV3Type, URL: glob.MustCompile("https://my-domain.com:5000/v3/auth/tokens"), KeystoneV3Creds: "new-id:new-secret"},
+	}
+
+	// A bodyless request (e.g. GET, or any manually constructed request
+	// with a nil Body) matching the secret's URL rule must not panic.
+	req, err := http.NewRequest("GET", "https://my-domain.com:5000/v3/auth/tokens", nil)
+	c.Assert(err, IsNil)
+	c.Assert(req.Body, IsNil)
+
+	injected, err := secrets.InjectSecrets(sec, "https://my-domain.com:5000/v3/auth/tokens", req, t.sl)
+	c.Assert(err, IsNil)
+	c.Assert(injected, Equals, true)
+	c.Check(req.Body, IsNil)
 }
 
 type getKeystoneV3IdentityDomainTest struct {
