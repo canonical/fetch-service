@@ -244,7 +244,7 @@ func (t *secretSuite) TestInjectBodySecretsRejectsAmbiguousMultiMethodIdentity(c
 	c.Assert(err, IsNil)
 
 	injected, err := secrets.InjectSecrets(sec, "https://my-domain.com:5000/v3/auth/tokens", req, t.sl)
-	c.Assert(injected, Equals, true)
+	c.Assert(injected, Equals, false)
 	c.Assert(err, ErrorMatches, ".*exactly one method is supported.*")
 }
 
@@ -316,7 +316,7 @@ func (t *secretSuite) TestInjectBodySecretsRejectsMethodWithoutMatchingObject(c 
 	c.Assert(err, IsNil)
 
 	injected, err := secrets.InjectSecrets(sec, "https://my-domain.com:5000/v3/auth/tokens", req, t.sl)
-	c.Assert(injected, Equals, true)
+	c.Assert(injected, Equals, false)
 	c.Assert(err, ErrorMatches, ".*application_credential object is missing.*")
 }
 
@@ -352,7 +352,7 @@ func (t *secretSuite) TestInjectBodySecretsPropagatesBodyReadError(c *C) {
 	req.Body = io.NopCloser(&failingReader{data: []byte(`{"partial`), err: errors.New("connection reset by peer")})
 
 	injected, err := secrets.InjectSecrets(sec, "https://my-domain.com:5000/v3/auth/tokens", req, t.sl)
-	c.Assert(injected, Equals, true)
+	c.Assert(injected, Equals, false)
 	c.Assert(err, ErrorMatches, "cannot read keystone-v3 request body:.*")
 }
 
@@ -369,7 +369,7 @@ func (t *secretSuite) TestInjectBodySecretsRejectsOversizedBody(c *C) {
 	c.Assert(err, IsNil)
 
 	injected, err := secrets.InjectSecrets(sec, "https://my-domain.com:5000/v3/auth/tokens", req, t.sl)
-	c.Assert(injected, Equals, true)
+	c.Assert(injected, Equals, false)
 	c.Assert(errors.Is(err, secrets.ErrKeystoneV3BodyTooLarge), Equals, true)
 }
 

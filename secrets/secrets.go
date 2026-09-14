@@ -116,7 +116,7 @@ func InjectSecrets(secrets []Secret, url string, req *http.Request, sl logger.Lo
 	for _, s := range secrets {
 		if s.URL.Match(url) {
 			if err := injectSecret(s, req, sl); err != nil {
-				return true, err
+				return false, err
 			}
 			return true, nil
 		}
@@ -134,33 +134,18 @@ func injectSecret(s Secret, req *http.Request, sl logger.Logger) error {
 		// arbitrary sequence of bytes
 		req.Header.Set("Authorization", "macaroon "+s.MacaroonCreds)
 	case KeystoneV3Type:
-		if req.Body == nil {
-			// Nothing to inject into (e.g. a bodyless GET matched the
-			// secret's URL rule); leave the request untouched rather
-			// than dereferencing a nil body.
-			return nil
-		}
-
-		raw, err := io.ReadAll(io.LimitReader(req.Body, maxKeystoneV3BodySize+1))
-		req.Body.Close()
-		if err != nil {
-			// Only a prefix of the body was read. There is no complete
-			// request left to forward, original or rewritten, so the
-			// caller must reject this request instead of us silently
-			// forwarding truncated JSON as if it were whole.
-			return fmt.Errorf("cannot read keystone-v3 request body: %w", err)
-		}
-		if len(raw) > maxKeystoneV3BodySize {
-			return fmt.Errorf("%w: got at least %d bytes", ErrKeystoneV3BodyTooLarge, len(raw))
-		}
-
-		newBody, err := injectKeystoneV3Secret(s, raw)
+		newBody, err := injectKeystoneV3Secret(s, req)
 		if err != nil {
 			// Forwarding raw here would silently send the caller's own,
 			// unsubstituted credentials upstream instead of the injected
 			// secret - exactly the untraceable failure this whole
 			// feature exists to fix. Reject the request instead.
-			return fmt.Errorf("cannot inject keystone-v3 secret: %w", err)
+			return err
+		}
+		if newBody == nil {
+			// Nothing to inject into (e.g. a bodyless GET matched the
+			// secret's URL rule); leave the request untouched.
+			return nil
 		}
 
 		req.Body = io.NopCloser(bytes.NewReader(newBody))
@@ -243,7 +228,27 @@ type ApplicationCredential struct {
 //   }
 // }
 
-func injectKeystoneV3Secret(s Secret, raw []byte) ([]byte, error) {
+func injectKeystoneV3Secret(s Secret, req *http.Request) ([]byte, error) {
+	if req.Body == nil {
+		// Nothing to inject into (e.g. a bodyless GET matched the
+		// secret's URL rule); leave the request untouched rather
+		// than dereferencing a nil body.
+		return nil, nil
+	}
+
+	raw, err := io.ReadAll(io.LimitReader(req.Body, maxKeystoneV3BodySize+1))
+	req.Body.Close()
+	if err != nil {
+		// Only a prefix of the body was read. There is no complete
+		// request left to forward, original or rewritten, so the
+		// caller must reject this request instead of us silently
+		// forwarding truncated JSON as if it were whole.
+		return nil, fmt.Errorf("cannot read keystone-v3 request body: %w", err)
+	}
+	if len(raw) > maxKeystoneV3BodySize {
+		return nil, fmt.Errorf("%w: got at least %d bytes", ErrKeystoneV3BodyTooLarge, len(raw))
+	}
+
 	id, secret, ok := strings.Cut(s.KeystoneV3Creds, ":")
 	if !ok {
 		return nil, errors.New("invalid keystone-v3 credentials format")
@@ -326,7 +331,7 @@ func newKeystoneV3Identity(auth map[string]json.RawMessage, id, secret string) (
 
 	case "password":
 		if identity.Password == nil || identity.Password.User == nil {
-			return nil, errors.New("keystone-v3 identity method is password but password.user object is missing")
+			return nil, errors.New("keystone-v3 identity method is 'password' but password.user object is missing")
 		}
 
 		domain, err := getKeystoneV3IdentityDomain(auth)
