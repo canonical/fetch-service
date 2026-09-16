@@ -2,6 +2,11 @@
 Changelog
 *********
 
+0.17.1 (2026-09-16)
+-------------------
+
+- fix: support application credentials in keystone-v3 secrets (#645)
+
 0.17.0 (2026-07-16)
 -------------------
 
