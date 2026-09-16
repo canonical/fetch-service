@@ -51,7 +51,7 @@ jobs:
           ~/go/bin/gocov-xml < coverage.json > coverage-go.xml
 
       - name: Run TICS analysis
-        uses: tiobe/tics-github-action@v3
+        uses: tiobe/tics-github-action@v4
         with:
           mode: qserver
           project: fetch-service
