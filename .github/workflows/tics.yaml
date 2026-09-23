@@ -1,6 +1,9 @@
 name: TICS
 
 on:
+  pull_request:
+    paths:
+      - .github/workflows/tics.yaml
   push:
     branches:
       - main
@@ -9,6 +12,7 @@ on:
 
 jobs:
   CI:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: [self-hosted, reactive, amd64, tiobe, noble]
     steps:
       - name: Checkout
