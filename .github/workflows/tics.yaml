@@ -22,7 +22,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v7
         with:
-          go-version: 1.25.11
+          go-version: stable
 
       - name: Install dependencies
         run: |
@@ -33,7 +33,7 @@ jobs:
           sudo apt-get install -y licensecheck
           echo "::endgroup::"
           echo "::group::staticcheck"
-          go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
+          go install honnef.co/go/tools/cmd/staticcheck@latest
           echo "::endgroup::"
           echo "::group::gocov"
           go install github.com/axw/gocov/gocov@latest
