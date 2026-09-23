@@ -1,6 +1,9 @@
 name: TICS
 
 on:
+  pull_request:
+    paths:
+      - .github/workflows/tics.yaml
   push:
     branches:
       - main
