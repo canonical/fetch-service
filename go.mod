@@ -5,7 +5,7 @@ go 1.25.11
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/CalebQ42/squashfs v1.4.1
-	github.com/ProtonMail/go-crypto v1.4.1
+	github.com/ProtonMail/go-crypto v1.5.1
 	github.com/PuerkitoBio/purell v1.2.2
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
 	github.com/elazarl/goproxy v1.9.0
@@ -14,7 +14,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/jessevdk/go-flags v1.6.1
-	github.com/klauspost/compress v1.19.2
+	github.com/klauspost/compress v1.20.0
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
 	golang.org/x/net v0.58.0
 	golang.org/x/sys v0.47.0
