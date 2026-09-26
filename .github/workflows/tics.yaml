@@ -1,6 +1,9 @@
 name: TICS
 
 on:
+  pull_request:
+    paths:
+      - .github/workflows/tics.yaml
   push:
     branches:
       - main
@@ -9,7 +12,10 @@ on:
 
 jobs:
   CI:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: [self-hosted, reactive, amd64, tiobe, noble]
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -19,7 +25,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v7
         with:
-          go-version: 1.25.11
+          go-version: stable
 
       - name: Install dependencies
         run: |
