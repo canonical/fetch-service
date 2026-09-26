@@ -27,7 +27,7 @@ import (
 
 // Glob is a YAML-unmarshable glob pattern type.
 type Glob struct {
-	G glob.Glob
+	G *glob.Pattern
 }
 
 func MustCompile(pattern string) Glob {
@@ -45,7 +45,7 @@ func (t *Glob) UnmarshalYAML(unmarshal func(v interface{}) error) error {
 		return err
 	}
 
-	*t = Glob{g}
+	t.G = g
 	return nil
 }
 
@@ -59,7 +59,7 @@ func (t *Glob) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	*t = Glob{g}
+	t.G = g
 	return nil
 }
 

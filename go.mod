@@ -10,13 +10,12 @@ require (
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
 	github.com/elazarl/goproxy v1.9.0
 	github.com/gabriel-vasile/mimetype v1.4.15
-	github.com/gobwas/glob v0.2.3
+	github.com/gobwas/glob v1.0.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/klauspost/compress v1.20.0
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
-	golang.org/x/crypto v0.55.0
 	golang.org/x/net v0.58.0
 	golang.org/x/sys v0.47.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
@@ -31,7 +30,7 @@ require (
 	github.com/mikelolasagasti/xz v1.0.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/rasky/go-lzo v0.0.0-20200203143853-96a758eda86e // indirect
-	github.com/therootcompany/xz v1.0.1 // indirect
 	github.com/ulikunitz/xz v0.5.15 // indirect
+	golang.org/x/crypto v0.55.0 // indirect
 	golang.org/x/text v0.41.0 // indirect
 )
