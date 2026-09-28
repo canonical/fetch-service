@@ -1,19 +1,22 @@
-.PHONY: warning
-warning:
-	@echo "make is not used to build the project. Please explicitly select a target."
+.SUFFIXES:
+.DEFAULT_GOAL := help
+
+.PHONY: help
+help:  ## Show this help
+	@awk 'BEGIN {FS = ":.*## "} /^##@/ {printf "\n\033[1m%s\033[0m\n", substr($$0, 5)} /^[a-zA-Z_.\/-]+:.*## / {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 .PHONY: setup-lint
-setup-lint: install-golangci-lint install-shellcheck
+setup-lint: install-golangci-lint install-shellcheck  ## Install lint tools (golangci-lint, shellcheck)
 
 .PHONY: lint
-lint: lint-golangci-lint lint-shellcheck
+lint: lint-golangci-lint lint-shellcheck  ## Run all linters
 
 .PHONY:	lint-golangci-lint
-lint-golangci-lint: install-golangci-lint
+lint-golangci-lint: install-golangci-lint  ## Run golangci-lint
 	golangci-lint run -c .github/.golangci.yaml
 
 .PHONY: lint-shellcheck
-lint-shellcheck: install-shellcheck lint-shellcheck-spread
+lint-shellcheck: install-shellcheck lint-shellcheck-spread  ## Run shellcheck on all shell scripts
 	git ls-files | file --mime-type -Nnf- | grep shellscript | cut -f1 -d: | xargs -r shellcheck
 
 .PHONY: lint-shellcheck-spread
