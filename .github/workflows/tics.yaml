@@ -40,7 +40,7 @@ jobs:
           echo "::endgroup::"
           echo "::group::gocov"
           git clone --depth=1 https://github.com/axw/gocov.git /tmp/gocov
-          (cd /tmp/gocov && go get -u golang.org/x/tools && go mod tidy && go install ./gocov)
+          (cd /tmp/gocov && go get golang.org/x/tools@v0.49.0 && go mod tidy && go install ./gocov)
           rm -rf /tmp/gocov
           go install github.com/AlekSi/gocov-xml@latest
           echo "::endgroup::"
