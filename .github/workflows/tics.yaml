@@ -7,8 +7,6 @@ on:
   push:
     branches:
       - main
-      # to easy test changes to the workflow
-      - work/tiobe**
 
 jobs:
   CI:
