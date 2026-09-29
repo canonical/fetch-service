@@ -39,6 +39,9 @@ jobs:
           go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
           echo "::endgroup::"
           echo "::group::gocov"
+          # gocov v1.2.1 pins an old golang.org/x/tools v0.13.0 dependency whose
+          # internal/tokeninternal static assertion fails to compile on modern Go.
+          # Build from source with a Go 1.25-compatible x/tools version.
           git clone --depth=1 https://github.com/axw/gocov.git /tmp/gocov
           (cd /tmp/gocov && go get golang.org/x/tools@v0.49.0 && go mod tidy && go install ./gocov)
           rm -rf /tmp/gocov
