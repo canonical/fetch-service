@@ -9,7 +9,6 @@ on:
 
 jobs:
   go-scans:
-    if: false
     name: Scan Go project
     uses: canonical/starflow/.github/workflows/scan-golang.yaml@main
     with:
