@@ -39,7 +39,9 @@ jobs:
           go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
           echo "::endgroup::"
           echo "::group::gocov"
-          go install github.com/axw/gocov/gocov@latest
+          git clone --depth=1 https://github.com/axw/gocov.git /tmp/gocov
+          (cd /tmp/gocov && go get -u golang.org/x/tools && go mod tidy && go install ./gocov)
+          rm -rf /tmp/gocov
           go install github.com/AlekSi/gocov-xml@latest
           echo "::endgroup::"
 
