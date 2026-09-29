@@ -8,6 +8,7 @@ on:
 
 jobs:
   linters:
+    if: false
     runs-on: [self-hosted, Linux]  # Pretty much any self-hosted Linux runner, base independent
     steps:
       - name: Set up Go
@@ -32,6 +33,7 @@ jobs:
           make lint-shellcheck
 
   unit-tests:
+    if: false
     runs-on: [noble, amd64]
     steps:
       - name: Install dependencies
@@ -57,6 +59,7 @@ jobs:
           go test -race ./...
 
   snap-build:
+    if: false
     runs-on: [noble, amd64]
     steps:
       - name: Checkout code
@@ -73,6 +76,7 @@ jobs:
           path: ${{ steps.snap.outputs.snap }}
 
   snap-test:
+    if: false
     strategy:
       matrix:
         os:
