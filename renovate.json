@@ -10,11 +10,12 @@
       "constraintsFiltering": "strict"
     },
     {
-      "description": "Propose go directive updates",
+      "description": "Propose go directive updates with higher priority",
       "matchManagers": ["gomod"],
       "matchDepNames": ["go"],
       "matchDepTypes": ["golang"],
-      "rangeStrategy": "bump"
+      "rangeStrategy": "bump",
+      "prPriority": 1
     }
   ]
 }
