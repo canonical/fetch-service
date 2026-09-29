@@ -8,6 +8,13 @@
       "description": "Block module updates that require a higher Go version",
       "matchManagers": ["gomod"],
       "constraintsFiltering": "strict"
+    },
+    {
+      "description": "Propose go directive updates",
+      "matchManagers": ["gomod"],
+      "matchDepNames": ["go"],
+      "matchDepTypes": ["golang"],
+      "rangeStrategy": "bump"
     }
   ]
 }
