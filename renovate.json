@@ -2,5 +2,12 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "description": "Block module updates that require a higher Go version",
+      "matchManagers": ["gomod"],
+      "constraintsFiltering": "strict"
+    }
   ]
 }
