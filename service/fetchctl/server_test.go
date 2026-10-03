@@ -27,6 +27,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	. "gopkg.in/check.v1"
 
@@ -126,4 +127,50 @@ func (t *serverSuite) TestBuildReply(c *C) {
 func (t *serverSuite) TestSocketPath(c *C) {
 	x := fetchctl.SocketPath()
 	c.Assert(strings.HasPrefix(x, os.TempDir()), Equals, true)
+}
+
+// TestStopWithoutStart verifies that calling Stop on a fetchctl server that
+// was never started does not panic or hang.
+func (t *serverSuite) TestStopWithoutStart(c *C) {
+	ch := make(chan interface{})
+	cs := fetchctl.NewServer(ch)
+
+	done := make(chan error, 1)
+	go func() {
+		done <- cs.Stop()
+	}()
+
+	select {
+	case err := <-done:
+		c.Assert(err, IsNil)
+	case <-time.After(5 * time.Second):
+		c.Fatal("Stop() hung on fetchctl server that was never started")
+	}
+}
+
+// TestStopWithStalledClient verifies that Stop completes even when a client
+// connection is blocked (not sending data).
+func (t *serverSuite) TestStopWithStalledClient(c *C) {
+	ch := make(chan interface{}, 1)
+	cs := fetchctl.NewServer(ch)
+
+	err := cs.Start()
+	c.Assert(err, IsNil)
+
+	// Connect but never send any data — simulates a stalled client.
+	conn, err := net.Dial("unix", fetchctl.SocketPath())
+	c.Assert(err, IsNil)
+	defer conn.Close()
+
+	done := make(chan error, 1)
+	go func() {
+		done <- cs.Stop()
+	}()
+
+	select {
+	case err := <-done:
+		c.Assert(err, IsNil)
+	case <-time.After(5 * time.Second):
+		c.Fatal("Stop() hung with stalled client connection")
+	}
 }
