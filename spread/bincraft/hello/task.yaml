@@ -1,0 +1,12 @@
+summary: smoke-test of 'bincraft test'
+
+execute: |
+  mkdir payload
+  cd payload
+  tar xf "$CRAFT_ARTIFACT"
+  echo "Run a package test"
+  # Fail on purpose here
+  ./usr/bin/fetch --help | NOMATCH "The fetch service is a tool to mediate network access"
+
+restore: |
+  rm -Rf ./payload

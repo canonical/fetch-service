@@ -1,0 +1,10 @@
+backends:
+  craft:
+    systems:
+      - ubuntu-26.04:
+          workers: 1
+
+suites:
+  spread/bincraft/:
+    summary: smoke tests for 'bincraft test'
+

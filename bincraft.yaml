@@ -1,0 +1,60 @@
+name: fetch-service # you probably want to 'snapcraft register <name>'
+version: 'git'
+base: ubuntu@26.04
+summary: Canonical Fetch Service
+adopt-info: fetch
+description: |
+  The fetch service is a tool to mediate network access when executing
+  craft tools.
+
+platforms:
+  amd64:
+  arm64:
+  s390x:
+  riscv64:
+  ppc64el:
+
+parts:
+  licensecheck:
+    plugin: nil
+    stage-packages:
+      - libregexp-pattern-license-perl
+      - licensecheck
+    override-build: |
+      craftctl default
+      sed -i '1c#!/snap/fetch-service/current/usr/bin/perl' $CRAFT_PART_INSTALL/usr/bin/licensecheck
+  fetch:
+    build-packages:
+      - git
+    build-snaps:
+      - go
+    stage-packages:
+      - git
+    plugin: nil
+    source: .
+    build-environment:
+      - GOPROXY: "off"
+      - GOFLAGS: "-mod=vendor"
+    override-build: |
+      rm -f version/version.txt
+      go generate ./...
+      go build -o "${CRAFT_PART_INSTALL}/bin/fetch" ./cmd/fetch
+      craftctl set version=$(cat version/version.txt)
+    build-attributes:
+      - enable-usrmerge
+  config:
+    plugin: dump
+    source: snap/local/conf
+    organize:
+      '*': conf/
+  service-runner:
+    plugin: dump
+    source: .
+    source-subdir: snap/local
+    organize:
+      bin/: usr/bin/
+  fetchctl:
+    plugin: nil
+    override-prime: |
+      craftctl default
+      ln -s fetch bin/fetchctl
