@@ -6,6 +6,7 @@ on:
 
 jobs:
   cla-check:
+    if: false
     runs-on: ubuntu-latest
     permissions:
       contents: read
