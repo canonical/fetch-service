@@ -26,6 +26,8 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"sync"
+	"sync/atomic"
 
 	"gopkg.in/tomb.v2"
 
@@ -55,14 +57,22 @@ func buildReply(result, message string) []byte {
 }
 
 type Server struct {
-	ch     chan interface{}
-	tomb   tomb.Tomb
-	ctx    context.Context
-	cancel context.CancelFunc
+	ch      chan interface{}
+	tomb    tomb.Tomb
+	ctx     context.Context
+	cancel  context.CancelFunc
+	ln      net.Listener
+	mu      sync.Mutex
+	conns   map[net.Conn]struct{}
+	stopped bool
+	started atomic.Bool
 }
 
 func NewServer(ch chan interface{}) *Server {
-	cs := &Server{ch: ch}
+	cs := &Server{
+		ch:    ch,
+		conns: make(map[net.Conn]struct{}),
+	}
 	cs.ctx, cs.cancel = context.WithCancel(context.Background())
 	return cs
 }
@@ -80,54 +90,140 @@ func (cs *Server) Start() error {
 		return err
 	}
 
+	cs.ln = ln
+
 	cs.tomb.Go(func() error {
 		for {
 			fd, err := ln.Accept()
 			if err != nil {
+				// Closing the listener during shutdown makes Accept return; treat
+				// that as a normal exit instead of logging a spurious error.
+				select {
+				case <-cs.tomb.Dying():
+					return nil
+				default:
+				}
 				logger.Errorf("cannot accept fetchctl connection: %s", err)
 				continue
 			}
 
-			var op OperationRequest
-			var reply []byte
-			dec := json.NewDecoder(fd)
-			if err := dec.Decode(&op); err != nil {
-				logger.Errorf("fetchctl: cannot unmarshal operation request: %s", err)
-				reply = buildReply("error", err.Error())
-			} else {
-				logger.Infof("fetchctl: operation requested: %s", op.Operation)
-				msg := messages.NewFetchCtl(op.Operation, op.Type, op.ValidateOnly, []byte(op.Payload))
-				cs.ch <- msg
-				res := <-msg.Rch
-				reply = buildReply(res.Status, res.Message)
-			}
-
-			_, err = fd.Write(reply)
-			if err != nil {
-				logger.Errorf("fetchctl: cannot write fetchtl reply: %s", err)
-			}
-			if err := fd.Close(); err != nil {
-				logger.Errorf("fetchctl: cannot close connection: %s", err)
-			}
+			cs.handleConn(fd)
 		}
 
 	})
+	cs.started.Store(true)
 
 	return nil
 }
 
+func (cs *Server) handleConn(fd net.Conn) {
+	if !cs.addConn(fd) {
+		return
+	}
+	defer cs.removeConn(fd)
+	defer func() {
+		if err := fd.Close(); err != nil {
+			logger.Errorf("fetchctl: cannot close connection: %s", err)
+		}
+	}()
+
+	var op OperationRequest
+	var reply []byte
+	dec := json.NewDecoder(fd)
+	if err := dec.Decode(&op); err != nil {
+		// If the tomb is dying, the connection was closed deliberately by
+		// closeConns() during shutdown — not a real parse error.
+		select {
+		case <-cs.tomb.Dying():
+			return
+		default:
+		}
+		logger.Errorf("fetchctl: cannot unmarshal operation request: %s", err)
+		reply = buildReply("error", err.Error())
+	} else {
+		logger.Infof("fetchctl: operation requested: %s", op.Operation)
+		msg := messages.NewFetchCtl(op.Operation, op.Type, op.ValidateOnly, []byte(op.Payload))
+		// Avoid deadlock on shutdown while sending request or waiting for reply.
+		select {
+		case cs.ch <- msg:
+			// The message has been handed to the service dispatcher which
+			// processes it synchronously and always sends a reply. We must
+			// wait for the actual result rather than short-circuiting on
+			// tomb.Dying(), because the operation will complete regardless
+			// and the client should see its true outcome.
+			res := <-msg.Rch
+			reply = buildReply(res.Status, res.Message)
+		case <-cs.tomb.Dying():
+			reply = buildReply("error", "service shutting down")
+		}
+	}
+
+	_, err := fd.Write(reply)
+	if err != nil {
+		logger.Errorf("fetchctl: cannot write reply: %s", err)
+	}
+}
+
+// addConn registers a connection for shutdown tracking. It returns false if
+// the server is already stopping, in which case it closes fd immediately.
+// This prevents a race where a connection accepted just before ln.Close()
+// could be missed by closeConns() and block the accept goroutine on Decode
+// indefinitely, hanging tomb.Wait().
+func (cs *Server) addConn(fd net.Conn) bool {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+	if cs.stopped {
+		fd.Close()
+		return false
+	}
+	cs.conns[fd] = struct{}{}
+	return true
+}
+
+func (cs *Server) removeConn(fd net.Conn) {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+	delete(cs.conns, fd)
+}
+
+func (cs *Server) closeConns() {
+	cs.mu.Lock()
+	cs.stopped = true
+	conns := make([]net.Conn, 0, len(cs.conns))
+	for fd := range cs.conns {
+		conns = append(conns, fd)
+	}
+	cs.mu.Unlock()
+
+	for _, fd := range conns {
+		if err := fd.Close(); err != nil {
+			logger.Errorf("fetchctl: cannot close connection: %s", err)
+		}
+	}
+}
+
 func (cs *Server) Stop() error {
 	logger.Info("Shutting down fetchctl socket...")
-	cs.cancel()
-	<-cs.ctx.Done()
-
-	err := os.RemoveAll(SocketPath())
-	if err != nil {
-		return err
-	}
 	cs.tomb.Kill(nil)
+	if cs.ln != nil {
+		cs.ln.Close()
+	}
+	// Close active connections so blocked reads and writes can exit during shutdown.
+	cs.closeConns()
+	cs.cancel()
 
-	return nil
+	removeErr := os.RemoveAll(SocketPath())
+
+	// tomb.Wait blocks forever if no goroutine was registered via tomb.Go,
+	// so only wait when the accept goroutine was successfully registered.
+	var waitErr error
+	if cs.started.Load() {
+		waitErr = cs.tomb.Wait()
+	}
+	if removeErr != nil {
+		return removeErr
+	}
+	return waitErr
 }
 
 func (cs *Server) Dying() <-chan struct{} {

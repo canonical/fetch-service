@@ -64,6 +64,14 @@ func MockNewFetchctlServer(mock func(chan interface{}) *fetchctl.Server) (restor
 	}
 }
 
+func MockFetchctlServerStart(mock func(*fetchctl.Server) error) (restorer func()) {
+	old := fetchctlServerStart
+	fetchctlServerStart = mock
+	return func() {
+		fetchctlServerStart = old
+	}
+}
+
 func MockConfigUpdateConfig(mock func(string, bool, []byte, string) error) (restorer func()) {
 	old := configUpdateConfig
 	configUpdateConfig = mock
