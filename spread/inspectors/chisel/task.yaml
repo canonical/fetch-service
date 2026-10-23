@@ -1,7 +1,7 @@
 summary: Test the chisel inspector
 
 prepare: |
-  rm -f ./*.json
+  rm -rf root ./*.json chisel squashfs-root chisel_*.snap
 
   # Instead of installing the chisel snap, download it and use the binary
   # directly because this is what the craft tools do.
@@ -11,6 +11,9 @@ prepare: |
   unsquashfs chisel_*.snap
   cp squashfs-root/bin/chisel chisel
   ./chisel -help
+
+restore: |
+  rm -rf root ./*.json chisel squashfs-root chisel_*.snap
 
 execute: |
   # shellcheck disable=SC1091
@@ -30,6 +33,9 @@ execute: |
   unset http_proxy
   unset https_proxy
 
+  # Verify the sliced binary can be executed in the target root
+  chroot root /usr/bin/curl --version | MATCH "curl [0-9]"
+
   revoke_token "$session_id" "$token"
   get_session_report "$session_id" > session_report.json
   python3 -mjson.tool session_report.json
@@ -38,6 +44,8 @@ execute: |
   jq -r '(.artifacts[].metadata | select(.type=="application/x.canonical.chisel-release")).name' session_report.json | MATCH "chisel-release"
   # The artifact for curl itself
   jq -r '(.artifacts[].metadata | select(.name=="curl")).type' session_report.json | MATCH "application/vnd.debian.binary-package"
+  # Verify packages and indices were fetched from updates or security pockets
+  jq -r '(.artifacts[].metadata | select(.type=="application/x.apt.packages"))."apt-suite"' session_report.json | MATCH "noble-(updates|security)"
   # No rejected artifacts
   jq -r '.artifacts[].result' session_report.json | NOMATCH "Rejected"
 
