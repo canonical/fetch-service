@@ -145,7 +145,7 @@ func (t *proxySuite) TestProxyDownload(c *C) {
 
 	dl := u.A.CurrentDownload
 	c.Assert(dl.StatusCode, Equals, 200)
-	c.Assert(dl.URL, Equals, "https://launchpadlibrarian.net:443/592566337/hello_2.10-2ubuntu4_amd64.deb")
+	c.Assert(dl.URL, Equals, "https://launchpadlibrarian.net/592566337/hello_2.10-2ubuntu4_amd64.deb")
 	c.Assert(dl.Method, Equals, "GET")
 	c.Assert(dl.ContentType, Equals, "application/x-debian-package")
 	c.Assert(dl.UserAgent, Equals, "Go-http-client/1.1")
