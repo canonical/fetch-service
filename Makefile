@@ -9,7 +9,10 @@ help:  ## Show this help
 setup-lint: install-golangci-lint install-shellcheck  ## Install lint tools (golangci-lint, shellcheck)
 
 .PHONY: lint
-lint: lint-golangci-lint lint-shellcheck  ## Run all linters
+lint: lint-code  ## Run all linters
+
+.PHONY: lint-code
+lint-code: lint-golangci-lint lint-shellcheck  ## Run code-specific linters
 
 .PHONY:	lint-golangci-lint
 lint-golangci-lint: install-golangci-lint  ## Run golangci-lint
