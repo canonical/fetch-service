@@ -8,7 +8,7 @@ on:
 
 jobs:
   linters:
-    runs-on: [self-hosted, Linux]  # Pretty much any self-hosted Linux runner, base independent
+    runs-on: ubuntu-latest
     steps:
       - name: Set up Go
         uses: actions/setup-go@v7
@@ -32,7 +32,7 @@ jobs:
           make lint-shellcheck
 
   unit-tests:
-    runs-on: [noble, amd64]
+    runs-on: ubuntu-latest
     steps:
       - name: Install dependencies
         run: |
@@ -57,7 +57,7 @@ jobs:
           go test -race ./...
 
   snap-build:
-    runs-on: [noble, amd64]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -76,8 +76,8 @@ jobs:
     strategy:
       matrix:
         os:
-          - [jammy, amd64]
-          - [noble, amd64]
+          - ubuntu-22.04
+          - ubuntu-24.04
     # needs:  # Re-enable this once we can test a prebuilt snap
     #   - snap-build
     runs-on: ${{ matrix.os }}
