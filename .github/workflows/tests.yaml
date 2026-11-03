@@ -85,11 +85,11 @@ jobs:
       # Ensure GITHUB_TOKEN has enough permissions to clone the repo in spread tests.
       contents: read
     steps:
+      - name: Set up LXD
+        uses: canonical/setup-lxd@v1
       - name: Install dependencies
         run: |
           sudo snap install snapcraft --classic --channel=latest/edge
-          sudo snap install lxd  # remove once we can test a pre-built snap
-          lxd init --auto
       - name: Checkout code
         uses: actions/checkout@v7
         with:
