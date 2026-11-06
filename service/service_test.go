@@ -117,6 +117,14 @@ func (t *serviceSuite) TestFetchctlServerCrash(c *C) {
 	})
 	defer restorer()
 
+	var ctl *control.Server
+	restorer = service.MockNewControlServer(func(port int, ch chan interface{}, creds string) *control.Server {
+		ctl = control.NewServer(port, ch, creds)
+		return ctl
+	})
+	defer restorer()
+	defer func() { ctl.Stop() }() // nolint:errcheck
+
 	svc, err := service.New(serviceOptionsFixture(c))
 	c.Assert(err, IsNil)
 
@@ -221,6 +229,67 @@ func (t *serviceSuite) TestServiceEntombment(c *C) {
 	c.Assert(err, IsNil)
 
 	c.Assert(svc.Alive(), Equals, false)
+}
+
+// TestStopWithoutStart verifies that calling Stop on a service that was never
+// started does not hang. This exercises the svc.started guard that prevents
+// tomb.Wait() from blocking when no dispatcher goroutine was registered.
+func (t *serviceSuite) TestStopWithoutStart(c *C) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
+		return &proxy.HTTPProxy{}, nil
+	})
+	defer restorer()
+
+	svc, err := service.New(serviceOptionsFixture(c))
+	c.Assert(err, IsNil)
+
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.Stop()
+	}()
+
+	select {
+	case err := <-done:
+		c.Assert(err, IsNil)
+	case <-time.After(5 * time.Second):
+		c.Fatal("Stop() hung on service that was never started")
+	}
+}
+
+// TestStopAfterPartialStart verifies that Stop completes without hanging when
+// Start() fails after child servers have started but before the dispatcher
+// goroutine is registered. This exercises the svc.started guard in Stop().
+func (t *serviceSuite) TestStopAfterPartialStart(c *C) {
+	restorer := service.MockNewHTTPProxy(func(port int, spool string, cert, key []byte, ch chan interface{}) (*proxy.HTTPProxy, error) {
+		return &proxy.HTTPProxy{}, nil
+	})
+	defer restorer()
+
+	// Make fetchctl.Start() fail after the proxy was already constructed and
+	// started. This puts the service in a partial-start state where the
+	// proxy is running but the dispatcher goroutine was never registered.
+	restorer = service.MockFetchctlServerStart(func(s *fetchctl.Server) error {
+		return errors.New("simulated fetchctl start error")
+	})
+	defer restorer()
+
+	svc, err := service.New(serviceOptionsFixture(c))
+	c.Assert(err, IsNil)
+
+	err = svc.Start()
+	c.Assert(err, ErrorMatches, "simulated fetchctl start error")
+
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.Stop()
+	}()
+
+	select {
+	case err := <-done:
+		c.Assert(err, IsNil)
+	case <-time.After(5 * time.Second):
+		c.Fatal("Stop() hung after partial Start() failure")
+	}
 }
 
 func (t *serviceSuite) TestServiceIdleShutdown(c *C) {

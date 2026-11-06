@@ -195,7 +195,14 @@ loop:
 	}
 
 	if err := svc.Stop(); err != nil {
-		logger.Fatalf("error: %s", err)
+		if status != 0 {
+			// The primary failure reason (service/profiler/signal) was already
+			// captured in status/reason. Don't override it with shutdown noise.
+			logger.Errorf("error while stopping service: %s", err)
+		} else {
+			logger.Errorf("error: %s", err)
+			status = 1
+		}
 	}
 
 	seclog.SysShutdown(&seclog.EventData{Reason: reason})
