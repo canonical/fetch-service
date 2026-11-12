@@ -23,6 +23,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/elazarl/goproxy v1.9.0 h1:2j3c13lD5v0QTjxphJSSIHS7w8/m/pzSHtLMPOpznC0=
 github.com/elazarl/goproxy v1.9.0/go.mod h1:THdE5ix2clxX9lZzcICPpZ67d6CdrPZxdOYsNgU5e30=
+github.com/elazarl/goproxy v1.9.4 h1:ZZiS1yMKnIUDnQ3zEQLyfXTDt7jPZnXYm9XgQo/GCI4=
+github.com/elazarl/goproxy v1.9.4/go.mod h1:THdE5ix2clxX9lZzcICPpZ67d6CdrPZxdOYsNgU5e30=
 github.com/gabriel-vasile/mimetype v1.4.15 h1:05iP/CYtZ/w455R/KZM6rZ5ieAdh99UPtd+d3YzLmaI=
 github.com/gabriel-vasile/mimetype v1.4.15/go.mod h1:azpTcoLcDZRNgFou5j+APrqQx9HqVPWa6ijYQIIVswQ=
 github.com/gabriel-vasile/mimetype v1.4.16 h1:5izNFuvA37st1dDRAcA7TtmngBmRgiIPDmTtiEvjx1E=
