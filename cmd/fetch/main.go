@@ -72,6 +72,8 @@ type CmdlineOptions struct {
 	// Enable permissive mode
 	PermissiveMode bool `long:"permissive-mode" description:"Allow sessions to accept rejected artifacts"`
 
+	PassthroughMode bool `long:"passthrough-mode" description:"Allow sessions to forward requests without inspection"`
+
 	// Show version
 	Version bool `long:"version" description:"Display the program version and exit"`
 
@@ -236,14 +238,15 @@ func getServiceOptions(opts CmdlineOptions) *service.Options {
 
 	// Start the fetch service
 	return &service.Options{
-		ControlPort:    opts.ControlPort,
-		ProxyPort:      opts.ProxyPort,
-		Config:         configDir,
-		Spool:          spoolDir,
-		PermissiveMode: opts.PermissiveMode,
-		CertPath:       opts.CertPath,
-		KeyPath:        opts.KeyPath,
-		IdleShutdown:   opts.IdleShutdown,
+		ControlPort:     opts.ControlPort,
+		ProxyPort:       opts.ProxyPort,
+		Config:          configDir,
+		Spool:           spoolDir,
+		PermissiveMode:  opts.PermissiveMode,
+		PassthroughMode: opts.PassthroughMode,
+		CertPath:        opts.CertPath,
+		KeyPath:         opts.KeyPath,
+		IdleShutdown:    opts.IdleShutdown,
 	}
 
 }

@@ -680,35 +680,44 @@ func (t *serviceSuite) TestCreateSession(c *C) {
 	c.Assert(err, IsNil)
 
 	for _, tc := range []struct {
-		permissiveMode bool
-		policy         string
-		sec            []secrets.Secret
-		errMsg         string
+		permissiveMode  bool
+		passthroughMode bool
+		policy          string
+		passthrough     bool
+		sec             []secrets.Secret
+		errMsg          string
 	}{
-		{true, "permissive", nil, ""},
-		{false, "permissive", nil, "Invalid session policy"},
-		{false, "strict", nil, ""},
+		{true, false, "permissive", false, nil, ""},
+		{false, false, "permissive", false, nil, "Invalid session policy"},
+		{false, false, "strict", false, nil, ""},
+		{false, true, "strict", true, nil, ""},
+		{false, false, "strict", true, nil, "Passthrough mode is not allowed"},
+		{true, true, "permissive", true, nil, ""},
+		{false, true, "permissive", true, nil, "Invalid session policy"},
+		{true, false, "permissive", true, nil, "Passthrough mode is not allowed"},
+		{true, true, "passthrough", false, nil, "Invalid session policy"},
 		// Cases for secrets
 		// Good secret declaration
-		{true, "permissive", []secrets.Secret{{Type: secrets.BasicAuthType, URL: glob.MustCompile("www.example.com"), BasicCreds: "user:passwd"}}, ""},
+		{true, false, "permissive", false, []secrets.Secret{{Type: secrets.BasicAuthType, URL: glob.MustCompile("www.example.com"), BasicCreds: "user:passwd"}}, ""},
 		// Missing type
-		{true, "permissive", []secrets.Secret{{}}, secrets.ErrMissingSecretType.Error()},
+		{true, false, "permissive", false, []secrets.Secret{{}}, secrets.ErrMissingSecretType.Error()},
 		// Missing url
-		{true, "permissive", []secrets.Secret{{Type: secrets.BasicAuthType}}, secrets.ErrMissingSecretURL.Error()},
+		{true, false, "permissive", false, []secrets.Secret{{Type: secrets.BasicAuthType}}, secrets.ErrMissingSecretURL.Error()},
 		// Invalid type
-		{true, "permissive", []secrets.Secret{{Type: "invalid-type"}}, secrets.ErrInvalidSecretType.Error()},
+		{true, false, "permissive", false, []secrets.Secret{{Type: "invalid-type"}}, secrets.ErrInvalidSecretType.Error()},
 		// Missing basic creds
-		{true, "permissive", []secrets.Secret{{Type: secrets.BasicAuthType, URL: glob.MustCompile("www.example.com")}}, secrets.ErrMissingBasicCreds.Error()},
+		{true, false, "permissive", false, []secrets.Secret{{Type: secrets.BasicAuthType, URL: glob.MustCompile("www.example.com")}}, secrets.ErrMissingBasicCreds.Error()},
 		// Missing macaroon
-		{true, "permissive", []secrets.Secret{{Type: secrets.MacaroonType, URL: glob.MustCompile("www.example.com")}}, secrets.ErrMissingMacaroonCreds.Error()},
+		{true, false, "permissive", false, []secrets.Secret{{Type: secrets.MacaroonType, URL: glob.MustCompile("www.example.com")}}, secrets.ErrMissingMacaroonCreds.Error()},
 	} {
 		opt := service.Options{
-			ProxyPort:      1337,
-			Spool:          dir,
-			PermissiveMode: tc.permissiveMode,
-			CertPath:       certPath,
-			KeyPath:        keyPath,
-			Config:         confDir,
+			ProxyPort:       1337,
+			Spool:           dir,
+			PermissiveMode:  tc.permissiveMode,
+			PassthroughMode: tc.passthroughMode,
+			CertPath:        certPath,
+			KeyPath:         keyPath,
+			Config:          confDir,
 		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
@@ -717,6 +726,7 @@ func (t *serviceSuite) TestCreateSession(c *C) {
 		c.Assert(err, IsNil)
 
 		msg := messages.NewCreateSession(tc.policy, 666, tc.sec, config.OverrideInspectorsConfig{})
+		msg.Passthrough = tc.passthrough
 		t.ch <- msg
 		res := <-msg.Rch
 
@@ -724,6 +734,9 @@ func (t *serviceSuite) TestCreateSession(c *C) {
 			c.Assert(res.Err, Equals, nil)
 			s := session.GetSession(res.ID)
 			c.Assert(s.Permissive, Equals, tc.policy == "permissive")
+			c.Assert(s.Passthrough, Equals, tc.passthrough)
+			c.Assert(s.Metadata().Policy, Equals, tc.policy)
+			c.Assert(s.Metadata().Passthrough, Equals, tc.passthrough)
 			s.Discard()
 		} else {
 			c.Assert(res.Err, ErrorMatches, tc.errMsg)
@@ -1167,38 +1180,43 @@ func (t *serviceSuite) TestFetchctlCreateSession(c *C) {
 	c.Assert(err, IsNil)
 
 	for _, tc := range []struct {
-		globalPerm bool
-		payload    string
-		sid        string
-		token      string
-		timeout    time.Duration
-		permissive bool
+		allowPermissive  bool
+		allowPassthrough bool
+		mode             string
+		passthrough      bool
+		timeout          int
+		wantMode         string // empty if passthrough must be rejected
 	}{
-		{true, `{"session-id":"x", "token":"y", "timeout":0, "mode":"strict", "inspectors-configuration":""}`, "x", "y", time.Duration(0), false},
-		{false, `{"session-id":"x", "token":"y", "timeout":60, "mode":"strict", "inspectors-configuration":""}`, "x", "y", time.Duration(1 * time.Minute), false},
-		{true, `{"session-id":"x", "token":"y", "timeout":0, "mode":"permissive", "inspectors-configuration":""}`, "x", "y", time.Duration(0), true},
-		{false, `{"session-id":"x", "token":"y", "timeout":0, "mode":"permissive", "inspectors-configuration":""}`, "x", "y", time.Duration(0), false},
+		{true, false, "strict", false, 0, "strict"},
+		{false, false, "strict", false, 60, "strict"},
+		{true, false, "permissive", false, 0, "permissive"},
+		{false, false, "permissive", false, 0, "strict"},
+		{false, true, "strict", true, 0, "strict, passthrough"},
+		{true, true, "permissive", true, 0, "permissive, passthrough"},
+		{false, true, "permissive", true, 0, "strict, passthrough"},
+		{true, false, "permissive", true, 0, ""},
 	} {
 		var ss *session.Session
-		restorer = service.MockSessionNewWithID(func(sessionID, token, spool string, timeout time.Duration, permissive bool, sec []secrets.Secret, inspectorsConfig config.OverrideInspectorsConfig) *session.Session {
-			c.Check(sessionID, Equals, tc.sid)
-			c.Check(token, Equals, tc.token)
-			c.Check(timeout, Equals, tc.timeout)
-			c.Check(permissive, Equals, tc.permissive)
+		restorer = service.MockSessionNewWithID(func(sessionID, token, spool string, timeout time.Duration, permissive, passthrough bool, sec []secrets.Secret, inspectorsConfig config.OverrideInspectorsConfig) *session.Session {
+			c.Check(sessionID, Equals, "x")
+			c.Check(token, Equals, "y")
+			c.Check(timeout, Equals, time.Duration(tc.timeout)*time.Second)
+			c.Check(passthrough, Equals, tc.passthrough)
 
-			ss = session.NewWithID(sessionID, token, spool, timeout, permissive, sec, inspectorsConfig)
+			ss = session.NewWithIDAndPassthrough(sessionID, token, spool, timeout, permissive, passthrough, sec, inspectorsConfig)
 			return ss
 		})
 		defer restorer()
 
 		spool := filepath.Join(dir, "spool")
 		opt := service.Options{
-			ProxyPort:      1337,
-			Spool:          spool,
-			CertPath:       certPath,
-			KeyPath:        keyPath,
-			PermissiveMode: tc.globalPerm,
-			Config:         confDir,
+			ProxyPort:       1337,
+			Spool:           spool,
+			CertPath:        certPath,
+			KeyPath:         keyPath,
+			PermissiveMode:  tc.allowPermissive,
+			PassthroughMode: tc.allowPassthrough,
+			Config:          confDir,
 		}
 		svc, err := service.New(&opt)
 		c.Assert(err, IsNil)
@@ -1206,20 +1224,19 @@ func (t *serviceSuite) TestFetchctlCreateSession(c *C) {
 		err = svc.Start()
 		c.Assert(err, IsNil)
 
-		msg := messages.NewFetchCtl("create-session", "", false, []byte(tc.payload))
+		payload := fmt.Sprintf(`{"session-id":"x","token":"y","timeout":%d,"mode":%q,"passthrough":%t}`, tc.timeout, tc.mode, tc.passthrough)
+		msg := messages.NewFetchCtl("create-session", "", false, []byte(payload))
 		t.ch <- msg
 		res := <-msg.Rch
-		defer ss.Finish() // nolint:errcheck
-
-		var policy string
-		if tc.permissive {
-			policy = "permissive"
+		if tc.wantMode == "" {
+			c.Check(ss, IsNil)
+			c.Check(res.Status, Equals, "error")
+			c.Check(res.Message, Equals, "Passthrough mode is not allowed")
 		} else {
-			policy = "strict"
+			c.Assert(res.Status, Equals, "ok")
+			c.Check(res.Message, Equals, fmt.Sprintf("session x:y created (%s)", tc.wantMode))
+			ss.Discard()
 		}
-
-		c.Assert(res.Status, Equals, "ok")
-		c.Assert(res.Message, Equals, fmt.Sprintf("session x:y created (%s)", policy))
 
 		err = svc.Stop()
 		c.Assert(err, IsNil)

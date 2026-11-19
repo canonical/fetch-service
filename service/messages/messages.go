@@ -115,6 +115,7 @@ type CreateSession struct {
 	Rch              chan SessionCredentials         // Handler response channel
 	Timeout          uint64                          // Session timeout in seconds
 	Policy           string                          // Session policy (strict or permissive)
+	Passthrough      bool                            // Enable passthrough mode (forward requests without inspection)
 	Secrets          []secrets.Secret                // Secrets for the session
 	InspectorsConfig config.OverrideInspectorsConfig // Session inspectors configuration
 	ClientIP         string                          // The client requesting the session creation
@@ -233,5 +234,6 @@ type CreateSessionPayload struct {
 	Token            string `json:"token"`
 	Timeout          int    `json:"timeout"`
 	Mode             string `json:"mode"`
+	Passthrough      bool   `json:"passthrough,omitempty"`
 	InspectorsConfig []byte `json:"inspectors-configuration"`
 }

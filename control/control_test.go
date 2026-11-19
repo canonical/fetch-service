@@ -91,14 +91,18 @@ func (t *controlSuite) TestServerListening(c *C) {
 
 func (t *controlSuite) TestCreateSession(c *C) {
 	for _, tc := range []struct {
-		params  string // request body parameters
-		errmsg  string // session creation error
-		resCode int    // expected result code
+		params      string // request body parameters
+		policy      string // expected policy in CreateSession message
+		passthrough bool   // expected passthrough in CreateSession message
+		errmsg      string // session creation error
+		resCode     int    // expected result code
 	}{
-		{`{"policy": "permissive"}`, "", 200},
-		{`{"policy": "permissive", "secrets": [{"type":"basic-auth", "url": "http://example.com"}]}`, "", 200},
-		{`{"policy": "permissive"}`, "oops", 400}, // session creation error
-		{"not json", "", 400}, // bad parameters
+		{`{"policy": "permissive"}`, "permissive", false, "", 200},
+		{`{"policy": "strict", "passthrough": true}`, "strict", true, "", 200},
+		{`{"policy": "permissive", "passthrough": true}`, "permissive", true, "", 200},
+		{`{"policy": "permissive", "secrets": [{"type":"basic-auth", "url": "http://example.com"}]}`, "permissive", false, "", 200},
+		{`{"policy": "permissive"}`, "permissive", false, "oops", 400}, // session creation error
+		{"not json", "", false, "", 400},                               // bad parameters
 	} {
 		ch := make(chan any, 1)
 		server := control.NewServer(3333, ch, "foo:bar")
@@ -109,11 +113,14 @@ func (t *controlSuite) TestCreateSession(c *C) {
 
 		go func() {
 			msg := <-ch
+			cs := msg.(messages.CreateSession)
+			c.Check(cs.Policy, Equals, tc.policy)
+			c.Check(cs.Passthrough, Equals, tc.passthrough)
 			cred := messages.SessionCredentials{ID: "A", Token: "B"}
 			if tc.errmsg != "" {
 				cred.Err = errors.New(tc.errmsg)
 			}
-			msg.(messages.CreateSession).Rch <- cred
+			cs.Rch <- cred
 		}()
 
 		w := httptest.NewRecorder()

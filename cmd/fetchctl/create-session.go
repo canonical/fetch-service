@@ -38,11 +38,12 @@ func init() {
 }
 
 type CreateSessionCmd struct {
-	SessionID  string `long:"session-id" description:"Session ID of the newly created session"`
-	Token      string `long:"token" description:"Session token of the newly created session"`
-	Timeout    int    `long:"timeout" description:"Session timeout in seconds"`
-	Permissive bool   `long:"permissive" description:"Create a permissive session"`
-	Args       struct {
+	SessionID   string `long:"session-id" description:"Session ID of the newly created session"`
+	Token       string `long:"token" description:"Session token of the newly created session"`
+	Timeout     int    `long:"timeout" description:"Session timeout in seconds"`
+	Permissive  bool   `long:"permissive" description:"Create a permissive session"`
+	Passthrough bool   `long:"passthrough" description:"Enable passthrough mode (forward requests without inspection)"`
+	Args        struct {
 		Filename string `positional-arg-name:"filename"`
 	} `positional-args:"yes"`
 }
@@ -82,6 +83,7 @@ func (cmd *CreateSessionCmd) Execute(args []string) error {
 		Token:            cmd.Token,
 		Timeout:          cmd.Timeout,
 		Mode:             mode,
+		Passthrough:      cmd.Passthrough,
 		InspectorsConfig: content,
 	}
 

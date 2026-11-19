@@ -385,22 +385,30 @@ func (t *sessionSuite) TestGetSession(c *C) {
 
 func (t *sessionSuite) TestSessionMetadata(c *C) {
 	for _, tc := range []struct {
-		permissive bool
-		policy     string
+		permissive  bool
+		passthrough bool
+		policy      string
 	}{
-		{true, "permissive"},
-		{false, "strict"},
+		{true, false, "permissive"},
+		{false, false, "strict"},
+		{true, true, "permissive"},
+		{false, true, "strict"},
 	} {
-		s := session.New("", 0, tc.permissive, nil, config.OverrideInspectorsConfig{})
+		s := session.NewWithPassthrough("", 0, tc.permissive, tc.passthrough, nil, config.OverrideInspectorsConfig{})
 		defer s.Discard()
 
 		m := s.Metadata()
 		c.Check(m.Generator, Equals, fmt.Sprintf("fetch-service %s", version.Version))
 		c.Check(m.Comment, Equals, "Metadata format is unstable and may change without prior notice.")
 		c.Check(m.Policy, Equals, tc.policy)
+		c.Check(m.Passthrough, Equals, tc.passthrough)
 		c.Check(m.SessionID, Equals, s.ID)
 		c.Check(m.StartTime, Not(DeepEquals), time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC))
-		c.Check(slices.Contains(m.Inspectors, "default"), Equals, true)
+		if tc.passthrough {
+			c.Check(m.Inspectors, HasLen, 0)
+		} else {
+			c.Check(slices.Contains(m.Inspectors, "default"), Equals, true)
+		}
 		c.Check(m.SpoolPath, Not(Equals), "")
 	}
 }
@@ -578,13 +586,20 @@ func (t *sessionSuite) TestNumSessions(c *C) {
 
 func (t *sessionSuite) TestSessionInfos(c *C) {
 	spool := c.MkDir()
-	s1 := session.New(spool, 0, true, nil, config.OverrideInspectorsConfig{})
+	s1 := session.NewWithPassthrough(spool, 0, true, true, nil, config.OverrideInspectorsConfig{})
 	defer s1.Discard()
 
 	s2 := session.New(spool, 0, false, nil, config.OverrideInspectorsConfig{})
 	defer s2.Discard()
 
 	all := session.SessionInfos()
-	c.Assert((all[0].SessionID == s1.ID && all[1].SessionID == s2.ID) ||
-		(all[0].SessionID == s2.ID && all[1].SessionID == s1.ID), Equals, true)
+	c.Assert(all, HasLen, 2)
+	byID := map[string]metadata.SessionInfo{}
+	for _, info := range all {
+		byID[info.SessionID] = info
+	}
+	c.Check(byID[s1.ID].Policy, Equals, "permissive")
+	c.Check(byID[s1.ID].Passthrough, Equals, true)
+	c.Check(byID[s2.ID].Policy, Equals, "strict")
+	c.Check(byID[s2.ID].Passthrough, Equals, false)
 }

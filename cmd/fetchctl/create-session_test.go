@@ -32,21 +32,24 @@ import (
 
 func (t *fetchctlSuite) TestCreateSession(c *C) {
 	for _, tc := range []struct {
-		sid        string
-		token      string
-		timeout    int
-		permissive bool
-		payload    string
-		result     string
-		errmsg     string
+		sid         string
+		token       string
+		timeout     int
+		permissive  bool
+		passthrough bool
+		payload     string
+		result      string
+		errmsg      string
 	}{
-		{"", "", 0, false, `{"session-id":"","token":"","timeout":0,"mode":"strict","inspectors-configuration":null}`, "ok", ""},
-		{"session-id", "", 0, false, `{"session-id":"session-id","token":"","timeout":0,"mode":"strict","inspectors-configuration":null}`, "ok", ""},
-		{"", "token", 0, false, `{"session-id":"","token":"token","timeout":0,"mode":"strict","inspectors-configuration":null}`, "ok", ""},
-		{"", "", 31415, false, `{"session-id":"","token":"","timeout":31415,"mode":"strict","inspectors-configuration":null}`, "ok", ""},
-		{"", "", 0, true, `{"session-id":"","token":"","timeout":0,"mode":"permissive","inspectors-configuration":null}`, "ok", ""},
-		{"session-id", "token", 31415, true, `{"session-id":"session-id","token":"token","timeout":31415,"mode":"permissive","inspectors-configuration":null}`, "ok", ""},
-		{"", "", 0, false, `{"session-id":"","token":"","timeout":0,"mode":"strict","inspectors-configuration":null}`, "error", "something wrong happened"},
+		{"", "", 0, false, false, `{"session-id":"","token":"","timeout":0,"mode":"strict","inspectors-configuration":null}`, "ok", ""},
+		{"session-id", "", 0, false, false, `{"session-id":"session-id","token":"","timeout":0,"mode":"strict","inspectors-configuration":null}`, "ok", ""},
+		{"", "token", 0, false, false, `{"session-id":"","token":"token","timeout":0,"mode":"strict","inspectors-configuration":null}`, "ok", ""},
+		{"", "", 31415, false, false, `{"session-id":"","token":"","timeout":31415,"mode":"strict","inspectors-configuration":null}`, "ok", ""},
+		{"", "", 0, true, false, `{"session-id":"","token":"","timeout":0,"mode":"permissive","inspectors-configuration":null}`, "ok", ""},
+		{"session-id", "token", 31415, true, false, `{"session-id":"session-id","token":"token","timeout":31415,"mode":"permissive","inspectors-configuration":null}`, "ok", ""},
+		{"", "", 0, false, true, `{"session-id":"","token":"","timeout":0,"mode":"strict","passthrough":true,"inspectors-configuration":null}`, "ok", ""},
+		{"", "", 0, true, true, `{"session-id":"","token":"","timeout":0,"mode":"permissive","passthrough":true,"inspectors-configuration":null}`, "ok", ""},
+		{"", "", 0, false, false, `{"session-id":"","token":"","timeout":0,"mode":"strict","inspectors-configuration":null}`, "error", "something wrong happened"},
 	} {
 		tmpdir := c.MkDir()
 		spath := filepath.Join(tmpdir, "test.socket")
@@ -75,10 +78,11 @@ func (t *fetchctlSuite) TestCreateSession(c *C) {
 		time.Sleep(500 * time.Millisecond)
 
 		cmd := fetchctl.CreateSessionCmd{
-			SessionID:  tc.sid,
-			Token:      tc.token,
-			Timeout:    tc.timeout,
-			Permissive: tc.permissive,
+			SessionID:   tc.sid,
+			Token:       tc.token,
+			Timeout:     tc.timeout,
+			Permissive:  tc.permissive,
+			Passthrough: tc.passthrough,
 		}
 
 		err := cmd.Execute([]string{"fetchctl", "create-session"}) // only argv[0] is relevant

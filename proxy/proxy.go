@@ -64,6 +64,8 @@ type proxyData struct {
 
 var errDestinationDenied = errors.New("destination denied by proxy ACL")
 
+type passthroughRequest struct{}
+
 // HTTPProxy implements a proxy that inspects downloaded contents.
 type HTTPProxy struct {
 	port    int                      // tcp port the proxy is listening on
@@ -187,7 +189,6 @@ func (p *HTTPProxy) processRoundTrip(req *http.Request, ctx *goproxy.ProxyCtx) (
 		host = req.URL.Host
 	}
 
-	logger.Infof("proxy: process roundtrip: %s", req.URL.String())
 	tr := transport.Transport{
 		Proxy:           proxyFromEnvironment,
 		TLSClientConfig: &tls.Config{ServerName: host},
@@ -197,6 +198,11 @@ func (p *HTTPProxy) processRoundTrip(req *http.Request, ctx *goproxy.ProxyCtx) (
 	}
 
 	ctx.RoundTripper = goproxy.RoundTripperFunc(func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Response, error) {
+		logURL := r.URL.String()
+		if _, ok := ctx.UserData.(passthroughRequest); ok {
+			logURL = auditURL(r.URL)
+		}
+		logger.Infof("proxy: process roundtrip: %s", logURL)
 		resp, err := tr.RoundTrip(r)
 		if errors.Is(err, errDestinationDenied) {
 			return httpResponse(r, http.StatusForbidden, []byte("Access denied")), nil
@@ -223,9 +229,6 @@ func dialAllowed(ctx context.Context, network, address string) (net.Conn, error)
 
 // processRequest handles HTTP requests to the server.
 func (p *HTTPProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
-	logger.Debugf("proxy: process request: %s", req.URL.String())
-	requestHeader := copyHTTPHeader(req.Header)
-
 	s, mitm := ctx.UserData.(*session.Session)
 	if !mitm {
 		s = session.FromContext(req.Context())
@@ -233,12 +236,26 @@ func (p *HTTPProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 	if s == nil || !s.IsActive() {
 		return req, forbiddenResponse(req, "Session is no longer active")
 	}
-	if mitm {
-		req = req.WithContext(s.WithContext(req.Context()))
-		req.Header.Set(sessionIDHeader, s.ID)
-	}
 	sid := s.ID
 
+	if s.Passthrough {
+		logURL := auditURL(req.URL)
+		logger.Infof("proxy: passthrough request session=%q client=%q method=%q url=%q",
+			sid, utils.ClientIP(req), req.Method, logURL)
+		if resp := injectSessionSecrets(req, s.Secrets, s.Logger, req.URL.String(), logURL); resp != nil {
+			return req, resp
+		}
+		req.Header.Del(sessionIDHeader)
+		ctx.UserData = passthroughRequest{}
+		return req, nil
+	}
+
+	logger.Debugf("proxy: process request: %s", req.URL.String())
+	requestHeader := copyHTTPHeader(req.Header)
+	if mitm {
+		req = req.WithContext(s.WithContext(req.Context()))
+		req.Header.Set(sessionIDHeader, sid)
+	}
 	a := metadata.NewArtifact()
 	a.Request = req
 	a.SessionID = sid
@@ -265,17 +282,8 @@ func (p *HTTPProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 		)
 	}
 
-	sl := a.Logger()
-	injected, err := secrets.InjectSecrets(s.Secrets, url, req, sl)
-	if err != nil {
-		sl.Infof("cannot apply secrets to %s: %s", url, err)
-		if errors.Is(err, secrets.ErrKeystoneV3BodyTooLarge) {
-			return req, requestEntityTooLargeResponse(req, "Request body too large")
-		}
-		return req, internalErrorResponse(req, "Cannot handle requests")
-	}
-	if injected {
-		sl.Debugf("applied secrets to %s", url)
+	if resp := injectSessionSecrets(req, s.Secrets, a.Logger(), url, url); resp != nil {
+		return req, resp
 	}
 
 	req.Body, err = NewRequestHandler(req, a, p.ch)
@@ -288,14 +296,51 @@ func (p *HTTPProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 	return req, nil
 }
 
+func auditURL(u *url.URL) string {
+	safe := *u
+	safe.User = nil
+	safe.RawQuery = ""
+	safe.ForceQuery = false
+	safe.Fragment = ""
+	safe.RawFragment = ""
+	return safe.String()
+}
+
+func injectSessionSecrets(req *http.Request, sec []secrets.Secret, sl logger.Logger, matchURL, logURL string) *http.Response {
+	injected, err := secrets.InjectSecrets(sec, matchURL, req, sl)
+	if err != nil {
+		sl.Infof("cannot apply secrets to %s: %s", logURL, err)
+		if errors.Is(err, secrets.ErrKeystoneV3BodyTooLarge) {
+			return requestEntityTooLargeResponse(req, "Request body too large")
+		}
+		return internalErrorResponse(req, "Cannot handle requests")
+	}
+	if injected {
+		sl.Debugf("applied secrets to %s", logURL)
+	}
+	return nil
+}
+
 // processResponse handles HTTP responses from the server.
 func (p *HTTPProxy) processResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
-	if resp == nil || resp.StatusCode != http.StatusOK {
+	if resp == nil {
 		return resp
 	}
-	logger.Debugf("proxy: process response: %s", resp.Request.URL.String())
+	if _, passthrough := ctx.UserData.(passthroughRequest); passthrough {
+		// Go parses this header into TransferEncoding. goproxy's HTTP writer
+		// needs the header to flush each write rather than buffer small chunks.
+		if resp.ContentLength < 0 && slices.Contains(resp.TransferEncoding, "chunked") {
+			resp.Header.Set("Transfer-Encoding", "chunked")
+		}
+		return resp
+	}
+	data, ok := ctx.UserData.(proxyData)
+	if !ok || resp.StatusCode != http.StatusOK {
+		return resp
+	}
 
-	a := ctx.UserData.(proxyData).a
+	logger.Debugf("proxy: process response: %s", resp.Request.URL.String())
+	a := data.a
 	sl := a.Logger()
 
 	var err error

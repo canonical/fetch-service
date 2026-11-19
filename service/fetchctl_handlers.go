@@ -122,6 +122,9 @@ func fetchCtlCreateSession(v messages.FetchCtl, svc *Service) messages.FetchCtlR
 	}
 
 	permissive := svc.opt.PermissiveMode && params.Mode == "permissive"
+	if params.Passthrough && !svc.opt.PassthroughMode {
+		return messages.FetchCtlResult{Status: "error", Message: session.ErrPassthroughNotAllowed.Error()}
+	}
 	timeout := time.Duration(params.Timeout) * time.Second
 
 	cfg := config.OverrideInspectorsConfig{}
@@ -132,7 +135,7 @@ func fetchCtlCreateSession(v messages.FetchCtl, svc *Service) messages.FetchCtlR
 		}
 	}
 
-	s := sessionNewWithID(params.SessionID, params.Token, svc.opt.Spool, timeout, permissive, nil, cfg)
+	s := sessionNewWithID(params.SessionID, params.Token, svc.opt.Spool, timeout, permissive, params.Passthrough, nil, cfg)
 
 	logger.Infof("service: session %s created", s.ID)
 	svc.totalSessions++
@@ -142,9 +145,14 @@ func fetchCtlCreateSession(v messages.FetchCtl, svc *Service) messages.FetchCtlR
 		Identity: "fetchctl",
 	})
 
+	modeDesc := s.Metadata().Policy
+	if s.Passthrough {
+		modeDesc += ", passthrough"
+	}
+
 	return messages.FetchCtlResult{
 		Status:  "ok",
-		Message: fmt.Sprintf("session %s:%s created (%s)", s.ID, s.Token, s.Metadata().Policy),
+		Message: fmt.Sprintf("session %s:%s created (%s)", s.ID, s.Token, modeDesc),
 	}
 }
 

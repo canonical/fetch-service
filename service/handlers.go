@@ -53,7 +53,7 @@ func handleMessages(svc *Service, msg interface{}) {
 		handleCompleteInspection(v)
 
 	case messages.CreateSession:
-		handleCreateSession(v, svc.opt.Spool, svc.opt.PermissiveMode, svc)
+		handleCreateSession(v, svc)
 
 	case messages.RevokeToken:
 		handleRevokeToken(v, svc.opt.Spool)
@@ -186,17 +186,24 @@ func handleCompleteInspection(v messages.CompleteInspection) {
 	v.Rch <- nil
 }
 
-func handleCreateSession(v messages.CreateSession, spoolDir string, permissiveMode bool, svc *Service) {
+func handleCreateSession(v messages.CreateSession, svc *Service) {
 	permissive := false
-	if v.Policy == "permissive" {
-		if permissiveMode {
-			permissive = true
-		} else {
-			v.Rch <- messages.SessionCredentials{
-				Err: session.ErrInvalidSessionPolicy,
-			}
+	switch v.Policy {
+	case "permissive":
+		if !svc.opt.PermissiveMode {
+			v.Rch <- messages.SessionCredentials{Err: session.ErrInvalidSessionPolicy}
 			return
 		}
+		permissive = true
+	case "", "strict":
+	default:
+		v.Rch <- messages.SessionCredentials{Err: session.ErrInvalidSessionPolicy}
+		return
+	}
+
+	if v.Passthrough && !svc.opt.PassthroughMode {
+		v.Rch <- messages.SessionCredentials{Err: session.ErrPassthroughNotAllowed}
+		return
 	}
 
 	timeout := time.Duration(v.Timeout * uint64(time.Second))
@@ -207,7 +214,7 @@ func handleCreateSession(v messages.CreateSession, spoolDir string, permissiveMo
 		}
 		return
 	}
-	s := session.New(spoolDir, timeout, permissive, sec, v.InspectorsConfig)
+	s := session.NewWithPassthrough(svc.opt.Spool, timeout, permissive, v.Passthrough, sec, v.InspectorsConfig)
 	svc.totalSessions++
 	v.Rch <- messages.SessionCredentials{ID: s.ID, Token: s.Token}
 }
