@@ -118,6 +118,7 @@ func New(permissive bool, cfg config.InspectorsConfig) Inspectors {
 		craft.NewSnapcraftInspector(cfg.Crafts),
 		craft.NewSourcecraftInspector(cfg.Crafts),
 		craft.NewBincraftInspector(cfg.Crafts),
+		craft.NewSdkcraftInspector(cfg.Crafts),
 
 		// rust
 		cargo.NewIndexInspector(),
