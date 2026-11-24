@@ -30,6 +30,7 @@ Reference
    pip_simple_index
    rockcraft
    sdist
+   sdkcraft
    snap
    snap_assertion
    snap_auth
