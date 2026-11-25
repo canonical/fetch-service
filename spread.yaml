@@ -1,5 +1,8 @@
 project: fetch-service
 
+environment:
+  LXD_CHANNEL: $(HOST:printf %s "${LXD_CHANNEL:-6/stable}")
+
 backends:
   craft:
     type: craft
