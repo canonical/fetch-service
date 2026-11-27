@@ -80,10 +80,21 @@ func handleMessages(svc *Service, msg interface{}) {
 	}
 }
 
+func inspectionSession(a *metadata.Artifact) *session.Session {
+	s := session.GetSession(a.SessionID)
+	if a.Request == nil {
+		return s
+	}
+	if authenticated := session.FromContext(a.Request.Context()); authenticated != nil && authenticated != s {
+		return nil
+	}
+	return s
+}
+
 func handleRequestInspection(v messages.RequestInspection) {
 	sessionID := v.A.SessionID
 
-	s := session.GetSession(sessionID)
+	s := inspectionSession(v.A)
 	if s == nil {
 		v.Rch <- fmt.Errorf("cannot inspect request: session %s is not active", sessionID)
 		return
@@ -100,7 +111,7 @@ func handleResponseInspection(v messages.ResponseInspection, ch chan interface{}
 	digest := v.A.Metadata.Sha256
 	sl := v.A.Logger()
 
-	s := session.GetSession(sessionID)
+	s := inspectionSession(v.A)
 	if s == nil {
 		v.Rch <- fmt.Errorf("cannot inspect response: session %s is not active", sessionID)
 		sl.Debugf("remove stale temporary file: %s", v.A.Tempfile)
@@ -160,7 +171,7 @@ func handleResponseInspection(v messages.ResponseInspection, ch chan interface{}
 
 func handleCompleteInspection(v messages.CompleteInspection) {
 	digest := v.A.Metadata.Sha256
-	s := session.GetSession(v.A.SessionID)
+	s := inspectionSession(v.A)
 	if s == nil {
 		v.Rch <- fmt.Errorf("cannot complete inspection: session %s is not active", v.A.SessionID)
 		return
