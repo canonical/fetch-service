@@ -20,6 +20,7 @@
 package session
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -28,6 +29,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/canonical/fetch-service/secrets"
@@ -72,7 +74,7 @@ type Session struct {
 	Secrets       []secrets.Secret // Per-session secrets
 
 	timer   *sessionTimer // timeout to auto-finish an idle session
-	revoked bool          // session token has been revoked
+	revoked atomic.Bool   // session token has been revoked
 }
 
 var (
@@ -189,14 +191,32 @@ func (s *Session) Revoke(token string) bool {
 		return false
 	}
 	s.Logger.Debug("token revoked")
-	s.revoked = true
 	s.End = time.Now().UTC()
+	s.revoked.Store(true)
 	return true
 }
 
 // IsRevoked returns whether the session token has been revoked.
 func (s *Session) IsRevoked() bool {
-	return s.revoked
+	return s.revoked.Load()
+}
+
+// IsActive reports whether this exact session is still registered and authorized.
+func (s *Session) IsActive() bool {
+	return !s.IsRevoked() && GetSession(s.ID) == s
+}
+
+type contextKey struct{}
+
+// WithContext binds a proxy request to the session instance that authenticated it.
+func (s *Session) WithContext(ctx context.Context) context.Context {
+	return context.WithValue(ctx, contextKey{}, s)
+}
+
+// FromContext returns the authenticated session, if one is bound to the context.
+func FromContext(ctx context.Context) *Session {
+	s, _ := ctx.Value(contextKey{}).(*Session)
+	return s
 }
 
 // SaveSessionMetadata adds session information to the file spool.
@@ -387,7 +407,7 @@ func CheckAuth(id, pw, hostIP, clientIP, agent string) bool {
 		Agent:    agent,
 	}
 
-	if s.revoked {
+	if s.IsRevoked() {
 		seclog.AuthnTokenReuse(ev)
 		return false
 	}

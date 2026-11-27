@@ -21,6 +21,7 @@ package proxy
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -61,6 +62,8 @@ type proxyData struct {
 	a *metadata.Artifact // the artifact to be inspected
 }
 
+var errDestinationDenied = errors.New("destination denied by proxy ACL")
+
 // HTTPProxy implements a proxy that inspects downloaded contents.
 type HTTPProxy struct {
 	port    int                      // tcp port the proxy is listening on
@@ -82,6 +85,7 @@ func NewHTTPProxy(port int, spool string, cert, key []byte, ch chan interface{})
 	}
 
 	basicAuth := func(req *http.Request, user, passwd string) bool {
+		s := session.GetSession(user)
 		req.Header.Set(sessionIDHeader, user)
 		rch := make(chan bool)
 		ch <- messages.ProxyAuth{
@@ -92,7 +96,11 @@ func NewHTTPProxy(port int, spool string, cert, key []byte, ch chan interface{})
 			ClientIP: utils.ClientIP(req),
 			Agent:    req.UserAgent(),
 		}
-		return <-rch
+		if !<-rch || s == nil || !s.IsActive() {
+			return false
+		}
+		*req = *req.WithContext(s.WithContext(req.Context()))
+		return true
 	}
 
 	p := HTTPProxy{
@@ -106,7 +114,15 @@ func NewHTTPProxy(port int, spool string, cert, key []byte, ch chan interface{})
 	//proxy.Verbose = true
 
 	// Set up proxy authentication
-	auth.ProxyBasic(proxy, authRealm, basicAuth)
+	proxy.OnRequest().Do(auth.Basic(authRealm, basicAuth))
+	connectAuth := auth.BasicConnect(authRealm, basicAuth)
+	proxy.OnRequest().HandleConnectFunc(func(host string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
+		action, host := connectAuth.HandleConnect(host, ctx)
+		if action == nil {
+			ctx.UserData = session.FromContext(ctx.Req.Context())
+		}
+		return action, host
+	})
 
 	// For every incoming request, override the RoundTripper to extract connection
 	// information and check ACLs.
@@ -164,7 +180,7 @@ func (p *HTTPProxy) Err() error {
 	return p.tomb.Err()
 }
 
-// processRoundTrip gets destination connection information to check ACLs.
+// processRoundTrip sets up a transport that checks ACLs before dialing.
 func (p *HTTPProxy) processRoundTrip(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
 	host, _, err := net.SplitHostPort(req.URL.Host)
 	if err != nil {
@@ -175,26 +191,34 @@ func (p *HTTPProxy) processRoundTrip(req *http.Request, ctx *goproxy.ProxyCtx) (
 	tr := transport.Transport{
 		Proxy:           proxyFromEnvironment,
 		TLSClientConfig: &tls.Config{ServerName: host},
+		Dial: func(network, address string) (net.Conn, error) {
+			return dialAllowed(req.Context(), network, address)
+		},
 	}
 
 	ctx.RoundTripper = goproxy.RoundTripperFunc(func(r *http.Request, ctx *goproxy.ProxyCtx) (*http.Response, error) {
-		details, resp, err := tr.DetailedRoundTrip(r)
-		if err != nil {
-			logger.Debugf("proxy: roundtrip error: %s", err)
-			return resp, err
+		resp, err := tr.RoundTrip(r)
+		if errors.Is(err, errDestinationDenied) {
+			return httpResponse(r, http.StatusForbidden, []byte("Access denied")), nil
 		}
-		ip := details.TCPAddr.IP
-		logger.Infof("proxy: request %s: IP address %s", r.URL.Host, ip.String())
-		logger.Debugf("proxy: check request acls for %s", r.URL.String())
-		if acl.Allowed(ip) {
-			logger.Infof("proxy: access to %s allowed", ip.String())
-		} else {
-			logger.Infof("proxy: access to %s blocked", ip.String())
-			resp = httpResponse(r, http.StatusForbidden, []byte("Access denied"))
-		}
-		return resp, nil
+		return resp, err
 	})
 	return req, nil
+}
+
+func dialAllowed(ctx context.Context, network, address string) (net.Conn, error) {
+	peer, err := net.ResolveTCPAddr(network, address)
+	if err != nil {
+		return nil, err
+	}
+	if !acl.Allowed(peer.IP) {
+		logger.Infof("proxy: access to %s blocked", peer.IP)
+		return nil, errDestinationDenied
+	}
+	// Dial the checked address, not the hostname, to avoid a second lookup
+	// changing which IP we connect to. When using an upstream proxy, this
+	// checks that proxy's IP; the upstream proxy controls its onward connection.
+	return (&net.Dialer{}).DialContext(ctx, network, peer.String())
 }
 
 // processRequest handles HTTP requests to the server.
@@ -202,22 +226,24 @@ func (p *HTTPProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 	logger.Debugf("proxy: process request: %s", req.URL.String())
 	requestHeader := copyHTTPHeader(req.Header)
 
-	if ctx.UserData != nil {
-		sessionID, ok := ctx.UserData.(string)
-		if ok {
-			// Set session ID in mitm requests
-			//logger.Debugf("set session ID header in mitm request to %s", sessionID)
-			req.Header.Set(sessionIDHeader, sessionID)
-		}
+	s, mitm := ctx.UserData.(*session.Session)
+	if !mitm {
+		s = session.FromContext(req.Context())
 	}
-
-	sid := req.Header.Get(sessionIDHeader)
+	if s == nil || !s.IsActive() {
+		return req, forbiddenResponse(req, "Session is no longer active")
+	}
+	if mitm {
+		req = req.WithContext(s.WithContext(req.Context()))
+		req.Header.Set(sessionIDHeader, s.ID)
+	}
+	sid := s.ID
 
 	a := metadata.NewArtifact()
 	a.Request = req
 	a.SessionID = sid
 
-	url := utils.NormalizedURL(req.URL)
+	url := req.URL.String()
 	a.CurrentDownload.StartTime = time.Now().UTC()
 	a.CurrentDownload.URL = url
 	a.CurrentDownload.Address = req.RemoteAddr
@@ -240,8 +266,7 @@ func (p *HTTPProxy) processRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*h
 	}
 
 	sl := a.Logger()
-	sec := session.GetSessionSecrets(sid)
-	injected, err := secrets.InjectSecrets(sec, url, req, sl)
+	injected, err := secrets.InjectSecrets(s.Secrets, url, req, sl)
 	if err != nil {
 		sl.Infof("cannot apply secrets to %s: %s", url, err)
 		if errors.Is(err, secrets.ErrKeystoneV3BodyTooLarge) {
