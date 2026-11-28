@@ -64,7 +64,7 @@ var (
 	proxyNewHTTPProxy = proxy.NewHTTPProxy
 	controlNewServer  = control.NewServer
 	fetchctlNewServer = fetchctl.NewServer
-	sessionNewWithID  = session.NewWithID
+	sessionNewWithID  = session.NewWithIDAndPassthrough
 )
 
 func New(opt *Options) (*Service, error) {

@@ -80,7 +80,7 @@ func MockProxyUpdateCert(mock func(bool, []byte, string, string) error) (restore
 	}
 }
 
-func MockSessionNewWithID(mock func(string, string, string, time.Duration, bool, []secrets.Secret, config.OverrideInspectorsConfig) *session.Session) (restorer func()) {
+func MockSessionNewWithID(mock func(string, string, string, time.Duration, bool, bool, []secrets.Secret, config.OverrideInspectorsConfig) *session.Session) (restorer func()) {
 	old := sessionNewWithID
 	sessionNewWithID = mock
 	return func() {

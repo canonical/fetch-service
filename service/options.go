@@ -20,12 +20,13 @@
 package service
 
 type Options struct {
-	ControlPort    int    // control api tcp port number
-	ProxyPort      int    // proxy tcp port number
-	Config         string // path to configuration file
-	Spool          string // path to the local file spool
-	PermissiveMode bool   // allow permissive sessions
-	KeyPath        string // path to proxy mitm ca key
-	CertPath       string // path to proxy mitm ca certificate
-	IdleShutdown   int    // Time in seconds to auto-shutdown if idle
+	ControlPort     int    // control api tcp port number
+	ProxyPort       int    // proxy tcp port number
+	Config          string // path to configuration file
+	Spool           string // path to the local file spool
+	PermissiveMode  bool   // allow permissive sessions
+	PassthroughMode bool   // allow passthrough sessions
+	KeyPath         string // path to proxy mitm ca key
+	CertPath        string // path to proxy mitm ca certificate
+	IdleShutdown    int    // Time in seconds to auto-shutdown if idle
 }

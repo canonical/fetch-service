@@ -10,6 +10,11 @@ if [[ "${permissive,,}" == "true" ]]; then
 else
 	permissive=""
 fi
+if [[ "$(snapctl get passthrough)" == "true" ]]; then
+	passthrough="--passthrough-mode"
+else
+	passthrough=""
+fi
 if [[ "$(snapctl get profile.enabled)" == "true" ]]; then
 	profile="--profile"
 else
@@ -62,4 +67,5 @@ exec "${SNAP}/bin/fetch" \
 	"--security-log-file=${SNAP_COMMON}/log/security.log" \
 	"${logging}" \
 	${profile} \
-	${permissive}
+	${permissive} \
+	${passthrough}

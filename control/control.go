@@ -42,6 +42,7 @@ import (
 type createSessionParameters struct {
 	Timeout          uint64                          `json:"timeout"`                  // Session timeout in seconds
 	Policy           string                          `json:"policy"`                   // Session policy ("strict" or "permissive")
+	Passthrough      bool                            `json:"passthrough"`              // Enable passthrough mode (forward requests without inspection)
 	Secrets          []secrets.Secret                `json:"secrets"`                  // Session secrets
 	InspectorsConfig config.OverrideInspectorsConfig `json:"inspectors-configuration"` // Session inspectors configuration
 }
@@ -152,9 +153,10 @@ func (c *Server) createSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Don't log the actual secrets, just how many
-	logger.Debugf("create session parameters: timeout=%v policy=%v secrets=%v\n", params.Timeout, params.Policy, len(params.Secrets))
+	logger.Debugf("create session parameters: timeout=%v policy=%v passthrough=%v secrets=%v\n", params.Timeout, params.Policy, params.Passthrough, len(params.Secrets))
 
 	msg := messages.NewCreateSession(params.Policy, params.Timeout, params.Secrets, params.InspectorsConfig)
+	msg.Passthrough = params.Passthrough
 	c.ch <- msg
 	cred := <-msg.Rch
 	if cred.Err != nil {

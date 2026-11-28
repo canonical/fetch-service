@@ -64,22 +64,24 @@ type Download struct {
 
 // SessionMetadata holds information about each session.
 type SessionMetadata struct {
-	Generator  string    `json:"generator"`         // The name of the generator of this metadata
-	Comment    string    `json:"comment,omitempty"` // Free-form comment text
-	SessionID  string    `json:"session-id"`        // The unique session ID
-	StartTime  time.Time `json:"start-time"`        // When the session started (UTC)
-	EndTime    time.Time `json:"end-time"`          // When the session finished (UTC)
-	Inspectors []string  `json:"inspectors"`        // A list of registered inspector IDs
-	SpoolPath  string    `json:"spool-path"`        // The filesystem path to session artifacts
-	Policy     string    `json:"policy"`            // Session policy (strict or permissive)
-	Err        error     `json:"-"`
+	Generator   string    `json:"generator"`             // The name of the generator of this metadata
+	Comment     string    `json:"comment,omitempty"`     // Free-form comment text
+	SessionID   string    `json:"session-id"`            // The unique session ID
+	StartTime   time.Time `json:"start-time"`            // When the session started (UTC)
+	EndTime     time.Time `json:"end-time"`              // When the session finished (UTC)
+	Inspectors  []string  `json:"inspectors"`            // A list of registered inspector IDs
+	SpoolPath   string    `json:"spool-path"`            // The filesystem path to session artifacts
+	Policy      string    `json:"policy"`                // Session policy (strict or permissive)
+	Passthrough bool      `json:"passthrough,omitempty"` // Whether passthrough mode is enabled
+	Err         error     `json:"-"`
 }
 
 // SessionInfo contains brief information to be listed in service status.
 type SessionInfo struct {
-	SessionID string `json:"session-id"` // session ID
-	StartTime string `json:"start-time"` // session start timestamp
-	Policy    string `json:"policy"`     // session policy ("strict" or "permissive")
-	Age       uint64 `json:"age"`        // session age in seconds
-	Timeout   uint64 `json:"timeout"`    // session timeout in seconds
+	SessionID   string `json:"session-id"`            // session ID
+	StartTime   string `json:"start-time"`            // session start timestamp
+	Policy      string `json:"policy"`                // session policy ("strict" or "permissive")
+	Passthrough bool   `json:"passthrough,omitempty"` // whether passthrough mode is enabled
+	Age         uint64 `json:"age"`                   // session age in seconds
+	Timeout     uint64 `json:"timeout"`               // session timeout in seconds
 }

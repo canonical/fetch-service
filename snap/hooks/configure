@@ -30,6 +30,7 @@ coerce_bool(){
 
 coerce_lower verbosity
 coerce_bool permissive
+coerce_bool passthrough
 coerce_bool profile.enabled
 
 set_default proxy.port 9988

@@ -20,6 +20,7 @@
 package session
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -28,6 +29,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/canonical/fetch-service/secrets"
@@ -50,6 +52,7 @@ const (
 
 var (
 	ErrInvalidSessionPolicy                  = errors.New("Invalid session policy")
+	ErrPassthroughNotAllowed                 = errors.New("Passthrough mode is not allowed")
 	ErrInvalidSessionInspectorsConfiguration = errors.New("Invalid inspectors configuration")
 
 	ExpiredSessionID = make(chan string, 1)
@@ -64,6 +67,7 @@ type Session struct {
 	Insps         inspectors.Inspectors
 	A             map[digests.Sha256Digest]*metadata.Artifact
 	Permissive    bool          // whether this is a permissive session
+	Passthrough   bool          // whether this is a passthrough session
 	SessionDir    string        // the session path including spool
 	CacheDir      string        // location of session-specific cache
 	Timeout       time.Duration // maximum time allowed for a session
@@ -72,7 +76,7 @@ type Session struct {
 	Secrets       []secrets.Secret // Per-session secrets
 
 	timer   *sessionTimer // timeout to auto-finish an idle session
-	revoked bool          // session token has been revoked
+	revoked atomic.Bool   // session token has been revoked
 }
 
 var (
@@ -83,14 +87,21 @@ var (
 // New creates a session that stores artifact data and metadata under
 // spoolDir. The session is automatically finished if it times out.
 func New(spoolDir string, timeout time.Duration, permissive bool, secrets []secrets.Secret, inspectorsConfig config.OverrideInspectorsConfig) *Session {
-	sessionID := makeSessionID()
-	token := randomString(20)
-
-	return NewWithID(sessionID, token, spoolDir, timeout, permissive, secrets, inspectorsConfig)
+	return NewWithPassthrough(spoolDir, timeout, permissive, false, secrets, inspectorsConfig)
 }
 
 // NewWithID creates a session using the specified sessionID and token.
 func NewWithID(sessionID, token, spoolDir string, timeout time.Duration, permissive bool, secrets []secrets.Secret, inspectorsConfig config.OverrideInspectorsConfig) *Session {
+	return NewWithIDAndPassthrough(sessionID, token, spoolDir, timeout, permissive, false, secrets, inspectorsConfig)
+}
+
+// NewWithPassthrough creates a session with the specified policy and passthrough mode.
+func NewWithPassthrough(spoolDir string, timeout time.Duration, permissive, passthrough bool, secrets []secrets.Secret, inspectorsConfig config.OverrideInspectorsConfig) *Session {
+	return NewWithIDAndPassthrough(makeSessionID(), randomString(20), spoolDir, timeout, permissive, passthrough, secrets, inspectorsConfig)
+}
+
+// NewWithIDAndPassthrough creates a session using the specified sessionID, token, policy, and passthrough mode.
+func NewWithIDAndPassthrough(sessionID, token, spoolDir string, timeout time.Duration, permissive, passthrough bool, secrets []secrets.Secret, inspectorsConfig config.OverrideInspectorsConfig) *Session {
 	_, ok := sessions.Load(sessionID)
 	if ok {
 		id := makeSessionID()
@@ -108,6 +119,7 @@ func NewWithID(sessionID, token, spoolDir string, timeout time.Duration, permiss
 		Start:         time.Now().UTC(),
 		A:             map[digests.Sha256Digest]*metadata.Artifact{},
 		Permissive:    permissive,
+		Passthrough:   passthrough,
 		SessionDir:    filepath.Join(spoolDir, sessionID),
 		CacheDir:      filepath.Join(spoolDir, sessionID, "cache"),
 		Timeout:       timeout,
@@ -116,13 +128,14 @@ func NewWithID(sessionID, token, spoolDir string, timeout time.Duration, permiss
 		Secrets:       secrets,
 	}
 
-	cfg := config.GetInspectorsConfig()
-	cfg.Combine(inspectorsConfig)
-	s.Insps = inspectors.New(permissive, cfg)
-
-	var sType = "strict"
-	if permissive {
-		sType = "permissive"
+	if !s.Passthrough {
+		cfg := config.GetInspectorsConfig()
+		cfg.Combine(inspectorsConfig)
+		s.Insps = inspectors.New(s.Permissive, cfg)
+	}
+	sType := s.Policy()
+	if s.Passthrough {
+		sType += " passthrough"
 	}
 	s.Logger.Infof("create %s session, timeout = %s", sType, timeout)
 
@@ -132,24 +145,25 @@ func NewWithID(sessionID, token, spoolDir string, timeout time.Duration, permiss
 	return s
 }
 
-func (s *Session) Metadata() *metadata.SessionMetadata {
-	var policy string
+func (s *Session) Policy() string {
 	if s.Permissive {
-		policy = "permissive"
-	} else {
-		policy = "strict"
+		return "permissive"
 	}
+	return "strict"
+}
 
+func (s *Session) Metadata() *metadata.SessionMetadata {
 	return &metadata.SessionMetadata{
-		Generator:  fmt.Sprintf("fetch-service %s", version.Version),
-		Policy:     policy,
-		Comment:    "Metadata format is unstable and may change without prior notice.",
-		SessionID:  s.ID,
-		StartTime:  s.Start,
-		EndTime:    s.End,
-		Inspectors: s.Insps.List(),
-		SpoolPath:  s.SessionDir,
-		Err:        nil,
+		Generator:   fmt.Sprintf("fetch-service %s", version.Version),
+		Policy:      s.Policy(),
+		Passthrough: s.Passthrough,
+		Comment:     "Metadata format is unstable and may change without prior notice.",
+		SessionID:   s.ID,
+		StartTime:   s.Start,
+		EndTime:     s.End,
+		Inspectors:  s.Insps.List(),
+		SpoolPath:   s.SessionDir,
+		Err:         nil,
 	}
 }
 
@@ -189,14 +203,32 @@ func (s *Session) Revoke(token string) bool {
 		return false
 	}
 	s.Logger.Debug("token revoked")
-	s.revoked = true
 	s.End = time.Now().UTC()
+	s.revoked.Store(true)
 	return true
 }
 
 // IsRevoked returns whether the session token has been revoked.
 func (s *Session) IsRevoked() bool {
-	return s.revoked
+	return s.revoked.Load()
+}
+
+// IsActive reports whether this exact session is still registered and authorized.
+func (s *Session) IsActive() bool {
+	return !s.IsRevoked() && GetSession(s.ID) == s
+}
+
+type contextKey struct{}
+
+// WithContext binds a proxy request to the session instance that authenticated it.
+func (s *Session) WithContext(ctx context.Context) context.Context {
+	return context.WithValue(ctx, contextKey{}, s)
+}
+
+// FromContext returns the authenticated session, if one is bound to the context.
+func FromContext(ctx context.Context) *Session {
+	s, _ := ctx.Value(contextKey{}).(*Session)
+	return s
 }
 
 // SaveSessionMetadata adds session information to the file spool.
@@ -387,7 +419,7 @@ func CheckAuth(id, pw, hostIP, clientIP, agent string) bool {
 		Agent:    agent,
 	}
 
-	if s.revoked {
+	if s.IsRevoked() {
 		seclog.AuthnTokenReuse(ev)
 		return false
 	}
@@ -443,19 +475,13 @@ func SessionInfos() []metadata.SessionInfo {
 		id := key.(string)
 		s := value.(*Session)
 
-		var policy string
-		if s.Permissive {
-			policy = "permissive"
-		} else {
-			policy = "strict"
-		}
-
 		res = append(res, metadata.SessionInfo{
-			SessionID: id,
-			StartTime: s.Start.String(),
-			Policy:    policy,
-			Age:       uint64(time.Since(s.Start).Seconds()),
-			Timeout:   uint64(s.Timeout.Seconds()),
+			SessionID:   id,
+			StartTime:   s.Start.String(),
+			Policy:      s.Policy(),
+			Passthrough: s.Passthrough,
+			Age:         uint64(time.Since(s.Start).Seconds()),
+			Timeout:     uint64(s.Timeout.Seconds()),
 		})
 		return true
 	})
